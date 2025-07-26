@@ -4,6 +4,11 @@ from typing import TypedDict
 
 import attrs
 
+# ============================================================================
+# AGD JSON File Types
+# ============================================================================
+# These types match the structure of JSON files from AnimeGameData
+
 type TextMap = dict[str, str]
 """Dictionary mapping string IDs to localized text content.
 
@@ -107,8 +112,63 @@ Example file: ExcelBinOutput/MaterialExcelConfigData.json
 """
 
 
+class QuestTalkRole(TypedDict):
+    """Type definition for quest talk role."""
+
+    type: str
+    _id: str
+
+
+class QuestDialogItem(TypedDict):
+    """Type definition for individual quest dialog entries."""
+
+    id: int
+    nextDialogs: list[int]
+    talkRole: QuestTalkRole
+    talkContentTextMapHash: int
+    talkAssetPath: str
+    talkAssetPathAlter: str
+    talkAudioName: str
+    actionBefore: str
+    actionWhile: str
+    actionAfter: str
+    optionIcon: str
+    iconPath: str
+
+
+class QuestData(TypedDict):
+    """Quest data structure containing dialog list and metadata.
+
+    Example file: BinOutput/Talk/Quest/7407811.json
+    """
+
+    talkId: int
+    dialogList: list[QuestDialogItem]
+
+
+# ============================================================================
+# Istorath Internal Types
+# ============================================================================
+# These types are defined and used within our codebase for processed data
+
+
 @attrs.define
 class ReadableMetadata:
     """Metadata for a readable item."""
 
     title: str
+
+
+@attrs.define
+class QuestText:
+    """Individual quest dialog text."""
+
+    role: str
+    message: str
+
+
+@attrs.define
+class QuestInfo:
+    """Quest information with dialog text."""
+
+    text: list[QuestText]

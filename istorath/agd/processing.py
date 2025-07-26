@@ -44,3 +44,46 @@ def get_readable_metadata(
         raise ValueError(f"Title not found for title hash: {title_hash}")
 
     return types.ReadableMetadata(title=title)
+
+
+def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestInfo:
+    """Retrieve quest information from quest file."""
+    # Load quest data
+    quest_data = data_repo.load_quest_data(quest_path)
+    dialog_list = quest_data["dialogList"]
+
+    # Load supporting data
+    npc_data = data_repo.load_npc_excel_config_data()
+    text_map = data_repo.load_text_map("CHS")
+
+    # Create NPC ID to name mapping
+    npc_id_to_name = {}
+    for npc in npc_data:
+        npc_id = str(npc["id"])
+        name_hash = str(npc["nameTextMapHash"])
+        if name_hash in text_map:
+            npc_id_to_name[npc_id] = text_map[name_hash]
+
+    # Process dialog items
+    quest_texts = []
+    for dialog_item in dialog_list:
+        talk_role = dialog_item["talkRole"]
+        content_hash = str(dialog_item["talkContentTextMapHash"])
+
+        # Determine role name
+        if talk_role["type"] == "TALK_ROLE_NPC":
+            npc_id = talk_role["_id"]
+            role = npc_id_to_name.get(npc_id, f"Unknown NPC ({npc_id})")
+        elif talk_role["type"] == "TALK_ROLE_PLAYER":
+            role = "旅行者"
+        elif talk_role["type"] == "TALK_ROLE_NEED_CLICK_BLACK_SCREEN":
+            role = "黑屏文本"
+        else:
+            role = f"Unknown Role ({talk_role['type']})"
+
+        # Get message text
+        message = text_map.get(content_hash, f"Missing text ({content_hash})")
+
+        quest_texts.append(types.QuestText(role=role, message=message))
+
+    return types.QuestInfo(text=quest_texts)

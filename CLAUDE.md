@@ -42,6 +42,7 @@ istorath/
 
 ## Project Conventions
 - ALWAYS use full import path starting from istorath.
+- ALWAYS run things from the root of the repo
 
 ## Code Best Practices
 - NEVER re-export symbols from child modules in the parent package
