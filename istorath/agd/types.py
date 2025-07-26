@@ -6,13 +6,14 @@ import attrs
 
 type TextMap = dict[str, str]
 """Dictionary mapping string IDs to localized text content.
-    
+
 Example file: TextMap/TextMapCHS.json
 """
 
 
 class NpcExcelConfigDataItem(TypedDict):
     """Type definition for individual NPC configuration entries."""
+
     jsonName: str
     alias: str
     scriptDataPath: str
@@ -38,6 +39,7 @@ Example file: ExcelBinOutput/NpcExcelConfigData.json
 
 class LocalizationExcelConfigDataItem(TypedDict):
     """Type definition for localization configuration entries."""
+
     id: int
     assetType: str
     defaultPath: str
@@ -67,6 +69,7 @@ Example file: ExcelBinOutput/LocalizationExcelConfigData.json
 
 class DocumentExcelConfigDataItem(TypedDict):
     """Type definition for document configuration entries."""
+
     id: int
     titleTextMapHash: int
     contentTextMapHash: int
@@ -86,6 +89,7 @@ Example file: ExcelBinOutput/DocumentExcelConfigData.json
 
 class MaterialExcelConfigDataItem(TypedDict):
     """Type definition for material configuration entries."""
+
     id: int
     nameTextMapHash: int
     descTextMapHash: int
@@ -106,4 +110,5 @@ Example file: ExcelBinOutput/MaterialExcelConfigData.json
 @attrs.define
 class ReadableMetadata:
     """Metadata for a readable item."""
+
     title: str
