@@ -1,0 +1,7 @@
+# Core dependencies for Istorath project
+# Add your main project dependencies here
+
+# Development dependencies
+pip-tools
+pre-commit
+mypy
