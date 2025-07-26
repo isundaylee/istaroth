@@ -7,7 +7,7 @@ name = "istorath"
 version = "0.1.0"
 description = "Pipeline for extracting, cleaning, and structuring textual content from Genshin Impact for RAG"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 license = {text = "MIT"}
 dependencies = []
 
@@ -19,7 +19,7 @@ dev = [
 ]
 
 [tool.mypy]
-python_version = "3.8"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
