@@ -2,8 +2,11 @@
 
 from typing import TypedDict
 
-# TextMap is simply a dictionary mapping string IDs to string values
 type TextMap = dict[str, str]
+"""Dictionary mapping string IDs to localized text content.
+    
+Example file: TextMap/TextMapCHS.json
+"""
 
 
 class NpcExcelConfigDataItem(TypedDict):
@@ -24,5 +27,8 @@ class NpcExcelConfigDataItem(TypedDict):
     lodPatternName: str
 
 
-# NpcExcelConfigData is a list of NPC configuration items
 type NpcExcelConfigData = list[NpcExcelConfigDataItem]
+"""List of NPC configuration items from Excel data.
+
+Example file: ExcelBinOutput/NpcExcelConfigData.json
+"""

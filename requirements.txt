@@ -4,6 +4,8 @@
 #
 #    pip-compile requirements.in
 #
+attrs==25.3.0
+    # via -r requirements.in
 build==1.2.2.post1
     # via pip-tools
 cfgv==3.4.0
