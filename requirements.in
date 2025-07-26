@@ -6,3 +6,4 @@ pip-tools
 pre-commit
 mypy
 attrs
+pytest

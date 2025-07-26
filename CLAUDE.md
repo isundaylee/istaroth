@@ -39,3 +39,20 @@ istorath/
 
 ## Project Terminology
 - `<AGD>` is used to refer to a separate AnimeGameData path containing the actual data extracted from the game.
+
+## Project Conventions
+- ALWAYS use full import path starting from istorath.
+
+## Code Best Practices
+- NEVER re-export symbols from child modules in the parent package
+- ALWAYS use modern features as available in Python 3.12
+- NEVER import individual symbols from modules and ALWAYS use module-level imports only; exceptions: it is okay to import individual symbols from the typing stdlib package.
+- NEVER use TYPE_CHECKING conditional imports
+- Write very concise docstring; don't list all args & return values when they are self-explanatory from the function signature and names
+
+## Import Conventions
+- ALWAYS import istorath.agd.types aliased as agd_types outside istorath.agd; but import is normally as from istorath.agd import types when inside the istorath.agd package.
+- ALWAYS use from packaeg.subpackage import module import syntax; e.g. from istorath.agd import processing
+
+## Functional Programming Guidelines
+- Pass arguments that are not primary inputs to the function itself but rather toolkit objects (e.g. DataRepo) as kw-only args
