@@ -36,3 +36,6 @@ istorath/
 ├── pyproject.toml     # Project configuration and mypy settings
 └── README.md          # Project documentation
 ```
+
+## Project Terminology
+- `<AGD>` is used to refer to a separate AnimeGameData path containing the actual data extracted from the game.
