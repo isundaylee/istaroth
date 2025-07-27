@@ -83,6 +83,9 @@ def generate_readable_content(
                     click.echo(f"✗ {readable_path} -> ERROR: {e}")
                 error_count += 1
 
+            # Update progress bar with error count
+            pbar.set_postfix({"errors": error_count})
+
     return success_count, error_count
 
 
@@ -127,6 +130,9 @@ def generate_quest_content(
                 if verbose:
                     click.echo(f"✗ {quest_path} -> ERROR: {e}")
                 error_count += 1
+
+            # Update progress bar with error count
+            pbar.set_postfix({"errors": error_count})
 
     return success_count, error_count
 
