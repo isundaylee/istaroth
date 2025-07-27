@@ -136,10 +136,10 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
     # Load text map for title resolution
     text_map = data_repo.load_text_map()
 
-    # Resolve quest title from description hash, fallback to title hash
+    # Resolve quest title from title hash, fallback to description hash
     if (
         title_hash := quest_data.get(
-            "descTextMapHash", quest_data.get("titleTextMapHash")
+            "titleTextMapHash", quest_data.get("descTextMapHash")
         )
     ) is None:
         raise ValueError(f"Could not find title for quest {quest_data['id']}")
