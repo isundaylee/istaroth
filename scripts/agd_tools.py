@@ -12,7 +12,12 @@ from tqdm import tqdm
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from istorath.agd import processing, rendering, repo
-from istorath.agd.renderable_types import BaseRenderableType, Quests, Readables
+from istorath.agd.renderable_types import (
+    BaseRenderableType,
+    Quests,
+    Readables,
+    UnusedTexts,
+)
 
 
 def _generate_content(
@@ -78,11 +83,13 @@ def cli() -> None:
 @click.argument("output_dir", type=click.Path(path_type=pathlib.Path))  # type: ignore[misc]
 @click.option("--readable/--no-readable", default=True, help="Generate readable content")  # type: ignore[misc]
 @click.option("--quest/--no-quest", default=True, help="Generate quest content")  # type: ignore[misc]
+@click.option("--unused-texts/--no-unused-texts", default=True, help="Generate unused text map entries")  # type: ignore[misc]
 @click.option("--verbose", "-v", is_flag=True, help="Show verbose output")  # type: ignore[misc]
 def generate_all(
     output_dir: pathlib.Path,
     readable: bool,
     quest: bool,
+    unused_texts: bool,
     verbose: bool,
 ) -> None:
     """Generate all readable and quest content into RAG-suitable text files.
@@ -132,23 +139,21 @@ def generate_all(
             if not verbose:
                 click.echo(f"Quest: {success} success, {error} errors")
 
-    # Dump unused text map entries
-    text_map_tracker = data_repo.load_text_map()
-    unused_entries = text_map_tracker.get_unused_entries()
-    total_entries = len(text_map_tracker._text_map)
-    unused_percentage = (
-        (len(unused_entries) / total_entries) * 100 if total_entries > 0 else 0
-    )
-
-    unused_file_path = output_dir / "unused_text_map.txt"
-    with unused_file_path.open("w", encoding="utf-8") as unused_file:
-        for text_id, content in unused_entries.items():
-            unused_file.write(f"{text_id}: {content}\n")
+        if unused_texts:
+            success, error = _generate_content(
+                UnusedTexts(),
+                output_dir / "unused_texts",
+                "Generating unused text entries",
+                data_repo=data_repo,
+                verbose=verbose,
+                errors_file=errors_file,
+            )
+            total_success += success
+            total_error += error
+            if not verbose:
+                click.echo(f"Unused texts: {success} success, {error} errors")
 
     click.echo(f"\nTotal: {total_success} files generated, {total_error} errors")
-    click.echo(
-        f"Unused text map entries: {len(unused_entries)}/{total_entries} ({unused_percentage:.1f}%) saved to {unused_file_path}"
-    )
 
     if total_error > 0:
         click.echo(f"Detailed errors written to {errors_file_path}")

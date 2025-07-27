@@ -238,6 +238,13 @@ class QuestInfo:
 
 
 @attrs.define
+class UnusedTextMapInfo:
+    """Information about unused text map entries."""
+
+    unused_entries: dict[str, str]
+
+
+@attrs.define
 class RenderedItem:
     """Rendered content suitable for RAG training."""
 

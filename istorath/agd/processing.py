@@ -194,3 +194,10 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
         talks=subquest_talk_infos,
         non_subquest_talks=non_subquest_talk_infos,
     )
+
+
+def get_unused_text_map_info(*, data_repo: repo.DataRepo) -> types.UnusedTextMapInfo:
+    """Get unused text map entries from the data repository."""
+    text_map_tracker = data_repo.load_text_map()
+    unused_entries = text_map_tracker.get_unused_entries()
+    return types.UnusedTextMapInfo(unused_entries=unused_entries)
