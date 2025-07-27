@@ -248,21 +248,6 @@ def generate_all(
 
     click.echo(f"\nTotal: {total_success} files generated, {total_error} errors")
 
-    # Display text map usage summary
-    text_map_tracker = data_repo.load_text_map()
-    unused_entries = text_map_tracker.get_unused_entries()
-    total_entries = len(text_map_tracker._text_map)
-    used_entries = len(text_map_tracker._accessed_ids)
-    unused_count = len(unused_entries)
-
-    usage_percentage = (used_entries / total_entries * 100) if total_entries > 0 else 0
-    unused_percentage = (unused_count / total_entries * 100) if total_entries > 0 else 0
-
-    click.echo(f"\nText Map Usage Summary:")
-    click.echo(f"Total entries: {total_entries}")
-    click.echo(f"Used entries: {used_entries} ({usage_percentage:.1f}%)")
-    click.echo(f"Unused entries: {unused_count} ({unused_percentage:.1f}%)")
-
     if total_error > 0:
         click.echo(f"\nDetailed errors written to {errors_file_path}")
     else:
