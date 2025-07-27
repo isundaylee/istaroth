@@ -72,7 +72,7 @@ def get_readable_metadata(
 
     # Step 3: Get title from document's titleTextMapHash
     title_hash = str(doc_entry["titleTextMapHash"])
-    title = text_map.get(title_hash)
+    title = text_map.get_optional(title_hash)
 
     if title is None:
         raise ValueError(f"Title not found for title hash: {title_hash}")

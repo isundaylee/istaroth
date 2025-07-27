@@ -10,6 +10,45 @@ import attrs
 from istorath.agd import types
 
 
+class TextMapTracker:
+    """Wrapper around TextMap that tracks which text IDs have been accessed."""
+
+    def __init__(self, text_map: types.TextMap) -> None:
+        self._text_map = text_map
+        self._accessed_ids: set[str] = set()
+
+    def __getitem__(self, key: str) -> str:
+        """Get text by ID and track access."""
+        self._accessed_ids.add(key)
+        return self._text_map[key]
+
+    def __contains__(self, key: str) -> bool:
+        """Check if key exists without tracking access."""
+        return key in self._text_map
+
+    def get(self, key: str, default: str) -> str:
+        """Get text by ID with default, tracks access if key exists."""
+        if key in self._text_map:
+            self._accessed_ids.add(key)
+            return self._text_map[key]
+        return default
+
+    def get_optional(self, key: str) -> str | None:
+        """Get text by ID, returns None if not found."""
+        if key in self._text_map:
+            self._accessed_ids.add(key)
+            return self._text_map[key]
+        return None
+
+    def get_unused_entries(self) -> dict[str, str]:
+        """Return dictionary of unused text map entries."""
+        return {
+            text_id: content
+            for text_id, content in self._text_map.items()
+            if text_id not in self._accessed_ids
+        }
+
+
 @attrs.frozen
 class DataRepo:
     """Repository for loading AnimeGameData files."""
@@ -30,12 +69,12 @@ class DataRepo:
         return cls(agd_path, language=language)
 
     @functools.lru_cache(maxsize=None)
-    def load_text_map(self) -> types.TextMap:
+    def load_text_map(self) -> TextMapTracker:
         """Load TextMap file for the instance's language."""
         file_path = self.agd_path / "TextMap" / f"TextMap{self.language}.json"
         with open(file_path, encoding="utf-8") as f:
             data: types.TextMap = json.load(f)
-            return data
+            return TextMapTracker(data)
 
     @functools.lru_cache(maxsize=None)
     def load_npc_excel_config_data(self) -> types.NpcExcelConfigData:
