@@ -27,10 +27,12 @@ def _get_files_to_process(path: pathlib.Path) -> list[pathlib.Path]:
 
 
 @click.command()  # type: ignore[misc]
-@click.argument("path", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
+@click.option("--add-documents", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
 @click.option("--query", default="Archon", help="Search query to test")  # type: ignore[misc]
 @click.option("--save-path", type=click.Path(path_type=pathlib.Path), help="Path to save/load document store")  # type: ignore[misc]
-def main(path: pathlib.Path, query: str, save_path: pathlib.Path | None) -> None:
+def main(
+    add_documents: pathlib.Path | None, query: str, save_path: pathlib.Path | None
+) -> None:
     """Test the DocumentStore with content from a file or folder."""
 
     # Create document store
@@ -42,30 +44,35 @@ def main(path: pathlib.Path, query: str, save_path: pathlib.Path | None) -> None
         store.load(save_path)
         print(f"Loaded store with {store.num_documents} existing documents")
 
-    try:
-        with tqdm(
-            _get_files_to_process(path), desc="Adding documents", unit="file"
-        ) as pbar:
-            for file_path in pbar:
-                pbar.set_postfix(file=file_path.name)
-                with open(file_path, "r", encoding="utf-8") as f:
-                    content = f.read()
+    if add_documents is not None:
+        try:
+            with tqdm(
+                _get_files_to_process(add_documents),
+                desc="Adding documents",
+                unit="file",
+            ) as pbar:
+                for file_path in pbar:
+                    pbar.set_postfix(file=file_path.name)
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        content = f.read()
 
-                metadata = {
-                    "source": str(file_path),
-                    "type": "test_document",
-                    "filename": file_path.name,
-                }
-                # Use file path as unique key
-                store.add_text(content.strip(), key=str(file_path), metadata=metadata)
-    finally:
-        print(f"\nTotal documents in store: {store.num_documents}")
+                    metadata = {
+                        "source": str(file_path),
+                        "type": "test_document",
+                        "filename": file_path.name,
+                    }
+                    # Use file path as unique key
+                    store.add_text(
+                        content.strip(), key=str(file_path), metadata=metadata
+                    )
+        finally:
+            print(f"\nTotal documents in store: {store.num_documents}")
 
-        # Save state if save path is provided
-        if save_path:
-            print(f"Saving document store to: {save_path}")
-            save_path.mkdir(exist_ok=True)
-            store.save(save_path)
+            # Save state if save path is provided
+            if save_path:
+                print(f"Saving document store to: {save_path}")
+                save_path.mkdir(exist_ok=True)
+                store.save(save_path)
 
     # Test search functionality
     print(f"\nSearching for: '{query}'")
