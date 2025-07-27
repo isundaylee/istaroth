@@ -48,7 +48,12 @@ def main(path: pathlib.Path, query: str) -> None:
                     "type": "test_document",
                     "filename": file_path.name,
                 }
-                store.add_text(content.strip(), metadata=metadata)
+                # Use file path as unique key
+                was_added = store.add_text(
+                    content.strip(), key=str(file_path), metadata=metadata
+                )
+                if not was_added:
+                    tqdm.write(f"Skipped {file_path.name} (already added)")
 
             except Exception as e:
                 tqdm.write(f"Error reading {file_path.name}: {e}")

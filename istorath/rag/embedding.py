@@ -33,12 +33,19 @@ class DocumentStore:
         self._vector_store.delete(
             list(self._vector_store.index_to_docstore_id.values())
         )
+        # Track added texts by key to prevent duplicates
+        self._added_texts: set[str] = set()
 
-    def add_text(self, content: str, metadata: Optional[dict] = None) -> None:
-        """Add text content to the document store."""
+    def add_text(self, content: str, key: str, metadata: Optional[dict] = None) -> bool:
+        """Add text content to the document store. Returns False if key already exists."""
+        if key in self._added_texts:
+            return False
+
         chunks = self._text_splitter.split_text(content)
         metadatas = [metadata or {} for _ in chunks]
         self._vector_store.add_texts(texts=chunks, metadatas=metadatas)
+        self._added_texts.add(key)
+        return True
 
     def search(self, query: str, k: int = 5) -> list[tuple[str, float]]:
         """Search for similar documents."""
