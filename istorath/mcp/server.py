@@ -65,7 +65,7 @@ class IstorathrMCPServer:
 
 def create_server() -> Server:
     """Create and configure the MCP server."""
-    server_instance = Server("istorath-rag")
+    server_instance: Server = Server("istorath-rag")
     istorath_server = IstorathrMCPServer()
 
     @server_instance.list_tools()  # type: ignore[misc]

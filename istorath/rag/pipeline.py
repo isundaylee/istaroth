@@ -120,7 +120,7 @@ class RAGPipeline:
 
         # Extract answer text
         if isinstance(response, messages.AIMessage):
-            answer = response.content
+            answer = str(response.content)
         elif isinstance(response, str):
             answer = response
         else:

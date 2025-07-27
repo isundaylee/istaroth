@@ -78,3 +78,6 @@ Optional environment variables:
 - `LANGSMITH_ENDPOINT`: Custom LangSmith endpoint (defaults to https://api.smith.langchain.com)
 
 Tracing is automatically enabled when all required environment variables are set.
+
+## Development Conventions
+- ALWAYS invoke mypy as env/bin/mypy
