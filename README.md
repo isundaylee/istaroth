@@ -18,7 +18,7 @@ A checkpoint currently mainly consists of the vectorstore containing cleaned gam
 #### Checkpoint Training
 
 - Set AGD path: `export AGD_PATH="/path/to/AnimeGameData"`
-- Process AGD data: `scripts/generate.py /path/to/text/files` to extract and clean text files
+- Process AGD data: `scripts/agd_tools.py generate-all /path/to/text/files` to extract and clean text files
 - Add documents: `scripts/rag_tools.py add-documents /path/to/text/files`
 
 ### Running Queries
