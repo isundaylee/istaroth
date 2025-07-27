@@ -46,3 +46,33 @@ def render_talk(talk: types.TalkInfo) -> types.RenderedItem:
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(filename=filename, content=rendered_content)
+
+
+def render_quest(quest: types.QuestInfo) -> types.RenderedItem:
+    """Render quest information into RAG-suitable format."""
+    # Generate filename based on first talk's content
+    if quest.talks and quest.talks[0].text:
+        first_message = next(
+            (text.message for text in quest.talks[0].text if text.message.strip()),
+            "unknown_quest",
+        )
+        # Take first 50 characters and clean for filename
+        safe_title = re.sub(r"[^\w\s-]", "", first_message[:50])
+        safe_title = re.sub(r"\s+", "_", safe_title.strip())
+        filename = f"quest_{safe_title}.txt"
+    else:
+        filename = "quest_empty.txt"
+
+    # Format content with quest header and all talks
+    content_lines = ["# Quest Dialog\n"]
+
+    for i, talk in enumerate(quest.talks, 1):
+        if i > 1:
+            content_lines.append(f"\n## Talk {i}\n")
+
+        for talk_text in talk.text:
+            content_lines.append(f"{talk_text.role}: {talk_text.message}")
+
+    rendered_content = "\n".join(content_lines)
+
+    return types.RenderedItem(filename=filename, content=rendered_content)

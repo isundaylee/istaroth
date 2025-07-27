@@ -66,5 +66,26 @@ def talk(talk_path: str) -> None:
         sys.exit(1)
 
 
+@cli.command()  # type: ignore[misc]
+@click.argument("quest_path")  # type: ignore[misc]
+def quest(quest_path: str) -> None:
+    """Render quest dialog from the given path."""
+    try:
+        data_repo = repo.DataRepo.from_env()
+
+        # Get quest info
+        quest_info = processing.get_quest_info(quest_path, data_repo=data_repo)
+
+        # Render the quest
+        rendered = rendering.render_quest(quest_info)
+
+        # Output only the content
+        click.echo(rendered.content)
+
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     cli()
