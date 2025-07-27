@@ -197,6 +197,16 @@ class QuestData(TypedDict):
 
 
 @attrs.define
+class LocalizedRoleNames:
+    """Localized names for various talk roles."""
+
+    player: str
+    black_screen: str
+    unknown_npc: str
+    unknown_role: str
+
+
+@attrs.define
 class ReadableMetadata:
     """Metadata for a readable item."""
 

@@ -16,10 +16,10 @@ from istorath.agd import processing, rendering, repo
 
 def find_readable_files(data_repo: repo.DataRepo) -> Iterator[str]:
     """Find all readable files in the AGD repository."""
-    readable_dir = data_repo.agd_path / "Readable" / "CHS"
+    readable_dir = data_repo.agd_path / "Readable" / data_repo.language
     if readable_dir.exists():
         for txt_file in readable_dir.glob("*.txt"):
-            yield f"Readable/CHS/{txt_file.name}"
+            yield f"Readable/{data_repo.language}/{txt_file.name}"
 
 
 def find_quest_files(data_repo: repo.DataRepo) -> Iterator[str]:
@@ -267,13 +267,13 @@ def list_readables() -> None:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
-    readable_dir = data_repo.agd_path / "Readable" / "CHS"
+    readable_dir = data_repo.agd_path / "Readable" / data_repo.language
 
     if not readable_dir.exists():
         click.echo(f"Error: Directory {readable_dir} does not exist", err=True)
         sys.exit(1)
 
-    click.echo("Readable Metadata:")
+    click.echo(f"Readable Metadata ({data_repo.language}):")
     click.echo("=" * 50)
 
     # Find all .txt files in the readable directory
@@ -283,7 +283,7 @@ def list_readables() -> None:
     error_count = 0
 
     for txt_file in txt_files:
-        relative_path = f"Readable/CHS/{txt_file.name}"
+        relative_path = f"Readable/{data_repo.language}/{txt_file.name}"
         try:
             metadata = processing.get_readable_metadata(
                 relative_path, data_repo=data_repo

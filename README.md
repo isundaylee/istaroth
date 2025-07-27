@@ -13,11 +13,13 @@ Istorath is a Retrieval-Augmented Generation (RAG) system for Genshin Impact tha
 
 ### Checkpoint
 
-A checkpoint currently mainly consists of the vectorstore containing cleaned game texts and their vector embeddings. You can either grab a pre-trained checkpoint from the [release page](https://github.com/isundaylee/istorath/releases), or follow the sections below to train your own. If you grab a pre-trained checkpoint, be sure to use it with the corresponding Git commit hash.
+A checkpoint currently mainly consists of the vectorstore containing cleaned game texts and their vector embeddings. You can either grab a pre-trained checkpoint from the [release page](https://github.com/isundaylee/istorath/releases), or follow the sections below to train your own. If you grab a pre-trained checkpoint, be sure to use it with the corresponding Git commit hash. Currently pre-trained checkpoints are only provided for the Chinese language.
 
 #### Checkpoint Training
 
-- Set AGD path: `export AGD_PATH="/path/to/AnimeGameData"`
+- Set some env vars:
+    - `export AGD_PATH="/path/to/AnimeGameData"`
+    - `export AGD_LANGUAGE="CHS"` (or `EN` for English)
 - Process AGD data: `scripts/agd_tools.py generate-all /path/to/text/files` to extract and clean text files
 - Add documents: `scripts/rag_tools.py add-documents /path/to/text/files`
 

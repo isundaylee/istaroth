@@ -16,10 +16,10 @@ from istorath.agd import processing, rendering, repo
 
 def find_readable_files(data_repo: repo.DataRepo) -> Iterator[str]:
     """Find all readable files in the AGD repository."""
-    readable_dir = data_repo.agd_path / "Readable" / "CHS"
+    readable_dir = data_repo.agd_path / "Readable" / data_repo.language
     if readable_dir.exists():
         for txt_file in readable_dir.glob("*.txt"):
-            yield f"Readable/CHS/{txt_file.name}"
+            yield f"Readable/{data_repo.language}/{txt_file.name}"
 
 
 def find_quest_files(data_repo: repo.DataRepo) -> Iterator[str]:

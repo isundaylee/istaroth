@@ -5,6 +5,27 @@ import pathlib
 from istorath.agd import repo, types
 
 
+def _get_localized_role_names(language: str) -> types.LocalizedRoleNames:
+    """Get localized role names based on language."""
+    role_names = {
+        "CHS": types.LocalizedRoleNames(
+            player="旅行者",
+            black_screen="黑屏文本",
+            unknown_npc="Unknown NPC",
+            unknown_role="Unknown Role",
+        ),
+        "EN": types.LocalizedRoleNames(
+            player="Traveler",
+            black_screen="Black Screen Text",
+            unknown_npc="Unknown NPC",
+            unknown_role="Unknown Role",
+        ),
+        # Add more languages as needed
+    }
+    # Default to English for unsupported languages
+    return role_names.get(language, role_names["EN"])
+
+
 def get_readable_metadata(
     readable_path: str, *, data_repo: repo.DataRepo
 ) -> types.ReadableMetadata:
@@ -16,11 +37,34 @@ def get_readable_metadata(
     # Load required data files
     localization_data = data_repo.load_localization_excel_config_data()
     document_data = data_repo.load_document_excel_config_data()
-    text_map = data_repo.load_text_map("CHS")
+    text_map = data_repo.load_text_map()
+
+    # Map language codes to localization field names
+    language_to_field = {
+        "CHS": "defaultPath",  # Chinese Simplified uses defaultPath
+        "CHT": "scPath",  # Chinese Traditional
+        "EN": "enPath",  # English
+        "JP": "jpPath",  # Japanese
+        "KR": "krPath",  # Korean
+        "ES": "esPath",  # Spanish
+        "FR": "frPath",  # French
+        "ID": "idPath",  # Indonesian
+        "PT": "ptPath",  # Portuguese
+        "RU": "ruPath",  # Russian
+        "TH": "thPath",  # Thai
+        "VI": "viPath",  # Vietnamese
+        "DE": "dePath",  # German
+        "TR": "trPath",  # Turkish
+        "IT": "itPath",  # Italian
+    }
+
+    # Get the appropriate field for the current language
+    field_name = language_to_field.get(data_repo.language, "defaultPath")
 
     # Step 1: Find localization ID for the readable
     for entry in localization_data:
-        if readable_id in entry["defaultPath"]:
+        path_value = entry.get(field_name, "")
+        if isinstance(path_value, str) and readable_id in path_value:
             localization_id = entry["id"]
             break
     else:
@@ -54,7 +98,7 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
 
     # Load supporting data
     npc_data = data_repo.load_npc_excel_config_data()
-    text_map = data_repo.load_text_map("CHS")
+    text_map = data_repo.load_text_map()
 
     # Create NPC ID to name mapping
     npc_id_to_name = {}
@@ -63,6 +107,9 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
         name_hash = str(npc["nameTextMapHash"])
         if name_hash in text_map:
             npc_id_to_name[npc_id] = text_map[name_hash]
+
+    # Get localized role names
+    localized_roles = _get_localized_role_names(data_repo.language)
 
     # Process dialog items
     talk_texts = []
@@ -73,13 +120,15 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
         # Determine role name
         if talk_role["type"] == "TALK_ROLE_NPC":
             npc_id = talk_role["_id"]
-            role = npc_id_to_name.get(npc_id, f"Unknown NPC ({npc_id})")
+            role = npc_id_to_name.get(
+                npc_id, f"{localized_roles.unknown_npc} ({npc_id})"
+            )
         elif talk_role["type"] == "TALK_ROLE_PLAYER":
-            role = "旅行者"
+            role = localized_roles.player
         elif talk_role["type"] == "TALK_ROLE_NEED_CLICK_BLACK_SCREEN":
-            role = "黑屏文本"
+            role = localized_roles.black_screen
         else:
-            role = f"Unknown Role ({talk_role['type']})"
+            role = f"{localized_roles.unknown_role} ({talk_role['type']})"
 
         # Get message text
         message = text_map.get(content_hash, f"Missing text ({content_hash})")
@@ -95,7 +144,7 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
     quest_data = data_repo.load_quest_data(quest_path)
 
     # Load text map for title resolution
-    text_map = data_repo.load_text_map("CHS")
+    text_map = data_repo.load_text_map()
 
     # Resolve quest title from description hash
     desc_hash = str(quest_data["descTextMapHash"])

@@ -15,19 +15,24 @@ class DataRepo:
     """Repository for loading AnimeGameData files."""
 
     agd_path: pathlib.Path = attrs.field(converter=pathlib.Path)
+    language: str = attrs.field(default="CHS")
 
     @classmethod
     def from_env(cls) -> "DataRepo":
-        """Create DataRepo from AGD_PATH environment variable."""
+        """Create DataRepo from environment variables.
+
+        Reads AGD_PATH for data location and AGD_LANGUAGE for language (defaults to CHS).
+        """
         agd_path = os.environ.get("AGD_PATH")
         if not agd_path:
             raise ValueError("AGD_PATH environment variable not set")
-        return cls(agd_path)
+        language = os.environ.get("AGD_LANGUAGE", "CHS")
+        return cls(agd_path, language=language)
 
     @functools.lru_cache(maxsize=None)
-    def load_text_map(self, language: str = "CHS") -> types.TextMap:
-        """Load TextMap file for specified language."""
-        file_path = self.agd_path / "TextMap" / f"TextMap{language}.json"
+    def load_text_map(self) -> types.TextMap:
+        """Load TextMap file for the instance's language."""
+        file_path = self.agd_path / "TextMap" / f"TextMap{self.language}.json"
         with open(file_path, encoding="utf-8") as f:
             data: types.TextMap = json.load(f)
             return data

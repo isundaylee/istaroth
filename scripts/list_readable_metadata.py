@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Helper script to list readable metadata for all files under <AGD>/Readable/CHS."""
+"""Helper script to list readable metadata for all files under <AGD>/Readable/<LANGUAGE>."""
 
 import os
 import pathlib
@@ -12,20 +12,20 @@ from istorath.agd import processing, repo
 
 
 def main() -> None:
-    """List readable metadata for all CHS files."""
+    """List readable metadata for all files in the configured language."""
     try:
         data_repo = repo.DataRepo.from_env()
     except ValueError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    readable_dir = data_repo.agd_path / "Readable" / "CHS"
+    readable_dir = data_repo.agd_path / "Readable" / data_repo.language
 
     if not readable_dir.exists():
         print(f"Error: Directory {readable_dir} does not exist", file=sys.stderr)
         sys.exit(1)
 
-    print("Readable Metadata:")
+    print(f"Readable Metadata ({data_repo.language}):")
     print("=" * 50)
 
     # Find all .txt files in the readable directory
@@ -35,7 +35,7 @@ def main() -> None:
     error_count = 0
 
     for txt_file in txt_files:
-        relative_path = f"Readable/CHS/{txt_file.name}"
+        relative_path = f"Readable/{data_repo.language}/{txt_file.name}"
         try:
             metadata = processing.get_readable_metadata(
                 relative_path, data_repo=data_repo
