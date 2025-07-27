@@ -29,6 +29,21 @@ A checkpoint currently mainly consists of the vectorstore containing cleaned gam
 - Retrieve documents only: `scripts/rag_tools.py retrieve "璃月港的历史" --k 3`
     - Parameters: `--k` (documents to retrieve, default 5), `--show-sources` (display similarity scores)
 
+## MCP Server
+
+Istorath includes an MCP (Model Context Protocol) server that allows Claude to query the RAG system directly.
+
+### Setup
+
+- Copy the MCP wrapper template: `cp scripts/mcp_wrapper.template.sh scripts/mcp_wrapper.sh`
+- Edit `scripts/mcp_wrapper.sh` and set your environment variables.
+- Add the MCP server to Claude: `claude mcp add istorath /path/to/istorath/scripts/mcp_wrapper.sh`
+- Restart Claude to enable the MCP server
+
+### Usage
+
+Once configured, you can query the Istorath knowledge base directly in Claude using natural language. The MCP server provides a `retrieve` function that searches the document store for relevant content.
+
 ## Example Query
 
 Here's an example output to the query "玛丽安与西摩尔的关系是怎么样的？":

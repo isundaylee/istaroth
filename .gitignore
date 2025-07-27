@@ -214,3 +214,4 @@ CLAUDE.local.md
 istorath.code-workspace
 
 /tmp
+scripts/mcp_wrapper.sh
