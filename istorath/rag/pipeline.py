@@ -6,7 +6,7 @@ import attrs
 from langchain import prompts
 from langchain_core import language_models, messages
 
-from istorath.rag import embedding
+from istorath.rag import embedding, tracing
 
 
 @attrs.define
@@ -55,6 +55,9 @@ class RAGPipeline:
         self._llm = llm
         self._k = k
 
+        # Check tracing requirements
+        tracing.check_tracing_requirements()
+
         # Create the prompt template
         self._prompt = prompts.ChatPromptTemplate.from_messages(
             [
@@ -80,8 +83,18 @@ class RAGPipeline:
 
     def answer_with_sources(self, question: str) -> _AnswerWithMetadata:
         """Answer question with source documents."""
+
         # Retrieve relevant documents
         results = self._document_store.search(question, k=self._k)
+
+        # Add tracing metadata
+        run_metadata = {
+            "question": question,
+            "k": self._k,
+            "num_documents": self._document_store.num_documents,
+            "num_retrieved": len(results),
+            "retrieval_scores": [score for _, score in results],
+        }
 
         # Format context
         if not results:
@@ -96,12 +109,13 @@ class RAGPipeline:
                 for i, (content, score) in enumerate(results, 1)
             ]
 
-        # Generate answer
+        # Generate answer with tracing context
         response = self._chain.invoke(
             {
                 "user_question": question,
                 "retrieved_context": retrieved_context,
-            }
+            },
+            config={"metadata": run_metadata},
         )
 
         # Extract answer text

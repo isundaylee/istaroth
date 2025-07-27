@@ -67,3 +67,14 @@ istorath/
 
 ## Script Development Guidelines
 - ALWAYS include a shebang and make the script executable for files under scripts/
+
+## LangSmith Tracing
+The RAG pipeline supports LangSmith tracing for debugging and monitoring. Required environment variables:
+- `LANGSMITH_API_KEY`: Your LangSmith API key
+- `LANGCHAIN_PROJECT`: Project name (e.g., "istorath-rag")
+- `LANGCHAIN_TRACING_V2`: Set to "true" to enable tracing
+
+Optional environment variables:
+- `LANGSMITH_ENDPOINT`: Custom LangSmith endpoint (defaults to https://api.smith.langchain.com)
+
+Tracing is automatically enabled when all required environment variables are set.

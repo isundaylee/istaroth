@@ -13,7 +13,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from langchain_google_genai import llms as google_llms
 
-from istorath.rag import embedding, pipeline
+from istorath.rag import embedding, pipeline, tracing
 
 
 def _create_llm() -> google_llms.GoogleGenerativeAI:
@@ -156,6 +156,12 @@ def query(question: str, k: int, show_sources: bool) -> None:
         for source in result.sources:
             print(f"\n【资料{source.index}】(相似度: {source.score:.4f})")
             print(f"{source.content[:200]}...")
+
+    # Show trace URL if tracing is enabled
+    if tracing.is_tracing_enabled():
+        trace_url = tracing.get_trace_url()
+        if trace_url:
+            print(f"\n🔗 View traces: {trace_url}")
 
 
 if __name__ == "__main__":
