@@ -89,18 +89,18 @@ class CharacterStories(BaseRenderableType):
     """Character story content type."""
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
-        """Find all character story entries."""
+        """Find all unique character IDs that have stories."""
         fetter_data = data_repo.load_fetter_story_excel_config_data()
 
-        # Generate paths in format "avatarId:fetterId" for each story
-        story_paths = []
+        # Collect unique avatar IDs that have stories
+        avatar_ids = set()
         for story in fetter_data:
             avatar_id = story.get("avatarId")
-            fetter_id = story.get("fetterId")
-            if avatar_id and fetter_id:
-                story_paths.append(f"{avatar_id}:{fetter_id}")
+            if avatar_id:
+                avatar_ids.add(avatar_id)
 
-        return story_paths
+        # Return avatar IDs as strings for processing
+        return [str(avatar_id) for avatar_id in sorted(avatar_ids)]
 
     def process(self, file_path: str, data_repo: repo.DataRepo) -> types.RenderedItem:
         """Process character story into rendered content."""

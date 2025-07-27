@@ -291,11 +291,19 @@ class UnusedTextMapInfo:
 
 
 @attrs.define
+class CharacterStory:
+    """Individual character story with title and content."""
+
+    title: str
+    content: str
+
+
+@attrs.define
 class CharacterStoryInfo:
-    """Character story information."""
+    """Character story information containing all stories for a character."""
 
     character_name: str
-    content: str
+    stories: list[CharacterStory]
 
 
 @attrs.define

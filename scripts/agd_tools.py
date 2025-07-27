@@ -43,6 +43,9 @@ def _generate_content(
     # Discover files for this type
     file_paths = renderable_type.discover(data_repo)
 
+    # Track used filenames to prevent collisions
+    used_filenames: set[str] = set()
+
     # Create progress bar
     with tqdm(file_paths, desc=desc, disable=verbose) as pbar:
         for file_path in pbar:
@@ -50,13 +53,34 @@ def _generate_content(
                 # Process the file
                 rendered = renderable_type.process(file_path, data_repo)
 
+                # Handle filename collisions
+                original_filename = rendered.filename
+                filename = original_filename
+                counter = 1
+
+                while filename in used_filenames:
+                    # Add counter to make filename unique
+                    name, ext = (
+                        pathlib.Path(original_filename).stem,
+                        pathlib.Path(original_filename).suffix,
+                    )
+                    filename = f"{name}_{counter}{ext}"
+                    counter += 1
+
+                used_filenames.add(filename)
+
                 # Write to output file
-                output_file = output_dir / rendered.filename
+                output_file = output_dir / filename
                 with open(output_file, "w", encoding="utf-8") as f:
                     f.write(rendered.content)
 
                 if verbose:
-                    click.echo(f"✓ {file_path} -> {rendered.filename}")
+                    collision_note = (
+                        f" (renamed from {original_filename})"
+                        if filename != original_filename
+                        else ""
+                    )
+                    click.echo(f"✓ {file_path} -> {filename}{collision_note}")
 
                 success_count += 1
 

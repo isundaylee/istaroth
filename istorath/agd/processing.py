@@ -204,18 +204,15 @@ def get_unused_text_map_info(*, data_repo: repo.DataRepo) -> types.UnusedTextMap
 
 
 def get_character_story_info(
-    fetter_story_path: str, *, data_repo: repo.DataRepo
+    avatar_id_str: str, *, data_repo: repo.DataRepo
 ) -> types.CharacterStoryInfo:
-    """Get character story information from fetter story data.
+    """Get all character story information for a specific character.
 
     Args:
-        fetter_story_path: String in format "avatarId:fetterId" (e.g. "10000032:20202")
+        avatar_id_str: Avatar ID as string (e.g. "10000032")
         data_repo: Data repository instance
     """
-    # Parse the path to extract avatar ID and fetter ID
-    avatar_id_str, fetter_id_str = fetter_story_path.split(":")
     avatar_id = int(avatar_id_str)
-    fetter_id = int(fetter_id_str)
 
     # Load required data
     text_map = data_repo.load_text_map()
@@ -231,17 +228,22 @@ def get_character_story_info(
                 character_name = text_map.get(str(name_hash), "Unknown Character")
             break
 
-    # Find story content from fetter data
-    story_content = "Story content not found"
+    # Collect all stories for this character
+    stories = []
     for story in fetter_data:
-        if story["avatarId"] == avatar_id and story["fetterId"] == fetter_id:
-            context_hash = story.get("storyContextTextMapHash")
-            if context_hash:
-                story_content = text_map.get(
-                    str(context_hash), "Story content not found"
-                )
-            break
+        if story["avatarId"] == avatar_id:
+            # Get story title
+            title_hash = story.get("storyTitleTextMapHash")
+            title = "Unknown Title"
+            if title_hash:
+                title = text_map.get(str(title_hash), "Unknown Title")
 
-    return types.CharacterStoryInfo(
-        character_name=character_name, content=story_content
-    )
+            # Get story content
+            context_hash = story.get("storyContextTextMapHash")
+            content = "Story content not found"
+            if context_hash:
+                content = text_map.get(str(context_hash), "Story content not found")
+
+            stories.append(types.CharacterStory(title=title, content=content))
+
+    return types.CharacterStoryInfo(character_name=character_name, stories=stories)
