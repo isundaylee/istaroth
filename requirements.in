@@ -2,7 +2,6 @@
 # Add your main project dependencies here
 click
 tqdm
-llama-cloud
 sentence-transformers
 numpy
 langchain

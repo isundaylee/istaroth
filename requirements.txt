@@ -26,7 +26,6 @@ certifi==2025.7.14
     # via
     #   httpcore
     #   httpx
-    #   llama-cloud
     #   requests
 cfgv==3.4.0
     # via pre-commit
@@ -83,9 +82,7 @@ hf-xet==1.1.5
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
-    # via
-    #   langsmith
-    #   llama-cloud
+    # via langsmith
 httpx-sse==0.4.1
     # via langchain-community
 huggingface-hub==0.34.1
@@ -132,8 +129,6 @@ langsmith==0.4.8
     #   langchain
     #   langchain-community
     #   langchain-core
-llama-cloud==0.1.32
-    # via -r requirements.in
 markupsafe==3.0.2
     # via jinja2
 marshmallow==3.26.1
@@ -213,7 +208,6 @@ pydantic==2.11.7
     #   langchain-core
     #   langchain-google-genai
     #   langsmith
-    #   llama-cloud
     #   pydantic-settings
 pydantic-core==2.33.2
     # via pydantic
