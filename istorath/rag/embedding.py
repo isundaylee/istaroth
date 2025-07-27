@@ -1,5 +1,7 @@
 """Document store and embedding utilities for RAG pipeline."""
 
+import json
+import pathlib
 from typing import Optional
 
 from langchain_community.embeddings import HuggingFaceEmbeddings
@@ -33,24 +35,47 @@ class DocumentStore:
         self._vector_store.delete(
             list(self._vector_store.index_to_docstore_id.values())
         )
-        # Track added texts by key to prevent duplicates
-        self._added_texts: set[str] = set()
+        # Track added keys to prevent duplicates
+        self._added_keys: set[str] = set()
 
     def add_text(self, content: str, key: str, metadata: Optional[dict] = None) -> bool:
         """Add text content to the document store. Returns False if key already exists."""
-        if key in self._added_texts:
+        if key in self._added_keys:
             return False
 
         chunks = self._text_splitter.split_text(content)
         metadatas = [metadata or {} for _ in chunks]
         self._vector_store.add_texts(texts=chunks, metadatas=metadatas)
-        self._added_texts.add(key)
+        self._added_keys.add(key)
         return True
 
     def search(self, query: str, k: int = 5) -> list[tuple[str, float]]:
         """Search for similar documents."""
         results = self._vector_store.similarity_search_with_score(query, k=k)
         return [(doc.page_content, score) for doc, score in results]
+
+    def save(self, path: pathlib.Path) -> None:
+        """Save the document store to a directory."""
+        # Save FAISS vector store
+        self._vector_store.save_local(str(path / "faiss_index"))
+
+        # Save added keys set as JSON
+        with open(path / "added_keys.json", "w") as f:
+            json.dump(list(self._added_keys), f)
+
+    def load(self, path: pathlib.Path) -> None:
+        """Load document store state from a directory."""
+        # Load FAISS vector store
+        self._vector_store = FAISS.load_local(
+            str(path / "faiss_index"),
+            embeddings=self._embeddings,
+            allow_dangerous_deserialization=True,
+        )
+
+        # Load added keys set
+        with open(path / "added_keys.json", "r") as f:
+            added_keys_list = json.load(f)
+            self._added_keys = set(added_keys_list)
 
     @property
     def num_documents(self) -> int:

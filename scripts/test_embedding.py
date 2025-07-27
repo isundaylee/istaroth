@@ -16,7 +16,8 @@ from istorath.rag.embedding import DocumentStore
 @click.command()  # type: ignore[misc]
 @click.argument("path", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
 @click.option("--query", default="Archon", help="Search query to test")  # type: ignore[misc]
-def main(path: pathlib.Path, query: str) -> None:
+@click.option("--save-path", type=click.Path(path_type=pathlib.Path), help="Path to save/load document store")  # type: ignore[misc]
+def main(path: pathlib.Path, query: str, save_path: pathlib.Path | None) -> None:
     """Test the DocumentStore with content from a file or folder."""
 
     # Build list of files to process
@@ -33,8 +34,14 @@ def main(path: pathlib.Path, query: str) -> None:
         print(f"Path {path} is neither a file nor a directory.")
         return
 
-    # Create document store and process all files
+    # Create document store
     store = DocumentStore()
+
+    # Load existing state if save path exists
+    if save_path and save_path.exists():
+        print(f"Loading existing document store from: {save_path}")
+        store.load(save_path)
+        print(f"Loaded store with {store.num_documents} existing documents")
 
     with tqdm(files_to_process, desc="Adding documents", unit="file") as pbar:
         for file_path in pbar:
@@ -49,16 +56,18 @@ def main(path: pathlib.Path, query: str) -> None:
                     "filename": file_path.name,
                 }
                 # Use file path as unique key
-                was_added = store.add_text(
-                    content.strip(), key=str(file_path), metadata=metadata
-                )
-                if not was_added:
-                    tqdm.write(f"Skipped {file_path.name} (already added)")
+                store.add_text(content.strip(), key=str(file_path), metadata=metadata)
 
             except Exception as e:
                 tqdm.write(f"Error reading {file_path.name}: {e}")
 
     print(f"\nTotal documents in store: {store.num_documents}")
+
+    # Save state if save path is provided
+    if save_path:
+        print(f"Saving document store to: {save_path}")
+        save_path.mkdir(exist_ok=True)
+        store.save(save_path)
 
     # Test search functionality
     print(f"\nSearching for: '{query}'")
