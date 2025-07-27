@@ -1,28 +1,74 @@
 #!/usr/bin/env python3
-"""Entry point for Istorath MCP server."""
+"""HTTP/WebSocket MCP server for Istorath RAG functionality."""
 
-import asyncio
 import pathlib
 import sys
 
-import mcp.server.stdio
+import click
+from mcp.server.fastmcp import FastMCP
 
 # Add the parent directory to Python path to find istorath module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from istorath.mcp import server
+from istorath.rag import embedding
+
+# Create an MCP server
+mcp = FastMCP("istorath-rag")
 
 
-async def main() -> None:
-    """Run the MCP server."""
-    server_instance = server.create_server()
+@mcp.tool()  # type: ignore[misc]
+def retrieve(query: str, k: int = 5, show_scores: bool = False) -> str:
+    """Retrieve similar documents from Istorath RAG document store"""
+    try:
+        store = embedding.DocumentStore.from_env()
 
-    # Use stdio transport for MCP
-    async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
-        await server_instance.run(
-            read_stream, write_stream, server_instance.create_initialization_options()
-        )
+        if store.num_documents == 0:
+            return "Error: No documents in store. Please add documents first."
+
+        results = store.search(query, k=k)
+
+        if not results:
+            return "No results found."
+
+        output_lines = [
+            f"Retrieved {len(results)} documents for query: '{query}'",
+            "",
+        ]
+
+        for i, (text, score) in enumerate(results):
+            if show_scores:
+                output_lines.append(f"Document {i + 1} (similarity: {score:.4f}):")
+            else:
+                output_lines.append(f"Document {i + 1}:")
+
+            # Show first few lines of the document
+            lines = text.strip().split("\n")
+            preview_lines = lines[:3] if len(lines) > 3 else lines
+            for line in preview_lines:
+                output_lines.append(f"  {line}")
+
+            if len(lines) > 3:
+                output_lines.append("  ...")
+            output_lines.append("")
+
+        return "\n".join(output_lines)
+
+    except Exception as e:
+        return f"Error retrieving documents: {e}"
+
+
+@click.command()  # type: ignore[misc]
+@click.option(  # type: ignore[misc]
+    "--transport",
+    type=click.Choice(["stdio", "sse", "streamable-http"]),
+    default="stdio",
+    help="Transport type",
+)
+def main(transport: str) -> None:
+    """Run the Istorath MCP server."""
+    click.echo(f"Starting Istorath MCP server with {transport} transport")
+    mcp.run(transport=transport)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
