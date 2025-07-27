@@ -37,22 +37,32 @@ A checkpoint currently mainly consists of the vectorstore containing cleaned gam
 
 Istorath includes an MCP (Model Context Protocol) server that allows Claude to query the RAG system directly. The server supports both local (stdio) and remote (HTTP/WebSocket) connections.
 
+### Docker image
+
+You can launch an MCP server with a prebuilt Docker image:
+
+```
+docker run -p 8000:8000 isundaylee/istorath-mcp:chs
+```
+
+Then follow the remaining instructions in the Remote MCP server section below to add it into Claude.
+
 ### Local MCP Server (stdio)
 
 For local Claude Code integration:
 
 - Copy the MCP wrapper template: `cp scripts/mcp_wrapper.template.sh scripts/mcp_wrapper.sh`
 - Edit `scripts/mcp_wrapper.sh` and set your environment variables.
-- Add the MCP server to Claude: `claude mcp add istorath /path/to/istorath/scripts/mcp_wrapper.sh`
-- Restart Claude to enable the MCP server
+- Add the MCP server to Claude Code: `claude mcp add istorath /path/to/istorath/scripts/mcp_wrapper.sh`
+- Restart Claude Code to enable the MCP server
 
 ### Remote MCP Server (HTTP/WebSocket)
 
 For remote access or web-based integrations:
 
 - Start the HTTP/WebSocket server: `fastmcp run scripts/mcp_server.py --transport=streamable-http`
-- Add the MCP server to Claude: `claude mcp add istorath --transport=http http://127.0.0.1:8000/mcp`
-- Restart Claude to enable the MCP server
+- Add the MCP server to Claude Code: `claude mcp add istorath --transport=http http://127.0.0.1:8000/mcp`
+- Restart Claude Code to enable the MCP server
 
 ### Usage
 
