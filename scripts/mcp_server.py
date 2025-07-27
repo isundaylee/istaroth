@@ -4,8 +4,7 @@
 import pathlib
 import sys
 
-import click
-from mcp.server.fastmcp import FastMCP
+from fastmcp import FastMCP
 
 # Add the parent directory to Python path to find istorath module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
@@ -13,7 +12,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 from istorath.rag import embedding
 
 # Create an MCP server
-mcp = FastMCP("istorath-rag")
+mcp = FastMCP("istorath")
 
 
 @mcp.tool()  # type: ignore[misc]
@@ -57,18 +56,5 @@ def retrieve(query: str, k: int = 5, show_scores: bool = False) -> str:
         return f"Error retrieving documents: {e}"
 
 
-@click.command()  # type: ignore[misc]
-@click.option(  # type: ignore[misc]
-    "--transport",
-    type=click.Choice(["stdio", "sse", "streamable-http"]),
-    default="stdio",
-    help="Transport type",
-)
-def main(transport: str) -> None:
-    """Run the Istorath MCP server."""
-    click.echo(f"Starting Istorath MCP server with {transport} transport")
-    mcp.run(transport=transport)
-
-
 if __name__ == "__main__":
-    main()
+    mcp.run()

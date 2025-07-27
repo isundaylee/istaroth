@@ -9,6 +9,7 @@ langchain-community
 langchain-google-genai
 faiss-cpu
 mcp
+fastmcp
 
 # Development dependencies
 pip-tools

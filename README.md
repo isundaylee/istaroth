@@ -50,7 +50,7 @@ For local Claude Code integration:
 
 For remote access or web-based integrations:
 
-- Start the HTTP/WebSocket server: `scripts/mcp_server.py --transport=streamable-http`
+- Start the HTTP/WebSocket server: `fastmcp run scripts/mcp_server.py --transport=streamable-http`
 - Add the MCP server to Claude: `claude mcp add istorath --transport=http http://127.0.0.1:8000/mcp`
 - Restart Claude to enable the MCP server
 
