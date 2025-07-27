@@ -201,3 +201,47 @@ def get_unused_text_map_info(*, data_repo: repo.DataRepo) -> types.UnusedTextMap
     text_map_tracker = data_repo.load_text_map()
     unused_entries = text_map_tracker.get_unused_entries()
     return types.UnusedTextMapInfo(unused_entries=unused_entries)
+
+
+def get_character_story_info(
+    fetter_story_path: str, *, data_repo: repo.DataRepo
+) -> types.CharacterStoryInfo:
+    """Get character story information from fetter story data.
+
+    Args:
+        fetter_story_path: String in format "avatarId:fetterId" (e.g. "10000032:20202")
+        data_repo: Data repository instance
+    """
+    # Parse the path to extract avatar ID and fetter ID
+    avatar_id_str, fetter_id_str = fetter_story_path.split(":")
+    avatar_id = int(avatar_id_str)
+    fetter_id = int(fetter_id_str)
+
+    # Load required data
+    text_map = data_repo.load_text_map()
+    avatar_data = data_repo.load_avatar_excel_config_data()
+    fetter_data = data_repo.load_fetter_story_excel_config_data()
+
+    # Find character name from avatar data
+    character_name = "Unknown Character"
+    for avatar in avatar_data:
+        if avatar["id"] == avatar_id:
+            name_hash = avatar.get("nameTextMapHash")
+            if name_hash:
+                character_name = text_map.get(str(name_hash), "Unknown Character")
+            break
+
+    # Find story content from fetter data
+    story_content = "Story content not found"
+    for story in fetter_data:
+        if story["avatarId"] == avatar_id and story["fetterId"] == fetter_id:
+            context_hash = story.get("storyContextTextMapHash")
+            if context_hash:
+                story_content = text_map.get(
+                    str(context_hash), "Story content not found"
+                )
+            break
+
+    return types.CharacterStoryInfo(
+        character_name=character_name, content=story_content
+    )

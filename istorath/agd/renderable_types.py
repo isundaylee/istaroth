@@ -83,3 +83,29 @@ class UnusedTexts(BaseRenderableType):
 
         # Render the unused texts
         return rendering.render_unused_text_map(unused_info)
+
+
+class CharacterStories(BaseRenderableType):
+    """Character story content type."""
+
+    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+        """Find all character story entries."""
+        fetter_data = data_repo.load_fetter_story_excel_config_data()
+
+        # Generate paths in format "avatarId:fetterId" for each story
+        story_paths = []
+        for story in fetter_data:
+            avatar_id = story.get("avatarId")
+            fetter_id = story.get("fetterId")
+            if avatar_id and fetter_id:
+                story_paths.append(f"{avatar_id}:{fetter_id}")
+
+        return story_paths
+
+    def process(self, file_path: str, data_repo: repo.DataRepo) -> types.RenderedItem:
+        """Process character story into rendered content."""
+        # Get character story info
+        story_info = processing.get_character_story_info(file_path, data_repo=data_repo)
+
+        # Render the character story
+        return rendering.render_character_story(story_info)

@@ -14,6 +14,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 from istorath.agd import processing, rendering, repo
 from istorath.agd.renderable_types import (
     BaseRenderableType,
+    CharacterStories,
     Quests,
     Readables,
     UnusedTexts,
@@ -81,21 +82,14 @@ def cli() -> None:
 
 @cli.command("generate-all")  # type: ignore[misc]
 @click.argument("output_dir", type=click.Path(path_type=pathlib.Path))  # type: ignore[misc]
-@click.option("--readable/--no-readable", default=True, help="Generate readable content")  # type: ignore[misc]
-@click.option("--quest/--no-quest", default=True, help="Generate quest content")  # type: ignore[misc]
-@click.option("--unused-texts/--no-unused-texts", default=True, help="Generate unused text map entries")  # type: ignore[misc]
+@click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "unused-texts"]), help="Generate only specific content type")  # type: ignore[misc]
 @click.option("--verbose", "-v", is_flag=True, help="Show verbose output")  # type: ignore[misc]
 def generate_all(
     output_dir: pathlib.Path,
-    readable: bool,
-    quest: bool,
-    unused_texts: bool,
+    only: str | None,
     verbose: bool,
 ) -> None:
-    """Generate all readable and quest content into RAG-suitable text files.
-
-    OUTPUT_DIR: Directory to write generated .txt files
-    """
+    """Generate content into RAG-suitable text files."""
     try:
         data_repo = repo.DataRepo.from_env()
     except ValueError as e:
@@ -108,10 +102,16 @@ def generate_all(
     total_success = 0
     total_error = 0
 
+    # Determine which content types to generate
+    generate_readable = only is None or only == "readable"
+    generate_quest = only is None or only == "quest"
+    generate_character_stories = only is None or only == "character-stories"
+    generate_unused_texts = only is None or only == "unused-texts"
+
     # Open errors file for writing
     errors_file_path = output_dir / "errors.txt"
     with errors_file_path.open("w", encoding="utf-8") as errors_file:
-        if readable:
+        if generate_readable:
             success, error = _generate_content(
                 Readables(),
                 output_dir / "readable",
@@ -125,7 +125,7 @@ def generate_all(
             if not verbose:
                 click.echo(f"Readable: {success} success, {error} errors")
 
-        if quest:
+        if generate_quest:
             success, error = _generate_content(
                 Quests(),
                 output_dir / "quest",
@@ -139,7 +139,21 @@ def generate_all(
             if not verbose:
                 click.echo(f"Quest: {success} success, {error} errors")
 
-        if unused_texts:
+        if generate_character_stories:
+            success, error = _generate_content(
+                CharacterStories(),
+                output_dir / "character_stories",
+                "Generating character stories",
+                data_repo=data_repo,
+                verbose=verbose,
+                errors_file=errors_file,
+            )
+            total_success += success
+            total_error += error
+            if not verbose:
+                click.echo(f"Character stories: {success} success, {error} errors")
+
+        if generate_unused_texts:
             success, error = _generate_content(
                 UnusedTexts(),
                 output_dir / "unused_texts",

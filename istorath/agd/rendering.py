@@ -99,3 +99,19 @@ def render_unused_text_map(unused_info: types.UnusedTextMapInfo) -> types.Render
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(filename=filename, content=rendered_content)
+
+
+def render_character_story(story_info: types.CharacterStoryInfo) -> types.RenderedItem:
+    """Render character story into RAG-suitable format."""
+    # Generate filename based on character name
+    safe_name = re.sub(r"[^\w\s-]", "", story_info.character_name)
+    safe_name = re.sub(r"\s+", "_", safe_name.strip())
+    filename = f"character_story_{safe_name}.txt"
+
+    # Format content with character name header and story content
+    content_lines = [f"# {story_info.character_name} - Character Story\n"]
+    content_lines.append(story_info.content)
+
+    rendered_content = "\n".join(content_lines)
+
+    return types.RenderedItem(filename=filename, content=rendered_content)

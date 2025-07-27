@@ -125,3 +125,19 @@ class DataRepo:
         with open(file_path, encoding="utf-8") as f:
             data: types.QuestData = json.load(f)
             return data
+
+    @functools.lru_cache(maxsize=None)
+    def load_avatar_excel_config_data(self) -> types.AvatarExcelConfigData:
+        """Load avatar Excel configuration data."""
+        file_path = self.agd_path / "ExcelBinOutput" / "AvatarExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.AvatarExcelConfigData = json.load(f)
+            return data
+
+    @functools.lru_cache(maxsize=None)
+    def load_fetter_story_excel_config_data(self) -> types.FetterStoryExcelConfigData:
+        """Load fetter story Excel configuration data."""
+        file_path = self.agd_path / "ExcelBinOutput" / "FetterStoryExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.FetterStoryExcelConfigData = json.load(f)
+            return data

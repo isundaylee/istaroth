@@ -190,6 +190,52 @@ class QuestData(TypedDict):
     talks: NotRequired[list[QuestTalkItem]]  # Optional field, not always present
 
 
+class AvatarExcelConfigDataItem(TypedDict):
+    """Type definition for avatar configuration entries."""
+
+    id: int
+    nameTextMapHash: int
+    descTextMapHash: int
+    iconName: str
+    sideIconName: str
+    qualityType: str
+    chargeEfficiency: float
+    combatConfigHash: int
+    propGrowCurves: list[dict[str, Any]]
+    prefabPathHash: int
+    prefabPathRemoteHash: int
+    controllerPathHash: int
+    controllerPathRemoteHash: int
+    LODPatternName: str
+
+
+type AvatarExcelConfigData = list[AvatarExcelConfigDataItem]
+"""List of avatar configuration items.
+
+Example file: ExcelBinOutput/AvatarExcelConfigData.json
+"""
+
+
+class FetterStoryExcelConfigDataItem(TypedDict):
+    """Type definition for fetter story configuration entries."""
+
+    avatarId: int
+    fetterId: int
+    storyTitleTextMapHash: int
+    storyContextTextMapHash: int
+    storyTitleLockedTextMapHash: int
+    isHiden: bool
+    openConds: list[dict[str, Any]]
+    finishConds: list[dict[str, Any]]
+
+
+type FetterStoryExcelConfigData = list[FetterStoryExcelConfigDataItem]
+"""List of fetter story configuration items.
+
+Example file: ExcelBinOutput/FetterStoryExcelConfigData.json
+"""
+
+
 # ============================================================================
 # Istorath Internal Types
 # ============================================================================
@@ -242,6 +288,14 @@ class UnusedTextMapInfo:
     """Information about unused text map entries."""
 
     unused_entries: dict[str, str]
+
+
+@attrs.define
+class CharacterStoryInfo:
+    """Character story information."""
+
+    character_name: str
+    content: str
 
 
 @attrs.define
