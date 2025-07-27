@@ -10,12 +10,14 @@ class BaseRenderableType(ABC):
 
     @abstractmethod
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
-        """Find and return list of files for this renderable type."""
+        """Find and return list of renderable keys for this renderable type."""
         pass
 
     @abstractmethod
-    def process(self, file_path: str, data_repo: repo.DataRepo) -> types.RenderedItem:
-        """Process file into rendered content."""
+    def process(
+        self, renderable_key: str, data_repo: repo.DataRepo
+    ) -> types.RenderedItem:
+        """Process renderable key into rendered content."""
         pass
 
 
@@ -32,13 +34,15 @@ class Readables(BaseRenderableType):
             ]
         return []
 
-    def process(self, file_path: str, data_repo: repo.DataRepo) -> types.RenderedItem:
+    def process(
+        self, renderable_key: str, data_repo: repo.DataRepo
+    ) -> types.RenderedItem:
         """Process readable file into rendered content."""
         # Get readable metadata
-        metadata = processing.get_readable_metadata(file_path, data_repo=data_repo)
+        metadata = processing.get_readable_metadata(renderable_key, data_repo=data_repo)
 
         # Read the actual readable content
-        readable_file_path = data_repo.agd_path / file_path
+        readable_file_path = data_repo.agd_path / renderable_key
         with open(readable_file_path, "r", encoding="utf-8") as f:
             content = f.read()
 
@@ -60,10 +64,12 @@ class Quests(BaseRenderableType):
             ]
         return []
 
-    def process(self, file_path: str, data_repo: repo.DataRepo) -> types.RenderedItem:
+    def process(
+        self, renderable_key: str, data_repo: repo.DataRepo
+    ) -> types.RenderedItem:
         """Process quest file into rendered content."""
         # Get quest info
-        quest_info = processing.get_quest_info(file_path, data_repo=data_repo)
+        quest_info = processing.get_quest_info(renderable_key, data_repo=data_repo)
 
         # Render the quest
         return rendering.render_quest(quest_info)
@@ -76,7 +82,9 @@ class UnusedTexts(BaseRenderableType):
         """Return a single placeholder file since unused texts are generated dynamically."""
         return ["unused_text_map"]
 
-    def process(self, file_path: str, data_repo: repo.DataRepo) -> types.RenderedItem:
+    def process(
+        self, renderable_key: str, data_repo: repo.DataRepo
+    ) -> types.RenderedItem:
         """Process unused text map entries into rendered content."""
         # Get unused text map info
         unused_info = processing.get_unused_text_map_info(data_repo=data_repo)
@@ -102,10 +110,14 @@ class CharacterStories(BaseRenderableType):
         # Return avatar IDs as strings for processing
         return [str(avatar_id) for avatar_id in sorted(avatar_ids)]
 
-    def process(self, file_path: str, data_repo: repo.DataRepo) -> types.RenderedItem:
+    def process(
+        self, renderable_key: str, data_repo: repo.DataRepo
+    ) -> types.RenderedItem:
         """Process character story into rendered content."""
         # Get character story info
-        story_info = processing.get_character_story_info(file_path, data_repo=data_repo)
+        story_info = processing.get_character_story_info(
+            renderable_key, data_repo=data_repo
+        )
 
         # Render the character story
         return rendering.render_character_story(story_info)

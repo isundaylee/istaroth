@@ -40,18 +40,18 @@ def _generate_content(
 
     output_dir.mkdir(exist_ok=True)
 
-    # Discover files for this type
-    file_paths = renderable_type.discover(data_repo)
+    # Discover renderable keys for this type
+    renderable_keys = renderable_type.discover(data_repo)
 
     # Track used filenames to prevent collisions
     used_filenames: set[str] = set()
 
     # Create progress bar
-    with tqdm(file_paths, desc=desc, disable=verbose) as pbar:
-        for file_path in pbar:
+    with tqdm(renderable_keys, desc=desc, disable=verbose) as pbar:
+        for renderable_key in pbar:
             try:
-                # Process the file
-                rendered = renderable_type.process(file_path, data_repo)
+                # Process the renderable key
+                rendered = renderable_type.process(renderable_key, data_repo)
 
                 # Handle filename collisions
                 original_filename = rendered.filename
@@ -80,12 +80,12 @@ def _generate_content(
                         if filename != original_filename
                         else ""
                     )
-                    click.echo(f"✓ {file_path} -> {filename}{collision_note}")
+                    click.echo(f"✓ {renderable_key} -> {filename}{collision_note}")
 
                 success_count += 1
 
             except Exception as e:
-                error_msg = f"✗ {file_path} -> ERROR: {e}"
+                error_msg = f"✗ {renderable_key} -> ERROR: {e}"
                 if errors_file:
                     errors_file.write(error_msg + "\n")
                 if verbose:
