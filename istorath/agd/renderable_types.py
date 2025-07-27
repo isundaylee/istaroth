@@ -1,12 +1,15 @@
 """Renderable content type classes for different AGD content."""
 
 from abc import ABC, abstractmethod
+from typing import ClassVar
 
 from istorath.agd import processing, rendering, repo, types
 
 
 class BaseRenderableType(ABC):
     """Abstract base class for renderable content types."""
+
+    error_limit: ClassVar[int] = 0  # Default error limit
 
     @abstractmethod
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
@@ -23,6 +26,8 @@ class BaseRenderableType(ABC):
 
 class Readables(BaseRenderableType):
     """Readable content type (books, weapons, etc.)."""
+
+    error_limit: ClassVar[int] = 50
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all readable files."""
@@ -52,6 +57,8 @@ class Readables(BaseRenderableType):
 
 class Quests(BaseRenderableType):
     """Quest content type (dialog, cutscenes, etc.)."""
+
+    error_limit: ClassVar[int] = 100
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all quest files."""

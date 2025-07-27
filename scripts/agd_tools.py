@@ -22,6 +22,18 @@ from istorath.agd.renderable_types import (
 )
 
 
+class ErrorLimitExceededException(Exception):
+    """Exception raised when error limit is exceeded during generation."""
+
+    def __init__(self, content_type: str, error_count: int, error_limit: int) -> None:
+        self.content_type = content_type
+        self.error_count = error_count
+        self.error_limit = error_limit
+        super().__init__(
+            f"{content_type} generation exceeded error limit ({error_count} > {error_limit})"
+        )
+
+
 def _process_single_item(
     args: tuple[str, BaseRenderableType, repo.DataRepo],
 ) -> tuple[str, types.RenderedItem | None, str | None]:
@@ -44,7 +56,6 @@ def _generate_content(
     desc: str,
     *,
     data_repo: repo.DataRepo,
-    verbose: bool = False,
     errors_file: TextIO | None = None,
     processes: int | None = None,
 ) -> tuple[int, int]:
@@ -62,7 +73,9 @@ def _generate_content(
     renderable_keys = renderable_type.discover(data_repo)
 
     if not renderable_keys:
-        return success_count, error_count
+        raise RuntimeError(
+            f"No renderable keys found for {renderable_type.__class__.__name__}"
+        )
 
     # Prepare arguments for multiprocessing
     process_args = [(key, renderable_type, data_repo) for key in renderable_keys]
@@ -75,11 +88,9 @@ def _generate_content(
     used_filenames: set[str] = set()
 
     def log_message(message: str) -> None:
-        """Helper to log message to both errors file and verbose output."""
+        """Helper to log message to errors file."""
         if errors_file:
             errors_file.write(message + "\n")
-        if verbose:
-            click.echo(message)
 
     def resolve_filename_collision(original_filename: str) -> str:
         """Helper to resolve filename collisions by adding counter suffix."""
@@ -99,13 +110,24 @@ def _generate_content(
 
     with multiprocessing.Pool(processes=processes) as pool:
         # Process with progress bar
-        with tqdm(total=len(process_args), desc=desc, disable=verbose) as pbar:
+        with tqdm(total=len(process_args), desc=desc) as pbar:
             for renderable_key, rendered, error in pool.imap(
                 _process_single_item, process_args
             ):
                 if error is not None:
                     log_message(f"✗ {renderable_key} -> ERROR: {error}")
                     error_count += 1
+
+                    # Check if error limit exceeded
+                    if error_count > renderable_type.error_limit:
+                        error_msg = f"Error limit exceeded ({error_count} > {renderable_type.error_limit}), stopping generation"
+                        log_message(error_msg)
+                        raise ErrorLimitExceededException(
+                            renderable_type.__class__.__name__,
+                            error_count,
+                            renderable_type.error_limit,
+                        )
+
                     continue
 
                 assert rendered is not None  # For type checker
@@ -127,9 +149,6 @@ def _generate_content(
                 with open(output_file, "w", encoding="utf-8") as f:
                     f.write(rendered.content)
 
-                if verbose:
-                    click.echo(f"✓ {renderable_key} -> {filename}")
-
                 success_count += 1
 
                 pbar.set_postfix({"errors": error_count})
@@ -147,12 +166,10 @@ def cli() -> None:
 @cli.command("generate-all")  # type: ignore[misc]
 @click.argument("output_dir", type=click.Path(path_type=pathlib.Path))  # type: ignore[misc]
 @click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "unused-texts"]), help="Generate only specific content type")  # type: ignore[misc]
-@click.option("--verbose", "-v", is_flag=True, help="Show verbose output")  # type: ignore[misc]
 @click.option("--processes", "-j", type=int, help="Number of parallel processes (default: CPU count)")  # type: ignore[misc]
 def generate_all(
     output_dir: pathlib.Path,
     only: str | None,
-    verbose: bool,
     processes: int | None,
 ) -> None:
     """Generate content into RAG-suitable text files."""
@@ -183,14 +200,12 @@ def generate_all(
                 output_dir / "readable",
                 "Generating readable content",
                 data_repo=data_repo,
-                verbose=verbose,
                 errors_file=errors_file,
                 processes=processes,
             )
             total_success += success
             total_error += error
-            if not verbose:
-                click.echo(f"Readable: {success} success, {error} errors")
+            click.echo(f"Readable: {success} success, {error} errors")
 
         if generate_quest:
             success, error = _generate_content(
@@ -198,14 +213,12 @@ def generate_all(
                 output_dir / "quest",
                 "Generating quest content",
                 data_repo=data_repo,
-                verbose=verbose,
                 errors_file=errors_file,
                 processes=processes,
             )
             total_success += success
             total_error += error
-            if not verbose:
-                click.echo(f"Quest: {success} success, {error} errors")
+            click.echo(f"Quest: {success} success, {error} errors")
 
         if generate_character_stories:
             success, error = _generate_content(
@@ -213,14 +226,12 @@ def generate_all(
                 output_dir / "character_stories",
                 "Generating character stories",
                 data_repo=data_repo,
-                verbose=verbose,
                 errors_file=errors_file,
                 processes=processes,
             )
             total_success += success
             total_error += error
-            if not verbose:
-                click.echo(f"Character stories: {success} success, {error} errors")
+            click.echo(f"Character stories: {success} success, {error} errors")
 
         if generate_unused_texts:
             success, error = _generate_content(
@@ -228,14 +239,12 @@ def generate_all(
                 output_dir / "unused_texts",
                 "Generating unused text entries",
                 data_repo=data_repo,
-                verbose=verbose,
                 errors_file=errors_file,
                 processes=processes,
             )
             total_success += success
             total_error += error
-            if not verbose:
-                click.echo(f"Unused texts: {success} success, {error} errors")
+            click.echo(f"Unused texts: {success} success, {error} errors")
 
     click.echo(f"\nTotal: {total_success} files generated, {total_error} errors")
 
@@ -256,8 +265,6 @@ def generate_all(
 
     if total_error > 0:
         click.echo(f"\nDetailed errors written to {errors_file_path}")
-        if not verbose:
-            click.echo("Run with --verbose to see detailed error messages")
     else:
         # Remove empty errors file
         if errors_file_path.exists():
