@@ -76,7 +76,7 @@ def main(
 
     # Test search functionality
     print(f"\nSearching for: '{query}'")
-    results = store.search(query, k=3)
+    results = store.search(query, k=6)
 
     if not results:
         print("No results found.")
