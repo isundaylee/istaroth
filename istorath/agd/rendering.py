@@ -19,3 +19,30 @@ def render_readable(
     rendered_content = f"# {metadata.title}\n\n{content}"
 
     return types.RenderedItem(filename=filename, content=rendered_content)
+
+
+def render_talk(talk: types.TalkInfo) -> types.RenderedItem:
+    """Render talk dialog into RAG-suitable format."""
+    # Generate filename - use first few dialog lines to create a meaningful name
+    if talk.text:
+        # Use first non-empty message for filename
+        first_message = next(
+            (text.message for text in talk.text if text.message.strip()),
+            "unknown_talk",
+        )
+        # Take first 50 characters and clean for filename
+        safe_title = re.sub(r"[^\w\s-]", "", first_message[:50])
+        safe_title = re.sub(r"\s+", "_", safe_title.strip())
+        filename = f"talk_{safe_title}.txt"
+    else:
+        filename = "talk_empty.txt"
+
+    # Format content as dialog with role labels
+    content_lines = ["# Talk Dialog\n"]
+
+    for talk_text in talk.text:
+        content_lines.append(f"{talk_text.role}: {talk_text.message}")
+
+    rendered_content = "\n".join(content_lines)
+
+    return types.RenderedItem(filename=filename, content=rendered_content)

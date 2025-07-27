@@ -112,19 +112,19 @@ Example file: ExcelBinOutput/MaterialExcelConfigData.json
 """
 
 
-class QuestTalkRole(TypedDict):
-    """Type definition for quest talk role."""
+class TalkRole(TypedDict):
+    """Type definition for talk role."""
 
     type: str
     _id: str
 
 
-class QuestDialogItem(TypedDict):
-    """Type definition for individual quest dialog entries."""
+class TalkDialogItem(TypedDict):
+    """Type definition for individual talk dialog entries."""
 
     id: int
     nextDialogs: list[int]
-    talkRole: QuestTalkRole
+    talkRole: TalkRole
     talkContentTextMapHash: int
     talkAssetPath: str
     talkAssetPathAlter: str
@@ -136,14 +136,14 @@ class QuestDialogItem(TypedDict):
     iconPath: str
 
 
-class QuestData(TypedDict):
-    """Quest data structure containing dialog list and metadata.
+class TalkData(TypedDict):
+    """Talk data structure containing dialog list and metadata.
 
     Example file: BinOutput/Talk/Quest/7407811.json
     """
 
     talkId: int
-    dialogList: list[QuestDialogItem]
+    dialogList: list[TalkDialogItem]
 
 
 # ============================================================================
@@ -160,18 +160,18 @@ class ReadableMetadata:
 
 
 @attrs.define
-class QuestText:
-    """Individual quest dialog text."""
+class TalkText:
+    """Individual talk dialog text."""
 
     role: str
     message: str
 
 
 @attrs.define
-class QuestInfo:
-    """Quest information with dialog text."""
+class TalkInfo:
+    """Talk information with dialog text."""
 
-    text: list[QuestText]
+    text: list[TalkText]
 
 
 @attrs.define

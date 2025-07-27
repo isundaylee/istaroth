@@ -46,11 +46,11 @@ def get_readable_metadata(
     return types.ReadableMetadata(title=title)
 
 
-def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestInfo:
-    """Retrieve quest information from quest file."""
-    # Load quest data
-    quest_data = data_repo.load_quest_data(quest_path)
-    dialog_list = quest_data["dialogList"]
+def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo:
+    """Retrieve talk information from talk file."""
+    # Load talk data
+    talk_data = data_repo.load_talk_data(talk_path)
+    dialog_list = talk_data["dialogList"]
 
     # Load supporting data
     npc_data = data_repo.load_npc_excel_config_data()
@@ -65,7 +65,7 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
             npc_id_to_name[npc_id] = text_map[name_hash]
 
     # Process dialog items
-    quest_texts = []
+    talk_texts = []
     for dialog_item in dialog_list:
         talk_role = dialog_item["talkRole"]
         content_hash = str(dialog_item["talkContentTextMapHash"])
@@ -84,6 +84,6 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
         # Get message text
         message = text_map.get(content_hash, f"Missing text ({content_hash})")
 
-        quest_texts.append(types.QuestText(role=role, message=message))
+        talk_texts.append(types.TalkText(role=role, message=message))
 
-    return types.QuestInfo(text=quest_texts)
+    return types.TalkInfo(text=talk_texts)

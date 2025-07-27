@@ -45,5 +45,26 @@ def readable(readable_path: str) -> None:
         sys.exit(1)
 
 
+@cli.command()  # type: ignore[misc]
+@click.argument("talk_path")  # type: ignore[misc]
+def talk(talk_path: str) -> None:
+    """Render talk dialog from the given path."""
+    try:
+        data_repo = repo.DataRepo.from_env()
+
+        # Get talk info
+        talk_info = processing.get_talk_info(talk_path, data_repo=data_repo)
+
+        # Render the talk
+        rendered = rendering.render_talk(talk_info)
+
+        # Output only the content
+        click.echo(rendered.content)
+
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     cli()
