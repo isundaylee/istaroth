@@ -1,6 +1,6 @@
 """Type definitions for AnimeGameData (AGD) structures."""
 
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import attrs
 
@@ -163,6 +163,20 @@ class QuestTalkItem(TypedDict):
     prePerformCfg: str
 
 
+class SubQuestItem(TypedDict):
+    """Type definition for sub-quest entries."""
+
+    subId: int
+    mainId: int
+    order: int
+    finishCond: list[dict[str, Any]]
+    guide: dict[str, Any]
+    guideHint: dict[str, Any]
+    isRewind: bool
+    versionBegin: str
+    versionEnd: str
+
+
 class QuestData(TypedDict):
     """Quest data structure containing talks and metadata.
 
@@ -173,6 +187,7 @@ class QuestData(TypedDict):
     series: int
     descTextMapHash: int
     talks: list[QuestTalkItem]
+    subQuests: list[SubQuestItem]
 
 
 # ============================================================================
@@ -209,6 +224,7 @@ class QuestInfo:
 
     title: str
     talks: list[TalkInfo]
+    non_subquest_talks: list[TalkInfo]
 
 
 @attrs.define

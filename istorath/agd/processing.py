@@ -101,23 +101,49 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
     desc_hash = str(quest_data["descTextMapHash"])
     quest_title = text_map.get(desc_hash, f"Quest {quest_data['id']}")
 
-    # Process each talk in the quest
-    talk_infos = []
-    for talk_item in quest_data["talks"]:
-        init_dialog_id = talk_item["initDialog"]
+    # Process subQuests in order (maintaining quest progression sequence)
+    subquest_talk_infos = []
+    subquest_talk_ids = set()
 
-        # Convert dialog ID to talk file path
-        # Dialog IDs like 740780101 map to BinOutput/Talk/Quest/7407801.json
-        # Take first 7 digits as the talk file ID
+    # Get subquests and sort by order field to maintain quest progression
+    subquests = quest_data.get("subQuests", [])
+    sorted_subquests = sorted(subquests, key=lambda x: x.get("order", 0))
+
+    for subquest in sorted_subquests:
+        sub_id = str(subquest["subId"])
+        talk_file_path = f"BinOutput/Talk/Quest/{sub_id}.json"
+
+        try:
+            talk_info = get_talk_info(talk_file_path, data_repo=data_repo)
+            if talk_info.text:  # Only add if there's actual dialog content
+                subquest_talk_infos.append(talk_info)
+                subquest_talk_ids.add(sub_id)
+        except Exception:
+            # Skip talks that can't be loaded
+            continue
+
+    # Process talks to find non-subquest dialogs
+    non_subquest_talk_infos = []
+
+    for talk_item in quest_data.get("talks", []):
+        init_dialog_id = talk_item["initDialog"]
         talk_file_id = str(init_dialog_id)[:7]
+
+        # Skip if this talk is already in subquest talks
+        if talk_file_id in subquest_talk_ids:
+            continue
+
         talk_file_path = f"BinOutput/Talk/Quest/{talk_file_id}.json"
 
         try:
-            # Get the talk info for this dialog
             talk_info = get_talk_info(talk_file_path, data_repo=data_repo)
-            talk_infos.append(talk_info)
+            non_subquest_talk_infos.append(talk_info)
         except Exception:
-            # Skip talks that can't be loaded (file might not exist)
+            # Skip talks that can't be loaded
             continue
 
-    return types.QuestInfo(title=quest_title, talks=talk_infos)
+    return types.QuestInfo(
+        title=quest_title,
+        talks=subquest_talk_infos,
+        non_subquest_talks=non_subquest_talk_infos,
+    )

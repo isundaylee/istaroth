@@ -58,12 +58,25 @@ def render_quest(quest: types.QuestInfo) -> types.RenderedItem:
     # Format content with quest title and all talks
     content_lines = [f"# {quest.title}\n"]
 
+    # Render main quest progression talks (from subQuests)
     for i, talk in enumerate(quest.talks, 1):
         if len(quest.talks) > 1:  # Only add talk headers if there are multiple talks
             content_lines.append(f"\n## Talk {i}\n")
 
         for talk_text in talk.text:
             content_lines.append(f"{talk_text.role}: {talk_text.message}")
+
+    # Render non-subquest talks in a separate section
+    if quest.non_subquest_talks:
+        content_lines.append("\n## Additional Conversations\n")
+        content_lines.append("*Conversations not present as sub-quests.*\n")
+
+        for i, talk in enumerate(quest.non_subquest_talks, 1):
+            if len(quest.non_subquest_talks) > 1:
+                content_lines.append(f"\n### Additional Talk {i}\n")
+
+            for talk_text in talk.text:
+                content_lines.append(f"{talk_text.role}: {talk_text.message}")
 
     rendered_content = "\n".join(content_lines)
 

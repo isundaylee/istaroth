@@ -51,7 +51,7 @@ def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
     # Verify we got a title
     assert quest_info.title.strip()
 
-    # Verify we got some talks
+    # Verify we got some talks (from subQuests)
     assert len(quest_info.talks) > 0
 
     # Verify each talk has some dialog text
@@ -59,6 +59,14 @@ def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
         assert len(talk_info.text) > 0
 
         # Verify each talk has meaningful content
+        for talk_text in talk_info.text:
+            assert talk_text.role.strip()
+            assert talk_text.message.strip()
+
+    # Non-subquest talks may or may not exist
+    # If they exist, verify they also have content
+    for talk_info in quest_info.non_subquest_talks:
+        assert len(talk_info.text) > 0
         for talk_text in talk_info.text:
             assert talk_text.role.strip()
             assert talk_text.message.strip()
