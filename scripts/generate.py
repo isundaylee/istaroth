@@ -6,6 +6,7 @@ import sys
 from typing import Iterator
 
 import click
+from tqdm import tqdm
 
 # Add the parent directory to Python path to find istorath module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
@@ -45,35 +46,42 @@ def generate_readable_content(
     readable_output_dir = output_dir / "readable"
     readable_output_dir.mkdir(exist_ok=True)
 
-    for readable_path in find_readable_files(data_repo):
-        try:
-            # Get readable metadata
-            metadata = processing.get_readable_metadata(
-                readable_path, data_repo=data_repo
-            )
+    # Collect all readable files first to know total count
+    readable_files = list(find_readable_files(data_repo))
 
-            # Read the actual readable content
-            readable_file_path = data_repo.agd_path / readable_path
-            with open(readable_file_path, "r", encoding="utf-8") as f:
-                content = f.read()
+    # Create progress bar
+    with tqdm(
+        readable_files, desc="Generating readable content", disable=verbose
+    ) as pbar:
+        for readable_path in pbar:
+            try:
+                # Get readable metadata
+                metadata = processing.get_readable_metadata(
+                    readable_path, data_repo=data_repo
+                )
 
-            # Render the content
-            rendered = rendering.render_readable(content, metadata)
+                # Read the actual readable content
+                readable_file_path = data_repo.agd_path / readable_path
+                with open(readable_file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
 
-            # Write to output file
-            output_file = readable_output_dir / rendered.filename
-            with open(output_file, "w", encoding="utf-8") as f:
-                f.write(rendered.content)
+                # Render the content
+                rendered = rendering.render_readable(content, metadata)
 
-            if verbose:
-                click.echo(f"✓ {readable_path} -> {rendered.filename}")
+                # Write to output file
+                output_file = readable_output_dir / rendered.filename
+                with open(output_file, "w", encoding="utf-8") as f:
+                    f.write(rendered.content)
 
-            success_count += 1
+                if verbose:
+                    click.echo(f"✓ {readable_path} -> {rendered.filename}")
 
-        except Exception as e:
-            if verbose:
-                click.echo(f"✗ {readable_path} -> ERROR: {e}")
-            error_count += 1
+                success_count += 1
+
+            except Exception as e:
+                if verbose:
+                    click.echo(f"✗ {readable_path} -> ERROR: {e}")
+                error_count += 1
 
     return success_count, error_count
 
@@ -92,28 +100,33 @@ def generate_quest_content(
     quest_output_dir = output_dir / "quest"
     quest_output_dir.mkdir(exist_ok=True)
 
-    for quest_path in find_quest_files(data_repo):
-        try:
-            # Get quest info
-            quest_info = processing.get_quest_info(quest_path, data_repo=data_repo)
+    # Collect all quest files first to know total count
+    quest_files = list(find_quest_files(data_repo))
 
-            # Render the quest
-            rendered = rendering.render_quest(quest_info)
+    # Create progress bar
+    with tqdm(quest_files, desc="Generating quest content", disable=verbose) as pbar:
+        for quest_path in pbar:
+            try:
+                # Get quest info
+                quest_info = processing.get_quest_info(quest_path, data_repo=data_repo)
 
-            # Write to output file
-            output_file = quest_output_dir / rendered.filename
-            with open(output_file, "w", encoding="utf-8") as f:
-                f.write(rendered.content)
+                # Render the quest
+                rendered = rendering.render_quest(quest_info)
 
-            if verbose:
-                click.echo(f"✓ {quest_path} -> {rendered.filename}")
+                # Write to output file
+                output_file = quest_output_dir / rendered.filename
+                with open(output_file, "w", encoding="utf-8") as f:
+                    f.write(rendered.content)
 
-            success_count += 1
+                if verbose:
+                    click.echo(f"✓ {quest_path} -> {rendered.filename}")
 
-        except Exception as e:
-            if verbose:
-                click.echo(f"✗ {quest_path} -> ERROR: {e}")
-            error_count += 1
+                success_count += 1
+
+            except Exception as e:
+                if verbose:
+                    click.echo(f"✗ {quest_path} -> ERROR: {e}")
+                error_count += 1
 
     return success_count, error_count
 
@@ -146,18 +159,18 @@ def main(
     total_error = 0
 
     if readable:
-        click.echo("Generating readable content...")
         success, error = generate_readable_content(data_repo, output_dir, verbose)
         total_success += success
         total_error += error
-        click.echo(f"Readable: {success} success, {error} errors")
+        if not verbose:
+            click.echo(f"Readable: {success} success, {error} errors")
 
     if quest:
-        click.echo("Generating quest content...")
         success, error = generate_quest_content(data_repo, output_dir, verbose)
         total_success += success
         total_error += error
-        click.echo(f"Quest: {success} success, {error} errors")
+        if not verbose:
+            click.echo(f"Quest: {success} success, {error} errors")
 
     click.echo(f"\nTotal: {total_success} files generated, {total_error} errors")
 

@@ -1,6 +1,7 @@
 # Core dependencies for Istorath project
 # Add your main project dependencies here
 click
+tqdm
 
 # Development dependencies
 pip-tools
