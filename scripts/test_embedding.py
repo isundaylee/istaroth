@@ -13,34 +13,57 @@ from istorath.rag.embedding import DocumentStore
 
 
 @click.command()  # type: ignore[misc]
-@click.argument("txt_file", type=click.Path(exists=True, readable=True))  # type: ignore[misc]
+@click.argument("path", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
 @click.option("--query", default="Archon", help="Search query to test")  # type: ignore[misc]
-def main(txt_file: str, query: str) -> None:
-    """Test the DocumentStore with content from a .txt file."""
-    print(f"Reading content from: {txt_file}")
+def main(path: pathlib.Path, query: str) -> None:
+    """Test the DocumentStore with content from a file or folder."""
 
-    with open(txt_file, "r", encoding="utf-8") as f:
-        content = f.read()
+    # Build list of files to process
+    if path.is_file():
+        files_to_process = [path]
+        print(f"Reading content from file: {path}")
+    elif path.is_dir():
+        files_to_process = list(path.glob("*.txt"))
+        print(f"Reading content from folder: {path}")
+        if not files_to_process:
+            print("No .txt files found in the folder.")
+            return
+    else:
+        print(f"Path {path} is neither a file nor a directory.")
+        return
 
-    print(f"Content length: {len(content)} characters")
-    print("Creating document store and adding content...")
-
-    # Create document store and add content
+    # Create document store and process all files
     store = DocumentStore()
 
-    # Add content with metadata
-    metadata = {"source": txt_file, "type": "test_document"}
-    store.add_text(content.strip(), metadata=metadata)
+    for file_path in files_to_process:
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
 
-    print(f"Number of documents in store: {store.num_documents}")
+            metadata = {
+                "source": str(file_path),
+                "type": "test_document",
+                "filename": file_path.name,
+            }
+            store.add_text(content.strip(), metadata=metadata)
+            print(f"Added file: {file_path.name} ({len(content)} characters)")
+
+        except Exception as e:
+            print(f"Error reading {file_path.name}: {e}")
+
+    print(f"\nTotal documents in store: {store.num_documents}")
 
     # Test search functionality
     print(f"\nSearching for: '{query}'")
     results = store.search(query, k=3)
 
+    if not results:
+        print("No results found.")
+        return
+
     for i, (text, score) in enumerate(results):
         print(f"\nResult {i + 1} (score: {score:.4f}):")
-        print(f"  Text preview: {''.join(text.splitlines())}")
+        print(f"  Text: {''.join(text.splitlines())}")
 
 
 if __name__ == "__main__":

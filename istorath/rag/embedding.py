@@ -2,8 +2,8 @@
 
 from typing import Optional
 
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
@@ -12,7 +12,11 @@ class DocumentStore:
 
     def __init__(self) -> None:
         """Initialize the document store with empty FAISS index."""
-        self._embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        self._embeddings = HuggingFaceEmbeddings(
+            model_name="BAAI/bge-m3",
+            model_kwargs={"device": "cpu"},  # Change to "cuda" if GPU available
+            encode_kwargs={"normalize_embeddings": True},  # For cosine similarity
+        )
         self._text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=1000,
             chunk_overlap=200,
