@@ -51,6 +51,7 @@ istorath/
 - NEVER import individual symbols from modules and ALWAYS use module-level imports only; exceptions: it is okay to import individual symbols from the typing stdlib package.
 - NEVER use TYPE_CHECKING conditional imports
 - Write very concise docstring; don't list all args & return values when they are self-explanatory from the function signature and names
+- Use the Python walrus operation := when appropriate to simplify code
 
 ## Import Conventions
 - ALWAYS import istorath.agd.types aliased as agd_types outside istorath.agd; but import is normally as from istorath.agd import types when inside the istorath.agd package.
