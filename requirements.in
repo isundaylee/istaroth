@@ -3,6 +3,12 @@
 click
 tqdm
 llama-cloud
+sentence-transformers
+numpy
+langchain
+langchain-community
+langchain-google-genai
+faiss-cpu
 
 # Development dependencies
 pip-tools
