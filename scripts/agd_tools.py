@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """AGD tools for processing and rendering game content."""
 
+import multiprocessing
 import pathlib
 import sys
 from typing import TextIO
@@ -11,7 +12,7 @@ from tqdm import tqdm
 # Add the parent directory to Python path to find istorath module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from istorath.agd import processing, rendering, repo
+from istorath.agd import processing, rendering, repo, types
 from istorath.agd.renderable_types import (
     BaseRenderableType,
     CharacterStories,
@@ -19,6 +20,22 @@ from istorath.agd.renderable_types import (
     Readables,
     UnusedTexts,
 )
+
+
+def _process_single_item(
+    args: tuple[str, BaseRenderableType, repo.DataRepo],
+) -> tuple[str, types.RenderedItem | None, str | None]:
+    """Worker function to process a single renderable item.
+
+    Returns:
+        Tuple of (renderable_key, rendered_item_or_none, error_message_or_none)
+    """
+    renderable_key, renderable_type, data_repo = args
+    try:
+        rendered = renderable_type.process(renderable_key, data_repo)
+        return (renderable_key, rendered, None)
+    except Exception as e:
+        return (renderable_key, None, str(e))
 
 
 def _generate_content(
@@ -29,6 +46,7 @@ def _generate_content(
     data_repo: repo.DataRepo,
     verbose: bool = False,
     errors_file: TextIO | None = None,
+    processes: int | None = None,
 ) -> tuple[int, int]:
     """Generate content files using renderable type.
 
@@ -43,29 +61,64 @@ def _generate_content(
     # Discover renderable keys for this type
     renderable_keys = renderable_type.discover(data_repo)
 
+    if not renderable_keys:
+        return success_count, error_count
+
+    # Prepare arguments for multiprocessing
+    process_args = [(key, renderable_type, data_repo) for key in renderable_keys]
+
+    # Use multiprocessing to process items in parallel
+    if processes is None:
+        processes = multiprocessing.cpu_count()
+
     # Track used filenames to prevent collisions
     used_filenames: set[str] = set()
 
-    # Create progress bar
-    with tqdm(renderable_keys, desc=desc, disable=verbose) as pbar:
-        for renderable_key in pbar:
-            try:
-                # Process the renderable key
-                rendered = renderable_type.process(renderable_key, data_repo)
+    def log_message(message: str) -> None:
+        """Helper to log message to both errors file and verbose output."""
+        if errors_file:
+            errors_file.write(message + "\n")
+        if verbose:
+            click.echo(message)
+
+    def resolve_filename_collision(original_filename: str) -> str:
+        """Helper to resolve filename collisions by adding counter suffix."""
+        filename = original_filename
+        counter = 1
+
+        while filename in used_filenames:
+            # Add counter to make filename unique
+            name, ext = (
+                pathlib.Path(original_filename).stem,
+                pathlib.Path(original_filename).suffix,
+            )
+            filename = f"{name}_{counter}{ext}"
+            counter += 1
+
+        return filename
+
+    with multiprocessing.Pool(processes=processes) as pool:
+        # Process with progress bar
+        with tqdm(total=len(process_args), desc=desc, disable=verbose) as pbar:
+            for renderable_key, rendered, error in pool.imap(
+                _process_single_item, process_args
+            ):
+                if error is not None:
+                    log_message(f"✗ {renderable_key} -> ERROR: {error}")
+                    error_count += 1
+                    continue
+
+                assert rendered is not None  # For type checker
 
                 # Handle filename collisions
                 original_filename = rendered.filename
-                filename = original_filename
-                counter = 1
+                filename = resolve_filename_collision(original_filename)
 
-                while filename in used_filenames:
-                    # Add counter to make filename unique
-                    name, ext = (
-                        pathlib.Path(original_filename).stem,
-                        pathlib.Path(original_filename).suffix,
+                # Log warning if there was a collision
+                if filename != original_filename:
+                    log_message(
+                        f"Warning: Filename collision for {renderable_key}, renamed to {filename}"
                     )
-                    filename = f"{name}_{counter}{ext}"
-                    counter += 1
 
                 used_filenames.add(filename)
 
@@ -75,25 +128,12 @@ def _generate_content(
                     f.write(rendered.content)
 
                 if verbose:
-                    collision_note = (
-                        f" (renamed from {original_filename})"
-                        if filename != original_filename
-                        else ""
-                    )
-                    click.echo(f"✓ {renderable_key} -> {filename}{collision_note}")
+                    click.echo(f"✓ {renderable_key} -> {filename}")
 
                 success_count += 1
 
-            except Exception as e:
-                error_msg = f"✗ {renderable_key} -> ERROR: {e}"
-                if errors_file:
-                    errors_file.write(error_msg + "\n")
-                if verbose:
-                    click.echo(error_msg)
-                error_count += 1
-
-            # Update progress bar with error count
-            pbar.set_postfix({"errors": error_count})
+                pbar.set_postfix({"errors": error_count})
+                pbar.update(1)
 
     return success_count, error_count
 
@@ -108,10 +148,12 @@ def cli() -> None:
 @click.argument("output_dir", type=click.Path(path_type=pathlib.Path))  # type: ignore[misc]
 @click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "unused-texts"]), help="Generate only specific content type")  # type: ignore[misc]
 @click.option("--verbose", "-v", is_flag=True, help="Show verbose output")  # type: ignore[misc]
+@click.option("--processes", "-j", type=int, help="Number of parallel processes (default: CPU count)")  # type: ignore[misc]
 def generate_all(
     output_dir: pathlib.Path,
     only: str | None,
     verbose: bool,
+    processes: int | None,
 ) -> None:
     """Generate content into RAG-suitable text files."""
     try:
@@ -143,6 +185,7 @@ def generate_all(
                 data_repo=data_repo,
                 verbose=verbose,
                 errors_file=errors_file,
+                processes=processes,
             )
             total_success += success
             total_error += error
@@ -157,6 +200,7 @@ def generate_all(
                 data_repo=data_repo,
                 verbose=verbose,
                 errors_file=errors_file,
+                processes=processes,
             )
             total_success += success
             total_error += error
@@ -171,6 +215,7 @@ def generate_all(
                 data_repo=data_repo,
                 verbose=verbose,
                 errors_file=errors_file,
+                processes=processes,
             )
             total_success += success
             total_error += error
@@ -185,6 +230,7 @@ def generate_all(
                 data_repo=data_repo,
                 verbose=verbose,
                 errors_file=errors_file,
+                processes=processes,
             )
             total_success += success
             total_error += error
