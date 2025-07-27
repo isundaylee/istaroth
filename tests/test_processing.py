@@ -48,6 +48,9 @@ def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
 
     quest_info = processing.get_quest_info(quest_path, data_repo=data_repo)
 
+    # Verify we got a title
+    assert quest_info.title.strip()
+
     # Verify we got some talks
     assert len(quest_info.talks) > 0
 

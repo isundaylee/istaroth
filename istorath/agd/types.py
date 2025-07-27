@@ -207,6 +207,7 @@ class TalkInfo:
 class QuestInfo:
     """Quest information with associated talk dialogs."""
 
+    title: str
     talks: list[TalkInfo]
 
 

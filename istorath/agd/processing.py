@@ -94,6 +94,13 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
     # Load quest data
     quest_data = data_repo.load_quest_data(quest_path)
 
+    # Load text map for title resolution
+    text_map = data_repo.load_text_map("CHS")
+
+    # Resolve quest title from description hash
+    desc_hash = str(quest_data["descTextMapHash"])
+    quest_title = text_map.get(desc_hash, f"Quest {quest_data['id']}")
+
     # Process each talk in the quest
     talk_infos = []
     for talk_item in quest_data["talks"]:
@@ -113,4 +120,4 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
             # Skip talks that can't be loaded (file might not exist)
             continue
 
-    return types.QuestInfo(talks=talk_infos)
+    return types.QuestInfo(title=quest_title, talks=talk_infos)
