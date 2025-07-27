@@ -38,35 +38,25 @@ def get_readable_metadata(
     localization_data = data_repo.load_localization_excel_config_data()
     document_data = data_repo.load_document_excel_config_data()
     text_map = data_repo.load_text_map()
-
-    # Map language codes to localization field names
-    language_to_field = {
-        "CHS": "defaultPath",  # Chinese Simplified uses defaultPath
-        "CHT": "scPath",  # Chinese Traditional
-        "EN": "enPath",  # English
-        "JP": "jpPath",  # Japanese
-        "KR": "krPath",  # Korean
-        "ES": "esPath",  # Spanish
-        "FR": "frPath",  # French
-        "ID": "idPath",  # Indonesian
-        "PT": "ptPath",  # Portuguese
-        "RU": "ruPath",  # Russian
-        "TH": "thPath",  # Thai
-        "VI": "viPath",  # Vietnamese
-        "DE": "dePath",  # German
-        "TR": "trPath",  # Turkish
-        "IT": "itPath",  # Italian
-    }
-
-    # Get the appropriate field for the current language
-    field_name = language_to_field.get(data_repo.language, "defaultPath")
+    language = data_repo.language
 
     # Step 1: Find localization ID for the readable
     for entry in localization_data:
-        path_value = entry.get(field_name, "")
-        if isinstance(path_value, str) and readable_id in path_value:
-            localization_id = entry["id"]
-            break
+        # Look through all fields to find one with a path ending in the target language
+        for _, path_value in entry.items():
+            if (
+                isinstance(path_value, str)
+                and (readable_id in path_value)
+                and (
+                    path_value.endswith(f"_{language}")
+                    or (f"/{language}/" in path_value)
+                )
+            ):
+                localization_id = entry["id"]
+                break
+        else:
+            continue
+        break
     else:
         raise ValueError(f"Localization ID not found for readable: {readable_id}")
 
