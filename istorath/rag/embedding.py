@@ -14,7 +14,7 @@ class DocumentStore:
         """Initialize the document store with empty FAISS index."""
         self._embeddings = HuggingFaceEmbeddings(
             model_name="BAAI/bge-m3",
-            model_kwargs={"device": "cpu"},  # Change to "cuda" if GPU available
+            model_kwargs={"device": "mps"},
             encode_kwargs={"normalize_embeddings": True},  # For cosine similarity
         )
         self._text_splitter = RecursiveCharacterTextSplitter(

@@ -5,6 +5,7 @@ import pathlib
 import sys
 
 import click
+from tqdm import tqdm
 
 # Add the parent directory to Python path to find istorath module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
@@ -35,21 +36,22 @@ def main(path: pathlib.Path, query: str) -> None:
     # Create document store and process all files
     store = DocumentStore()
 
-    for file_path in files_to_process:
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                content = f.read()
+    with tqdm(files_to_process, desc="Adding documents", unit="file") as pbar:
+        for file_path in pbar:
+            try:
+                pbar.set_postfix(file=file_path.name)
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
 
-            metadata = {
-                "source": str(file_path),
-                "type": "test_document",
-                "filename": file_path.name,
-            }
-            store.add_text(content.strip(), metadata=metadata)
-            print(f"Added file: {file_path.name} ({len(content)} characters)")
+                metadata = {
+                    "source": str(file_path),
+                    "type": "test_document",
+                    "filename": file_path.name,
+                }
+                store.add_text(content.strip(), metadata=metadata)
 
-        except Exception as e:
-            print(f"Error reading {file_path.name}: {e}")
+            except Exception as e:
+                tqdm.write(f"Error reading {file_path.name}: {e}")
 
     print(f"\nTotal documents in store: {store.num_documents}")
 
