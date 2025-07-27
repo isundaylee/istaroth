@@ -84,7 +84,7 @@ def main(
 
     for i, (text, score) in enumerate(results):
         print(f"\nResult {i + 1} (score: {score:.4f}):")
-        print(f"  Text: {''.join(text.splitlines())}")
+        print("  " + "".join(text.splitlines()))
 
 
 if __name__ == "__main__":
