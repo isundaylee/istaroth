@@ -17,7 +17,7 @@ class DocumentStore:
         """Initialize the document store with empty FAISS index."""
         self._embeddings = HuggingFaceEmbeddings(
             model_name="BAAI/bge-m3",
-            model_kwargs={"device": "mps"},
+            model_kwargs={"device": os.getenv("ISTORATH_TRAINING_DEVICE", "cuda")},
             encode_kwargs={"normalize_embeddings": True},  # For cosine similarity
         )
         self._text_splitter = RecursiveCharacterTextSplitter(

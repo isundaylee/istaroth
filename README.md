@@ -25,7 +25,9 @@ A checkpoint currently mainly consists of the vectorstore containing cleaned gam
 
 ### Running Queries
 
-- Set `GOOGLE_API_KEY` to a Google API key with Gemini API enabled
+- Set some env vars:
+    - `GOOGLE_API_KEY` to a Google API key with Gemini API enabled
+    - `ISTORATH_TRAINING_DEVICE=cpu` if you don't have CUDA
 - Basic query: `scripts/rag_tools.py query "玛丽安与西摩尔的关系是怎么样的？"`
     - Query with sources: `scripts/rag_tools.py query "玛丽安与西摩尔的关系是怎么样的？" --show-sources`
 - Retrieve documents only: `scripts/rag_tools.py retrieve "璃月港的历史" --k 3`
