@@ -53,6 +53,7 @@ istorath/
 - Write very concise docstring; don't list all args & return values when they are self-explanatory from the function signature and names
 - Use the Python walrus operation := when appropriate to simplify code
 - ALWAYS prefer using features available on pathlib.Path, e.g. read_text and read_bytes
+- ALWAYS use names that start with _ for symbols that are not supposed to be used outside its current module/class/etc.
 
 ## Import Conventions
 - ALWAYS import istorath.agd.types aliased as agd_types outside istorath.agd; but import is normally as from istorath.agd import types when inside the istorath.agd package.
@@ -63,3 +64,6 @@ istorath/
 
 ## Git Workflow Best Practices
 - ALWAYS run precommit separately and added resulted changes before you offer to git commit
+
+## Script Development Guidelines
+- ALWAYS include a shebang and make the script executable for files under scripts/
