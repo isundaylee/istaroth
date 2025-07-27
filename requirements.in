@@ -2,6 +2,7 @@
 # Add your main project dependencies here
 click
 tqdm
+llama-cloud
 
 # Development dependencies
 pip-tools
