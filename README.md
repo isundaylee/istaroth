@@ -19,7 +19,7 @@ A checkpoint currently mainly consists of the vectorstore containing cleaned gam
 
 - Set some env vars:
     - `export AGD_PATH="/path/to/AnimeGameData"`
-    - `export AGD_LANGUAGE="CHS"` (or `EN` for English)
+    - `export AGD_LANGUAGE="CHS"` (or `ENG` for English)
 - Process AGD data: `scripts/agd_tools.py generate-all /path/to/text/files` to extract and clean text files
 - Add documents: `scripts/rag_tools.py add-documents /path/to/text/files`
 

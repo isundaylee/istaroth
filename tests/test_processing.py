@@ -93,14 +93,14 @@ def english_data_repo() -> repo.DataRepo:
         pytest.skip("AGD_PATH environment variable not set")
 
     # Mock the environment to use English
-    with mock.patch.dict(os.environ, {"AGD_LANGUAGE": "EN"}):
+    with mock.patch.dict(os.environ, {"AGD_LANGUAGE": "ENG"}):
         return repo.DataRepo.from_env()
 
 
 def test_english_language_support(english_data_repo: repo.DataRepo) -> None:
     """Test that English language is properly supported."""
     # Verify the data repo is configured for English
-    assert english_data_repo.language == "EN"
+    assert english_data_repo.language == "ENG"
 
     # Test talk processing with English
     talk_path = "BinOutput/Talk/Quest/7407811.json"
@@ -137,5 +137,5 @@ def test_english_language_support(english_data_repo: repo.DataRepo) -> None:
 
     except Exception as e:
         # If the test fails due to missing English text maps, skip the test
-        if "TextMapEN.json" in str(e):
+        if "TextMapENG.json" in str(e):
             pytest.skip(f"English text map not available: {e}")

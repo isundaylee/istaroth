@@ -14,7 +14,7 @@ def _get_localized_role_names(language: str) -> types.LocalizedRoleNames:
             unknown_npc="Unknown NPC",
             unknown_role="Unknown Role",
         ),
-        "EN": types.LocalizedRoleNames(
+        "ENG": types.LocalizedRoleNames(
             player="Traveler",
             black_screen="Black Screen Text",
             unknown_npc="Unknown NPC",
@@ -23,7 +23,7 @@ def _get_localized_role_names(language: str) -> types.LocalizedRoleNames:
         # Add more languages as needed
     }
     # Default to English for unsupported languages
-    return role_names.get(language, role_names["EN"])
+    return role_names.get(language, role_names["ENG"])
 
 
 def get_readable_metadata(
