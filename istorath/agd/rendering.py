@@ -67,7 +67,7 @@ def render_quest(quest: types.QuestInfo) -> types.RenderedItem:
     content_lines = ["# Quest Dialog\n"]
 
     for i, talk in enumerate(quest.talks, 1):
-        if i > 1:
+        if len(quest.talks) > 1:  # Only add talk headers if there are multiple talks
             content_lines.append(f"\n## Talk {i}\n")
 
         for talk_text in talk.text:
