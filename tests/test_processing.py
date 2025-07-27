@@ -40,3 +40,22 @@ def test_talk_7407811_info(data_repo: repo.DataRepo) -> None:
     # Verify messages are not empty
     for talk_text in talk_info.text:
         assert talk_text.message.strip()  # Non-empty message
+
+
+def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
+    """Test retrieving quest info for 74078.json."""
+    quest_path = "BinOutput/Quest/74078.json"
+
+    quest_info = processing.get_quest_info(quest_path, data_repo=data_repo)
+
+    # Verify we got some talks
+    assert len(quest_info.talks) > 0
+
+    # Verify each talk has some dialog text
+    for talk_info in quest_info.talks:
+        assert len(talk_info.text) > 0
+
+        # Verify each talk has meaningful content
+        for talk_text in talk_info.text:
+            assert talk_text.role.strip()
+            assert talk_text.message.strip()

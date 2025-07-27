@@ -87,3 +87,30 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
         talk_texts.append(types.TalkText(role=role, message=message))
 
     return types.TalkInfo(text=talk_texts)
+
+
+def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestInfo:
+    """Retrieve quest information from quest file."""
+    # Load quest data
+    quest_data = data_repo.load_quest_data(quest_path)
+
+    # Process each talk in the quest
+    talk_infos = []
+    for talk_item in quest_data["talks"]:
+        init_dialog_id = talk_item["initDialog"]
+
+        # Convert dialog ID to talk file path
+        # Dialog IDs like 740780101 map to BinOutput/Talk/Quest/7407801.json
+        # Take first 7 digits as the talk file ID
+        talk_file_id = str(init_dialog_id)[:7]
+        talk_file_path = f"BinOutput/Talk/Quest/{talk_file_id}.json"
+
+        try:
+            # Get the talk info for this dialog
+            talk_info = get_talk_info(talk_file_path, data_repo=data_repo)
+            talk_infos.append(talk_info)
+        except Exception:
+            # Skip talks that can't be loaded (file might not exist)
+            continue
+
+    return types.QuestInfo(talks=talk_infos)

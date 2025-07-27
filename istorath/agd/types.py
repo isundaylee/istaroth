@@ -146,6 +146,35 @@ class TalkData(TypedDict):
     dialogList: list[TalkDialogItem]
 
 
+class QuestTalkItem(TypedDict):
+    """Type definition for quest talk entries."""
+
+    id: int
+    beginWay: str
+    activeMode: str
+    beginCond: list[dict[str, str | list[str]]]
+    priority: int
+    initDialog: int
+    npcId: list[int]
+    performCfg: str
+    heroTalk: str
+    questId: int
+    assetIndex: int
+    prePerformCfg: str
+
+
+class QuestData(TypedDict):
+    """Quest data structure containing talks and metadata.
+
+    Example file: BinOutput/Quest/74078.json
+    """
+
+    id: int
+    series: int
+    descTextMapHash: int
+    talks: list[QuestTalkItem]
+
+
 # ============================================================================
 # Istorath Internal Types
 # ============================================================================
@@ -172,6 +201,13 @@ class TalkInfo:
     """Talk information with dialog text."""
 
     text: list[TalkText]
+
+
+@attrs.define
+class QuestInfo:
+    """Quest information with associated talk dialogs."""
+
+    talks: list[TalkInfo]
 
 
 @attrs.define
