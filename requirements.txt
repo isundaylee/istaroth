@@ -13,11 +13,17 @@ aiosignal==1.4.0
 annotated-types==0.7.0
     # via pydantic
 anyio==4.9.0
-    # via httpx
+    # via
+    #   httpx
+    #   mcp
+    #   sse-starlette
+    #   starlette
 attrs==25.3.0
     # via
     #   -r requirements.in
     #   aiohttp
+    #   jsonschema
+    #   referencing
 build==1.2.2.post1
     # via pip-tools
 cachetools==5.5.2
@@ -35,6 +41,7 @@ click==8.1.8
     # via
     #   -r requirements.in
     #   pip-tools
+    #   uvicorn
 dataclasses-json==0.6.7
     # via langchain-community
 distlib==0.4.0
@@ -76,15 +83,21 @@ grpcio==1.74.0
 grpcio-status==1.74.0
     # via google-api-core
 h11==0.16.0
-    # via httpcore
+    # via
+    #   httpcore
+    #   uvicorn
 hf-xet==1.1.5
     # via huggingface-hub
 httpcore==1.0.9
     # via httpx
 httpx==0.28.1
-    # via langsmith
+    # via
+    #   langsmith
+    #   mcp
 httpx-sse==0.4.1
-    # via langchain-community
+    # via
+    #   langchain-community
+    #   mcp
 huggingface-hub==0.34.1
     # via
     #   sentence-transformers
@@ -108,6 +121,10 @@ jsonpatch==1.33
     # via langchain-core
 jsonpointer==3.0.0
     # via jsonpatch
+jsonschema==4.25.0
+    # via mcp
+jsonschema-specifications==2025.4.1
+    # via jsonschema
 langchain==0.3.27
     # via
     #   -r requirements.in
@@ -133,6 +150,8 @@ markupsafe==3.0.2
     # via jinja2
 marshmallow==3.26.1
     # via dataclasses-json
+mcp==1.12.2
+    # via -r requirements.in
 mpmath==1.3.0
     # via sympy
 multidict==6.6.3
@@ -208,11 +227,14 @@ pydantic==2.11.7
     #   langchain-core
     #   langchain-google-genai
     #   langsmith
+    #   mcp
     #   pydantic-settings
 pydantic-core==2.33.2
     # via pydantic
 pydantic-settings==2.10.1
-    # via langchain-community
+    # via
+    #   langchain-community
+    #   mcp
 pygments==2.19.2
     # via pytest
 pyproject-hooks==1.2.0
@@ -223,6 +245,8 @@ pytest==8.4.1
     # via -r requirements.in
 python-dotenv==1.1.1
     # via pydantic-settings
+python-multipart==0.0.20
+    # via mcp
 pyyaml==6.0.2
     # via
     #   huggingface-hub
@@ -231,6 +255,10 @@ pyyaml==6.0.2
     #   langchain-core
     #   pre-commit
     #   transformers
+referencing==0.36.2
+    # via
+    #   jsonschema
+    #   jsonschema-specifications
 regex==2024.11.6
     # via transformers
 requests==2.32.4
@@ -244,6 +272,10 @@ requests==2.32.4
     #   transformers
 requests-toolbelt==1.0.0
     # via langsmith
+rpds-py==0.26.0
+    # via
+    #   jsonschema
+    #   referencing
 rsa==4.9.1
     # via google-auth
 safetensors==0.5.3
@@ -262,6 +294,10 @@ sqlalchemy==2.0.41
     # via
     #   langchain
     #   langchain-community
+sse-starlette==3.0.2
+    # via mcp
+starlette==0.47.2
+    # via mcp
 sympy==1.14.0
     # via torch
 tenacity==9.1.2
@@ -291,8 +327,10 @@ typing-extensions==4.14.1
     #   mypy
     #   pydantic
     #   pydantic-core
+    #   referencing
     #   sentence-transformers
     #   sqlalchemy
+    #   starlette
     #   torch
     #   typing-inspect
     #   typing-inspection
@@ -304,6 +342,8 @@ typing-inspection==0.4.1
     #   pydantic-settings
 urllib3==2.5.0
     # via requests
+uvicorn==0.35.0
+    # via mcp
 virtualenv==20.32.0
     # via pre-commit
 wheel==0.45.1

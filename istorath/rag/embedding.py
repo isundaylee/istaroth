@@ -1,6 +1,7 @@
 """Document store and embedding utilities for RAG pipeline."""
 
 import json
+import os
 import pathlib
 from typing import Optional
 
@@ -100,3 +101,37 @@ class DocumentStore:
     def num_documents(self) -> int:
         """Number of documents in the store."""
         return int(self._vector_store.index.ntotal)
+
+    @classmethod
+    def from_env(cls) -> "DocumentStore":
+        """Create DocumentStore from ISTORATH_DOCUMENT_STORE environment variable.
+
+        Loads existing store if path exists, otherwise creates new empty store.
+        """
+        path_str = os.getenv("ISTORATH_DOCUMENT_STORE")
+        if not path_str:
+            raise ValueError(
+                "ISTORATH_DOCUMENT_STORE environment variable is required. "
+                "Please set it to the path where the document database is stored."
+            )
+
+        store_path = pathlib.Path(path_str)
+        store = cls()
+
+        if store_path.exists():
+            store.load(store_path)
+
+        return store
+
+    def save_to_env(self) -> None:
+        """Save DocumentStore to path specified by ISTORATH_DOCUMENT_STORE env var."""
+        path_str = os.getenv("ISTORATH_DOCUMENT_STORE")
+        if not path_str:
+            raise ValueError(
+                "ISTORATH_DOCUMENT_STORE environment variable is required. "
+                "Please set it to the path where the document database should be stored."
+            )
+
+        store_path = pathlib.Path(path_str)
+        store_path.mkdir(parents=True, exist_ok=True)
+        self.save(store_path)

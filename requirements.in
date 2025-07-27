@@ -8,6 +8,7 @@ langchain
 langchain-community
 langchain-google-genai
 faiss-cpu
+mcp
 
 # Development dependencies
 pip-tools

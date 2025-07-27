@@ -21,18 +21,6 @@ def _create_llm() -> google_llms.GoogleGenerativeAI:
     return google_llms.GoogleGenerativeAI(model="gemini-2.5-flash")
 
 
-def _get_document_store_path() -> pathlib.Path:
-    """Get document store path from environment variable."""
-    path_str = os.getenv("ISTORATH_DOCUMENT_STORE")
-    if not path_str:
-        print("Error: ISTORATH_DOCUMENT_STORE environment variable is required.")
-        print(
-            "Please set it to the path where you want to store the document database."
-        )
-        sys.exit(1)
-    return pathlib.Path(path_str)
-
-
 def _get_files_to_process(path: pathlib.Path) -> list[pathlib.Path]:
     """Get a list of .txt files to process from the given path."""
     if path.is_file():
@@ -49,31 +37,10 @@ def _get_files_to_process(path: pathlib.Path) -> list[pathlib.Path]:
 
 def _load_or_create_store() -> embedding.DocumentStore:
     """Load existing document store or create new one."""
-    store = embedding.DocumentStore()
-    store_path = _get_document_store_path()
-
-    if store_path.exists():
-        print(f"Loading existing document store from: {store_path}")
-        try:
-            store.load(store_path)
-            print(f"Loaded store with {store.num_documents} existing documents")
-        except Exception as e:
-            print(f"Error loading document store: {e}")
-            sys.exit(1)
-
+    store = embedding.DocumentStore.from_env()
+    if store.num_documents > 0:
+        print(f"Loaded store with {store.num_documents} existing documents")
     return store
-
-
-def _save_store(store: embedding.DocumentStore) -> None:
-    """Save document store."""
-    store_path = _get_document_store_path()
-    print(f"Saving document store to: {store_path}")
-    try:
-        store_path.mkdir(parents=True, exist_ok=True)
-        store.save(store_path)
-    except Exception as e:
-        print(f"Error saving document store: {e}")
-        sys.exit(1)
 
 
 @click.group()  # type: ignore[misc]
@@ -103,7 +70,7 @@ def add_documents(path: pathlib.Path) -> None:
 
     finally:
         print(f"\nTotal documents in store: {store.num_documents}")
-        _save_store(store)
+        store.save_to_env()
 
 
 @cli.command()  # type: ignore[misc]
