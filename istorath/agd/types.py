@@ -172,3 +172,11 @@ class QuestInfo:
     """Quest information with dialog text."""
 
     text: list[QuestText]
+
+
+@attrs.define
+class RenderedItem:
+    """Rendered content suitable for RAG training."""
+
+    filename: str
+    content: str
