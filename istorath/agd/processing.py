@@ -136,9 +136,15 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
     # Load text map for title resolution
     text_map = data_repo.load_text_map()
 
-    # Resolve quest title from description hash
-    desc_hash = str(quest_data["descTextMapHash"])
-    quest_title = text_map.get(desc_hash, f"Quest {quest_data['id']}")
+    # Resolve quest title from description hash, fallback to title hash
+    if (
+        title_hash := quest_data.get(
+            "descTextMapHash", quest_data.get("titleTextMapHash")
+        )
+    ) is None:
+        raise ValueError(f"Could not find title for quest {quest_data['id']}")
+
+    quest_title = text_map[str(title_hash)]
 
     # Process subQuests in order (maintaining quest progression sequence)
     subquest_talk_infos = []
@@ -165,7 +171,9 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
     non_subquest_talk_infos = []
 
     for talk_item in quest_data.get("talks", []):
-        init_dialog_id = talk_item["initDialog"]
+        init_dialog_id = talk_item.get("initDialog")
+        if init_dialog_id is None:
+            continue  # Skip talks without initDialog
         talk_file_id = str(init_dialog_id)[:7]
 
         # Skip if this talk is already in subquest talks
