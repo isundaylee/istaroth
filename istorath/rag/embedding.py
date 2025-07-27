@@ -49,6 +49,25 @@ class DocumentStore:
         self._added_keys.add(key)
         return True
 
+    def add_file(self, file_path: pathlib.Path) -> bool:
+        """Add a text file to the document store.
+
+        Returns True if added, False if already exists.
+        Raises exception if file cannot be read.
+        """
+        # Read file content using pathlib
+        content = file_path.read_text(encoding="utf-8")
+
+        # Create metadata
+        metadata = {
+            "source": str(file_path),
+            "type": "document",
+            "filename": file_path.name,
+        }
+
+        # Use file path as unique key
+        return self.add_text(content.strip(), key=str(file_path), metadata=metadata)
+
     def search(self, query: str, k: int = 5) -> list[tuple[str, float]]:
         """Search for similar documents."""
         results = self._vector_store.similarity_search_with_score(query, k=k)

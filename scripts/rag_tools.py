@@ -86,28 +86,10 @@ def add_documents(path: pathlib.Path) -> None:
             sys.exit(1)
 
         print(f"Processing {len(files_to_process)} files from: {path}")
-
         with tqdm(files_to_process, desc="Adding documents", unit="file") as pbar:
             for file_path in pbar:
-                try:
-                    pbar.set_postfix(file=file_path.name)
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        content = f.read()
-
-                    metadata = {
-                        "source": str(file_path),
-                        "type": "document",
-                        "filename": file_path.name,
-                    }
-                    # Use file path as unique key
-                    was_added = store.add_text(
-                        content.strip(), key=str(file_path), metadata=metadata
-                    )
-                    if not was_added:
-                        tqdm.write(f"Skipped {file_path.name} (already added)")
-
-                except Exception as e:
-                    tqdm.write(f"Warning: Error reading {file_path.name}: {e}")
+                if not store.add_file(file_path):
+                    tqdm.write(f"Skipped {file_path.name} (already added)")
 
     finally:
         print(f"\nTotal documents in store: {store.num_documents}")
