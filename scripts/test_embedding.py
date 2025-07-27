@@ -25,7 +25,7 @@ def main(path: pathlib.Path, query: str, save_path: pathlib.Path | None) -> None
         files_to_process = [path]
         print(f"Reading content from file: {path}")
     elif path.is_dir():
-        files_to_process = list(path.glob("*.txt"))
+        files_to_process = list(path.glob("**/*.txt"))
         print(f"Reading content from folder: {path}")
         if not files_to_process:
             print("No .txt files found in the folder.")
