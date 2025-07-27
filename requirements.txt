@@ -11,7 +11,9 @@ build==1.2.2.post1
 cfgv==3.4.0
     # via pre-commit
 click==8.1.8
-    # via pip-tools
+    # via
+    #   -r requirements.in
+    #   pip-tools
 distlib==0.4.0
     # via virtualenv
 filelock==3.18.0

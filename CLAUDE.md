@@ -57,3 +57,6 @@ istorath/
 
 ## Functional Programming Guidelines
 - Pass arguments that are not primary inputs to the function itself but rather toolkit objects (e.g. DataRepo) as kw-only args
+
+## Git Workflow Best Practices
+- ALWAYS run precommit separately and added resulted changes before you offer to git commit

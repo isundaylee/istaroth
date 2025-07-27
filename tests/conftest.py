@@ -17,6 +17,9 @@ def agd_path() -> str:
 
 
 @pytest.fixture
-def data_repo(agd_path: str) -> repo.DataRepo:
-    """Create DataRepo instance."""
-    return repo.DataRepo(agd_path)
+def data_repo() -> repo.DataRepo:
+    """Create DataRepo instance from environment."""
+    try:
+        return repo.DataRepo.from_env()
+    except ValueError:
+        pytest.skip("AGD_PATH environment variable not set")

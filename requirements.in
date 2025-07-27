@@ -1,5 +1,6 @@
 # Core dependencies for Istorath project
 # Add your main project dependencies here
+click
 
 # Development dependencies
 pip-tools

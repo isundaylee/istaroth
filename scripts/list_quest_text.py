@@ -23,17 +23,11 @@ def main() -> None:
 
     quest_path = sys.argv[1]
 
-    agd_path = os.environ.get("AGD_PATH")
-    if not agd_path:
-        print("Error: AGD_PATH environment variable not set", file=sys.stderr)
-        sys.exit(1)
-
-    data_repo = repo.DataRepo(agd_path)
-
     try:
+        data_repo = repo.DataRepo.from_env()
         quest_info = processing.get_quest_info(quest_path, data_repo=data_repo)
     except Exception as e:
-        print(f"Error loading quest data: {e}", file=sys.stderr)
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
     print(f"Quest Dialog: {quest_path}")

@@ -13,13 +13,13 @@ from istorath.agd import processing, repo
 
 def main() -> None:
     """List readable metadata for all CHS files."""
-    agd_path = os.environ.get("AGD_PATH")
-    if not agd_path:
-        print("Error: AGD_PATH environment variable not set", file=sys.stderr)
+    try:
+        data_repo = repo.DataRepo.from_env()
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 
-    data_repo = repo.DataRepo(agd_path)
-    readable_dir = pathlib.Path(agd_path) / "Readable" / "CHS"
+    readable_dir = data_repo.agd_path / "Readable" / "CHS"
 
     if not readable_dir.exists():
         print(f"Error: Directory {readable_dir} does not exist", file=sys.stderr)

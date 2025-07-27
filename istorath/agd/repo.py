@@ -2,6 +2,7 @@
 
 import functools
 import json
+import os
 import pathlib
 
 import attrs
@@ -14,6 +15,14 @@ class DataRepo:
     """Repository for loading AnimeGameData files."""
 
     agd_path: pathlib.Path = attrs.field(converter=pathlib.Path)
+
+    @classmethod
+    def from_env(cls) -> "DataRepo":
+        """Create DataRepo from AGD_PATH environment variable."""
+        agd_path = os.environ.get("AGD_PATH")
+        if not agd_path:
+            raise ValueError("AGD_PATH environment variable not set")
+        return cls(agd_path)
 
     @functools.lru_cache(maxsize=None)
     def load_text_map(self, language: str = "CHS") -> types.TextMap:
