@@ -1,6 +1,6 @@
 """Type definitions for AnimeGameData (AGD) structures."""
 
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import attrs
 
@@ -186,8 +186,8 @@ class QuestData(TypedDict):
     id: int
     series: int
     descTextMapHash: int
-    talks: list[QuestTalkItem]
     subQuests: list[SubQuestItem]
+    talks: NotRequired[list[QuestTalkItem]]  # Optional field, not always present
 
 
 # ============================================================================
