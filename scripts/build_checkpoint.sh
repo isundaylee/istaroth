@@ -3,6 +3,7 @@
 # Enable strict mode
 set -euo pipefail
 
+WORKING_DIR=$(PWD)
 TEXT_PATH=$1
 CHECKPOINT_PATH=$2
 
@@ -17,7 +18,7 @@ ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd istorath && ([[ -e env ]] || python3 -
 ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd istorath && env/bin/pip install -r requirements.txt"
 
 # Compress the folder $TEXT_PATH into a tar.gz file locally
-(cd $TEXT_PATH && COPYFILE_DISABLE=1 tar --exclude='**/._*' --exclude 'text.tar.gz' -czf "text.tar.gz" .)
+(cd $TEXT_PATH && COPYFILE_DISABLE=1 tar --exclude='**/._*' --no-xattrs --exclude 'text.tar.gz' -czf "text.tar.gz" .)
 ssh -p $REMOTE_PORT root@$REMOTE_HOST "rm -rf text && mkdir text"
 scp -P $REMOTE_PORT $TEXT_PATH/text.tar.gz root@$REMOTE_HOST:text/text.tar.gz
 ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd text && tar -xzf text.tar.gz && rm text.tar.gz"
@@ -30,6 +31,8 @@ ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd istorath && \
 rm -rf $CHECKPOINT_PATH
 scp -P $REMOTE_PORT -r root@$REMOTE_HOST:checkpoint/ $CHECKPOINT_PATH
 cp -r $TEXT_PATH $CHECKPOINT_PATH/text
-(cd $TEXT_PATH && git rev-parse HEAD > $CHECKPOINT_PATH/text.git_commit)
-(cd $TEXT_PATH && git diff HEAD > $CHECKPOINT_PATH/text.git_diff)
+(cd $TEXT_PATH && git rev-parse HEAD > $WORKING_DIR/$CHECKPOINT_PATH/text.git_commit)
+(cd $TEXT_PATH && git diff HEAD > $WORKING_DIR/$CHECKPOINT_PATH/text.git_diff)
 (cd $CHECKPOINT_PATH && COPYFILE_DISABLE=1 tar --exclude='**/._*' -czf "../$(basename $CHECKPOINT_PATH).tar.gz" .)
+
+echo "Checkpoint built successfully at $CHECKPOINT_PATH & $CHECKPOINT_PATH.tar.gz"
