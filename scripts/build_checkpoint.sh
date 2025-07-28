@@ -30,4 +30,6 @@ ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd istorath && \
 rm -rf $CHECKPOINT_PATH
 scp -P $REMOTE_PORT -r root@$REMOTE_HOST:checkpoint/ $CHECKPOINT_PATH
 cp -r $TEXT_PATH $CHECKPOINT_PATH/text
+(cd $TEXT_PATH && git rev-parse HEAD > $CHECKPOINT_PATH/text.git_commit)
+(cd $TEXT_PATH && git diff HEAD > $CHECKPOINT_PATH/text.git_diff)
 (cd $CHECKPOINT_PATH && COPYFILE_DISABLE=1 tar --exclude='**/._*' -czf "../$(basename $CHECKPOINT_PATH).tar.gz" .)
