@@ -38,10 +38,10 @@ def _get_git_commit_hash(repo_path: pathlib.Path) -> str:
 
 
 def _is_git_repo_dirty(repo_path: pathlib.Path) -> bool:
-    """Check if a Git repository has uncommitted changes (including untracked files)."""
+    """Check if a Git repository has uncommitted changes (excluding submodule changes)."""
     # Check for unstaged and staged changes
     result = subprocess.run(
-        ["git", "status", "--porcelain"],
+        ["git", "status", "--porcelain", "--ignore-submodules"],
         cwd=repo_path,
         capture_output=True,
         text=True,
