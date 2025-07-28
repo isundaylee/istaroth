@@ -29,4 +29,5 @@ ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd istorath && \
 
 rm -rf $CHECKPOINT_PATH
 scp -P $REMOTE_PORT -r root@$REMOTE_HOST:checkpoint/ $CHECKPOINT_PATH
+cp -r $TEXT_PATH $CHECKPOINT_PATH/text
 (cd $CHECKPOINT_PATH && COPYFILE_DISABLE=1 tar --exclude='**/._*' -czf "../$(basename $CHECKPOINT_PATH).tar.gz" .)
