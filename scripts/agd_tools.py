@@ -114,18 +114,25 @@ def _generate_content(
             for renderable_key, rendered, error in pool.imap(
                 _process_single_item, process_args
             ):
+                pbar.update(1)
+
                 if error is not None:
                     log_message(f"✗ {renderable_key} -> ERROR: {error}")
                     error_count += 1
 
                     # Check if error limit exceeded
-                    if error_count > renderable_type.error_limit:
-                        error_msg = f"Error limit exceeded ({error_count} > {renderable_type.error_limit}), stopping generation"
+                    effective_error_limit = (
+                        renderable_type.error_limit
+                        if data_repo.language == "CHS"
+                        else renderable_type.error_limit_non_chinese
+                    )
+                    if error_count > effective_error_limit:
+                        error_msg = f"Error limit exceeded ({error_count} > {effective_error_limit}), stopping generation"
                         log_message(error_msg)
                         raise ErrorLimitExceededException(
                             renderable_type.__class__.__name__,
                             error_count,
-                            renderable_type.error_limit,
+                            effective_error_limit,
                         )
 
                     continue
@@ -152,7 +159,6 @@ def _generate_content(
                 success_count += 1
 
                 pbar.set_postfix({"errors": error_count})
-                pbar.update(1)
 
     return success_count, error_count
 

@@ -56,6 +56,11 @@ class DataRepo:
     agd_path: pathlib.Path = attrs.field(converter=pathlib.Path)
     language: str = attrs.field(default="CHS")
 
+    @property
+    def language_short(self) -> str:
+        """Get the short language code used in AGD file structure (maps ENG to EN)."""
+        return "EN" if self.language == "ENG" else self.language
+
     @classmethod
     def from_env(cls) -> "DataRepo":
         """Create DataRepo from environment variables.
@@ -71,7 +76,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_text_map(self) -> TextMapTracker:
         """Load TextMap file for the instance's language."""
-        file_path = self.agd_path / "TextMap" / f"TextMap{self.language}.json"
+        file_path = self.agd_path / "TextMap" / f"TextMap{self.language_short}.json"
         with open(file_path, encoding="utf-8") as f:
             data: types.TextMap = json.load(f)
             return TextMapTracker(data)

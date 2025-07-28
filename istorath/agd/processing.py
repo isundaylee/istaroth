@@ -38,18 +38,18 @@ def get_readable_metadata(
     localization_data = data_repo.load_localization_excel_config_data()
     document_data = data_repo.load_document_excel_config_data()
     text_map = data_repo.load_text_map()
-    language = data_repo.language
+    language_short = data_repo.language_short
 
     # Step 1: Find localization ID for the readable
     for entry in localization_data:
-        # Look through all fields to find one with a path ending in the target language
+        # Look through all fields to find one with a path ending in the target language_short
         for _, path_value in entry.items():
             if (
                 isinstance(path_value, str)
                 and (readable_id in path_value)
                 and (
-                    path_value.endswith(f"_{language}")
-                    or (f"/{language}/" in path_value)
+                    path_value.endswith(f"_{language_short}")
+                    or (f"/{language_short}/" in path_value)
                 )
             ):
                 localization_id = entry["id"]

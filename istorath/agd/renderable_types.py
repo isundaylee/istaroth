@@ -10,6 +10,7 @@ class BaseRenderableType(ABC):
     """Abstract base class for renderable content types."""
 
     error_limit: ClassVar[int] = 0  # Default error limit
+    error_limit_non_chinese: ClassVar[int] = 0  # Higher limit for non-Chinese languages
 
     @abstractmethod
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
@@ -28,13 +29,14 @@ class Readables(BaseRenderableType):
     """Readable content type (books, weapons, etc.)."""
 
     error_limit: ClassVar[int] = 50
+    error_limit_non_chinese: ClassVar[int] = 200
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all readable files."""
-        readable_dir = data_repo.agd_path / "Readable" / data_repo.language
+        readable_dir = data_repo.agd_path / "Readable" / data_repo.language_short
         if readable_dir.exists():
             return [
-                f"Readable/{data_repo.language}/{txt_file.name}"
+                f"Readable/{data_repo.language_short}/{txt_file.name}"
                 for txt_file in readable_dir.glob("*.txt")
             ]
         return []
@@ -59,6 +61,7 @@ class Quests(BaseRenderableType):
     """Quest content type (dialog, cutscenes, etc.)."""
 
     error_limit: ClassVar[int] = 100
+    error_limit_non_chinese: ClassVar[int] = 2000
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all quest files."""
