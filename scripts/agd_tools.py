@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """AGD tools for processing and rendering game content."""
 
+import json
 import multiprocessing
 import pathlib
+import subprocess
 import sys
 from typing import TextIO
 
@@ -20,6 +22,42 @@ from istorath.agd.renderable_types import (
     Readables,
     UnusedTexts,
 )
+
+
+def _get_git_commit_hash(repo_path: pathlib.Path) -> str:
+    """Get the current Git commit hash for a repository."""
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repo_path,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout.strip()
+
+
+def _is_git_repo_dirty(repo_path: pathlib.Path) -> bool:
+    """Check if a Git repository has uncommitted changes (including untracked files)."""
+    # Check for unstaged and staged changes
+    result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=repo_path,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return bool(result.stdout.strip())
+
+
+def _generate_metadata(
+    agd_path: pathlib.Path, istorath_path: pathlib.Path
+) -> dict[str, str | bool]:
+    """Generate metadata dictionary with Git information."""
+    return {
+        "agd_git_commit": _get_git_commit_hash(agd_path),
+        "istorath_git_commit": _get_git_commit_hash(istorath_path),
+        "istorath_git_dirty": _is_git_repo_dirty(istorath_path),
+    }
 
 
 class ErrorLimitExceededException(Exception):
@@ -239,6 +277,14 @@ def generate_all(
             click.echo(f"Character stories: {success} success, {error} errors")
 
     click.echo(f"\nTotal: {total_success} files generated, {total_error} errors")
+
+    # Generate and write metadata.json
+    istorath_path = pathlib.Path(__file__).parent.parent
+    metadata = _generate_metadata(data_repo.agd_path, istorath_path)
+    metadata_path = output_dir / "metadata.json"
+    with metadata_path.open("w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2)
+    click.echo(f"Metadata written to {metadata_path}")
 
     if total_error > 0:
         click.echo(f"\nDetailed errors written to {errors_file_path}")
