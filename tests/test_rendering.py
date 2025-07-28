@@ -1,6 +1,6 @@
 """Tests for AGD rendering functionality."""
 
-from istorath.agd import rendering, types
+from istaroth.agd import rendering, types
 
 
 def test_render_readable_basic() -> None:

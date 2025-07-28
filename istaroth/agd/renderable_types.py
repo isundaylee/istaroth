@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import ClassVar
 
-from istorath.agd import processing, rendering, repo, types
+from istaroth.agd import processing, rendering, repo, types
 
 
 class BaseRenderableType(ABC):

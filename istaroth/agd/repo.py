@@ -7,7 +7,7 @@ import pathlib
 
 import attrs
 
-from istorath.agd import types
+from istaroth.agd import types
 
 
 class TextMapTracker:

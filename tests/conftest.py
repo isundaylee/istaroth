@@ -4,7 +4,7 @@ import os
 
 import pytest
 
-from istorath.agd import repo
+from istaroth.agd import repo
 
 
 @pytest.fixture

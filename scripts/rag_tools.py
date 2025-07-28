@@ -8,12 +8,12 @@ import sys
 import click
 from tqdm import tqdm
 
-# Add the parent directory to Python path to find istorath module
+# Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from langchain_google_genai import llms as google_llms
 
-from istorath.rag import embedding, pipeline, tracing
+from istaroth.rag import embedding, pipeline, tracing
 
 
 def _create_llm() -> google_llms.GoogleGenerativeAI:

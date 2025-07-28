@@ -1,4 +1,4 @@
-# Core dependencies for Istorath project
+# Core dependencies for Istaroth project
 # Add your main project dependencies here
 click
 tqdm

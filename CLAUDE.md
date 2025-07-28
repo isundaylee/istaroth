@@ -1,7 +1,7 @@
 # Claude Code Project Information
 
 ## Project Overview
-Istorath is a pipeline for extracting, cleaning, and structuring textual content from Genshin Impact with the goal of powering a Retrieval-Augmented Generation (RAG) language model capable of answering lore questions about the world of Teyvat.
+Istaroth is a pipeline for extracting, cleaning, and structuring textual content from Genshin Impact with the goal of powering a Retrieval-Augmented Generation (RAG) language model capable of answering lore questions about the world of Teyvat.
 
 ## Development Setup
 
@@ -24,12 +24,12 @@ Pre-commit hooks are configured with:
 - Sync dependencies: `pip-sync requirements.txt`
 - Install pre-commit: `pre-commit install`
 - Run pre-commit manually: `pre-commit run --all-files`
-- Type checking: `mypy istorath/`
+- Type checking: `mypy istaroth/`
 
 ### Project Structure
 ```
-istorath/
-├── istorath/           # Main package
+istaroth/
+├── istaroth/           # Main package
 │   └── __init__.py
 ├── requirements.in     # High-level dependencies
 ├── .pre-commit-config.yaml  # Pre-commit configuration
@@ -41,7 +41,7 @@ istorath/
 - `<AGD>` is used to refer to a separate AnimeGameData path containing the actual data extracted from the game.
 
 ## Project Conventions
-- ALWAYS use full import path starting from istorath.
+- ALWAYS use full import path starting from istaroth.
 - ALWAYS run things from the root of the repo
 - ALWAYS write concise commit message; use bullet points when it's helpful but don't feel obligated to include multiple bullets.
 
@@ -56,8 +56,8 @@ istorath/
 - ALWAYS use names that start with _ for symbols that are not supposed to be used outside its current module/class/etc.
 
 ## Import Conventions
-- ALWAYS import istorath.agd.types aliased as agd_types outside istorath.agd; but import is normally as from istorath.agd import types when inside the istorath.agd package.
-- ALWAYS use from packaeg.subpackage import module import syntax; e.g. from istorath.agd import processing
+- ALWAYS import istaroth.agd.types aliased as agd_types outside istaroth.agd; but import is normally as from istaroth.agd import types when inside the istaroth.agd package.
+- ALWAYS use from packaeg.subpackage import module import syntax; e.g. from istaroth.agd import processing
 
 ## Functional Programming Guidelines
 - Pass arguments that are not primary inputs to the function itself but rather toolkit objects (e.g. DataRepo) as kw-only args
@@ -71,7 +71,7 @@ istorath/
 ## LangSmith Tracing
 The RAG pipeline supports LangSmith tracing for debugging and monitoring. Required environment variables:
 - `LANGSMITH_API_KEY`: Your LangSmith API key
-- `LANGCHAIN_PROJECT`: Project name (e.g., "istorath-rag")
+- `LANGCHAIN_PROJECT`: Project name (e.g., "istaroth-rag")
 - `LANGCHAIN_TRACING_V2`: Set to "true" to enable tracing
 
 Optional environment variables:

@@ -2,7 +2,7 @@
 
 import re
 
-from istorath.agd import types
+from istaroth.agd import types
 
 
 def render_readable(

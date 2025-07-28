@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-"""HTTP/WebSocket MCP server for Istorath RAG functionality."""
+"""HTTP/WebSocket MCP server for Istaroth RAG functionality."""
 
 import pathlib
 import sys
 
 from fastmcp import FastMCP
 
-# Add the parent directory to Python path to find istorath module
+# Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from istorath.rag import embedding
+from istaroth.rag import embedding
 
 # Create an MCP server
-mcp = FastMCP("istorath")
+mcp = FastMCP("istaroth")
 
 
 @mcp.tool()  # type: ignore[misc]
 def retrieve(query: str, k: int = 5, show_scores: bool = False) -> str:
-    """Retrieve similar documents from Istorath RAG document store"""
+    """Retrieve similar documents from Istaroth RAG document store"""
     try:
         store = embedding.DocumentStore.from_env()
 

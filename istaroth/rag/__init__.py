@@ -1,4 +1,4 @@
-"""RAG (Retrieval-Augmented Generation) utilities for Istorath."""
+"""RAG (Retrieval-Augmented Generation) utilities for Istaroth."""
 
 from .embedding import DocumentStore
 

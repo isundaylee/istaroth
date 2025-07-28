@@ -2,7 +2,7 @@
 
 import pathlib
 
-from istorath.agd import repo, types
+from istaroth.agd import repo, types
 
 
 def _get_localized_role_names(language: str) -> types.LocalizedRoleNames:

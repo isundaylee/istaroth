@@ -11,11 +11,11 @@ from typing import TextIO
 import click
 from tqdm import tqdm
 
-# Add the parent directory to Python path to find istorath module
+# Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from istorath.agd import processing, rendering, repo, types
-from istorath.agd.renderable_types import (
+from istaroth.agd import processing, rendering, repo, types
+from istaroth.agd.renderable_types import (
     BaseRenderableType,
     CharacterStories,
     Quests,
@@ -51,13 +51,13 @@ def _is_git_repo_dirty(repo_path: pathlib.Path) -> bool:
 
 
 def _generate_metadata(
-    agd_path: pathlib.Path, istorath_path: pathlib.Path
+    agd_path: pathlib.Path, istaroth_path: pathlib.Path
 ) -> dict[str, str | bool]:
     """Generate metadata dictionary with Git information."""
     return {
         "agd_git_commit": _get_git_commit_hash(agd_path),
-        "istorath_git_commit": _get_git_commit_hash(istorath_path),
-        "istorath_git_dirty": _is_git_repo_dirty(istorath_path),
+        "istaroth_git_commit": _get_git_commit_hash(istaroth_path),
+        "istaroth_git_dirty": _is_git_repo_dirty(istaroth_path),
     }
 
 
@@ -294,8 +294,8 @@ def generate_all(
     click.echo(f"\nTotal: {total_success} files generated, {total_error} errors")
 
     # Generate and write metadata.json
-    istorath_path = pathlib.Path(__file__).parent.parent
-    metadata = _generate_metadata(data_repo.agd_path, istorath_path)
+    istaroth_path = pathlib.Path(__file__).parent.parent
+    metadata = _generate_metadata(data_repo.agd_path, istaroth_path)
     metadata_path = output_dir / "metadata.json"
     with metadata_path.open("w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)

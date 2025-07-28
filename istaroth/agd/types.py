@@ -237,7 +237,7 @@ Example file: ExcelBinOutput/FetterStoryExcelConfigData.json
 
 
 # ============================================================================
-# Istorath Internal Types
+# Istaroth Internal Types
 # ============================================================================
 # These types are defined and used within our codebase for processed data
 

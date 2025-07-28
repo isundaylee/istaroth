@@ -1,1 +1,1 @@
-"""Tests for the istorath package."""
+"""Tests for the istaroth package."""

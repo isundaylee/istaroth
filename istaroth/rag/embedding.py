@@ -17,7 +17,7 @@ class DocumentStore:
         """Initialize the document store with empty FAISS index."""
         self._embeddings = HuggingFaceEmbeddings(
             model_name="BAAI/bge-m3",
-            model_kwargs={"device": os.getenv("ISTORATH_TRAINING_DEVICE", "cuda")},
+            model_kwargs={"device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")},
             encode_kwargs={"normalize_embeddings": True},  # For cosine similarity
         )
         self._text_splitter = RecursiveCharacterTextSplitter(
@@ -124,14 +124,14 @@ class DocumentStore:
 
     @classmethod
     def from_env(cls) -> "DocumentStore":
-        """Create DocumentStore from ISTORATH_DOCUMENT_STORE environment variable.
+        """Create DocumentStore from ISTAROTH_DOCUMENT_STORE environment variable.
 
         Loads existing store if path exists, otherwise creates new empty store.
         """
-        path_str = os.getenv("ISTORATH_DOCUMENT_STORE")
+        path_str = os.getenv("ISTAROTH_DOCUMENT_STORE")
         if not path_str:
             raise ValueError(
-                "ISTORATH_DOCUMENT_STORE environment variable is required. "
+                "ISTAROTH_DOCUMENT_STORE environment variable is required. "
                 "Please set it to the path where the document database is stored."
             )
 
@@ -144,11 +144,11 @@ class DocumentStore:
         return store
 
     def save_to_env(self) -> None:
-        """Save DocumentStore to path specified by ISTORATH_DOCUMENT_STORE env var."""
-        path_str = os.getenv("ISTORATH_DOCUMENT_STORE")
+        """Save DocumentStore to path specified by ISTAROTH_DOCUMENT_STORE env var."""
+        path_str = os.getenv("ISTAROTH_DOCUMENT_STORE")
         if not path_str:
             raise ValueError(
-                "ISTORATH_DOCUMENT_STORE environment variable is required. "
+                "ISTAROTH_DOCUMENT_STORE environment variable is required. "
                 "Please set it to the path where the document database should be stored."
             )
 

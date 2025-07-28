@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 
-from istorath.agd import processing, repo
+from istaroth.agd import processing, repo
 
 
 def test_book100_metadata(data_repo: repo.DataRepo) -> None:
@@ -40,7 +40,7 @@ def test_talk_7407811_info(data_repo: repo.DataRepo) -> None:
     # Check that we have different role types
     roles = [text.role for text in talk_info.text]
     # Get localized role names for testing
-    from istorath.agd.processing import _get_localized_role_names
+    from istaroth.agd.processing import _get_localized_role_names
 
     localized_roles = _get_localized_role_names(data_repo.language)
 

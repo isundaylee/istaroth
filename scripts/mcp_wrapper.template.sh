@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set your environment variables here
-export ISTORATH_DOCUMENT_STORE="/path/to/checkpoint" # REPLACE
+export ISTAROTH_DOCUMENT_STORE="/path/to/checkpoint" # REPLACE
 export GOOGLE_API_KEY="your-google-api-key-here"  # REPLACE
 
 # Optional: Set LangSmith tracing environment variables if you want to enable tracing

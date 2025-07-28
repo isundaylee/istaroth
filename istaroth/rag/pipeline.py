@@ -6,7 +6,7 @@ import attrs
 from langchain import prompts
 from langchain_core import language_models, messages
 
-from istorath.rag import embedding, tracing
+from istaroth.rag import embedding, tracing
 
 
 @attrs.define
