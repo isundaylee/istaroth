@@ -117,6 +117,8 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
             role = localized_roles.player
         elif talk_role["type"] == "TALK_ROLE_NEED_CLICK_BLACK_SCREEN":
             role = localized_roles.black_screen
+        elif talk_role["type"] == "TALK_ROLE_BLACK_SCREEN":
+            role = localized_roles.black_screen
         else:
             role = f"{localized_roles.unknown_role} ({talk_role['type']})"
 
