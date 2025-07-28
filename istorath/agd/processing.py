@@ -249,3 +249,20 @@ def get_character_story_info(
             stories.append(types.CharacterStory(title=title, content=content))
 
     return types.CharacterStoryInfo(character_name=character_name, stories=stories)
+
+
+def get_subtitle_info(
+    subtitle_path: str, *, data_repo: repo.DataRepo
+) -> types.SubtitleInfo:
+    """Parse subtitle file and extract text lines."""
+    subtitle_file_path = data_repo.agd_path / subtitle_path
+    content = subtitle_file_path.read_text(encoding="utf-8")
+
+    text_lines = []
+    for line in content.strip().split("\n"):
+        line = line.strip()
+        # Skip empty lines, numbers, and timestamp lines
+        if line and not line.isdigit() and "-->" not in line:
+            text_lines.append(line)
+
+    return types.SubtitleInfo(text_lines=text_lines)

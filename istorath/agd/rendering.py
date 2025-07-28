@@ -123,3 +123,24 @@ def render_character_story(story_info: types.CharacterStoryInfo) -> types.Render
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(filename=filename, content=rendered_content)
+
+
+def render_subtitle(
+    subtitle_info: types.SubtitleInfo, subtitle_path: str
+) -> types.RenderedItem:
+    """Render subtitle content into RAG-suitable format."""
+    # Generate filename based on subtitle file name
+    import pathlib
+
+    path_obj = pathlib.Path(subtitle_path)
+    safe_name = re.sub(r"[^\w\s-]", "", path_obj.stem)
+    safe_name = re.sub(r"\s+", "_", safe_name.strip())
+    filename = f"subtitle_{safe_name}.txt"
+
+    # Format content with subtitle header and all text lines
+    content_lines = [f"# Subtitle: {path_obj.stem}\n"]
+    content_lines.extend(subtitle_info.text_lines)
+
+    rendered_content = "\n".join(content_lines)
+
+    return types.RenderedItem(filename=filename, content=rendered_content)

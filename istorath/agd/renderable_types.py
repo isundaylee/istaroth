@@ -131,3 +131,29 @@ class CharacterStories(BaseRenderableType):
 
         # Render the character story
         return rendering.render_character_story(story_info)
+
+
+class Subtitles(BaseRenderableType):
+    """Subtitle content type (.srt files)."""
+
+    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+        """Find all subtitle files."""
+        subtitle_dir = data_repo.agd_path / "Subtitle" / data_repo.language_short
+        if subtitle_dir.exists():
+            return [
+                f"Subtitle/{data_repo.language_short}/{srt_file.name}"
+                for srt_file in subtitle_dir.glob("*.srt")
+            ]
+        return []
+
+    def process(
+        self, renderable_key: str, data_repo: repo.DataRepo
+    ) -> types.RenderedItem:
+        """Process subtitle file into rendered content."""
+        # Get subtitle info
+        subtitle_info = processing.get_subtitle_info(
+            renderable_key, data_repo=data_repo
+        )
+
+        # Render the subtitle
+        return rendering.render_subtitle(subtitle_info, renderable_key)

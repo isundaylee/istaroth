@@ -307,6 +307,13 @@ class CharacterStoryInfo:
 
 
 @attrs.define
+class SubtitleInfo:
+    """Subtitle information containing all subtitle text."""
+
+    text_lines: list[str]
+
+
+@attrs.define
 class RenderedItem:
     """Rendered content suitable for RAG training."""
 
