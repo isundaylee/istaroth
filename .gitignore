@@ -211,7 +211,7 @@ CLAUDE.local.md
 **/.claude/settings.local.json
 
 # VSCode
-istorath.code-workspace
+istaroth.code-workspace
 
 /tmp
 scripts/mcp_wrapper.sh
