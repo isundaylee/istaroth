@@ -235,7 +235,7 @@ def generate_all(
     generate_character_stories = only is None or only == "character-stories"
 
     # Open errors file for writing
-    errors_file_path = output_dir / "errors.log"
+    errors_file_path = output_dir / "errors.info"
     with errors_file_path.open("w", encoding="utf-8") as errors_file:
         if generate_readable:
             success, error = _generate_content(
