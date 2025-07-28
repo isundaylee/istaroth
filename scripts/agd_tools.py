@@ -165,7 +165,7 @@ def cli() -> None:
 
 @cli.command("generate-all")  # type: ignore[misc]
 @click.argument("output_dir", type=click.Path(path_type=pathlib.Path))  # type: ignore[misc]
-@click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "unused-texts"]), help="Generate only specific content type")  # type: ignore[misc]
+@click.option("--only", type=click.Choice(["readable", "quest", "character-stories"]), help="Generate only specific content type")  # type: ignore[misc]
 @click.option("--processes", "-j", type=int, help="Number of parallel processes (default: CPU count)")  # type: ignore[misc]
 def generate_all(
     output_dir: pathlib.Path,
@@ -189,10 +189,9 @@ def generate_all(
     generate_readable = only is None or only == "readable"
     generate_quest = only is None or only == "quest"
     generate_character_stories = only is None or only == "character-stories"
-    generate_unused_texts = only is None or only == "unused-texts"
 
     # Open errors file for writing
-    errors_file_path = output_dir / "errors.txt"
+    errors_file_path = output_dir / "errors.log"
     with errors_file_path.open("w", encoding="utf-8") as errors_file:
         if generate_readable:
             success, error = _generate_content(
@@ -232,19 +231,6 @@ def generate_all(
             total_success += success
             total_error += error
             click.echo(f"Character stories: {success} success, {error} errors")
-
-        if generate_unused_texts:
-            success, error = _generate_content(
-                UnusedTexts(),
-                output_dir / "unused_texts",
-                "Generating unused text entries",
-                data_repo=data_repo,
-                errors_file=errors_file,
-                processes=processes,
-            )
-            total_success += success
-            total_error += error
-            click.echo(f"Unused texts: {success} success, {error} errors")
 
     click.echo(f"\nTotal: {total_success} files generated, {total_error} errors")
 
