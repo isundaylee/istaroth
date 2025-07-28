@@ -1,0 +1,3 @@
+[submodule "text"]
+	path = text
+	url = git@github.com:isundaylee/istorath-text.git
