@@ -74,6 +74,26 @@ class DocumentStore:
         results = self._vector_store.similarity_search_with_score(query, k=k)
         return [(doc.page_content, score) for doc, score in results]
 
+    def search_fulltext(self, query: str) -> list[str]:
+        """Full-text case-insensitive search for documents containing the query string."""
+        results = []
+        docstore = self._vector_store.docstore
+
+        # Prepare query for comparison
+        search_query = query.lower()
+
+        # Search through all documents
+        for doc_id in self._vector_store.index_to_docstore_id.values():
+            if not (doc := docstore.search(doc_id)):
+                continue
+
+            # Check if query exists in content
+            content = doc.page_content
+            if search_query in doc.page_content.lower():
+                results.append(content)
+
+        return results
+
     def save(self, path: pathlib.Path) -> None:
         """Save the document store to a directory."""
         # Save FAISS vector store

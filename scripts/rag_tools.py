@@ -97,6 +97,40 @@ def retrieve(query: str, k: int) -> None:
 
 
 @cli.command()  # type: ignore[misc]
+@click.argument("query", type=str)  # type: ignore[misc]
+def search(query: str) -> None:
+    """Full-text search against documents in DocumentStore.
+
+    QUERY is the text string to search for (literal string matching, case-insensitive).
+    """
+    store = _load_or_create_store()
+
+    if store.num_documents == 0:
+        print("Error: No documents in store. Use 'add-documents' command first.")
+        sys.exit(1)
+
+    results = store.search_fulltext(query)
+
+    if not results:
+        print(f"No matches found for: {query}")
+        return
+
+    print(f"\nFound {len(results)} documents containing '{query}':")
+
+    # Show up to 10 results
+    for i, content in enumerate(results[:10]):
+        print(f"\n--- Document {i + 1} ---")
+        # Show preview of content
+        preview = " ".join(content.split())[
+            :200
+        ]  # First 200 chars, normalized whitespace
+        print(f"{preview}...")
+
+    if len(results) > 10:
+        print(f"\n(showing first 10 of {len(results)} documents)")
+
+
+@cli.command()  # type: ignore[misc]
 @click.argument("question", type=str)  # type: ignore[misc]
 @click.option("--k", default=5, help="Number of documents to retrieve")  # type: ignore[misc]
 @click.option("--show-sources", is_flag=True, help="Show source documents")  # type: ignore[misc]
