@@ -75,7 +75,7 @@ class DocumentStore:
         all_documents = []
 
         for file_path in tqdm(
-            file_paths, desc="Adding files", disable=not show_progress
+            file_paths, desc="Reading & chunking files", disable=not show_progress
         ):
             try:
                 # Read file content using pathlib
@@ -105,22 +105,23 @@ class DocumentStore:
                 continue
 
         # Batch add to FAISS vector store
-        self._vector_store.add_texts(texts=all_chunks, metadatas=all_metadatas)
+        assert len(all_chunks) == len(all_metadatas)
+        for c, md in tqdm(
+            zip(all_chunks, all_metadatas),
+            desc="Adding into vector store",
+            disable=not show_progress,
+            total=len(all_chunks),
+        ):
+            self._vector_store.add_texts(texts=[c], metadatas=[md])
 
         # Add to document list and rebuild BM25 once
         self._documents.extend(all_documents)
-        if self._documents:
-            self._bm25_retriever = BM25Retriever.from_documents(self._documents)
+        self._bm25_retriever = BM25Retriever.from_documents(self._documents)
 
         logger.info("Added %d chunks from %d files", len(all_chunks), len(file_paths))
 
     def search(self, query: str, k: int = 5) -> list[tuple[str, float]]:
         """Search using hybrid vector + BM25 retrieval with reciprocal rank fusion."""
-        if not self._documents:
-            # Fallback to vector search only
-            results = self._vector_store.similarity_search_with_score(query, k=k)
-            return [(doc.page_content, score) for doc, score in results]
-
         # Get results from both retrievers
         vector_results = self._vector_store.similarity_search_with_score(query, k=k * 2)
         vector_results_formatted = [
@@ -219,7 +220,7 @@ class DocumentStore:
     @property
     def num_documents(self) -> int:
         """Number of documents in the store."""
-        return int(self._vector_store.index.ntotal)
+        return len(self._documents)
 
     @classmethod
     def from_env(cls) -> "DocumentStore":

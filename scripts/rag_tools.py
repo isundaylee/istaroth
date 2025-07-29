@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """RAG tools for document management and querying."""
 
+import logging
 import os
 import pathlib
+import shutil
 import sys
 
 import click
@@ -50,9 +52,23 @@ def cli() -> None:
 
 @cli.command()  # type: ignore[misc]
 @click.argument("path", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
-def add_documents(path: pathlib.Path) -> None:
-    """Add documents from a file or folder to the document store."""
-    store = _load_or_create_store()
+@click.option("-f", "--force", is_flag=True, help="Delete target if it exists")  # type: ignore[misc]
+def build(path: pathlib.Path, force: bool) -> None:
+    """Build document store from a file or folder."""
+    # Get target path from environment
+    target_path = pathlib.Path(os.environ["ISTAROTH_DOCUMENT_STORE"])
+
+    # Check if target exists
+    if target_path.exists():
+        if not force:
+            print(f"Error: Target {target_path} already exists. Use -f to overwrite.")
+            sys.exit(1)
+        else:
+            print(f"Removing existing target: {target_path}")
+            shutil.rmtree(target_path)
+
+    # Create new store
+    store = embedding.DocumentStore()
 
     try:
         files_to_process = _get_files_to_process(path)
@@ -61,7 +77,7 @@ def add_documents(path: pathlib.Path) -> None:
             print("Error: No .txt files found to process.")
             sys.exit(1)
 
-        print(f"Processing {len(files_to_process)} files from: {path}")
+        print(f"Building document store from {len(files_to_process)} files in: {path}")
         store.add_files(files_to_process, show_progress=True)
 
     finally:
@@ -155,4 +171,10 @@ def query(question: str, k: int, show_sources: bool) -> None:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s.%(msecs)03d %(levelname)s %(name)-35s %(message)s",
+        datefmt="%Y%m%d %H:%M:%S",
+    )
+
     cli()
