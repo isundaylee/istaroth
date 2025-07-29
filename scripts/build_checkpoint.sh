@@ -14,6 +14,7 @@ fi
 
 # Clone git repo if it doesn't exist
 ssh -p $REMOTE_PORT root@$REMOTE_HOST "[[ -e istaroth ]] || git clone https://github.com/isundaylee/istaroth.git istaroth"
+ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd istaroth && git fetch origin main && git reset --hard origin/main"
 ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd istaroth && ([[ -e env ]] || python3 -m venv env)"
 ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd istaroth && env/bin/pip install -r requirements.txt"
 
