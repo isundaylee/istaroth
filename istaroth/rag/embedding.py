@@ -1,6 +1,7 @@
 """Document store and embedding utilities for RAG pipeline."""
 
 import json
+import logging
 import os
 import pathlib
 from typing import Optional
@@ -8,6 +9,8 @@ from typing import Optional
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentStore:
@@ -119,6 +122,10 @@ class DocumentStore:
         with open(path / "added_keys.json", "r") as f:
             added_keys_list = json.load(f)
             self._added_keys = set(added_keys_list)
+
+        logger.info(
+            "Loaded document store from %s with %d documents", path, self.num_documents
+        )
 
     @property
     def num_documents(self) -> int:
