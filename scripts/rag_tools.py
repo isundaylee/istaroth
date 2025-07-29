@@ -6,7 +6,6 @@ import pathlib
 import sys
 
 import click
-from tqdm import tqdm
 
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
@@ -63,10 +62,7 @@ def add_documents(path: pathlib.Path) -> None:
             sys.exit(1)
 
         print(f"Processing {len(files_to_process)} files from: {path}")
-        with tqdm(files_to_process, desc="Adding documents", unit="file") as pbar:
-            for file_path in pbar:
-                if not store.add_file(file_path):
-                    tqdm.write(f"Skipped {file_path.name} (already added)")
+        store.add_files(files_to_process, show_progress=True)
 
     finally:
         print(f"\nTotal documents in store: {store.num_documents}")

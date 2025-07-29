@@ -9,6 +9,7 @@ langchain-community
 langchain-google-genai
 langchain-huggingface
 faiss-cpu
+rank-bm25
 mcp
 fastmcp
 

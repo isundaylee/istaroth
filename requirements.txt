@@ -206,6 +206,7 @@ numpy==2.3.2
     #   -r requirements.in
     #   faiss-cpu
     #   langchain-community
+    #   rank-bm25
     #   scikit-learn
     #   scipy
     #   transformers
@@ -300,6 +301,8 @@ pyyaml==6.0.2
     #   langchain-core
     #   pre-commit
     #   transformers
+rank-bm25==0.2.2
+    # via -r requirements.in
 referencing==0.36.2
     # via
     #   jsonschema

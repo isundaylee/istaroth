@@ -4,13 +4,39 @@ import json
 import logging
 import os
 import pathlib
-from typing import Optional
 
+from langchain_community.retrievers import BM25Retriever
 from langchain_community.vectorstores import FAISS
+from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
+
+
+def _reciprocal_rank_fusion(
+    results: list[list[tuple[str, float]]], weights: list[float], k: int = 60
+) -> list[tuple[str, float]]:
+    """Combine multiple retrieval results using reciprocal rank fusion.
+
+    Args:
+        results: List of result lists from different retrievers
+        weights: Weights for each retriever
+        k: Constant added to rank (default 60)
+
+    Returns:
+        Fused results sorted by score
+    """
+    doc_scores: dict[str, float] = {}
+
+    for retriever_results, weight in zip(results, weights):
+        for rank, (content, _) in enumerate(retriever_results, 1):
+            score = weight / (k + rank)
+            doc_scores[content] = doc_scores.get(content, 0) + score
+
+    # Sort by combined score (highest first)
+    return sorted(doc_scores.items(), key=lambda x: x[1], reverse=True)
 
 
 class DocumentStore:
@@ -32,53 +58,84 @@ class DocumentStore:
             length_function=len,
             is_separator_regex=False,
         )
-        # Pre-create FAISS store with placeholder text
-        self._vector_store = FAISS.from_texts(
-            texts=["placeholder"],
-            embedding=self._embeddings,
-            metadatas=[{"placeholder": True}],
+        # Initialize vector store
+        self._vector_store = self._init_vector_store()
+        # Initialize BM25 retriever with placeholder document
+        self._bm25_retriever = BM25Retriever.from_documents(
+            [Document(page_content="placeholder")]
         )
-        # Clear all documents to have an empty store
-        self._vector_store.delete(
-            list(self._vector_store.index_to_docstore_id.values())
-        )
-        # Track added keys to prevent duplicates
-        self._added_keys: set[str] = set()
+        self._documents: list[Document] = []
 
-    def add_text(self, content: str, key: str, metadata: Optional[dict] = None) -> bool:
-        """Add text content to the document store. Returns False if key already exists."""
-        if key in self._added_keys:
-            return False
+    def add_files(
+        self, file_paths: list[pathlib.Path], show_progress: bool = False
+    ) -> None:
+        """Add multiple text files to the document store efficiently."""
+        all_chunks = []
+        all_metadatas = []
+        all_documents = []
 
-        chunks = self._text_splitter.split_text(content)
-        metadatas = [metadata or {} for _ in chunks]
-        self._vector_store.add_texts(texts=chunks, metadatas=metadatas)
-        self._added_keys.add(key)
-        return True
+        for file_path in tqdm(
+            file_paths, desc="Adding files", disable=not show_progress
+        ):
+            try:
+                # Read file content using pathlib
+                content = file_path.read_text(encoding="utf-8")
 
-    def add_file(self, file_path: pathlib.Path) -> bool:
-        """Add a text file to the document store.
+                # Create metadata
+                metadata = {
+                    "source": str(file_path),
+                    "type": "document",
+                    "filename": file_path.name,
+                }
 
-        Returns True if added, False if already exists.
-        Raises exception if file cannot be read.
-        """
-        # Read file content using pathlib
-        content = file_path.read_text(encoding="utf-8")
+                # Split into chunks
+                chunks = self._text_splitter.split_text(content.strip())
+                metadatas = [metadata for _ in chunks]
 
-        # Create metadata
-        metadata = {
-            "source": str(file_path),
-            "type": "document",
-            "filename": file_path.name,
-        }
+                # Collect all chunks and metadata
+                all_chunks.extend(chunks)
+                all_metadatas.extend(metadatas)
 
-        # Use file path as unique key
-        return self.add_text(content.strip(), key=str(file_path), metadata=metadata)
+                # Create documents for BM25
+                for chunk, meta in zip(chunks, metadatas):
+                    all_documents.append(Document(page_content=chunk, metadata=meta))
+
+            except Exception as e:
+                logger.warning("Failed to read %s: %s", file_path, e)
+                continue
+
+        # Batch add to FAISS vector store
+        self._vector_store.add_texts(texts=all_chunks, metadatas=all_metadatas)
+
+        # Add to document list and rebuild BM25 once
+        self._documents.extend(all_documents)
+        if self._documents:
+            self._bm25_retriever = BM25Retriever.from_documents(self._documents)
+
+        logger.info("Added %d chunks from %d files", len(all_chunks), len(file_paths))
 
     def search(self, query: str, k: int = 5) -> list[tuple[str, float]]:
-        """Search for similar documents."""
-        results = self._vector_store.similarity_search_with_score(query, k=k)
-        return [(doc.page_content, score) for doc, score in results]
+        """Search using hybrid vector + BM25 retrieval with reciprocal rank fusion."""
+        if not self._documents:
+            # Fallback to vector search only
+            results = self._vector_store.similarity_search_with_score(query, k=k)
+            return [(doc.page_content, score) for doc, score in results]
+
+        # Get results from both retrievers
+        vector_results = self._vector_store.similarity_search_with_score(query, k=k * 2)
+        vector_results_formatted = [
+            (doc.page_content, score) for doc, score in vector_results
+        ]
+
+        bm25_docs = self._bm25_retriever.invoke(query, k=k * 2)
+        bm25_results_formatted = [(doc.page_content, 1.0) for doc in bm25_docs]
+
+        # Combine using reciprocal rank fusion with equal weights
+        fused_results = _reciprocal_rank_fusion(
+            [vector_results_formatted, bm25_results_formatted], weights=[0.5, 0.5]
+        )
+
+        return fused_results[:k]
 
     def search_fulltext(self, query: str) -> list[str]:
         """Full-text case-insensitive search for documents containing the query string."""
@@ -90,12 +147,13 @@ class DocumentStore:
 
         # Search through all documents
         for doc_id in self._vector_store.index_to_docstore_id.values():
-            if not (doc := docstore.search(doc_id)):
+            doc = docstore.search(doc_id)
+            if not doc or not hasattr(doc, "page_content"):
                 continue
 
             # Check if query exists in content
             content = doc.page_content
-            if search_query in doc.page_content.lower():
+            if search_query in content.lower():
                 results.append(content)
 
         return results
@@ -105,9 +163,13 @@ class DocumentStore:
         # Save FAISS vector store
         self._vector_store.save_local(str(path / "faiss_index"))
 
-        # Save added keys set as JSON
-        with open(path / "added_keys.json", "w") as f:
-            json.dump(list(self._added_keys), f)
+        # Save documents for BM25 (as JSON)
+        documents_data = [
+            {"page_content": doc.page_content, "metadata": doc.metadata}
+            for doc in self._documents
+        ]
+        with open(path / "documents.json", "w") as f:
+            json.dump(documents_data, f)
 
     def load(self, path: pathlib.Path) -> None:
         """Load document store state from a directory."""
@@ -118,14 +180,41 @@ class DocumentStore:
             allow_dangerous_deserialization=True,
         )
 
-        # Load added keys set
-        with open(path / "added_keys.json", "r") as f:
-            added_keys_list = json.load(f)
-            self._added_keys = set(added_keys_list)
+        # Load documents for BM25
+        documents_file = path / "documents.json"
+        if documents_file.exists():
+            with open(documents_file, "r") as f:
+                documents_data = json.load(f)
+                self._documents = [
+                    Document(page_content=doc["page_content"], metadata=doc["metadata"])
+                    for doc in documents_data
+                ]
+
+            # Rebuild BM25 retriever
+            if self._documents:
+                self._bm25_retriever = BM25Retriever.from_documents(self._documents)
+        else:
+            self._documents = []
 
         logger.info(
             "Loaded document store from %s with %d documents", path, self.num_documents
         )
+
+    def _init_vector_store(self) -> FAISS:
+        """Initialize empty FAISS vector store."""
+        # Pre-create FAISS store with placeholder text
+        vector_store = FAISS.from_texts(
+            texts=["placeholder"],
+            embedding=self._embeddings,
+            metadatas=[{"placeholder": True}],
+        )
+        # Clear all documents to have an empty store
+        vector_store.delete(list(vector_store.index_to_docstore_id.values()))
+        return vector_store
+
+    def add_file(self, file_path: pathlib.Path) -> None:
+        """Add a single text file to the document store. Use add_files for better performance."""
+        self.add_files([file_path])
 
     @property
     def num_documents(self) -> int:
