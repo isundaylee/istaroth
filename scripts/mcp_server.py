@@ -14,6 +14,7 @@ from istaroth.rag import embedding
 
 # Create an MCP server
 mcp = FastMCP("istaroth")
+store = embedding.DocumentStore.from_env()
 
 
 @mcp.tool()  # type: ignore[misc]
@@ -21,8 +22,6 @@ mcp = FastMCP("istaroth")
 def retrieve(query: str, k: int = 5, show_scores: bool = False) -> str:
     """Retrieve similar documents from Istaroth RAG document store"""
     try:
-        store = embedding.DocumentStore.from_env()
-
         if store.num_documents == 0:
             return "Error: No documents in store. Please add documents first."
 
