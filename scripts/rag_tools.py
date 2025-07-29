@@ -93,7 +93,7 @@ def retrieve(query: str, k: int) -> None:
 
     for i, (text, score) in enumerate(results):
         print(f"\nResult {i + 1} (score: {score:.4f}):")
-        print(f"  Text: {''.join(text.splitlines())[:200]}...")
+        print(f"  Text: {''.join(text.splitlines())}")
 
 
 @cli.command()  # type: ignore[misc]
@@ -118,16 +118,9 @@ def search(query: str) -> None:
     print(f"\nFound {len(results)} documents containing '{query}':")
 
     # Show up to 10 results
-    for i, content in enumerate(results[:10]):
+    for i, content in enumerate(results):
         print(f"\n--- Document {i + 1} ---")
-        # Show preview of content
-        preview = " ".join(content.split())[
-            :200
-        ]  # First 200 chars, normalized whitespace
-        print(f"{preview}...")
-
-    if len(results) > 10:
-        print(f"\n(showing first 10 of {len(results)} documents)")
+        print(f'{" ".join(content.split())}')
 
 
 @cli.command()  # type: ignore[misc]
