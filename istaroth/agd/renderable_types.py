@@ -6,6 +6,18 @@ from typing import ClassVar
 from istaroth.agd import processing, rendering, repo, types
 
 
+def _should_skip(title: str, language: str) -> bool:
+    """Skip test items only for CHS language."""
+    if language != "CHS":
+        return False
+    lower_title = title.lower()
+    return (
+        lower_title.startswith(("test", "(test)", "（test）"))
+        or "$hidden" in lower_title
+        or "$unreleased" in lower_title
+    )
+
+
 class BaseRenderableType(ABC):
     """Abstract base class for renderable content types."""
 
@@ -20,7 +32,7 @@ class BaseRenderableType(ABC):
     @abstractmethod
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
-    ) -> types.RenderedItem:
+    ) -> types.RenderedItem | None:
         """Process renderable key into rendered content."""
         pass
 
@@ -43,10 +55,14 @@ class Readables(BaseRenderableType):
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
-    ) -> types.RenderedItem:
+    ) -> types.RenderedItem | None:
         """Process readable file into rendered content."""
         # Get readable metadata
         metadata = processing.get_readable_metadata(renderable_key, data_repo=data_repo)
+
+        # Skip if title starts with "test" (case-insensitive) and language is CHS
+        if _should_skip(metadata.title, data_repo.language):
+            return None
 
         # Read the actual readable content
         readable_file_path = data_repo.agd_path / renderable_key
@@ -76,10 +92,14 @@ class Quests(BaseRenderableType):
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
-    ) -> types.RenderedItem:
+    ) -> types.RenderedItem | None:
         """Process quest file into rendered content."""
         # Get quest info
         quest_info = processing.get_quest_info(renderable_key, data_repo=data_repo)
+
+        # Skip if title starts with "test" (case-insensitive) and language is CHS
+        if _should_skip(quest_info.title, data_repo.language):
+            return None
 
         # Render the quest
         return rendering.render_quest(quest_info)
@@ -94,7 +114,7 @@ class UnusedTexts(BaseRenderableType):
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
-    ) -> types.RenderedItem:
+    ) -> types.RenderedItem | None:
         """Process unused text map entries into rendered content."""
         # Get unused text map info
         unused_info = processing.get_unused_text_map_info(data_repo=data_repo)
@@ -122,7 +142,7 @@ class CharacterStories(BaseRenderableType):
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
-    ) -> types.RenderedItem:
+    ) -> types.RenderedItem | None:
         """Process character story into rendered content."""
         # Get character story info
         story_info = processing.get_character_story_info(
@@ -148,7 +168,7 @@ class Subtitles(BaseRenderableType):
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
-    ) -> types.RenderedItem:
+    ) -> types.RenderedItem | None:
         """Process subtitle file into rendered content."""
         # Get subtitle info
         subtitle_info = processing.get_subtitle_info(

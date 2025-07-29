@@ -97,14 +97,15 @@ def _generate_content(
     data_repo: repo.DataRepo,
     errors_file: TextIO | None = None,
     processes: int | None = None,
-) -> tuple[int, int]:
+) -> tuple[int, int, int]:
     """Generate content files using renderable type.
 
     Returns:
-        Tuple of (success_count, error_count)
+        Tuple of (success_count, error_count, skipped_count)
     """
     success_count = 0
     error_count = 0
+    skipped_count = 0
 
     output_dir.mkdir(exist_ok=True)
 
@@ -176,7 +177,11 @@ def _generate_content(
 
                     continue
 
-                assert rendered is not None  # For type checker
+                # Skip if rendered is None (filtered out)
+                if rendered is None:
+                    log_message(f"⚠ {renderable_key} -> SKIPPED (filtered)")
+                    skipped_count += 1
+                    continue
 
                 # Handle filename collisions
                 original_filename = rendered.filename
@@ -197,9 +202,9 @@ def _generate_content(
 
                 success_count += 1
 
-                pbar.set_postfix({"errors": error_count})
+                pbar.set_postfix({"errors": error_count, "skipped": skipped_count})
 
-    return success_count, error_count
+    return success_count, error_count, skipped_count
 
 
 @click.group()  # type: ignore[misc]
@@ -227,8 +232,17 @@ def generate_all(
     # Create output directory
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Generate and write metadata.json
+    istaroth_path = pathlib.Path(__file__).parent.parent
+    metadata = _generate_metadata(data_repo.agd_path, istaroth_path)
+    metadata_path = output_dir / "metadata.json"
+    with metadata_path.open("w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2)
+    click.echo(f"Metadata written to {metadata_path}")
+
     total_success = 0
     total_error = 0
+    total_skipped = 0
 
     # Determine which content types to generate
     generate_readable = only is None or only == "readable"
@@ -240,7 +254,7 @@ def generate_all(
     errors_file_path = output_dir / "errors.info"
     with errors_file_path.open("w", encoding="utf-8") as errors_file:
         if generate_readable:
-            success, error = _generate_content(
+            success, error, skipped = _generate_content(
                 Readables(),
                 output_dir / "readable",
                 "Generating readable content",
@@ -250,10 +264,13 @@ def generate_all(
             )
             total_success += success
             total_error += error
-            click.echo(f"Readable: {success} success, {error} errors")
+            total_skipped += skipped
+            click.echo(
+                f"Readable: {success} success, {error} errors, {skipped} skipped"
+            )
 
         if generate_quest:
-            success, error = _generate_content(
+            success, error, skipped = _generate_content(
                 Quests(),
                 output_dir / "quest",
                 "Generating quest content",
@@ -263,10 +280,11 @@ def generate_all(
             )
             total_success += success
             total_error += error
-            click.echo(f"Quest: {success} success, {error} errors")
+            total_skipped += skipped
+            click.echo(f"Quest: {success} success, {error} errors, {skipped} skipped")
 
         if generate_character_stories:
-            success, error = _generate_content(
+            success, error, skipped = _generate_content(
                 CharacterStories(),
                 output_dir / "character_stories",
                 "Generating character stories",
@@ -276,10 +294,13 @@ def generate_all(
             )
             total_success += success
             total_error += error
-            click.echo(f"Character stories: {success} success, {error} errors")
+            total_skipped += skipped
+            click.echo(
+                f"Character stories: {success} success, {error} errors, {skipped} skipped"
+            )
 
         if generate_subtitles:
-            success, error = _generate_content(
+            success, error, skipped = _generate_content(
                 Subtitles(),
                 output_dir / "subtitles",
                 "Generating subtitle content",
@@ -289,17 +310,14 @@ def generate_all(
             )
             total_success += success
             total_error += error
-            click.echo(f"Subtitles: {success} success, {error} errors")
+            total_skipped += skipped
+            click.echo(
+                f"Subtitles: {success} success, {error} errors, {skipped} skipped"
+            )
 
-    click.echo(f"\nTotal: {total_success} files generated, {total_error} errors")
-
-    # Generate and write metadata.json
-    istaroth_path = pathlib.Path(__file__).parent.parent
-    metadata = _generate_metadata(data_repo.agd_path, istaroth_path)
-    metadata_path = output_dir / "metadata.json"
-    with metadata_path.open("w", encoding="utf-8") as f:
-        json.dump(metadata, f, indent=2)
-    click.echo(f"Metadata written to {metadata_path}")
+    click.echo(
+        f"\nTotal: {total_success} files generated, {total_error} errors, {total_skipped} skipped"
+    )
 
     if total_error > 0:
         click.echo(f"\nDetailed errors written to {errors_file_path}")
