@@ -12,6 +12,7 @@ faiss-cpu
 rank-bm25
 mcp
 fastmcp
+jieba
 
 # Development dependencies
 pip-tools

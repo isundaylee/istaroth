@@ -5,6 +5,7 @@ import logging
 import os
 import pathlib
 
+import jieba
 from langchain_community.retrievers import BM25Retriever
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
@@ -13,6 +14,11 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
+
+
+def _chinese_tokenizer(text: str) -> list[str]:
+    """Tokenize Chinese text using jieba."""
+    return list(jieba.cut(text))
 
 
 def _reciprocal_rank_fusion(
@@ -60,9 +66,9 @@ class DocumentStore:
         )
         # Initialize vector store
         self._vector_store = self._init_vector_store()
-        # Initialize BM25 retriever with placeholder document
+        # Initialize BM25 retriever with placeholder document and Chinese tokenizer
         self._bm25_retriever = BM25Retriever.from_documents(
-            [Document(page_content="placeholder")]
+            [Document(page_content="placeholder")], preprocess_func=_chinese_tokenizer
         )
         self._documents: list[Document] = []
 
@@ -114,9 +120,11 @@ class DocumentStore:
         ):
             self._vector_store.add_texts(texts=[c], metadatas=[md])
 
-        # Add to document list and rebuild BM25 once
+        # Add to document list and rebuild BM25 once with Chinese tokenizer
         self._documents.extend(all_documents)
-        self._bm25_retriever = BM25Retriever.from_documents(self._documents)
+        self._bm25_retriever = BM25Retriever.from_documents(
+            self._documents, preprocess_func=_chinese_tokenizer
+        )
 
         logger.info("Added %d chunks from %d files", len(all_chunks), len(file_paths))
 
@@ -191,9 +199,11 @@ class DocumentStore:
                     for doc in documents_data
                 ]
 
-            # Rebuild BM25 retriever
+            # Rebuild BM25 retriever with Chinese tokenizer
             if self._documents:
-                self._bm25_retriever = BM25Retriever.from_documents(self._documents)
+                self._bm25_retriever = BM25Retriever.from_documents(
+                    self._documents, preprocess_func=_chinese_tokenizer
+                )
         else:
             self._documents = []
 
