@@ -1,9 +1,6 @@
 # Multi-stage build for Istaroth MCP server
 FROM python:3.12-slim AS builder
 
-# Build argument for required checkpoint file
-ARG CHECKPOINT
-
 # Install system dependencies for building Python packages
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -32,6 +29,10 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash app
 
+# Create data directories for checkpoints and HuggingFace models
+RUN mkdir -p /data/checkpoint /data/models/hf && \
+    chown -R app:app /data
+
 # Create app directory and set ownership
 WORKDIR /app
 
@@ -39,13 +40,10 @@ WORKDIR /app
 COPY --chown=app:app istaroth/ ./istaroth/
 COPY --chown=app:app scripts/ ./scripts/
 
-# Copy required checkpoint folder
-ARG CHECKPOINT
-COPY --chown=app:app ${CHECKPOINT}/ /app/checkpoint/
-
-# Set environment variable for document store location
-ENV ISTAROTH_DOCUMENT_STORE=/app/checkpoint
+# Set environment variables
+ENV ISTAROTH_DOCUMENT_STORE=/data/checkpoint
 ENV ISTAROTH_TRAINING_DEVICE=cpu
+ENV HF_HOME=/data/models/hf
 
 USER app
 
