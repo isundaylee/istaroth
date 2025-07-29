@@ -20,9 +20,12 @@ class DocumentStore:
             model_kwargs={"device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")},
             encode_kwargs={"normalize_embeddings": True},  # For cosine similarity
         )
+        # Simple newline-based splitting for dialogue structure
+        # This works well with the corpus structure where each line is usually a complete dialogue
         self._text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,
-            chunk_overlap=200,
+            separators=["\n\n", "\n", ""],  # Only paragraph and line breaks
+            chunk_size=300,
+            chunk_overlap=100,
             length_function=len,
             is_separator_regex=False,
         )
