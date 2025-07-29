@@ -109,7 +109,7 @@ def render_character_story(story_info: types.CharacterStoryInfo) -> types.Render
 
     # Add character count for additional uniqueness
     story_count = len(story_info.stories)
-    filename = f"character_story_{safe_name}_{story_count}_stories.txt"
+    filename = f"character_story_{safe_name}.txt"
 
     # Format content with character name header and all stories
     content_lines = [f"# {story_info.character_name} - Character Stories\n"]

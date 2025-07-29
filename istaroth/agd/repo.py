@@ -30,7 +30,7 @@ class TextMapTracker:
         """Get text by ID with default, tracks access if key exists."""
         if key in self._text_map:
             self._accessed_ids.add(key)
-            return self._text_map[key]
+            return self._text_map[key].replace("\\n", "\n")
         return default
 
     def get_optional(self, key: str) -> str | None:
