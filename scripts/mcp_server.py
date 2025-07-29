@@ -19,42 +19,43 @@ store = embedding.DocumentStore.from_env()
 
 @mcp.tool()  # type: ignore[misc]
 @traceable(name="mcp_retrieve")  # type: ignore[misc]
-def retrieve(query: str, k: int = 5, show_scores: bool = False) -> str:
-    """Retrieve similar documents from Istaroth RAG document store"""
+def retrieve(query: str, k: int = 5) -> str:
+    """从Istaroth原神知识库中检索相关文档
+
+    这是一个智能文档检索工具，专门用于查找原神游戏相关的背景故事、角色设定、世界观等内容。
+
+    参数：
+    - query: 查询问题或关键词（支持中文）
+    - k: 返回文档数量，默认5个
+
+    适用场景：
+    - 查询角色背景故事和关系
+    - 搜索地区历史和传说
+    - 了解游戏世界观设定
+    - 探索剧情细节和彩蛋
+    """
     try:
         if store.num_documents == 0:
-            return "Error: No documents in store. Please add documents first."
+            return "错误：文档库为空，请先添加文档。"
 
         results = store.search(query, k=k)
 
         if not results:
-            return "No results found."
+            return "未找到相关结果。"
 
-        output_lines = [
-            f"Retrieved {len(results)} documents for query: '{query}'",
+        output_parts = [
+            f"查询 '{query}' 检索到 {len(results)} 个文档：",
             "",
         ]
 
-        for i, (text, score) in enumerate(results):
-            if show_scores:
-                output_lines.append(f"Document {i + 1} (similarity: {score:.4f}):")
-            else:
-                output_lines.append(f"Document {i + 1}:")
+        for i, (text, _) in enumerate(results):
+            output_parts.append(f"==================== 文档 {i + 1}：")
+            output_parts.append(text)
+            output_parts.append("")
 
-            # Show first few lines of the document
-            lines = text.strip().split("\n")
-            preview_lines = lines[:3] if len(lines) > 3 else lines
-            for line in preview_lines:
-                output_lines.append(f"  {line}")
-
-            if len(lines) > 3:
-                output_lines.append("  ...")
-            output_lines.append("")
-
-        return "\n".join(output_lines)
-
+        return "\n".join(output_parts)
     except Exception as e:
-        return f"Error retrieving documents: {e}"
+        return f"检索文档时发生错误：{e}"
 
 
 if __name__ == "__main__":
