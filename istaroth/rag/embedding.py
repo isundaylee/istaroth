@@ -11,6 +11,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langsmith import traceable
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
@@ -128,23 +129,31 @@ class DocumentStore:
 
         logger.info("Added %d chunks from %d files", len(all_chunks), len(file_paths))
 
+    @traceable(name="bm25_search")  # type: ignore[misc]
     def search(self, query: str, k: int = 5) -> list[tuple[str, float]]:
         """Search using hybrid vector + BM25 retrieval with reciprocal rank fusion."""
         # Get results from both retrievers
-        vector_results = self._vector_store.similarity_search_with_score(query, k=k * 2)
-        vector_results_formatted = [
-            (doc.page_content, score) for doc, score in vector_results
-        ]
-
-        bm25_docs = self._bm25_retriever.invoke(query, k=k * 2)
-        bm25_results_formatted = [(doc.page_content, 1.0) for doc in bm25_docs]
+        vector_results = self._vector_search(query, k * 2)
+        bm25_results = self._bm25_search(query, k * 2)
 
         # Combine using reciprocal rank fusion with equal weights
         fused_results = _reciprocal_rank_fusion(
-            [vector_results_formatted, bm25_results_formatted], weights=[0.5, 0.5]
+            [vector_results, bm25_results], weights=[0.5, 0.5]
         )
 
         return fused_results[:k]
+
+    @traceable(name="vector_search")  # type: ignore[misc]
+    def _vector_search(self, query: str, k: int) -> list[tuple[str, float]]:
+        """Vector similarity search."""
+        results = self._vector_store.similarity_search_with_score(query, k=k)
+        return [(doc.page_content, score) for doc, score in results]
+
+    @traceable(name="bm25_search")  # type: ignore[misc]
+    def _bm25_search(self, query: str, k: int) -> list[tuple[str, float]]:
+        """BM25 keyword search."""
+        docs = self._bm25_retriever.invoke(query, k=k)
+        return [(doc.page_content, 1.0) for doc in docs]
 
     def search_fulltext(self, query: str) -> list[str]:
         """Full-text case-insensitive search for documents containing the query string."""

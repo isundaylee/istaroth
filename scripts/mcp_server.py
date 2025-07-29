@@ -5,6 +5,7 @@ import pathlib
 import sys
 
 from fastmcp import FastMCP
+from langsmith import traceable
 
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
@@ -16,6 +17,7 @@ mcp = FastMCP("istaroth")
 
 
 @mcp.tool()  # type: ignore[misc]
+@traceable(name="mcp_retrieve")  # type: ignore[misc]
 def retrieve(query: str, k: int = 5, show_scores: bool = False) -> str:
     """Retrieve similar documents from Istaroth RAG document store"""
     try:
