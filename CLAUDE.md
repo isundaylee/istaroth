@@ -15,7 +15,7 @@ This project uses pip-tools for dependency management:
 Pre-commit hooks are configured with:
 - Black (code formatting)
 - isort (import sorting)
-- mypy (type checking)
+- pyrefly (type checking)
 - Standard pre-commit hooks (trailing whitespace, YAML validation, etc.)
 
 ### Commands
@@ -24,7 +24,7 @@ Pre-commit hooks are configured with:
 - Sync dependencies: `pip-sync requirements.txt`
 - Install pre-commit: `pre-commit install`
 - Run pre-commit manually: `pre-commit run --all-files`
-- Type checking: `mypy istaroth/`
+- Type checking: `pyrefly check`
 
 ### Project Structure
 ```
@@ -33,7 +33,7 @@ istaroth/
 │   └── __init__.py
 ├── requirements.in     # High-level dependencies
 ├── .pre-commit-config.yaml  # Pre-commit configuration
-├── pyproject.toml     # Project configuration and mypy settings
+├── pyproject.toml     # Project configuration and pyrefly settings
 └── README.md          # Project documentation
 ```
 
@@ -80,4 +80,4 @@ Optional environment variables:
 Tracing is automatically enabled when all required environment variables are set.
 
 ## Development Conventions
-- ALWAYS invoke mypy as env/bin/mypy
+- ALWAYS invoke pyrefly as `env/bin/pyrefly check`

@@ -17,7 +17,6 @@ jieba
 # Development dependencies
 pip-tools
 pre-commit
-mypy
 pyrefly
 attrs
 pytest
