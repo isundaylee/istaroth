@@ -287,6 +287,8 @@ pyproject-hooks==1.2.0
     # via
     #   build
     #   pip-tools
+pyrefly==0.26.0
+    # via -r requirements.in
 pytest==8.4.1
     # via -r requirements.in
 python-dotenv==1.1.1

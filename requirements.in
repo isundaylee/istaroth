@@ -18,5 +18,6 @@ jieba
 pip-tools
 pre-commit
 mypy
+pyrefly
 attrs
 pytest

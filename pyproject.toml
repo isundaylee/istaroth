@@ -32,3 +32,8 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 strict_equality = true
+
+[tool.pyrefly]
+python-version = "3.12.0"
+project-includes = ["istaroth", "scripts", "tests"]
+untyped-def-behavior = "skip-and-infer-return-any"
