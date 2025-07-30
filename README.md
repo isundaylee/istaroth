@@ -42,10 +42,12 @@ Istaroth includes an MCP (Model Context Protocol) server that allows Claude to q
 You can launch an MCP server with a prebuilt Docker image:
 
 ```
-docker run -p 8000:8000 isundaylee/istaroth-mcp:chs
+docker run -p 8000:8000 isundaylee/istaroth:latest
 ```
 
 Then follow the remaining instructions in the Remote MCP server section below to add it into Claude.
+
+The Docker image defaults to loading a recent Chinese checkpoint upon first startup. You can customize it by setting the `ISTAROTH_CHECKPOINT_URL` env var.
 
 ### Local MCP Server (stdio)
 
