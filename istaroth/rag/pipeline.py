@@ -5,6 +5,7 @@ import typing
 import attrs
 from langchain import prompts
 from langchain_core import language_models, messages
+from langchain_core.runnables import RunnableConfig
 
 from istaroth.rag import embedding, tracing
 
@@ -110,12 +111,13 @@ class RAGPipeline:
             ]
 
         # Generate answer with tracing context
+        config: RunnableConfig = {"metadata": run_metadata}
         response = self._chain.invoke(
             {
                 "user_question": question,
                 "retrieved_context": retrieved_context,
             },
-            config={"metadata": run_metadata},
+            config=config,
         )
 
         # Extract answer text

@@ -15,6 +15,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langsmith import traceable
 from tqdm import tqdm
 
+from istaroth import utils
+
 logger = logging.getLogger(__name__)
 
 
@@ -208,6 +210,7 @@ class DocumentStore:
                 continue
 
             # Check if query exists in content
+            doc = utils.assert_is_instance(doc, Document)
             content = doc.page_content
             if search_query in content.lower():
                 results.append(content)
