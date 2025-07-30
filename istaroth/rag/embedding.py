@@ -6,6 +6,7 @@ import os
 import pathlib
 import uuid
 
+import attrs
 import jieba
 from langchain_community.retrievers import BM25Retriever
 from langchain_community.vectorstores import FAISS
@@ -20,14 +21,22 @@ from istaroth import utils
 logger = logging.getLogger(__name__)
 
 
+@attrs.define
+class ScoredDocument:
+    """Document with similarity score."""
+
+    document: Document
+    score: float
+
+
 def _chinese_tokenizer(text: str) -> list[str]:
     """Tokenize Chinese text using jieba."""
     return list(jieba.cut(text))
 
 
 def _reciprocal_rank_fusion(
-    results: list[list[tuple[Document, float]]], weights: list[float], k: int = 60
-) -> list[tuple[Document, float]]:
+    results: list[list[ScoredDocument]], weights: list[float], k: int = 60
+) -> list[ScoredDocument]:
     """Combine multiple retrieval results using reciprocal rank fusion.
 
     Args:
@@ -41,9 +50,9 @@ def _reciprocal_rank_fusion(
     doc_scores: dict[str, tuple[float, Document]] = {}
 
     for retriever_results, weight in zip(results, weights):
-        for rank, (doc, _) in enumerate(retriever_results, 1):
+        for rank, scored_doc in enumerate(retriever_results, 1):
             score = weight / (k + rank)
-            content = doc.page_content
+            content = scored_doc.document.page_content
             if content in doc_scores:
                 # Update score, keep first document encountered
                 doc_scores[content] = (
@@ -51,11 +60,13 @@ def _reciprocal_rank_fusion(
                     doc_scores[content][1],
                 )
             else:
-                doc_scores[content] = (score, doc)
+                doc_scores[content] = (score, scored_doc.document)
 
     # Sort by combined score (highest first) and return with document
     sorted_results = sorted(doc_scores.items(), key=lambda x: x[1][0], reverse=True)
-    return [(doc, score) for _, (score, doc) in sorted_results]
+    return [
+        ScoredDocument(document=doc, score=score) for _, (score, doc) in sorted_results
+    ]
 
 
 class DocumentStore:
@@ -167,10 +178,10 @@ class DocumentStore:
 
         # Deduplicate by file_id first, keeping highest scored chunk per file
         file_scores: dict[str, float] = {}
-        for doc, score in fused_results:
-            file_id = doc.metadata["file_id"]  # Must have file_id
-            if file_id not in file_scores or score > file_scores[file_id]:
-                file_scores[file_id] = score
+        for scored_doc in fused_results:
+            file_id = scored_doc.document.metadata["file_id"]  # Must have file_id
+            if file_id not in file_scores or scored_doc.score > file_scores[file_id]:
+                file_scores[file_id] = scored_doc.score
 
         # Sort by score, take first k, then compute full content only for selected files
         sorted_file_ids = sorted(file_scores.items(), key=lambda x: x[1], reverse=True)[
@@ -184,16 +195,16 @@ class DocumentStore:
         return final_results
 
     @traceable(name="vector_search")  # type: ignore[misc]
-    def _vector_search(self, query: str, k: int) -> list[tuple[Document, float]]:
+    def _vector_search(self, query: str, k: int) -> list[ScoredDocument]:
         """Vector similarity search."""
         results = self._vector_store.similarity_search_with_score(query, k=k)
-        return results  # type: ignore[no-any-return]
+        return [ScoredDocument(document=doc, score=score) for doc, score in results]
 
     @traceable(name="bm25_search")  # type: ignore[misc]
-    def _bm25_search(self, query: str, k: int) -> list[tuple[Document, float]]:
+    def _bm25_search(self, query: str, k: int) -> list[ScoredDocument]:
         """BM25 keyword search."""
         docs = self._bm25_retriever.invoke(query, k=k)
-        return [(doc, 1.0) for doc in docs]
+        return [ScoredDocument(document=doc, score=1.0) for doc in docs]
 
     def search_fulltext(self, query: str) -> list[str]:
         """Full-text case-insensitive search for documents containing the query string."""
