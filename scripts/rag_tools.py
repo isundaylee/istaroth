@@ -2,7 +2,6 @@
 """RAG tools for document management and querying."""
 
 import logging
-import os
 import pathlib
 import shutil
 import sys
@@ -56,7 +55,7 @@ def cli() -> None:
 def build(path: pathlib.Path, force: bool) -> None:
     """Build document store from a file or folder."""
     # Get target path from environment
-    target_path = pathlib.Path(os.environ["ISTAROTH_DOCUMENT_STORE"])
+    target_path = embedding.get_document_store_path()
 
     # Check if target exists
     if target_path.exists():
@@ -67,22 +66,17 @@ def build(path: pathlib.Path, force: bool) -> None:
             print(f"Removing existing target: {target_path}")
             shutil.rmtree(target_path)
 
-    # Create new store
-    store = embedding.DocumentStore()
+    files_to_process = _get_files_to_process(path)
 
-    try:
-        files_to_process = _get_files_to_process(path)
+    if not files_to_process:
+        print("Error: No .txt files found to process.")
+        sys.exit(1)
 
-        if not files_to_process:
-            print("Error: No .txt files found to process.")
-            sys.exit(1)
+    print(f"Building document store from {len(files_to_process)} files in: {path}")
+    store = embedding.DocumentStore.build(files_to_process, show_progress=True)
 
-        print(f"Building document store from {len(files_to_process)} files in: {path}")
-        store.add_files(files_to_process, show_progress=True)
-
-    finally:
-        print(f"\nTotal documents in store: {store.num_documents}")
-        store.save_to_env()
+    print(f"\nTotal documents in store: {store.num_documents}")
+    store.save_to_env()
 
 
 @cli.command()  # type: ignore[misc]
