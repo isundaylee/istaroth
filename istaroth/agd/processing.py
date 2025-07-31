@@ -284,3 +284,40 @@ def get_material_info(
     description = text_map.get(desc_hash, "No description available")
 
     return types.MaterialInfo(name=name, description=description)
+
+
+def get_voiceline_info(
+    avatar_id_str: str, *, data_repo: repo.DataRepo
+) -> types.VoicelineInfo:
+    """Get all voiceline information for a specific character."""
+    avatar_id = int(avatar_id_str)
+
+    # Load required data
+    text_map = data_repo.load_text_map()
+    avatar_data = data_repo.load_avatar_excel_config_data()
+    fetters_data = data_repo.load_fetters_excel_config_data()
+
+    # Find character name from avatar data
+    character_name = "Unknown Character"
+    for avatar in avatar_data:
+        if avatar["id"] == avatar_id:
+            name_hash = str(avatar["nameTextMapHash"])
+            character_name = text_map.get(name_hash, "Unknown Character")
+            break
+
+    # Collect all voicelines for this character
+    voicelines = {}
+    for fetter in fetters_data:
+        if fetter["avatarId"] == avatar_id:
+            # Get voiceline title
+            title_hash = str(fetter["voiceTitleTextMapHash"])
+            title = text_map.get(title_hash, "Unknown Title")
+
+            # Get voiceline content
+            content_hash = str(fetter["voiceFileTextTextMapHash"])
+            content = text_map.get(content_hash, "")
+
+            if content:  # Only add if there's actual content
+                voicelines[title] = content
+
+    return types.VoicelineInfo(character_name=character_name, voicelines=voicelines)

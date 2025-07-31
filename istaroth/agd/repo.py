@@ -199,3 +199,11 @@ class DataRepo:
         with open(file_path, encoding="utf-8") as f:
             data: types.FetterStoryExcelConfigData = json.load(f)
             return data
+
+    @functools.lru_cache(maxsize=None)
+    def load_fetters_excel_config_data(self) -> types.FettersExcelConfigData:
+        """Load fetters Excel configuration data."""
+        file_path = self.agd_path / "ExcelBinOutput" / "FettersExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.FettersExcelConfigData = json.load(f)
+            return data

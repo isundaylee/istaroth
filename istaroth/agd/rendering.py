@@ -142,3 +142,23 @@ def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(filename=filename, content=rendered_content)
+
+
+def render_voiceline(voiceline_info: types.VoicelineInfo) -> types.RenderedItem:
+    """Render voiceline content into RAG-suitable format."""
+    # Generate filename based on character name
+    safe_name = re.sub(r"[^\w\s-]", "", voiceline_info.character_name)
+    safe_name = re.sub(r"\s+", "_", safe_name.strip())
+    filename = f"voiceline_{safe_name}.txt"
+
+    # Format content with character name header and all voicelines
+    content_lines = [f"# {voiceline_info.character_name} Voicelines\n"]
+
+    for title, content in voiceline_info.voicelines.items():
+        content_lines.append(f"## {title}")
+        content_lines.append(content)
+        content_lines.append("")  # Empty line between voicelines
+
+    rendered_content = "\n".join(content_lines).rstrip()
+
+    return types.RenderedItem(filename=filename, content=rendered_content)

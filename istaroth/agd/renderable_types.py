@@ -181,3 +181,30 @@ class Materials(BaseRenderableType):
             return None
 
         return rendering.render_material(material_info)
+
+
+class Voicelines(BaseRenderableType):
+    """Voiceline content type (character voice lines)."""
+
+    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+        """Find all avatar IDs that have voicelines."""
+        return sorted(
+            {
+                str(fetter["avatarId"])
+                for fetter in data_repo.load_fetters_excel_config_data()
+            }
+        )
+
+    def process(
+        self, renderable_key: str, data_repo: repo.DataRepo
+    ) -> types.RenderedItem | None:
+        """Process voiceline into rendered content."""
+        voiceline_info = processing.get_voiceline_info(
+            renderable_key, data_repo=data_repo
+        )
+
+        # Skip if no voicelines found
+        if not voiceline_info.voicelines:
+            return None
+
+        return rendering.render_voiceline(voiceline_info)

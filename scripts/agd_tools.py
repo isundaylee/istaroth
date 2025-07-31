@@ -23,6 +23,7 @@ from istaroth.agd.renderable_types import (
     Quests,
     Readables,
     Subtitles,
+    Voicelines,
 )
 
 
@@ -239,7 +240,7 @@ def cli() -> None:
 
 @cli.command("generate-all")  # type: ignore[misc]
 @click.argument("output_dir", type=click.Path(path_type=pathlib.Path))  # type: ignore[misc]
-@click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "subtitles", "materials"]), help="Generate only specific content type")  # type: ignore[misc]
+@click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "subtitles", "materials", "voicelines"]), help="Generate only specific content type")  # type: ignore[misc]
 @click.option("--processes", "-j", type=int, help="Number of parallel processes (default: CPU count)")  # type: ignore[misc]
 def generate_all(
     output_dir: pathlib.Path,
@@ -360,6 +361,23 @@ def generate_all(
             all_tracker_stats.update(tracker_stats)
             click.echo(
                 f"Materials: {success} success, {error} errors, {skipped} skipped"
+            )
+
+        if not only or only == "voicelines":
+            success, error, skipped, tracker_stats = _generate_content(
+                Voicelines(),
+                output_dir / "voicelines",
+                "Generating voiceline content",
+                data_repo=data_repo,
+                errors_file=errors_file,
+                processes=processes,
+            )
+            total_success += success
+            total_error += error
+            total_skipped += skipped
+            all_tracker_stats.update(tracker_stats)
+            click.echo(
+                f"Voicelines: {success} success, {error} errors, {skipped} skipped"
             )
 
     click.echo(

@@ -233,6 +233,16 @@ class FetterStoryExcelConfigDataItem(TypedDict):
 
 
 type FetterStoryExcelConfigData = list[FetterStoryExcelConfigDataItem]
+
+
+class FettersExcelConfigDataItem(TypedDict):
+    avatarId: int
+    fetterId: int
+    voiceTitleTextMapHash: int
+    voiceFileTextTextMapHash: int
+
+
+type FettersExcelConfigData = list[FettersExcelConfigDataItem]
 """List of fetter story configuration items.
 
 Example file: ExcelBinOutput/FetterStoryExcelConfigData.json
@@ -315,6 +325,14 @@ class MaterialInfo:
 
     name: str
     description: str
+
+
+@attrs.define
+class VoicelineInfo:
+    """Voiceline information for a character."""
+
+    character_name: str
+    voicelines: dict[str, str]  # title -> content mapping
 
 
 @attrs.define
