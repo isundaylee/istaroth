@@ -83,8 +83,13 @@ class MaterialTracker(IdTracker):
 class TalkTracker(IdTracker):
     """Tracks which talk IDs have been accessed."""
 
-    def __init__(self, talk_excel_data: types.TalkExcelConfigData) -> None:
+    def __init__(
+        self,
+        talk_excel_data: types.TalkExcelConfigData,
+        talk_file_mapping: dict[str, str],
+    ) -> None:
         self._talk_dict = {str(talk["id"]): talk for talk in talk_excel_data}
+        self._talk_file_mapping = talk_file_mapping
         super().__init__(set(self._talk_dict.keys()))
 
     def get(self, talk_id_str: str) -> types.TalkExcelConfigDataItem | None:
@@ -104,22 +109,8 @@ class TalkTracker(IdTracker):
         if talk_item is None:
             return None
 
-        # Get file path based on loadType and ID
-        talk_id = talk_item["id"]
-        load_type = talk_item["loadType"]
-
-        # Map loadType to directory
-        load_type_to_dir = {
-            "TALK_NORMAL_QUEST": "Quest",
-            "TALK_ACTIVITY": "Activity",
-            "TALK_BLOSSOM": "Blossom",
-            "TALK_GADGET": "Gadget",
-            "TALK_FURNITURE": "Gadget",  # Furniture talks seem to go in Gadget directory
-            "TALK_STORYBOARD": "Cutscene",  # Assuming storyboard goes to cutscene
-        }
-
-        directory = load_type_to_dir.get(load_type, "Quest")  # Default to Quest
-        return f"BinOutput/Talk/{directory}/{talk_id}.json"
+        # Look up the file path in the pre-built mapping
+        return self._talk_file_mapping.get(talk_id_str)
 
 
 class TextMapTracker(IdTracker):
@@ -211,12 +202,35 @@ class DataRepo:
             return MaterialTracker(data)
 
     @functools.lru_cache(maxsize=None)
+    def _build_talk_file_mapping(self) -> dict[str, str]:
+        """Build a mapping from talk ID to BinOutput/Talk file path by scanning directories."""
+        talk_id_to_path: dict[str, str] = {}
+        base_talk_path = self.agd_path / "BinOutput" / "Talk"
+
+        if not base_talk_path.exists():
+            return talk_id_to_path
+
+        # Scan all subdirectories for JSON files
+        for subdir in base_talk_path.iterdir():
+            if subdir.is_dir():
+                subdir_name = subdir.name
+                for json_file in subdir.glob("*.json"):
+                    # Extract talk ID from filename (remove .json extension)
+                    talk_id = json_file.stem
+                    # Store relative path from agd_path
+                    relative_path = f"BinOutput/Talk/{subdir_name}/{json_file.name}"
+                    talk_id_to_path[talk_id] = relative_path
+
+        return talk_id_to_path
+
+    @functools.lru_cache(maxsize=None)
     def load_talk_excel_config_data(self) -> TalkTracker:
         """Load talk Excel configuration data as TalkTracker."""
         file_path = self.agd_path / "ExcelBinOutput" / "TalkExcelConfigData.json"
         with open(file_path, encoding="utf-8") as f:
             data: types.TalkExcelConfigData = json.load(f)
-            return TalkTracker(data)
+            talk_file_mapping = self._build_talk_file_mapping()
+            return TalkTracker(data, talk_file_mapping)
 
     @functools.lru_cache(maxsize=None)
     def load_talk_data(self, talk_file: str) -> types.TalkData:
