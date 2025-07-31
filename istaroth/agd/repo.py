@@ -1,5 +1,7 @@
 """Data repository for loading AnimeGameData (AGD) files."""
 
+from __future__ import annotations
+
 import functools
 import json
 import os
@@ -16,6 +18,7 @@ class TextMapTracker:
     def __init__(self, text_map: types.TextMap) -> None:
         self._text_map = text_map
         self._accessed_ids: set[str] = set()
+        self._context_depth: int = 0
 
     def __getitem__(self, key: str) -> str:
         """Get text by ID and track access."""
@@ -47,6 +50,25 @@ class TextMapTracker:
             for text_id, content in self._text_map.items()
             if text_id not in self._accessed_ids
         }
+
+    def get_accessed_ids(self) -> set[str]:
+        """Return set of accessed text map IDs."""
+        return self._accessed_ids.copy()
+
+    def reset_stats(self) -> None:
+        """Reset access tracking statistics."""
+        self._accessed_ids.clear()
+
+    def __enter__(self) -> TextMapTracker:
+        """Context manager entry - reset stats only on first entry."""
+        if self._context_depth == 0:
+            self.reset_stats()
+        self._context_depth += 1
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        """Context manager exit - decrement depth counter."""
+        self._context_depth -= 1
 
 
 @attrs.frozen

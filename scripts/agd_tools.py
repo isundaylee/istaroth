@@ -8,6 +8,7 @@ import subprocess
 import sys
 from typing import TextIO
 
+import attrs
 import click
 from tqdm import tqdm
 
@@ -22,6 +23,16 @@ from istaroth.agd.renderable_types import (
     Readables,
     Subtitles,
 )
+
+
+@attrs.define
+class _RenderableResult:
+    """Result of processing a single renderable item."""
+
+    renderable_key: str
+    rendered_item: types.RenderedItem | None
+    error_message: str | None
+    tracker_stats: types.TrackerStats
 
 
 def _get_git_commit_hash(repo_path: pathlib.Path) -> str:
@@ -60,7 +71,7 @@ def _generate_metadata(
     }
 
 
-class ErrorLimitExceededException(Exception):
+class _ErrorLimitError(Exception):
     """Exception raised when error limit is exceeded during generation."""
 
     def __init__(self, content_type: str, error_count: int, error_limit: int) -> None:
@@ -74,18 +85,20 @@ class ErrorLimitExceededException(Exception):
 
 def _process_single_item(
     args: tuple[str, BaseRenderableType, repo.DataRepo],
-) -> tuple[str, types.RenderedItem | None, str | None]:
-    """Worker function to process a single renderable item.
-
-    Returns:
-        Tuple of (renderable_key, rendered_item_or_none, error_message_or_none)
-    """
+) -> _RenderableResult:
+    """Worker function to process a single renderable item."""
     renderable_key, renderable_type, data_repo = args
     try:
-        rendered = renderable_type.process(renderable_key, data_repo)
-        return (renderable_key, rendered, None)
+        with data_repo.load_text_map() as text_map_tracker:
+            rendered = renderable_type.process(renderable_key, data_repo)
+            accessed_ids = text_map_tracker.get_accessed_ids()
+        return _RenderableResult(
+            renderable_key, rendered, None, types.TrackerStats(accessed_ids)
+        )
     except Exception as e:
-        return (renderable_key, None, str(e))
+        return _RenderableResult(
+            renderable_key, None, str(e), types.TrackerStats(set())
+        )
 
 
 def _generate_content(
@@ -96,15 +109,16 @@ def _generate_content(
     data_repo: repo.DataRepo,
     errors_file: TextIO | None = None,
     processes: int | None = None,
-) -> tuple[int, int, int]:
+) -> tuple[int, int, int, types.TrackerStats]:
     """Generate content files using renderable type.
 
     Returns:
-        Tuple of (success_count, error_count, skipped_count)
+        Tuple of (success_count, error_count, skipped_count, tracker_stats)
     """
     success_count = 0
     error_count = 0
     skipped_count = 0
+    all_accessed_text_map_ids: set[str] = set()
 
     output_dir.mkdir(exist_ok=True)
 
@@ -150,13 +164,18 @@ def _generate_content(
     with multiprocessing.Pool(processes=processes) as pool:
         # Process with progress bar
         with tqdm(total=len(process_args), desc=desc) as pbar:
-            for renderable_key, rendered, error in pool.imap(
-                _process_single_item, process_args
-            ):
+            for result in pool.imap(_process_single_item, process_args):
                 pbar.update(1)
 
-                if error is not None:
-                    log_message(f"✗ {renderable_key} -> ERROR: {error}")
+                # Collect accessed text map IDs regardless of success/failure
+                all_accessed_text_map_ids.update(
+                    result.tracker_stats.accessed_text_map_ids
+                )
+
+                if result.error_message is not None:
+                    log_message(
+                        f"✗ {result.renderable_key} -> ERROR: {result.error_message}"
+                    )
                     error_count += 1
 
                     # Check if error limit exceeded
@@ -168,7 +187,7 @@ def _generate_content(
                     if error_count > effective_error_limit:
                         error_msg = f"Error limit exceeded ({error_count} > {effective_error_limit}), stopping generation"
                         log_message(error_msg)
-                        raise ErrorLimitExceededException(
+                        raise _ErrorLimitError(
                             renderable_type.__class__.__name__,
                             error_count,
                             effective_error_limit,
@@ -177,19 +196,19 @@ def _generate_content(
                     continue
 
                 # Skip if rendered is None (filtered out)
-                if rendered is None:
-                    log_message(f"⚠ {renderable_key} -> SKIPPED (filtered)")
+                if result.rendered_item is None:
+                    log_message(f"⚠ {result.renderable_key} -> SKIPPED (filtered)")
                     skipped_count += 1
                     continue
 
                 # Handle filename collisions
-                original_filename = rendered.filename
+                original_filename = result.rendered_item.filename
                 filename = resolve_filename_collision(original_filename)
 
                 # Log warning if there was a collision
                 if filename != original_filename:
                     log_message(
-                        f"Warning: Filename collision for {renderable_key}, renamed to {filename}"
+                        f"Warning: Filename collision for {result.renderable_key}, renamed to {filename}"
                     )
 
                 used_filenames.add(filename)
@@ -197,13 +216,18 @@ def _generate_content(
                 # Write to output file
                 output_file = output_dir / filename
                 with open(output_file, "w", encoding="utf-8") as f:
-                    f.write(rendered.content)
+                    f.write(result.rendered_item.content)
 
                 success_count += 1
 
                 pbar.set_postfix({"errors": error_count, "skipped": skipped_count})
 
-    return success_count, error_count, skipped_count
+    return (
+        success_count,
+        error_count,
+        skipped_count,
+        types.TrackerStats(all_accessed_text_map_ids),
+    )
 
 
 @click.group()  # type: ignore[misc]
@@ -242,6 +266,7 @@ def generate_all(
     total_success = 0
     total_error = 0
     total_skipped = 0
+    all_tracker_stats = types.TrackerStats(set())
 
     # Determine which content types to generate
     generate_readable = only is None or only == "readable"
@@ -253,7 +278,7 @@ def generate_all(
     errors_file_path = output_dir / "errors.info"
     with errors_file_path.open("w", encoding="utf-8") as errors_file:
         if generate_readable:
-            success, error, skipped = _generate_content(
+            success, error, skipped, tracker_stats = _generate_content(
                 Readables(),
                 output_dir / "readable",
                 "Generating readable content",
@@ -264,12 +289,13 @@ def generate_all(
             total_success += success
             total_error += error
             total_skipped += skipped
+            all_tracker_stats.update(tracker_stats)
             click.echo(
                 f"Readable: {success} success, {error} errors, {skipped} skipped"
             )
 
         if generate_quest:
-            success, error, skipped = _generate_content(
+            success, error, skipped, tracker_stats = _generate_content(
                 Quests(),
                 output_dir / "quest",
                 "Generating quest content",
@@ -280,10 +306,11 @@ def generate_all(
             total_success += success
             total_error += error
             total_skipped += skipped
+            all_tracker_stats.update(tracker_stats)
             click.echo(f"Quest: {success} success, {error} errors, {skipped} skipped")
 
         if generate_character_stories:
-            success, error, skipped = _generate_content(
+            success, error, skipped, tracker_stats = _generate_content(
                 CharacterStories(),
                 output_dir / "character_stories",
                 "Generating character stories",
@@ -294,12 +321,13 @@ def generate_all(
             total_success += success
             total_error += error
             total_skipped += skipped
+            all_tracker_stats.update(tracker_stats)
             click.echo(
                 f"Character stories: {success} success, {error} errors, {skipped} skipped"
             )
 
         if generate_subtitles:
-            success, error, skipped = _generate_content(
+            success, error, skipped, tracker_stats = _generate_content(
                 Subtitles(),
                 output_dir / "subtitles",
                 "Generating subtitle content",
@@ -310,6 +338,7 @@ def generate_all(
             total_success += success
             total_error += error
             total_skipped += skipped
+            all_tracker_stats.update(tracker_stats)
             click.echo(
                 f"Subtitles: {success} success, {error} errors, {skipped} skipped"
             )
@@ -317,6 +346,29 @@ def generate_all(
     click.echo(
         f"\nTotal: {total_success} files generated, {total_error} errors, {total_skipped} skipped"
     )
+
+    # Calculate and print unused text map entries count
+    text_map_tracker = data_repo.load_text_map()
+    text_map_tracker._accessed_ids.update(all_tracker_stats.accessed_text_map_ids)
+    unused_entries = text_map_tracker.get_unused_entries()
+    total_text_map_entries = len(text_map_tracker._text_map)
+    unused_count = len(unused_entries)
+    unused_percentage = (
+        (unused_count / total_text_map_entries * 100)
+        if total_text_map_entries > 0
+        else 0.0
+    )
+
+    click.echo(
+        f"Text map: {unused_count} / {total_text_map_entries} unused ({unused_percentage:.1f}%)"
+    )
+
+    # Write unused stats to JSON file
+    unused_stats_data = all_tracker_stats.to_dict(text_map_tracker)
+    unused_stats_path = output_dir / "unused_stats.json"
+    with unused_stats_path.open("w", encoding="utf-8") as f:
+        json.dump(unused_stats_data, f, indent=2, ensure_ascii=False)
+    click.echo(f"Text map usage stats written to {unused_stats_path}")
 
     if total_error > 0:
         click.echo(f"\nDetailed errors written to {errors_file_path}")

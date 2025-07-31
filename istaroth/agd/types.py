@@ -1,6 +1,9 @@
 """Type definitions for AnimeGameData (AGD) structures."""
 
-from typing import Any, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+
+if TYPE_CHECKING:
+    from istaroth.agd.repo import TextMapTracker
 
 import attrs
 
@@ -304,6 +307,26 @@ class SubtitleInfo:
     """Subtitle information containing all subtitle text."""
 
     text_lines: list[str]
+
+
+@attrs.define
+class TrackerStats:
+    """Statistics for text map entry access tracking."""
+
+    accessed_text_map_ids: set[str]
+
+    def update(self, other: "TrackerStats") -> None:
+        """Update this TrackerStats with IDs from another TrackerStats."""
+        self.accessed_text_map_ids.update(other.accessed_text_map_ids)
+
+    def to_dict(self, text_map_tracker: "TextMapTracker") -> dict[str, Any]:
+        """Convert TrackerStats to dictionary format for JSON serialization."""
+        return {
+            "text_map": {
+                "unused": len(text_map_tracker.get_unused_entries()),
+                "total": len(text_map_tracker._text_map),
+            }
+        }
 
 
 @attrs.define
