@@ -2,16 +2,16 @@
 set -euo pipefail
 
 # Default checkpoint URL if not provided
-ISTAROTH_CHECKPOINT_URL="${ISTAROTH_CHECKPOINT_URL:-https://github.com/isundaylee/istaroth/releases/download/checkpoint%2F20250729-d76f5f8e0c27b47d3079e54a85c5c79f3855031b/chs.tar.gz}"
+ISTAROTH_CHECKPOINT_URL="${ISTAROTH_CHECKPOINT_URL:-https://github.com/isundaylee/istaroth/releases/download/checkpoint%2F20250731-534d03a7463b097f1dd5c81f782cad68a8f9e805/chs.tar.gz}"
 
 # Function to log messages
 log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" >&2
 }
 
-# Check if /data/checkpoint is empty (allowing for hidden files like .gitkeep)
-if [ -z "$(ls -A /data/checkpoint 2>/dev/null | grep -v '^\.')" ]; then
-    log "Checkpoint directory is empty, downloading checkpoint from: $ISTAROTH_CHECKPOINT_URL"
+# Function to download and extract checkpoint
+download_checkpoint() {
+    log "Downloading checkpoint from: $ISTAROTH_CHECKPOINT_URL"
 
     # Create temporary directory for download
     TEMP_DIR=$(mktemp -d)
@@ -38,6 +38,21 @@ if [ -z "$(ls -A /data/checkpoint 2>/dev/null | grep -v '^\.')" ]; then
         log "ERROR: Invalid or corrupted tar.gz file"
         exit 1
     fi
+}
+
+# Check if checkpoint update is requested
+if [ "${ISTAROTH_CHECKPOINT_UPDATE:-0}" = "1" ]; then
+    log "ISTAROTH_CHECKPOINT_UPDATE=1, forcing checkpoint update"
+
+    # Remove existing checkpoint directory and recreate it
+    log "Removing existing checkpoint directory..."
+    rm -rf /data/checkpoint
+    mkdir -p /data/checkpoint
+
+    download_checkpoint
+elif [ -z "$(ls -A /data/checkpoint 2>/dev/null | grep -v '^\.')" ]; then
+    log "Checkpoint directory is empty, downloading checkpoint"
+    download_checkpoint
 else
     log "Checkpoint directory is not empty, skipping download"
     log "Existing files in /data/checkpoint:"
