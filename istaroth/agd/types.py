@@ -391,13 +391,19 @@ class TrackerStats:
     ) -> dict[str, Any]:
         """Convert TrackerStats to dictionary format for JSON serialization."""
         return {
-            "text_map": {
-                "unused": len(text_map_tracker.get_unused_ids()),
-                "total": text_map_tracker.get_total_count(),
+            "stats": {
+                "text_map": {
+                    "unused": len(text_map_tracker.get_unused_ids()),
+                    "total": text_map_tracker.get_total_count(),
+                },
+                "talk_ids": {
+                    "unused": len(talk_tracker.get_unused_ids()),
+                    "total": talk_tracker.get_total_count(),
+                },
             },
-            "talk_ids": {
-                "unused": len(talk_tracker.get_unused_ids()),
-                "total": talk_tracker.get_total_count(),
+            "unused_ids": {
+                "text_map": sorted(text_map_tracker.get_unused_ids()),
+                "talk_ids": sorted(talk_tracker.get_unused_ids()),
             },
         }
 
