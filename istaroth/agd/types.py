@@ -332,8 +332,8 @@ class TrackerStats:
         """Convert TrackerStats to dictionary format for JSON serialization."""
         return {
             "text_map": {
-                "unused": len(text_map_tracker.get_unused_entries()),
-                "total": len(text_map_tracker._text_map),
+                "unused": len(text_map_tracker.get_unused_ids()),
+                "total": text_map_tracker.get_total_count(),
             }
         }
 

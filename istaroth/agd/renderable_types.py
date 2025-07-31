@@ -173,7 +173,7 @@ class Materials(BaseRenderableType):
         material_ids = []
         for material in material_data:
             name_hash = str(material.get("nameTextMapHash", ""))
-            if name_hash in text_map:
+            if text_map.get_optional(name_hash) is not None:
                 material_ids.append(str(material["id"]))
 
         return sorted(material_ids)

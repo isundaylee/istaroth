@@ -12,63 +12,73 @@ import attrs
 from istaroth.agd import types
 
 
-class TextMapTracker:
-    """Wrapper around TextMap that tracks which text IDs have been accessed."""
+class IdTracker:
+    """Base class for tracking which IDs have been accessed."""
 
-    def __init__(self, text_map: types.TextMap) -> None:
-        self._text_map = text_map
+    def __init__(self, all_ids: set[str]) -> None:
+        self._all_ids = all_ids
         self._accessed_ids: set[str] = set()
         self._context_depth: int = 0
 
-    def __getitem__(self, key: str) -> str:
-        """Get text by ID and track access."""
+    def _track_access(self, key: str) -> None:
+        """Track that an ID has been accessed."""
         self._accessed_ids.add(key)
-        return self._text_map[key]
 
-    def __contains__(self, key: str) -> bool:
-        """Check if key exists without tracking access."""
-        return key in self._text_map
+    def get_accessed_ids(self) -> set[str]:
+        """Return set of accessed IDs."""
+        return self._accessed_ids.copy()
+
+    def get_unused_ids(self) -> set[str]:
+        """Return set of unused IDs."""
+        return self._all_ids - self._accessed_ids
+
+    def get_total_count(self) -> int:
+        """Return total count of all IDs."""
+        return len(self._all_ids)
+
+    def format_unused_stats(self) -> str:
+        """Format unused statistics as 'unused / total (percentage%)'."""
+        unused_count = len(self.get_unused_ids())
+        total_count = self.get_total_count()
+        percentage = (unused_count / total_count * 100) if total_count > 0 else 0.0
+        return f"{unused_count} / {total_count} ({percentage:.1f}%)"
+
+    def _reset_stats(self) -> None:
+        """Reset access tracking statistics."""
+        self._accessed_ids.clear()
+
+    def __enter__(self):
+        """Context manager entry - reset stats only on first entry."""
+        if self._context_depth == 0:
+            self._reset_stats()
+        self._context_depth += 1
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # noqa: ARG002
+        """Context manager exit - decrement depth counter."""
+        self._context_depth -= 1
+
+
+class TextMapTracker(IdTracker):
+    """Wrapper around TextMap that tracks which text IDs have been accessed."""
+
+    def __init__(self, text_map: types.TextMap) -> None:
+        super().__init__(set(text_map.keys()))
+        self._text_map = text_map
 
     def get(self, key: str, default: str) -> str:
         """Get text by ID with default, tracks access if key exists."""
         if key in self._text_map:
-            self._accessed_ids.add(key)
+            self._track_access(key)
             return self._text_map[key].replace("\\n", "\n")
         return default
 
     def get_optional(self, key: str) -> str | None:
         """Get text by ID, returns None if not found."""
         if key in self._text_map:
-            self._accessed_ids.add(key)
+            self._track_access(key)
             return self._text_map[key]
         return None
-
-    def get_unused_entries(self) -> dict[str, str]:
-        """Return dictionary of unused text map entries."""
-        return {
-            text_id: content
-            for text_id, content in self._text_map.items()
-            if text_id not in self._accessed_ids
-        }
-
-    def get_accessed_ids(self) -> set[str]:
-        """Return set of accessed text map IDs."""
-        return self._accessed_ids.copy()
-
-    def reset_stats(self) -> None:
-        """Reset access tracking statistics."""
-        self._accessed_ids.clear()
-
-    def __enter__(self) -> TextMapTracker:
-        """Context manager entry - reset stats only on first entry."""
-        if self._context_depth == 0:
-            self.reset_stats()
-        self._context_depth += 1
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Context manager exit - decrement depth counter."""
-        self._context_depth -= 1
 
 
 @attrs.frozen

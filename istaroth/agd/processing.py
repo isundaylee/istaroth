@@ -95,8 +95,8 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
     for npc in npc_data:
         npc_id = str(npc["id"])
         name_hash = str(npc["nameTextMapHash"])
-        if name_hash in text_map:
-            npc_id_to_name[npc_id] = text_map[name_hash]
+        if (name := text_map.get_optional(name_hash)) is not None:
+            npc_id_to_name[npc_id] = name
 
     # Get localized role names
     localized_roles = _get_localized_role_names(data_repo.language)
@@ -146,7 +146,7 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
     ) is None:
         raise ValueError(f"Could not find title for quest {quest_data['id']}")
 
-    quest_title = text_map[str(title_hash)]
+    quest_title = text_map.get(str(title_hash), f"Missing title ({title_hash})")
 
     # Process subQuests in order (maintaining quest progression sequence)
     subquest_talk_infos = []

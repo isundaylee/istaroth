@@ -369,18 +369,7 @@ def generate_all(
     # Calculate and print unused text map entries count
     text_map_tracker = data_repo.load_text_map()
     text_map_tracker._accessed_ids.update(all_tracker_stats.accessed_text_map_ids)
-    unused_entries = text_map_tracker.get_unused_entries()
-    total_text_map_entries = len(text_map_tracker._text_map)
-    unused_count = len(unused_entries)
-    unused_percentage = (
-        (unused_count / total_text_map_entries * 100)
-        if total_text_map_entries > 0
-        else 0.0
-    )
-
-    click.echo(
-        f"Text map: {unused_count} / {total_text_map_entries} unused ({unused_percentage:.1f}%)"
-    )
+    click.echo(f"Text map: {text_map_tracker.format_unused_stats()} unused")
 
     # Write unused stats to JSON file
     unused_stats_data = all_tracker_stats.to_dict(text_map_tracker)
