@@ -4,6 +4,7 @@
 import json
 import multiprocessing
 import pathlib
+import random
 import subprocess
 import sys
 from typing import TextIO
@@ -115,6 +116,7 @@ def _generate_content(
     data_repo: repo.DataRepo,
     errors_file: TextIO | None = None,
     processes: int | None = None,
+    sample_rate: float = 1.0,
 ) -> tuple[int, int, int, types.TrackerStats]:
     """Generate content files using renderable type.
 
@@ -134,6 +136,15 @@ def _generate_content(
     if not renderable_keys:
         raise RuntimeError(
             f"No renderable keys found for {renderable_type.__class__.__name__}"
+        )
+
+    # Apply sampling if sample_rate < 1.0
+    if sample_rate < 1.0:
+        original_count = len(renderable_keys)
+        sample_size = int(len(renderable_keys) * sample_rate)
+        renderable_keys = random.sample(renderable_keys, sample_size)
+        click.echo(
+            f"Sampling {len(renderable_keys)} of {original_count} items ({sample_rate:.1%})"
         )
 
     # Prepare arguments for multiprocessing
@@ -246,12 +257,19 @@ def cli() -> None:
 @click.argument("output_dir", type=click.Path(path_type=pathlib.Path))  # type: ignore[misc]
 @click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "subtitles", "materials", "voicelines"]), help="Generate only specific content type")  # type: ignore[misc]
 @click.option("--processes", "-j", type=int, help="Number of parallel processes (default: CPU count)")  # type: ignore[misc]
+@click.option("--sample-rate", type=float, default=1.0, help="Percentage of each type to process (0.0-1.0, default: 1.0)")  # type: ignore[misc]
 def generate_all(
     output_dir: pathlib.Path,
     only: str | None,
     processes: int | None,
+    sample_rate: float,
 ) -> None:
     """Generate content into RAG-suitable text files."""
+    # Validate sample_rate parameter
+    if not 0.0 <= sample_rate <= 1.0:
+        click.echo("Error: sample-rate must be between 0.0 and 1.0", err=True)
+        sys.exit(1)
+
     try:
         data_repo = repo.DataRepo.from_env()
     except ValueError as e:
@@ -292,6 +310,7 @@ def generate_all(
                 data_repo=data_repo,
                 errors_file=errors_file,
                 processes=processes,
+                sample_rate=sample_rate,
             )
             total_success += success
             total_error += error
@@ -309,6 +328,7 @@ def generate_all(
                 data_repo=data_repo,
                 errors_file=errors_file,
                 processes=processes,
+                sample_rate=sample_rate,
             )
             total_success += success
             total_error += error
@@ -324,6 +344,7 @@ def generate_all(
                 data_repo=data_repo,
                 errors_file=errors_file,
                 processes=processes,
+                sample_rate=sample_rate,
             )
             total_success += success
             total_error += error
@@ -341,6 +362,7 @@ def generate_all(
                 data_repo=data_repo,
                 errors_file=errors_file,
                 processes=processes,
+                sample_rate=sample_rate,
             )
             total_success += success
             total_error += error
@@ -358,6 +380,7 @@ def generate_all(
                 data_repo=data_repo,
                 errors_file=errors_file,
                 processes=processes,
+                sample_rate=sample_rate,
             )
             total_success += success
             total_error += error
@@ -375,6 +398,7 @@ def generate_all(
                 data_repo=data_repo,
                 errors_file=errors_file,
                 processes=processes,
+                sample_rate=sample_rate,
             )
             total_success += success
             total_error += error
