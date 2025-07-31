@@ -283,6 +283,4 @@ def get_material_info(
     desc_hash = str(material["descTextMapHash"])
     description = text_map.get(desc_hash, "No description available")
 
-    return types.MaterialInfo(
-        material_id=material_id_str, name=name, description=description
-    )
+    return types.MaterialInfo(name=name, description=description)

@@ -12,7 +12,7 @@ def _should_skip(title: str, language: str) -> bool:
         return False
     lower_title = title.lower()
     return (
-        lower_title.startswith(("test", "(test)", "（test）"))
+        lower_title.startswith(("test", "(test", "（test"))
         or "$hidden" in lower_title
         or "$unreleased" in lower_title
     )
@@ -165,30 +165,19 @@ class Materials(BaseRenderableType):
     """Material content type (item names and descriptions)."""
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
-        """Find all material IDs that have names."""
-        material_tracker = data_repo.load_material_excel_config_data()
-        text_map = data_repo.load_text_map()
-
-        # Get all material data for discovery (doesn't track access)
-        material_data = material_tracker.get_all()
-
-        # Collect material IDs that have names in the text map
-        material_ids = []
-        for material in material_data:
-            name_hash = str(material.get("nameTextMapHash", ""))
-            if text_map.get_optional(name_hash) is not None:
-                material_ids.append(str(material["id"]))
-
-        return sorted(material_ids)
+        return [
+            str(m["id"]) for m in data_repo.load_material_excel_config_data().get_all()
+        ]
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
     ) -> types.RenderedItem | None:
         """Process material into rendered content."""
-        # Get material info
         material_info = processing.get_material_info(
             renderable_key, data_repo=data_repo
         )
 
-        # Render the material
+        if _should_skip(material_info.name, data_repo.language):
+            return None
+
         return rendering.render_material(material_info)

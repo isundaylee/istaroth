@@ -313,7 +313,6 @@ class SubtitleInfo:
 class MaterialInfo:
     """Material information with name and description."""
 
-    material_id: str
     name: str
     description: str
 
