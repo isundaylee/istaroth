@@ -115,6 +115,34 @@ Example file: ExcelBinOutput/MaterialExcelConfigData.json
 """
 
 
+class TalkExcelConfigDataItem(TypedDict):
+    """Type definition for talk configuration entries."""
+
+    id: int
+    initDialog: int
+    questId: int
+    npcId: list[int]
+    activeMode: str
+    beginWay: str
+    heroTalk: str
+    priority: int
+    performCfg: str
+    prePerformCfg: str
+    loadType: str
+    beginCond: list[dict[str, Any]]
+    beginCondComb: str
+    finishExec: list[dict[str, Any]]
+    nextTalks: list[int]
+    nextRandomTalks: list[int]
+
+
+type TalkExcelConfigData = list[TalkExcelConfigDataItem]
+"""List of talk configuration items.
+
+Example file: ExcelBinOutput/TalkExcelConfigData.json
+"""
+
+
 class TalkRole(TypedDict):
     """Type definition for talk role."""
 

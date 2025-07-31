@@ -80,6 +80,20 @@ def get_readable_metadata(
     return types.ReadableMetadata(title=title)
 
 
+def get_talk_info_by_id(
+    talk_id_str: str, *, data_repo: repo.DataRepo
+) -> types.TalkInfo:
+    """Retrieve talk information by talk ID."""
+    # Get talk file path through tracker (this automatically tracks access)
+    talk_tracker = data_repo.load_talk_excel_config_data()
+    talk_file_path = talk_tracker.get_talk_file_path(talk_id_str)
+
+    if talk_file_path is None:
+        raise ValueError(f"Talk ID {talk_id_str} not found")
+
+    return get_talk_info(talk_file_path, data_repo=data_repo)
+
+
 def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo:
     """Retrieve talk information from talk file."""
     # Load talk data
@@ -158,10 +172,10 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
 
     for subquest in sorted_subquests:
         sub_id = str(subquest["subId"])
-        talk_file_path = f"BinOutput/Talk/Quest/{sub_id}.json"
 
         try:
-            talk_info = get_talk_info(talk_file_path, data_repo=data_repo)
+            # Try to get talk info by sub_id as talk ID first
+            talk_info = get_talk_info_by_id(sub_id, data_repo=data_repo)
             if talk_info.text:  # Only add if there's actual dialog content
                 subquest_talk_infos.append(talk_info)
                 subquest_talk_ids.add(sub_id)
@@ -173,19 +187,14 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
     non_subquest_talk_infos = []
 
     for talk_item in quest_data.get("talks", []):
-        init_dialog_id = talk_item.get("initDialog")
-        if init_dialog_id is None:
-            continue  # Skip talks without initDialog
-        talk_file_id = str(init_dialog_id)[:7]
+        talk_id_str = str(talk_item["id"])
 
         # Skip if this talk is already in subquest talks
-        if talk_file_id in subquest_talk_ids:
+        if talk_id_str in subquest_talk_ids:
             continue
 
-        talk_file_path = f"BinOutput/Talk/Quest/{talk_file_id}.json"
-
         try:
-            talk_info = get_talk_info(talk_file_path, data_repo=data_repo)
+            talk_info = get_talk_info_by_id(talk_id_str, data_repo=data_repo)
             non_subquest_talk_infos.append(talk_info)
         except Exception:
             # Skip talks that can't be loaded

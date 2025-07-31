@@ -54,7 +54,7 @@ class IdTracker:
         self._context_depth += 1
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:  # noqa: ARG002
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Context manager exit - decrement depth counter."""
         self._context_depth -= 1
 
@@ -78,6 +78,48 @@ class MaterialTracker(IdTracker):
     def get_all(self) -> types.MaterialExcelConfigData:
         """Get all material data without tracking (for discovery purposes)."""
         return list(self._material_dict.values())
+
+
+class TalkTracker(IdTracker):
+    """Tracks which talk IDs have been accessed."""
+
+    def __init__(self, talk_excel_data: types.TalkExcelConfigData) -> None:
+        self._talk_dict = {str(talk["id"]): talk for talk in talk_excel_data}
+        super().__init__(set(self._talk_dict.keys()))
+
+    def get(self, talk_id_str: str) -> types.TalkExcelConfigDataItem | None:
+        """Get talk configuration data by ID and track access."""
+        if talk_id_str in self._talk_dict:
+            self._track_access(talk_id_str)
+            return self._talk_dict[talk_id_str]
+        return None
+
+    def get_all(self) -> types.TalkExcelConfigData:
+        """Get all talk configuration data without tracking (for discovery purposes)."""
+        return list(self._talk_dict.values())
+
+    def get_talk_file_path(self, talk_id_str: str) -> str | None:
+        """Get the file path for a talk ID and track access."""
+        talk_item = self.get(talk_id_str)
+        if talk_item is None:
+            return None
+
+        # Get file path based on loadType and ID
+        talk_id = talk_item["id"]
+        load_type = talk_item["loadType"]
+
+        # Map loadType to directory
+        load_type_to_dir = {
+            "TALK_NORMAL_QUEST": "Quest",
+            "TALK_ACTIVITY": "Activity",
+            "TALK_BLOSSOM": "Blossom",
+            "TALK_GADGET": "Gadget",
+            "TALK_FURNITURE": "Gadget",  # Furniture talks seem to go in Gadget directory
+            "TALK_STORYBOARD": "Cutscene",  # Assuming storyboard goes to cutscene
+        }
+
+        directory = load_type_to_dir.get(load_type, "Quest")  # Default to Quest
+        return f"BinOutput/Talk/{directory}/{talk_id}.json"
 
 
 class TextMapTracker(IdTracker):
@@ -167,6 +209,14 @@ class DataRepo:
         with open(file_path, encoding="utf-8") as f:
             data: types.MaterialExcelConfigData = json.load(f)
             return MaterialTracker(data)
+
+    @functools.lru_cache(maxsize=None)
+    def load_talk_excel_config_data(self) -> TalkTracker:
+        """Load talk Excel configuration data as TalkTracker."""
+        file_path = self.agd_path / "ExcelBinOutput" / "TalkExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.TalkExcelConfigData = json.load(f)
+            return TalkTracker(data)
 
     @functools.lru_cache(maxsize=None)
     def load_talk_data(self, talk_file: str) -> types.TalkData:
