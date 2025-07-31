@@ -379,7 +379,7 @@ class TrackerStats:
     """Statistics for text map and talk ID access tracking."""
 
     accessed_text_map_ids: set[str]
-    accessed_talk_ids: set[str] = attrs.field(factory=set)
+    accessed_talk_ids: set[str]
 
     def update(self, other: "TrackerStats") -> None:
         """Update this TrackerStats with IDs from another TrackerStats."""

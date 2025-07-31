@@ -126,7 +126,9 @@ def _generate_content(
     success_count = 0
     error_count = 0
     skipped_count = 0
-    all_accessed_text_map_ids: set[str] = set()
+    tracker_stats = types.TrackerStats(
+        accessed_text_map_ids=set(), accessed_talk_ids=set()
+    )
 
     output_dir.mkdir(exist_ok=True)
 
@@ -185,9 +187,7 @@ def _generate_content(
                 pbar.update(1)
 
                 # Collect accessed text map IDs regardless of success/failure
-                all_accessed_text_map_ids.update(
-                    result.tracker_stats.accessed_text_map_ids
-                )
+                tracker_stats.update(result.tracker_stats)
 
                 if result.error_message is not None:
                     log_message(
@@ -243,7 +243,7 @@ def _generate_content(
         success_count,
         error_count,
         skipped_count,
-        types.TrackerStats(all_accessed_text_map_ids),
+        tracker_stats,
     )
 
 
