@@ -59,6 +59,27 @@ class IdTracker:
         self._context_depth -= 1
 
 
+class MaterialTracker(IdTracker):
+    """Tracks which material IDs have been accessed."""
+
+    def __init__(self, material_data: types.MaterialExcelConfigData) -> None:
+        self._material_dict = {
+            str(material["id"]): material for material in material_data
+        }
+        super().__init__(set(self._material_dict.keys()))
+
+    def get(self, material_id_str: str) -> types.MaterialExcelConfigDataItem | None:
+        """Get material data by ID and track access."""
+        if material_id_str in self._material_dict:
+            self._track_access(material_id_str)
+            return self._material_dict[material_id_str]
+        return None
+
+    def get_all(self) -> types.MaterialExcelConfigData:
+        """Get all material data without tracking (for discovery purposes)."""
+        return list(self._material_dict.values())
+
+
 class TextMapTracker(IdTracker):
     """Wrapper around TextMap that tracks which text IDs have been accessed."""
 
@@ -140,12 +161,12 @@ class DataRepo:
             return data
 
     @functools.lru_cache(maxsize=None)
-    def load_material_excel_config_data(self) -> types.MaterialExcelConfigData:
-        """Load material Excel configuration data."""
+    def load_material_excel_config_data(self) -> MaterialTracker:
+        """Load material Excel configuration data as MaterialTracker."""
         file_path = self.agd_path / "ExcelBinOutput" / "MaterialExcelConfigData.json"
         with open(file_path, encoding="utf-8") as f:
             data: types.MaterialExcelConfigData = json.load(f)
-            return data
+            return MaterialTracker(data)
 
     @functools.lru_cache(maxsize=None)
     def load_talk_data(self, talk_file: str) -> types.TalkData:

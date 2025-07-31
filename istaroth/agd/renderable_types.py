@@ -166,8 +166,11 @@ class Materials(BaseRenderableType):
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all material IDs that have names."""
-        material_data = data_repo.load_material_excel_config_data()
+        material_tracker = data_repo.load_material_excel_config_data()
         text_map = data_repo.load_text_map()
+
+        # Get all material data for discovery (doesn't track access)
+        material_data = material_tracker.get_all()
 
         # Collect material IDs that have names in the text map
         material_ids = []
