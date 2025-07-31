@@ -218,3 +218,48 @@ class Voicelines(BaseRenderableType):
             return None
 
         return rendering.render_voiceline(voiceline_info)
+
+
+class Talks(BaseRenderableType):
+    """Standalone talk content type for talks not used by other renderable types."""
+
+    error_limit: ClassVar[int] = 500
+    error_limit_non_chinese: ClassVar[int] = 500
+
+    def __init__(self, used_talk_ids: set[str]) -> None:
+        """Initialize with set of already used talk IDs."""
+        self.used_talk_ids = used_talk_ids
+
+    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+        """Find all talk IDs that are not already used."""
+        talk_tracker = data_repo.load_talk_excel_config_data()
+
+        # Get all talk IDs from configuration
+        all_talk_ids = set(talk_tracker._talk_dict.keys())
+
+        # Find unused talk IDs
+        unused_talk_ids = all_talk_ids - self.used_talk_ids
+
+        return sorted(unused_talk_ids)
+
+    def process(
+        self, renderable_key: str, data_repo: repo.DataRepo
+    ) -> types.RenderedItem | None:
+        """Process talk into rendered content."""
+        # Check if talk file exists in mapping first
+        talk_tracker = data_repo.load_talk_excel_config_data()
+        talk_file_path = talk_tracker.get_talk_file_path(renderable_key)
+
+        # Skip if no file found in mapping
+        if talk_file_path is None:
+            return None
+
+        # Get talk info by ID
+        talk_info = processing.get_talk_info_by_id(renderable_key, data_repo=data_repo)
+
+        # Skip if no dialog content
+        if not talk_info.text:
+            return None
+
+        # Render the talk
+        return rendering.render_talk(talk_info)

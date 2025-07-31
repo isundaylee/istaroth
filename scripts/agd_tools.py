@@ -24,6 +24,7 @@ from istaroth.agd.renderable_types import (
     Quests,
     Readables,
     Subtitles,
+    Talks,
     Voicelines,
 )
 
@@ -255,7 +256,7 @@ def cli() -> None:
 
 @cli.command("generate-all")  # type: ignore[misc]
 @click.argument("output_dir", type=click.Path(path_type=pathlib.Path))  # type: ignore[misc]
-@click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "subtitles", "materials", "voicelines"]), help="Generate only specific content type")  # type: ignore[misc]
+@click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "subtitles", "materials", "voicelines", "talks"]), help="Generate only specific content type")  # type: ignore[misc]
 @click.option("--processes", "-j", type=int, help="Number of parallel processes (default: CPU count)")  # type: ignore[misc]
 @click.option("--sample-rate", type=float, default=1.0, help="Percentage of each type to process (0.0-1.0, default: 1.0)")  # type: ignore[misc]
 def generate_all(
@@ -298,6 +299,7 @@ def generate_all(
     generate_character_stories = only is None or only == "character-stories"
     generate_subtitles = only is None or only == "subtitles"
     generate_materials = only is None or only == "materials"
+    generate_talks = only is None or only == "talks"
 
     # Open errors file for writing
     errors_file_path = output_dir / "errors.info"
@@ -407,6 +409,25 @@ def generate_all(
             click.echo(
                 f"Voicelines: {success} success, {error} errors, {skipped} skipped"
             )
+
+        if generate_talks:
+            # Create Talks renderable with all previously used talk IDs
+            used_talk_ids = all_tracker_stats.accessed_talk_ids.copy()
+
+            success, error, skipped, tracker_stats = _generate_content(
+                Talks(used_talk_ids),
+                output_dir / "talks",
+                "Generating standalone talk content",
+                data_repo=data_repo,
+                errors_file=errors_file,
+                processes=processes,
+                sample_rate=sample_rate,
+            )
+            total_success += success
+            total_error += error
+            total_skipped += skipped
+            all_tracker_stats.update(tracker_stats)
+            click.echo(f"Talks: {success} success, {error} errors, {skipped} skipped")
 
     click.echo(
         f"\nTotal: {total_success} files generated, {total_error} errors, {total_skipped} skipped"
