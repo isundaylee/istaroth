@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 if TYPE_CHECKING:
-    from istaroth.agd.repo import TextMapTracker
+    from istaroth.agd.repo import TextMapTracker, TalkTracker
 
 import attrs
 
@@ -376,21 +376,29 @@ class VoicelineInfo:
 
 @attrs.define
 class TrackerStats:
-    """Statistics for text map entry access tracking."""
+    """Statistics for text map and talk ID access tracking."""
 
     accessed_text_map_ids: set[str]
+    accessed_talk_ids: set[str] = attrs.field(factory=set)
 
     def update(self, other: "TrackerStats") -> None:
         """Update this TrackerStats with IDs from another TrackerStats."""
         self.accessed_text_map_ids.update(other.accessed_text_map_ids)
+        self.accessed_talk_ids.update(other.accessed_talk_ids)
 
-    def to_dict(self, text_map_tracker: "TextMapTracker") -> dict[str, Any]:
+    def to_dict(
+        self, text_map_tracker: "TextMapTracker", talk_tracker: "TalkTracker"
+    ) -> dict[str, Any]:
         """Convert TrackerStats to dictionary format for JSON serialization."""
         return {
             "text_map": {
                 "unused": len(text_map_tracker.get_unused_ids()),
                 "total": text_map_tracker.get_total_count(),
-            }
+            },
+            "talk_ids": {
+                "unused": len(talk_tracker.get_unused_ids()),
+                "total": talk_tracker.get_total_count(),
+            },
         }
 
 

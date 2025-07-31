@@ -91,15 +91,19 @@ def _process_single_item(
     """Worker function to process a single renderable item."""
     renderable_key, renderable_type, data_repo = args
     try:
-        with data_repo.load_text_map() as text_map_tracker:
+        with data_repo.load_text_map() as text_map_tracker, data_repo.load_talk_excel_config_data() as talk_tracker:
             rendered = renderable_type.process(renderable_key, data_repo)
-            accessed_ids = text_map_tracker.get_accessed_ids()
+            accessed_text_ids = text_map_tracker.get_accessed_ids()
+            accessed_talk_ids = talk_tracker.get_accessed_ids()
         return _RenderableResult(
-            renderable_key, rendered, None, types.TrackerStats(accessed_ids)
+            renderable_key,
+            rendered,
+            None,
+            types.TrackerStats(accessed_text_ids, accessed_talk_ids),
         )
     except Exception as e:
         return _RenderableResult(
-            renderable_key, None, str(e), types.TrackerStats(set())
+            renderable_key, None, str(e), types.TrackerStats(set(), set())
         )
 
 
@@ -268,7 +272,7 @@ def generate_all(
     total_success = 0
     total_error = 0
     total_skipped = 0
-    all_tracker_stats = types.TrackerStats(set())
+    all_tracker_stats = types.TrackerStats(set(), set())
 
     # Determine which content types to generate
     generate_readable = only is None or only == "readable"
@@ -384,13 +388,17 @@ def generate_all(
         f"\nTotal: {total_success} files generated, {total_error} errors, {total_skipped} skipped"
     )
 
-    # Calculate and print unused text map entries count
+    # Calculate and print unused text map and talk ID entries count
     text_map_tracker = data_repo.load_text_map()
     text_map_tracker._accessed_ids.update(all_tracker_stats.accessed_text_map_ids)
     click.echo(f"Text map: {text_map_tracker.format_unused_stats()} unused")
 
+    talk_tracker = data_repo.load_talk_excel_config_data()
+    talk_tracker._accessed_ids.update(all_tracker_stats.accessed_talk_ids)
+    click.echo(f"Talk IDs: {talk_tracker.format_unused_stats()} unused")
+
     # Write unused stats to JSON file
-    unused_stats_data = all_tracker_stats.to_dict(text_map_tracker)
+    unused_stats_data = all_tracker_stats.to_dict(text_map_tracker, talk_tracker)
     unused_stats_path = output_dir / "unused_stats.json"
     with unused_stats_path.open("w", encoding="utf-8") as f:
         json.dump(unused_stats_data, f, indent=2, ensure_ascii=False)
