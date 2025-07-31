@@ -243,6 +243,17 @@ class FettersExcelConfigDataItem(TypedDict):
 
 
 type FettersExcelConfigData = list[FettersExcelConfigDataItem]
+
+
+class MainQuestExcelConfigDataItem(TypedDict):
+    id: int
+    titleTextMapHash: int
+    descTextMapHash: int
+    type: str
+    showType: str
+
+
+type MainQuestExcelConfigData = list[MainQuestExcelConfigDataItem]
 """List of fetter story configuration items.
 
 Example file: ExcelBinOutput/FetterStoryExcelConfigData.json

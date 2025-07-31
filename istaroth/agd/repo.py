@@ -207,3 +207,11 @@ class DataRepo:
         with open(file_path, encoding="utf-8") as f:
             data: types.FettersExcelConfigData = json.load(f)
             return data
+
+    @functools.lru_cache(maxsize=None)
+    def load_main_quest_excel_config_data(self) -> types.MainQuestExcelConfigData:
+        """Load main quest Excel configuration data."""
+        file_path = self.agd_path / "ExcelBinOutput" / "MainQuestExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.MainQuestExcelConfigData = json.load(f)
+            return data

@@ -80,22 +80,28 @@ class Quests(BaseRenderableType):
     error_limit_non_chinese: ClassVar[int] = 2000
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
-        """Find all quest files."""
-        quest_dir = data_repo.agd_path / "BinOutput" / "Quest"
-        if quest_dir.exists():
-            return [
-                f"BinOutput/Quest/{json_file.name}"
-                for json_file in quest_dir.glob("*.json")
-                if json_file.stem.isdigit()  # Skip non-numeric quest files
-            ]
-        return []
+        """Find all quest IDs from MainQuestExcelConfigData."""
+        main_quest_data = data_repo.load_main_quest_excel_config_data()
+
+        # Get all quest IDs from the Excel data
+        quest_ids = [str(quest_entry["id"]) for quest_entry in main_quest_data]
+
+        return sorted(quest_ids)
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
     ) -> types.RenderedItem | None:
         """Process quest file into rendered content."""
+        # Convert quest ID to path
+        quest_path = f"BinOutput/Quest/{renderable_key}.json"
+
+        # Check if quest file exists
+        file_path = data_repo.agd_path / quest_path
+        if not file_path.exists():
+            return None
+
         # Get quest info
-        quest_info = processing.get_quest_info(renderable_key, data_repo=data_repo)
+        quest_info = processing.get_quest_info(quest_path, data_repo=data_repo)
 
         # Skip if title starts with "test" (case-insensitive) and language is CHS
         if _should_skip(quest_info.title, data_repo.language):
