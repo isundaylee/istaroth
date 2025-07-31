@@ -54,6 +54,10 @@ istaroth/
 - Use the Python walrus operation := when appropriate to simplify code
 - ALWAYS prefer using features available on pathlib.Path, e.g. read_text and read_bytes
 - ALWAYS use names that start with _ for symbols that are not supposed to be used outside its current module/class/etc.
+- ALWAYS prefer pytests as functions, not classes
+- ALWAYS prefer one-lines
+- ALWAYS avoid intermediate variables that is only used once
+- ALWAYS avoid writing obvious comments
 
 ## Import Conventions
 - ALWAYS import istaroth.agd.types aliased as agd_types outside istaroth.agd; but import is normally as from istaroth.agd import types when inside the istaroth.agd package.
