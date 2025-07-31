@@ -310,6 +310,15 @@ class SubtitleInfo:
 
 
 @attrs.define
+class MaterialInfo:
+    """Material information with name and description."""
+
+    material_id: str
+    name: str
+    description: str
+
+
+@attrs.define
 class TrackerStats:
     """Statistics for text map entry access tracking."""
 

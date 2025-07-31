@@ -159,3 +159,33 @@ class Subtitles(BaseRenderableType):
 
         # Render the subtitle
         return rendering.render_subtitle(subtitle_info, renderable_key)
+
+
+class Materials(BaseRenderableType):
+    """Material content type (item names and descriptions)."""
+
+    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+        """Find all material IDs that have names."""
+        material_data = data_repo.load_material_excel_config_data()
+        text_map = data_repo.load_text_map()
+
+        # Collect material IDs that have names in the text map
+        material_ids = []
+        for material in material_data:
+            name_hash = str(material.get("nameTextMapHash", ""))
+            if name_hash in text_map:
+                material_ids.append(str(material["id"]))
+
+        return sorted(material_ids)
+
+    def process(
+        self, renderable_key: str, data_repo: repo.DataRepo
+    ) -> types.RenderedItem | None:
+        """Process material into rendered content."""
+        # Get material info
+        material_info = processing.get_material_info(
+            renderable_key, data_repo=data_repo
+        )
+
+        # Render the material
+        return rendering.render_material(material_info)

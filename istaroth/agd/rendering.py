@@ -126,3 +126,19 @@ def render_subtitle(
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(filename=filename, content=rendered_content)
+
+
+def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
+    """Render material content into RAG-suitable format."""
+    # Generate filename based on material name
+    safe_name = re.sub(r"[^\w\s-]", "", material_info.name)
+    safe_name = re.sub(r"\s+", "_", safe_name.strip())
+    filename = f"material_{safe_name}.txt"
+
+    # Format content with material name header and description
+    content_lines = [f"# {material_info.name}\n"]
+    content_lines.append(material_info.description)
+
+    rendered_content = "\n".join(content_lines)
+
+    return types.RenderedItem(filename=filename, content=rendered_content)

@@ -259,3 +259,31 @@ def get_subtitle_info(
             text_lines.append(line)
 
     return types.SubtitleInfo(text_lines=text_lines)
+
+
+def get_material_info(
+    material_id_str: str, *, data_repo: repo.DataRepo
+) -> types.MaterialInfo:
+    """Get material information for a specific material ID."""
+    material_id = int(material_id_str)
+
+    # Load required data
+    text_map = data_repo.load_text_map()
+    material_data = data_repo.load_material_excel_config_data()
+
+    # Find the material entry
+    for material in material_data:
+        if material["id"] == material_id:
+            # Get material name
+            name_hash = str(material["nameTextMapHash"])
+            name = text_map.get(name_hash, "Unknown Material")
+
+            # Get material description
+            desc_hash = str(material["descTextMapHash"])
+            description = text_map.get(desc_hash, "No description available")
+
+            return types.MaterialInfo(
+                material_id=material_id_str, name=name, description=description
+            )
+
+    raise ValueError(f"Material with ID {material_id} not found")

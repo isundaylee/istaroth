@@ -19,6 +19,7 @@ from istaroth.agd import processing, rendering, repo, types
 from istaroth.agd.renderable_types import (
     BaseRenderableType,
     CharacterStories,
+    Materials,
     Quests,
     Readables,
     Subtitles,
@@ -238,7 +239,7 @@ def cli() -> None:
 
 @cli.command("generate-all")  # type: ignore[misc]
 @click.argument("output_dir", type=click.Path(path_type=pathlib.Path))  # type: ignore[misc]
-@click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "subtitles"]), help="Generate only specific content type")  # type: ignore[misc]
+@click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "subtitles", "materials"]), help="Generate only specific content type")  # type: ignore[misc]
 @click.option("--processes", "-j", type=int, help="Number of parallel processes (default: CPU count)")  # type: ignore[misc]
 def generate_all(
     output_dir: pathlib.Path,
@@ -273,6 +274,7 @@ def generate_all(
     generate_quest = only is None or only == "quest"
     generate_character_stories = only is None or only == "character-stories"
     generate_subtitles = only is None or only == "subtitles"
+    generate_materials = only is None or only == "materials"
 
     # Open errors file for writing
     errors_file_path = output_dir / "errors.info"
@@ -341,6 +343,23 @@ def generate_all(
             all_tracker_stats.update(tracker_stats)
             click.echo(
                 f"Subtitles: {success} success, {error} errors, {skipped} skipped"
+            )
+
+        if generate_materials:
+            success, error, skipped, tracker_stats = _generate_content(
+                Materials(),
+                output_dir / "materials",
+                "Generating material content",
+                data_repo=data_repo,
+                errors_file=errors_file,
+                processes=processes,
+            )
+            total_success += success
+            total_error += error
+            total_skipped += skipped
+            all_tracker_stats.update(tracker_stats)
+            click.echo(
+                f"Materials: {success} success, {error} errors, {skipped} skipped"
             )
 
     click.echo(
