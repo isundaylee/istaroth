@@ -101,6 +101,10 @@ class Quests(BaseRenderableType):
         if _should_skip(quest_info.title, data_repo.language):
             return None
 
+        if not (quest_info.talks or quest_info.non_subquest_talks):
+            # If no talks, skip rendering
+            return None
+
         # Render the quest
         return rendering.render_quest(quest_info)
 
