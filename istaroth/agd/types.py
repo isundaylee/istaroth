@@ -284,13 +284,6 @@ class QuestInfo:
 
 
 @attrs.define
-class UnusedTextMapInfo:
-    """Information about unused text map entries."""
-
-    unused_entries: dict[str, str]
-
-
-@attrs.define
 class CharacterStory:
     """Individual character story with title and content."""
 

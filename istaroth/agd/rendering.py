@@ -83,24 +83,6 @@ def render_quest(quest: types.QuestInfo) -> types.RenderedItem:
     return types.RenderedItem(filename=filename, content=rendered_content)
 
 
-def render_unused_text_map(unused_info: types.UnusedTextMapInfo) -> types.RenderedItem:
-    """Render unused text map entries into RAG-suitable format."""
-    filename = "unused_texts.txt"
-
-    # Format content with title and all unused text entries
-    content_lines = ["# Unused Text Map Entries\n"]
-    content_lines.append(
-        "*These are text entries that were not used during content generation.*\n"
-    )
-
-    for content in unused_info.unused_entries.values():
-        content_lines.append(content)
-
-    rendered_content = "\n".join(content_lines)
-
-    return types.RenderedItem(filename=filename, content=rendered_content)
-
-
 def render_character_story(story_info: types.CharacterStoryInfo) -> types.RenderedItem:
     """Render all character stories into RAG-suitable format."""
     # Generate filename based on character name with collision safeguards

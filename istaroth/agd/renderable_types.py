@@ -105,24 +105,6 @@ class Quests(BaseRenderableType):
         return rendering.render_quest(quest_info)
 
 
-class UnusedTexts(BaseRenderableType):
-    """Unused text map entries content type."""
-
-    def discover(self, data_repo: repo.DataRepo) -> list[str]:
-        """Return a single placeholder file since unused texts are generated dynamically."""
-        return ["unused_text_map"]
-
-    def process(
-        self, renderable_key: str, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
-        """Process unused text map entries into rendered content."""
-        # Get unused text map info
-        unused_info = processing.get_unused_text_map_info(data_repo=data_repo)
-
-        # Render the unused texts
-        return rendering.render_unused_text_map(unused_info)
-
-
 class CharacterStories(BaseRenderableType):
     """Character story content type."""
 
