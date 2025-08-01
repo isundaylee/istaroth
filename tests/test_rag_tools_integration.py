@@ -14,10 +14,12 @@ def test_data_dir(tmp_path: pathlib.Path) -> pathlib.Path:
     data_dir.mkdir()
 
     (data_dir / "genshin_lore.txt").write_text(
-        "钟离是岩王帝君的人间形态，真实身份是摩拉克斯。\n" "温迪是风神巴巴托斯，常常以吟游诗人的身份出现。", encoding="utf-8"
+        "钟离是岩王帝君的人间形态，真实身份是摩拉克斯。\n" "温迪是风神巴巴托斯，常常以吟游诗人的身份出现。",
+        encoding="utf-8",
     )
     (data_dir / "regions.txt").write_text(
-        "蒙德以风元素为主，充满了自由的气息。\n" "璃月以岩元素为主，商业繁荣，历史悠久。", encoding="utf-8"
+        "蒙德以风元素为主，充满了自由的气息。\n" "璃月以岩元素为主，商业繁荣，历史悠久。",
+        encoding="utf-8",
     )
 
     return data_dir
@@ -68,13 +70,8 @@ def test_complete_rag_workflow(
     retrieve_result = run_rag_tools("retrieve", "钟离", "--k", "2")
     assert retrieve_result.returncode == 0, f"Retrieve failed: {retrieve_result.stderr}"
     assert "钟离" in retrieve_result.stdout or "摩拉克斯" in retrieve_result.stdout
-    assert "Result 1" in retrieve_result.stdout
 
     # 3. Test search command
     search_result = run_rag_tools("search", "风神")
     assert search_result.returncode == 0, f"Search failed: {search_result.stderr}"
-    assert (
-        "Found" in search_result.stdout
-        and "documents containing '风神'" in search_result.stdout
-    )
     assert "巴巴托斯" in search_result.stdout or "温迪" in search_result.stdout

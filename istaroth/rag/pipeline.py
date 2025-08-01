@@ -72,7 +72,7 @@ class RAGPipeline:
 
     def _retrieve_context(self, query: str) -> str:
         """Retrieve and format documents as context."""
-        results = self._document_store.search(query, k=self._k)
+        results = self._document_store.retrieve(query, k=self._k)
 
         if not results:
             return "（未找到相关资料）"
@@ -86,7 +86,7 @@ class RAGPipeline:
         """Answer question with source documents."""
 
         # Retrieve relevant documents
-        results = self._document_store.search(question, k=self._k)
+        results = self._document_store.retrieve(question, k=self._k)
 
         # Add tracing metadata
         run_metadata = {

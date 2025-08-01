@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 
-from istaroth.agd import processing, repo
+from istaroth.agd import localization, processing, repo
 
 
 def test_book100_metadata(data_repo: repo.DataRepo) -> None:
@@ -100,7 +100,7 @@ def english_data_repo() -> repo.DataRepo:
 def test_english_language_support(english_data_repo: repo.DataRepo) -> None:
     """Test that English language is properly supported."""
     # Verify the data repo is configured for English
-    assert english_data_repo.language == "ENG"
+    assert english_data_repo.language == localization.Language.ENG
 
     # Test talk processing with English
     talk_path = "BinOutput/Talk/Quest/7407811.json"

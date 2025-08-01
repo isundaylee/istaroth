@@ -5,7 +5,7 @@ import logging
 import os
 import pathlib
 import uuid
-from typing import cast
+from typing import ClassVar, cast
 
 import attrs
 import jieba
@@ -14,10 +14,9 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langsmith import traceable
 from tqdm import tqdm
 
-from istaroth import utils
+from istaroth.langsmith_utils import traceable
 from istaroth.rag import types
 
 logger = logging.getLogger(__name__)
@@ -87,60 +86,22 @@ class _VectorStore:
 class _BM25Store:
     """BM25 keyword search store."""
 
-    _documents: dict[str, list[Document]] = attrs.field()
     _bm25_retriever: BM25Retriever = attrs.field()
 
     @classmethod
-    def build(cls, documents: dict[str, list[Document]]) -> "_BM25Store":
+    def build(cls, documents: dict[str, dict[int, Document]]) -> "_BM25Store":
         """Build BM25 store from documents."""
-        all_docs = [doc for docs in documents.values() for doc in docs]
+        all_docs = [doc for docs in documents.values() for doc in docs.values()]
         bm25_retriever = BM25Retriever.from_documents(
             all_docs, preprocess_func=_chinese_tokenizer
         )
-        return cls(documents, bm25_retriever)
+        return cls(bm25_retriever)
 
     @traceable(name="bm25_search")  # type: ignore[misc]
     def search(self, query: str, k: int) -> list[types.ScoredDocument]:
         """BM25 keyword search."""
         docs = self._bm25_retriever.invoke(query, k=k)
         return [types.ScoredDocument(document=doc, score=1.0) for doc in docs]
-
-    def save(self, path: pathlib.Path) -> None:
-        """Save BM25 documents."""
-        documents_data = {}
-        for file_id, docs in self._documents.items():
-            documents_data[file_id] = [
-                {"page_content": doc.page_content, "metadata": doc.metadata}
-                for doc in docs
-            ]
-        with open(path / "documents.json", "w") as f:
-            json.dump(documents_data, f)
-
-    @classmethod
-    def load(cls, path: pathlib.Path) -> "_BM25Store":
-        """Load BM25 documents."""
-        documents_file = path / "documents.json"
-        if documents_file.exists():
-            with open(documents_file, "r") as f:
-                documents_data = json.load(f)
-
-            documents = {}
-            for file_id, file_docs in documents_data.items():
-                documents[file_id] = [
-                    Document(
-                        page_content=doc["page_content"],
-                        metadata=doc["metadata"],
-                    )
-                    for doc in file_docs
-                ]
-            return cls.build(documents)
-        else:
-            return cls.build({})
-
-    @property
-    def num_documents(self) -> int:
-        """Number of documents in store."""
-        return sum(len(docs) for docs in self._documents.values())
 
 
 def _reciprocal_rank_fusion(
@@ -194,8 +155,14 @@ def get_document_store_path() -> pathlib.Path:
 class DocumentStore:
     """A document store using FAISS for vector similarity search."""
 
+    _CHUNK_OFFSET: ClassVar[
+        int
+    ] = 5  # Number of chunks to retrieve around the matched chunk
+
     _vector_store: _VectorStore = attrs.field()
     _bm25_store: _BM25Store = attrs.field()
+
+    _documents: dict[str, dict[int, Document]] = attrs.field()
     _full_texts: dict[str, str] = attrs.field()
 
     @classmethod
@@ -224,7 +191,7 @@ class DocumentStore:
                 file_id = str(uuid.uuid4())
                 chunks = text_splitter.split_text(content.strip())
 
-                file_documents = []
+                file_docs = dict[int, Document]()
                 for chunk_index, chunk in enumerate(chunks):
                     metadata: types.DocumentMetadata = {
                         "source": str(file_path),
@@ -238,9 +205,9 @@ class DocumentStore:
                     all_metadatas.append(metadata)
 
                     doc = Document(page_content=chunk, metadata=metadata)
-                    file_documents.append(doc)
+                    file_docs[chunk_index] = doc
 
-                all_documents[file_id] = file_documents
+                all_documents[file_id] = file_docs
                 full_texts[file_id] = content.strip()
 
             except Exception as e:
@@ -252,10 +219,10 @@ class DocumentStore:
         vector_store = _VectorStore.build(all_chunks, all_metadatas)
         bm25_store = _BM25Store.build(all_documents)
 
-        return cls(vector_store, bm25_store, full_texts)
+        return cls(vector_store, bm25_store, all_documents, full_texts)
 
-    @traceable(name="hybrid_search")  # type: ignore[misc]
-    def search(self, query: str, k: int = 5) -> list[tuple[str, float]]:
+    @traceable(name="hybrid_search")
+    def retrieve(self, query: str, *, k: int) -> list[tuple[float, list[Document]]]:
         """Search using hybrid vector + BM25 retrieval with reciprocal rank fusion."""
         # Get results from both retrievers (these return chunk content)
         vector_results = self._vector_store.search(query, k * 2)
@@ -266,21 +233,25 @@ class DocumentStore:
             [vector_results, bm25_results], weights=[0.5, 0.5]
         )
 
-        # Deduplicate by file_id first, keeping highest scored chunk per file
-        file_scores: dict[str, float] = {}
-        for scored_doc in fused_results:
-            file_id = scored_doc.document.metadata["file_id"]  # Must have file_id
-            if file_id not in file_scores or scored_doc.score > file_scores[file_id]:
-                file_scores[file_id] = scored_doc.score
-
-        # Sort by score, take first k, then compute full content only for selected files
-        sorted_file_ids = sorted(file_scores.items(), key=lambda x: x[1], reverse=True)[
+        final_results = list[tuple[float, list[Document]]]()
+        for scored_doc in sorted(fused_results, key=lambda x: x.score, reverse=True)[
             :k
-        ]
+        ]:
+            doc = scored_doc.document
+            metadata = cast(types.DocumentMetadata, doc.metadata)
+            file_docs = self._documents[metadata["file_id"]]
+            file_results = list[Document]()
 
-        final_results = []
-        for file_id, score in sorted_file_ids:
-            final_results.append((self._full_texts[file_id], score))
+            for offset in range(-self._CHUNK_OFFSET, self._CHUNK_OFFSET):
+                chunk_index = metadata["chunk_index"] + offset
+                if chunk_index < 0 or chunk_index >= len(file_docs):
+                    continue
+
+                # Get the document chunk
+                chunk_doc = file_docs[chunk_index]
+                file_results.append(chunk_doc)
+
+            final_results.append((scored_doc.score, file_results))
 
         return final_results
 
@@ -299,18 +270,30 @@ class DocumentStore:
         """Save the document store to a directory."""
         # Save stores
         self._vector_store.save(path)
-        self._bm25_store.save(path)
 
-        # Save full texts separately
-        with open(path / "full_texts.json", "w") as f:
-            json.dump(self._full_texts, f)
+        # Write out documents
+        (path / "documents.json").write_text(
+            json.dumps(
+                {
+                    file_id: [
+                        {
+                            "page_content": doc.page_content,
+                            "metadata": doc.metadata,
+                        }
+                        for doc in docs.values()
+                    ]
+                    for file_id, docs in self._documents.items()
+                }
+            )
+        )
+
+        # Write out full texts
+        (path / "full_texts.json").write_text(json.dumps(self._full_texts))
 
     @classmethod
     def load(cls, path: pathlib.Path) -> "DocumentStore":
         """Load document store from a directory."""
-        vector_store = _VectorStore.load(path)
-        bm25_store = _BM25Store.load(path)
-
+        # Load full texts
         full_texts_file = path / "full_texts.json"
         if full_texts_file.exists():
             with open(full_texts_file, "r") as f:
@@ -318,7 +301,26 @@ class DocumentStore:
         else:
             full_texts = {}
 
-        instance = cls(vector_store, bm25_store, full_texts)
+        # Load documents to build BM25 store
+        documents_file = path / "documents.json"
+        if documents_file.exists():
+            documents = {
+                cast(str, file_id): {
+                    cast(int, doc["metadata"]["chunk_index"]): Document(
+                        page_content=doc["page_content"], metadata=doc["metadata"]
+                    )
+                    for doc in file_docs
+                }
+                for file_id, file_docs in json.loads(documents_file.read_text()).items()
+            }
+        else:
+            documents = {}
+
+        # Load stores
+        vector_store = _VectorStore.load(path)
+        bm25_store = _BM25Store.build(documents)
+
+        instance = cls(vector_store, bm25_store, documents, full_texts)
         logger.info(
             "Loaded document store from %s with %d documents",
             path,
@@ -329,7 +331,7 @@ class DocumentStore:
     @property
     def num_documents(self) -> int:
         """Number of documents in the store."""
-        return self._bm25_store.num_documents
+        return sum(len(docs) for docs in self._documents.values())
 
     @classmethod
     def from_env(cls) -> "DocumentStore":
@@ -345,7 +347,7 @@ class DocumentStore:
             # Create empty store
             empty_vector_store = _VectorStore.build([], [])
             empty_bm25_store = _BM25Store.build({})
-            return cls(empty_vector_store, empty_bm25_store, {})
+            return cls(empty_vector_store, empty_bm25_store, {}, {})
 
     def save_to_env(self) -> None:
         """Save DocumentStore to path specified by ISTAROTH_DOCUMENT_STORE env var."""

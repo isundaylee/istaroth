@@ -3,6 +3,7 @@
 
 import logging
 import pathlib
+import re
 import shutil
 import sys
 
@@ -13,7 +14,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from langchain_google_genai import llms as google_llms
 
-from istaroth.rag import document_store, pipeline, tracing
+from istaroth.rag import document_store, output_rendering, pipeline, tracing
 
 
 def _create_llm() -> google_llms.GoogleGenerativeAI:
@@ -90,16 +91,14 @@ def retrieve(query: str, k: int) -> None:
         print("Error: No documents in store. Use 'add-documents' command first.")
         sys.exit(1)
 
-    print(f"Searching for: '{query}'")
-    results = store.search(query, k=k)
+    print(f"Searching for: '{query}'\n")
+    results = store.retrieve(query, k=k)
 
     if not results:
         print("No results found.")
         return
 
-    for i, (text, score) in enumerate(results):
-        print(f"\nResult {i + 1} (score: {score:.4f}):")
-        print(f"  Text: {''.join(text.splitlines())}")
+    print(output_rendering.render_retrieve_output(results))
 
 
 @cli.command()  # type: ignore[misc]
