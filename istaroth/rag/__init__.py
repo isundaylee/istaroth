@@ -1,5 +1,5 @@
 """RAG (Retrieval-Augmented Generation) utilities for Istaroth."""
 
-from .embedding import DocumentStore
+from .document_store import DocumentStore
 
 __all__ = ["DocumentStore"]

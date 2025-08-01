@@ -7,7 +7,7 @@ from langchain import prompts
 from langchain_core import language_models, messages
 from langchain_core.runnables import RunnableConfig
 
-from istaroth.rag import embedding, tracing
+from istaroth.rag import document_store, tracing
 
 
 @attrs.define
@@ -47,7 +47,7 @@ class RAGPipeline:
 
     def __init__(
         self,
-        document_store: embedding.DocumentStore,
+        document_store: document_store.DocumentStore,
         llm: language_models.BaseLanguageModel,
         k: int = 5,
     ):

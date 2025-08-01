@@ -13,7 +13,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from langchain_google_genai import llms as google_llms
 
-from istaroth.rag import embedding, pipeline, tracing
+from istaroth.rag import document_store, pipeline, tracing
 
 
 def _create_llm() -> google_llms.GoogleGenerativeAI:
@@ -35,9 +35,9 @@ def _get_files_to_process(path: pathlib.Path) -> list[pathlib.Path]:
         sys.exit(1)
 
 
-def _load_or_create_store() -> embedding.DocumentStore:
+def _load_or_create_store() -> document_store.DocumentStore:
     """Load existing document store or create new one."""
-    store = embedding.DocumentStore.from_env()
+    store = document_store.DocumentStore.from_env()
     if store.num_documents > 0:
         print(f"Loaded store with {store.num_documents} existing documents")
     return store
@@ -55,7 +55,7 @@ def cli() -> None:
 def build(path: pathlib.Path, force: bool) -> None:
     """Build document store from a file or folder."""
     # Get target path from environment
-    target_path = embedding.get_document_store_path()
+    target_path = document_store.get_document_store_path()
 
     # Check if target exists
     if target_path.exists():
@@ -73,7 +73,7 @@ def build(path: pathlib.Path, force: bool) -> None:
         sys.exit(1)
 
     print(f"Building document store from {len(files_to_process)} files in: {path}")
-    store = embedding.DocumentStore.build(files_to_process, show_progress=True)
+    store = document_store.DocumentStore.build(files_to_process, show_progress=True)
 
     print(f"\nTotal documents in store: {store.num_documents}")
     store.save_to_env()

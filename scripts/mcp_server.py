@@ -10,11 +10,11 @@ from langsmith import traceable
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from istaroth.rag import embedding
+from istaroth.rag import document_store
 
 # Create an MCP server
 mcp = FastMCP("istaroth")
-store = embedding.DocumentStore.from_env()
+store = document_store.DocumentStore.from_env()
 
 
 @mcp.tool()  # type: ignore[misc]
