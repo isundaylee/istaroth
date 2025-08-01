@@ -5,7 +5,7 @@ import re
 from istaroth.agd import localization
 
 
-def clean_text_markers(text: str, language: str = "ENG") -> str:
+def clean_text_markers(text: str, language: localization.Language) -> str:
     """Clean game text markers and normalize newlines."""
     if not text:
         return text

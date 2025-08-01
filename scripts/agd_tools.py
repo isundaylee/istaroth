@@ -540,13 +540,13 @@ def list_readables() -> None:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
-    readable_dir = data_repo.agd_path / "Readable" / data_repo.language
+    readable_dir = data_repo.agd_path / "Readable" / data_repo.language.value
 
     if not readable_dir.exists():
         click.echo(f"Error: Directory {readable_dir} does not exist", err=True)
         sys.exit(1)
 
-    click.echo(f"Readable Metadata ({data_repo.language}):")
+    click.echo(f"Readable Metadata ({data_repo.language.value}):")
     click.echo("=" * 50)
 
     # Find all .txt files in the readable directory
@@ -556,7 +556,7 @@ def list_readables() -> None:
     error_count = 0
 
     for txt_file in txt_files:
-        relative_path = f"Readable/{data_repo.language}/{txt_file.name}"
+        relative_path = f"Readable/{data_repo.language.value}/{txt_file.name}"
         try:
             metadata = processing.get_readable_metadata(
                 relative_path, data_repo=data_repo

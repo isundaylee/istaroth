@@ -4,12 +4,12 @@ from abc import ABC, abstractmethod
 from typing import ClassVar
 
 from istaroth import text_cleanup
-from istaroth.agd import processing, rendering, repo, types
+from istaroth.agd import localization, processing, rendering, repo, types
 
 
-def _should_skip(title: str, language: str) -> bool:
+def _should_skip(title: str, language: localization.Language) -> bool:
     """Skip test items only for CHS language."""
-    if language != "CHS":
+    if language != localization.Language.CHS:
         return False
     lower_title = title.lower()
     return (

@@ -10,7 +10,7 @@ import pathlib
 import attrs
 
 from istaroth import text_cleanup
-from istaroth.agd import types
+from istaroth.agd import localization, types
 
 
 class IdTracker:
@@ -117,7 +117,9 @@ class TalkTracker(IdTracker):
 class TextMapTracker(IdTracker):
     """Wrapper around TextMap that tracks which text IDs have been accessed."""
 
-    def __init__(self, text_map: types.TextMap, language: str) -> None:
+    def __init__(
+        self, text_map: types.TextMap, language: localization.Language
+    ) -> None:
         super().__init__(set(text_map.keys()))
         self._text_map = text_map
         self._language = language
@@ -144,12 +146,14 @@ class DataRepo:
     """Repository for loading AnimeGameData files."""
 
     agd_path: pathlib.Path = attrs.field(converter=pathlib.Path)
-    language: str = attrs.field(default="CHS")
+    language: localization.Language
 
     @property
     def language_short(self) -> str:
         """Get the short language code used in AGD file structure (maps ENG to EN)."""
-        return "EN" if self.language == "ENG" else self.language
+        return (
+            "EN" if self.language == localization.Language.ENG else self.language.value
+        )
 
     @classmethod
     def from_env(cls) -> "DataRepo":
@@ -160,7 +164,10 @@ class DataRepo:
         agd_path = os.environ.get("AGD_PATH")
         if not agd_path:
             raise ValueError("AGD_PATH environment variable not set")
-        language = os.environ.get("AGD_LANGUAGE", "CHS")
+        language_str = os.environ.get("AGD_LANGUAGE", "CHS")
+        language = localization.Language(
+            language_str
+        )  # Will raise ValueError for invalid languages
         return cls(agd_path, language=language)
 
     @functools.lru_cache(maxsize=None)
