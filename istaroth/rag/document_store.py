@@ -5,6 +5,7 @@ import logging
 import os
 import pathlib
 import uuid
+from typing import cast
 
 import attrs
 import jieba
@@ -17,16 +18,9 @@ from langsmith import traceable
 from tqdm import tqdm
 
 from istaroth import utils
+from istaroth.rag import types
 
 logger = logging.getLogger(__name__)
-
-
-@attrs.define
-class ScoredDocument:
-    """Document with similarity score."""
-
-    document: Document
-    score: float
 
 
 def _chinese_tokenizer(text: str) -> list[str]:
@@ -42,7 +36,9 @@ class _VectorStore:
     _vector_store: FAISS = attrs.field()
 
     @classmethod
-    def build(cls, texts: list[str], metadatas: list[dict]) -> "_VectorStore":
+    def build(
+        cls, texts: list[str], metadatas: list[types.DocumentMetadata]
+    ) -> "_VectorStore":
         """Build vector store from texts and metadatas."""
         embeddings = HuggingFaceEmbeddings(
             model_name="BAAI/bge-m3",
@@ -52,15 +48,17 @@ class _VectorStore:
         vector_store = FAISS.from_texts(
             texts=texts,
             embedding=embeddings,
-            metadatas=metadatas,
+            metadatas=cast(list[dict], metadatas),
         )
         return cls(embeddings, vector_store)
 
     @traceable(name="vector_search")  # type: ignore[misc]
-    def search(self, query: str, k: int) -> list[ScoredDocument]:
+    def search(self, query: str, k: int) -> list[types.ScoredDocument]:
         """Vector similarity search."""
         results = self._vector_store.similarity_search_with_score(query, k=k)
-        return [ScoredDocument(document=doc, score=score) for doc, score in results]
+        return [
+            types.ScoredDocument(document=doc, score=score) for doc, score in results
+        ]
 
     def save(self, path: pathlib.Path) -> None:
         """Save vector store."""
@@ -102,10 +100,10 @@ class _BM25Store:
         return cls(documents, bm25_retriever)
 
     @traceable(name="bm25_search")  # type: ignore[misc]
-    def search(self, query: str, k: int) -> list[ScoredDocument]:
+    def search(self, query: str, k: int) -> list[types.ScoredDocument]:
         """BM25 keyword search."""
         docs = self._bm25_retriever.invoke(query, k=k)
-        return [ScoredDocument(document=doc, score=1.0) for doc in docs]
+        return [types.ScoredDocument(document=doc, score=1.0) for doc in docs]
 
     def save(self, path: pathlib.Path) -> None:
         """Save BM25 documents."""
@@ -146,8 +144,8 @@ class _BM25Store:
 
 
 def _reciprocal_rank_fusion(
-    results: list[list[ScoredDocument]], weights: list[float], k: int = 60
-) -> list[ScoredDocument]:
+    results: list[list[types.ScoredDocument]], weights: list[float], k: int = 60
+) -> list[types.ScoredDocument]:
     """Combine multiple retrieval results using reciprocal rank fusion.
 
     Args:
@@ -176,7 +174,8 @@ def _reciprocal_rank_fusion(
     # Sort by combined score (highest first) and return with document
     sorted_results = sorted(doc_scores.items(), key=lambda x: x[1][0], reverse=True)
     return [
-        ScoredDocument(document=doc, score=score) for _, (score, doc) in sorted_results
+        types.ScoredDocument(document=doc, score=score)
+        for _, (score, doc) in sorted_results
     ]
 
 
@@ -227,7 +226,7 @@ class DocumentStore:
 
                 file_documents = []
                 for chunk_index, chunk in enumerate(chunks):
-                    metadata = {
+                    metadata: types.DocumentMetadata = {
                         "source": str(file_path),
                         "type": "document",
                         "filename": file_path.name,
