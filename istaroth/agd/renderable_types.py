@@ -3,6 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import ClassVar
 
+from istaroth import text_cleanup
 from istaroth.agd import processing, rendering, repo, types
 
 
@@ -68,6 +69,9 @@ class Readables(BaseRenderableType):
         readable_file_path = data_repo.agd_path / renderable_key
         with open(readable_file_path, "r", encoding="utf-8") as f:
             content = f.read()
+
+        # Clean text markers in readable content
+        content = text_cleanup.clean_text_markers(content, data_repo.language)
 
         # Render the content
         return rendering.render_readable(content, metadata)

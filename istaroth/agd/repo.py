@@ -9,6 +9,7 @@ import pathlib
 
 import attrs
 
+from istaroth import text_cleanup
 from istaroth.agd import types
 
 
@@ -116,22 +117,25 @@ class TalkTracker(IdTracker):
 class TextMapTracker(IdTracker):
     """Wrapper around TextMap that tracks which text IDs have been accessed."""
 
-    def __init__(self, text_map: types.TextMap) -> None:
+    def __init__(self, text_map: types.TextMap, language: str) -> None:
         super().__init__(set(text_map.keys()))
         self._text_map = text_map
+        self._language = language
 
     def get(self, key: str, default: str) -> str:
         """Get text by ID with default, tracks access if key exists."""
         if key in self._text_map:
             self._track_access(key)
-            return self._text_map[key].replace("\\n", "\n")
+            text = self._text_map[key]
+            return text_cleanup.clean_text_markers(text, self._language)
         return default
 
     def get_optional(self, key: str) -> str | None:
         """Get text by ID, returns None if not found."""
         if key in self._text_map:
             self._track_access(key)
-            return self._text_map[key]
+            text = self._text_map[key]
+            return text_cleanup.clean_text_markers(text, self._language)
         return None
 
 
@@ -165,7 +169,7 @@ class DataRepo:
         file_path = self.agd_path / "TextMap" / f"TextMap{self.language_short}.json"
         with open(file_path, encoding="utf-8") as f:
             data: types.TextMap = json.load(f)
-            return TextMapTracker(data)
+            return TextMapTracker(data, self.language)
 
     @functools.lru_cache(maxsize=None)
     def load_npc_excel_config_data(self) -> types.NpcExcelConfigData:

@@ -40,9 +40,9 @@ def test_talk_7407811_info(data_repo: repo.DataRepo) -> None:
     # Check that we have different role types
     roles = [text.role for text in talk_info.text]
     # Get localized role names for testing
-    from istaroth.agd.processing import _get_localized_role_names
+    from istaroth.agd import localization
 
-    localized_roles = _get_localized_role_names(data_repo.language)
+    localized_roles = localization.get_localized_role_names(data_repo.language)
 
     assert any(localized_roles.player == role for role in roles)  # Player role
     assert any(

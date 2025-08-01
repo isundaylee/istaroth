@@ -2,28 +2,7 @@
 
 import pathlib
 
-from istaroth.agd import repo, types
-
-
-def _get_localized_role_names(language: str) -> types.LocalizedRoleNames:
-    """Get localized role names based on language."""
-    role_names = {
-        "CHS": types.LocalizedRoleNames(
-            player="旅行者",
-            black_screen="黑屏文本",
-            unknown_npc="Unknown NPC",
-            unknown_role="Unknown Role",
-        ),
-        "ENG": types.LocalizedRoleNames(
-            player="Traveler",
-            black_screen="Black Screen Text",
-            unknown_npc="Unknown NPC",
-            unknown_role="Unknown Role",
-        ),
-        # Add more languages as needed
-    }
-    # Default to English for unsupported languages
-    return role_names.get(language, role_names["ENG"])
+from istaroth.agd import localization, repo, types
 
 
 def get_readable_metadata(
@@ -113,7 +92,7 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
             npc_id_to_name[npc_id] = name
 
     # Get localized role names
-    localized_roles = _get_localized_role_names(data_repo.language)
+    localized_roles = localization.get_localized_role_names(data_repo.language)
 
     # Process dialog items
     talk_texts = []
