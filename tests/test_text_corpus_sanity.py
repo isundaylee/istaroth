@@ -19,6 +19,8 @@ def test_chinese_corpus_sanity():
         "readable/readable_某人留下的铭记其一.txt": "…留给我们的唯有一条路，那就是希巴拉克的道路…",
         "subtitles/subtitle_Cs_Mengde_EQ401260901_AA_CHS.txt": "溪流与梦想汇入沧洋\n晶蝶点水的须臾\n星河下的少年白发成长",
         "materials/material_无垢之海的苦盏.txt": "传说在最初的僭主来到原始之海时，水国的先主曾赠予他一杯水。",
+        "voicelines/voiceline_芙宁娜.txt": "没想到你会对我的事这么上心，这是否意味着你仍然需要我的「力量」呢？然而如今的我…或许无法给你足够的回报…你说看重的是我「本人」？既然这样，就让你我共同出演我们的未来吧。",
+        "talks/talk_风带来故事的种子时间使之发芽.txt": "遗迹的铭文: 「风带来故事的种子，时间使之发芽。」",
     }
 
     # Test each file and its expected content
@@ -44,6 +46,8 @@ def test_english_corpus_sanity():
         "readable/readable_Notes_Someone_Left_Behind_I.txt": "...The only road left to us is the path of Xbalanque...",
         "subtitles/subtitle_Cs_Mengde_EQ401260901_AA_EN.txt": "Far from my native land I roamed\nIn streams I slept\nMany seasons I met as the suns set and rose",
         "materials/material_Broken_Goblet_of_the_Pristine_Sea.txt": "Legend says that when the first usurper came to the primordial sea, the first sovereign gave him a goblet of water.",
+        "voicelines/voiceline_Furina.txt": "I didn't know you cared so much about me. Does that mean that you still need my power? But given the way I am now... there's a chance I won't be able to give you everything you need. Hmm? All you really care about is... me? In that case, then let us act out our future journey together!",
+        "talks/talk_Seeds_of_stories_brought_by_the_wind_and_cultiva.txt": 'Carving Marks: "Seeds of stories, brought by the wind and cultivated by time."',
     }
 
     # Test each file and its expected content
