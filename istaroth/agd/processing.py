@@ -108,7 +108,7 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
         role_type = talk_role.get("type")
         match role_type:
             case "TALK_ROLE_NPC":
-                npc_id = talk_role["_id"]
+                npc_id = talk_role.get("_id", talk_role.get("id"))
                 return npc_id_to_name.get(npc_id)
             case "TALK_ROLE_PLAYER":
                 return localized_roles.player

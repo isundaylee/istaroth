@@ -173,7 +173,8 @@ class TalkRole(TypedDict):
     """Type definition for talk role."""
 
     type: str
-    _id: str
+    _id: NotRequired[str]
+    id: NotRequired[str]
 
 
 class TalkDialogItem(TypedDict):
