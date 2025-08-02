@@ -219,7 +219,7 @@ class DocumentStore:
 
     @traceable(name="hybrid_search")
     def retrieve(
-        self, query: str, *, k: int, chunk_offset: int = 5
+        self, query: str, *, k: int, chunk_context: int = 5
     ) -> list[tuple[float, list[Document]]]:
         """Search using hybrid vector + BM25 retrieval with reciprocal rank fusion."""
         # Get results from both retrievers (these return chunk content)
@@ -249,8 +249,8 @@ class DocumentStore:
                 final_chunk_indices[file_id] = set()
 
             for chunk_index in range(
-                max(metadata["chunk_index"] - chunk_offset, 0),
-                min(metadata["chunk_index"] + chunk_offset + 1, len(file_docs)),
+                max(metadata["chunk_index"] - chunk_context, 0),
+                min(metadata["chunk_index"] + chunk_context + 1, len(file_docs)),
             ):
                 final_chunk_indices[file_id].add(chunk_index)
 
