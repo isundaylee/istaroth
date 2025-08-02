@@ -5,7 +5,7 @@ import logging
 import os
 import pathlib
 import uuid
-from typing import ClassVar, cast
+from typing import cast
 
 import attrs
 import jieba
@@ -155,10 +155,6 @@ def get_document_store_path() -> pathlib.Path:
 class DocumentStore:
     """A document store using FAISS for vector similarity search."""
 
-    _CHUNK_OFFSET: ClassVar[
-        int
-    ] = 5  # Number of chunks to retrieve around the matched chunk
-
     _vector_store: _VectorStore = attrs.field()
     _bm25_store: _BM25Store = attrs.field()
 
@@ -222,7 +218,9 @@ class DocumentStore:
         return cls(vector_store, bm25_store, all_documents, full_texts)
 
     @traceable(name="hybrid_search")
-    def retrieve(self, query: str, *, k: int) -> list[tuple[float, list[Document]]]:
+    def retrieve(
+        self, query: str, *, k: int, chunk_offset: int = 5
+    ) -> list[tuple[float, list[Document]]]:
         """Search using hybrid vector + BM25 retrieval with reciprocal rank fusion."""
         # Get results from both retrievers (these return chunk content)
         vector_results = self._vector_store.search(query, k * 2)
@@ -251,8 +249,8 @@ class DocumentStore:
                 final_chunk_indices[file_id] = set()
 
             for chunk_index in range(
-                max(metadata["chunk_index"] - self._CHUNK_OFFSET, 0),
-                min(metadata["chunk_index"] + self._CHUNK_OFFSET + 1, len(file_docs)),
+                max(metadata["chunk_index"] - chunk_offset, 0),
+                min(metadata["chunk_index"] + chunk_offset + 1, len(file_docs)),
             ):
                 final_chunk_indices[file_id].add(chunk_index)
 
