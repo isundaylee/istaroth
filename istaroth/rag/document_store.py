@@ -244,6 +244,9 @@ class DocumentStore:
             # For multiple retrieved docs from the same file, we use the highest
             # score for now.
             if file_id not in final_chunk_indices:
+                if len(final_file_ids) == k:
+                    break
+
                 final_file_ids.append((scored_doc.score, file_id))
                 final_chunk_indices[file_id] = set()
 
