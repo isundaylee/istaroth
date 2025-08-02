@@ -45,6 +45,32 @@ Example file: ExcelBinOutput/NpcExcelConfigData.json
 """
 
 
+class DialogTalkRole(TypedDict):
+    """Type definition for talk role in dialog entries."""
+
+    type: str
+    id: NotRequired[str]
+    _id: NotRequired[int]
+
+
+class DialogExcelConfigDataItem(TypedDict):
+    """Type definition for individual dialog configuration entries."""
+
+    GFLDJMJKIKE: int
+    nextDialogs: list[int]
+    talkRole: DialogTalkRole
+    talkContentTextMapHash: int
+    talkTitleTextMapHash: int
+    talkRoleNameTextMapHash: int
+
+
+type DialogExcelConfigData = list[DialogExcelConfigDataItem]
+"""List of dialog configuration items from Excel data.
+
+Example file: ExcelBinOutput/DialogExcelConfigData.json
+"""
+
+
 class LocalizationExcelConfigDataItem(TypedDict):
     """Type definition for localization configuration entries."""
 

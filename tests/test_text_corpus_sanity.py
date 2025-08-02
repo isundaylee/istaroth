@@ -21,6 +21,7 @@ def test_chinese_corpus_sanity():
         "materials/material_无垢之海的苦盏.txt": "传说在最初的僭主来到原始之海时，水国的先主曾赠予他一杯水。",
         "voicelines/voiceline_芙宁娜.txt": "没想到你会对我的事这么上心，这是否意味着你仍然需要我的「力量」呢？然而如今的我…或许无法给你足够的回报…你说看重的是我「本人」？既然这样，就让你我共同出演我们的未来吧。",
         "talks/talk_风带来故事的种子时间使之发芽.txt": "遗迹的铭文: 「风带来故事的种子，时间使之发芽。」",
+        "talks/talk_客人欢迎使用夜鸦航线请问您想前往哪一个站点_2.txt": "夜鸦乘务员: 客人，欢迎使用夜鸦航线，请问您想前往哪一个站点？",
     }
 
     # Test each file and its expected content

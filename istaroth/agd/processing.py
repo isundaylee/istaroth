@@ -81,6 +81,7 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
 
     # Load supporting data
     npc_data = data_repo.load_npc_excel_config_data()
+    dialog_data = data_repo.load_dialog_excel_config_data()
     text_map = data_repo.load_text_map()
 
     # Create NPC ID to name mapping
@@ -90,6 +91,18 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
         name_hash = str(npc["nameTextMapHash"])
         if (name := text_map.get_optional(name_hash)) is not None:
             npc_id_to_name[npc_id] = name
+
+    # Create mapping from (gadget_id, content_hash) to role name from dialog data
+    gadget_role_names = {}
+    for dialog_item in dialog_data:
+        talk_role = dialog_item["talkRole"]
+        if talk_role.get("type") == "TALK_ROLE_GADGET" and "id" in talk_role:
+            gadget_id = talk_role["id"]
+            content_hash = str(dialog_item["talkContentTextMapHash"])
+            role_name_hash = str(dialog_item["talkRoleNameTextMapHash"])
+            if (name := text_map.get_optional(role_name_hash)) is not None:
+                # Use both gadget ID and content hash as key for precise matching
+                gadget_role_names[(gadget_id, content_hash)] = name
 
     # Get localized role names
     localized_roles = localization.get_localized_role_names(data_repo.language)
@@ -101,19 +114,26 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
         content_hash = str(dialog_item["talkContentTextMapHash"])
 
         # Determine role name
-        if talk_role["type"] == "TALK_ROLE_NPC":
+        role_type = talk_role.get("type")
+        if role_type == "TALK_ROLE_NPC":
             npc_id = talk_role["_id"]
             role = npc_id_to_name.get(
                 npc_id, f"{localized_roles.unknown_npc} ({npc_id})"
             )
-        elif talk_role["type"] == "TALK_ROLE_PLAYER":
+        elif role_type == "TALK_ROLE_PLAYER":
             role = localized_roles.player
-        elif talk_role["type"] == "TALK_ROLE_NEED_CLICK_BLACK_SCREEN":
+        elif role_type == "TALK_ROLE_NEED_CLICK_BLACK_SCREEN":
             role = localized_roles.black_screen
-        elif talk_role["type"] == "TALK_ROLE_BLACK_SCREEN":
+        elif role_type == "TALK_ROLE_BLACK_SCREEN":
             role = localized_roles.black_screen
+        elif role_type == "TALK_ROLE_GADGET":
+            gadget_id = talk_role.get("id")
+            if gadget_id and (gadget_id, content_hash) in gadget_role_names:
+                role = gadget_role_names[(gadget_id, content_hash)]
+            else:
+                role = f"{localized_roles.unknown_role} ({role_type})"
         else:
-            role = f"{localized_roles.unknown_role} ({talk_role['type']})"
+            role = f"{localized_roles.unknown_role} ({role_type or 'UNKNOWN_TYPE'})"
 
         # Get message text
         message = text_map.get(content_hash, f"Missing text ({content_hash})")
