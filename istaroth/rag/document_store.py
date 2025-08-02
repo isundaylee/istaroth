@@ -233,27 +233,36 @@ class DocumentStore:
             [vector_results, bm25_results], weights=[0.5, 0.5]
         )
 
-        final_results = list[tuple[float, list[Document]]]()
-        for scored_doc in sorted(fused_results, key=lambda x: x.score, reverse=True)[
-            :k
-        ]:
+        final_file_ids = list[tuple[float, str]]()
+        final_chunk_indices = dict[str, set[int]]()
+        for scored_doc in sorted(fused_results, key=lambda x: x.score, reverse=True):
             doc = scored_doc.document
             metadata = cast(types.DocumentMetadata, doc.metadata)
-            file_docs = self._documents[metadata["file_id"]]
-            file_results = list[Document]()
+            file_id = metadata["file_id"]
+            file_docs = self._documents[file_id]
 
-            for offset in range(-self._CHUNK_OFFSET, self._CHUNK_OFFSET):
-                chunk_index = metadata["chunk_index"] + offset
-                if chunk_index < 0 or chunk_index >= len(file_docs):
-                    continue
+            # For multiple retrieved docs from the same file, we use the highest
+            # score for now.
+            if file_id not in final_chunk_indices:
+                final_file_ids.append((scored_doc.score, file_id))
+                final_chunk_indices[file_id] = set()
 
-                # Get the document chunk
-                chunk_doc = file_docs[chunk_index]
-                file_results.append(chunk_doc)
+            for chunk_index in range(
+                max(metadata["chunk_index"] - self._CHUNK_OFFSET, 0),
+                min(metadata["chunk_index"] + self._CHUNK_OFFSET + 1, len(file_docs)),
+            ):
+                final_chunk_indices[file_id].add(chunk_index)
 
-            final_results.append((scored_doc.score, file_results))
-
-        return final_results
+        return [
+            (
+                score,
+                [
+                    self._documents[file_id][chunk_index]
+                    for chunk_index in sorted(final_chunk_indices[file_id])
+                ],
+            )
+            for score, file_id in final_file_ids
+        ]
 
     def search_fulltext(self, query: str) -> list[str]:
         """Full-text case-insensitive search for documents containing the query string."""
