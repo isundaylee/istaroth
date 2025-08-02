@@ -298,3 +298,37 @@ class DataRepo:
         with open(file_path, encoding="utf-8") as f:
             data: types.MainQuestExcelConfigData = json.load(f)
             return data
+
+    @functools.lru_cache(maxsize=None)
+    def get_npc_id_to_name_mapping(self) -> dict[str, str]:
+        """Get cached mapping from NPC ID to name."""
+        npc_data = self.load_npc_excel_config_data()
+        text_map = self.load_text_map()
+
+        npc_id_to_name = {}
+        for npc in npc_data:
+            npc_id = str(npc["id"])
+            name_hash = str(npc["nameTextMapHash"])
+            if (name := text_map.get_optional(name_hash)) is not None:
+                npc_id_to_name[npc_id] = name
+
+        return npc_id_to_name
+
+    @functools.lru_cache(maxsize=None)
+    def get_gadget_role_names_mapping(self) -> dict[tuple[int, str], str]:
+        """Get cached mapping from (gadget_id, content_hash) to role name."""
+        dialog_data = self.load_dialog_excel_config_data()
+        text_map = self.load_text_map()
+
+        gadget_role_names = {}
+        for dialog_item in dialog_data:
+            talk_role = dialog_item["talkRole"]
+            if talk_role.get("type") == "TALK_ROLE_GADGET" and "id" in talk_role:
+                gadget_id = talk_role["id"]
+                content_hash = str(dialog_item["talkContentTextMapHash"])
+                role_name_hash = str(dialog_item["talkRoleNameTextMapHash"])
+                if (name := text_map.get_optional(role_name_hash)) is not None:
+                    # Use both gadget ID and content hash as key for precise matching
+                    gadget_role_names[(gadget_id, content_hash)] = name
+
+        return gadget_role_names

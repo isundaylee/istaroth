@@ -80,29 +80,11 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
     dialog_list = talk_data["dialogList"]
 
     # Load supporting data
-    npc_data = data_repo.load_npc_excel_config_data()
-    dialog_data = data_repo.load_dialog_excel_config_data()
     text_map = data_repo.load_text_map()
 
-    # Create NPC ID to name mapping
-    npc_id_to_name = {}
-    for npc in npc_data:
-        npc_id = str(npc["id"])
-        name_hash = str(npc["nameTextMapHash"])
-        if (name := text_map.get_optional(name_hash)) is not None:
-            npc_id_to_name[npc_id] = name
-
-    # Create mapping from (gadget_id, content_hash) to role name from dialog data
-    gadget_role_names = {}
-    for dialog_item in dialog_data:
-        talk_role = dialog_item["talkRole"]
-        if talk_role.get("type") == "TALK_ROLE_GADGET" and "id" in talk_role:
-            gadget_id = talk_role["id"]
-            content_hash = str(dialog_item["talkContentTextMapHash"])
-            role_name_hash = str(dialog_item["talkRoleNameTextMapHash"])
-            if (name := text_map.get_optional(role_name_hash)) is not None:
-                # Use both gadget ID and content hash as key for precise matching
-                gadget_role_names[(gadget_id, content_hash)] = name
+    # Get cached mappings from DataRepo
+    npc_id_to_name = data_repo.get_npc_id_to_name_mapping()
+    gadget_role_names = data_repo.get_gadget_role_names_mapping()
 
     # Get localized role names
     localized_roles = localization.get_localized_role_names(data_repo.language)
