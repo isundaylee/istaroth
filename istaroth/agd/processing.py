@@ -1,6 +1,7 @@
 """Processing functions for AGD data."""
 
 import pathlib
+from threading import local
 
 from istaroth.agd import localization, repo, types
 
@@ -82,45 +83,68 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
     # Load supporting data
     text_map = data_repo.load_text_map()
 
-    # Get cached mappings from DataRepo
+    # Get cached mappings
     npc_id_to_name = data_repo.get_npc_id_to_name_mapping()
-    gadget_role_names = data_repo.get_gadget_role_names_mapping()
+    dialog_id_to_role_hash = data_repo.get_dialog_id_to_role_name_hash_mapping()
 
-    # Get localized role names
+    # Get localized role names for fallbacks
     localized_roles = localization.get_localized_role_names(data_repo.language)
+
+    def _get_role_name_by_text_map_hash(
+        dialog_item: types.TalkDialogItem,
+    ) -> str | None:
+        dialog_id = dialog_item["id"]
+        role_name_hash = dialog_item.get(
+            "talkRoleNameTextMapHash"
+        ) or dialog_id_to_role_hash.get(dialog_id)
+
+        return (
+            None
+            if role_name_hash is None
+            else text_map.get_optional(str(role_name_hash))
+        )
+
+    def _get_role_name_by_role(talk_role: types.TalkRole) -> str | None:
+        role_type = talk_role.get("type")
+        match role_type:
+            case "TALK_ROLE_NPC":
+                npc_id = talk_role["_id"]
+                return npc_id_to_name.get(npc_id)
+            case "TALK_ROLE_PLAYER":
+                return localized_roles.player
+            case "TALK_ROLE_NEED_CLICK_BLACK_SCREEN" | "TALK_ROLE_BLACK_SCREEN":
+                return localized_roles.black_screen
+            case _:
+                return None
+
+    def _get_role_name(dialog_item: types.TalkDialogItem) -> str:
+        talk_role = dialog_item["talkRole"]
+        role_type = talk_role.get("type")
+
+        by_role = _get_role_name_by_role(talk_role)
+        by_name_hash = _get_role_name_by_text_map_hash(dialog_item)
+
+        # If both are available, return one if they match or both otherwise.
+        if (by_role is not None) and (by_name_hash is not None):
+            if by_role == by_name_hash:
+                return by_role
+            else:
+                return f"{by_role} ({by_name_hash})"
+
+        return (
+            by_name_hash or by_role or f"{localized_roles.unknown_role} ({role_type})"
+        )
 
     # Process dialog items
     talk_texts = []
     for dialog_item in dialog_list:
-        talk_role = dialog_item["talkRole"]
         content_hash = str(dialog_item["talkContentTextMapHash"])
-
-        # Determine role name
-        role_type = talk_role.get("type")
-        if role_type == "TALK_ROLE_NPC":
-            npc_id = talk_role["_id"]
-            role = npc_id_to_name.get(
-                npc_id, f"{localized_roles.unknown_npc} ({npc_id})"
+        talk_texts.append(
+            types.TalkText(
+                role=_get_role_name(dialog_item),
+                message=text_map.get(content_hash, f"Missing text ({content_hash})"),
             )
-        elif role_type == "TALK_ROLE_PLAYER":
-            role = localized_roles.player
-        elif role_type == "TALK_ROLE_NEED_CLICK_BLACK_SCREEN":
-            role = localized_roles.black_screen
-        elif role_type == "TALK_ROLE_BLACK_SCREEN":
-            role = localized_roles.black_screen
-        elif role_type == "TALK_ROLE_GADGET":
-            gadget_id = talk_role.get("id")
-            if gadget_id and (gadget_id, content_hash) in gadget_role_names:
-                role = gadget_role_names[(gadget_id, content_hash)]
-            else:
-                role = f"{localized_roles.unknown_role} ({role_type})"
-        else:
-            role = f"{localized_roles.unknown_role} ({role_type or 'UNKNOWN_TYPE'})"
-
-        # Get message text
-        message = text_map.get(content_hash, f"Missing text ({content_hash})")
-
-        talk_texts.append(types.TalkText(role=role, message=message))
+        )
 
     return types.TalkInfo(text=talk_texts)
 

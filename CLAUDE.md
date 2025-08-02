@@ -46,6 +46,7 @@ istaroth/
 - ALWAYS write concise commit message; use bullet points when it's helpful but don't feel obligated to include multiple bullets.
 
 ## Code Best Practices
+- ALWAYS prefer inline Python scripts to temporary script files when possible.
 - NEVER re-export symbols from child modules in the parent package
 - ALWAYS use modern features as available in Python 3.12
 - ALWAYS be strict with error handling and prefer raising exception than falling back to implicit default values
@@ -86,3 +87,4 @@ Tracing is automatically enabled when all required environment variables are set
 
 ## Development Conventions
 - ALWAYS invoke pyrefly as `env/bin/pyrefly check`
+- ALWAYS invoke python as `env/bin/python`; you can source `.source_me` to get env vars if needed.

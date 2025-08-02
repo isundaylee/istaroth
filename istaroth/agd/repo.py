@@ -332,3 +332,16 @@ class DataRepo:
                     gadget_role_names[(gadget_id, content_hash)] = name
 
         return gadget_role_names
+
+    @functools.lru_cache(maxsize=None)
+    def get_dialog_id_to_role_name_hash_mapping(self) -> dict[int, int]:
+        """Get cached mapping from dialog ID to talkRoleNameTextMapHash."""
+        dialog_data = self.load_dialog_excel_config_data()
+
+        dialog_id_to_role_hash = {}
+        for dialog_item in dialog_data:
+            dialog_id = dialog_item["GFLDJMJKIKE"]
+            role_name_hash = dialog_item["talkRoleNameTextMapHash"]
+            dialog_id_to_role_hash[dialog_id] = role_name_hash
+
+        return dialog_id_to_role_hash
