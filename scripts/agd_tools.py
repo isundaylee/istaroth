@@ -16,7 +16,7 @@ from tqdm import tqdm
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from istaroth.agd import processing, rendering, repo, types
+from istaroth.agd import localization, processing, rendering, repo, types
 from istaroth.agd.renderable_types import (
     BaseRenderableType,
     CharacterStories,
@@ -93,7 +93,10 @@ def _process_single_item(
     """Worker function to process a single renderable item."""
     renderable_key, renderable_type, data_repo = args
     try:
-        with data_repo.load_text_map() as text_map_tracker, data_repo.load_talk_excel_config_data() as talk_tracker:
+        with (
+            data_repo.load_text_map() as text_map_tracker,
+            data_repo.load_talk_excel_config_data() as talk_tracker,
+        ):
             rendered = renderable_type.process(renderable_key, data_repo)
             accessed_text_ids = text_map_tracker.get_accessed_ids()
             accessed_talk_ids = talk_tracker.get_accessed_ids()
@@ -500,7 +503,7 @@ def render_talk(talk_path: str) -> None:
         talk_info = processing.get_talk_info(talk_path, data_repo=data_repo)
 
         # Render the talk
-        rendered = rendering.render_talk(talk_info)
+        rendered = rendering.render_talk(talk_info, language=localization.Language.CHS)
 
         # Output only the content
         click.echo(rendered.content)
@@ -521,7 +524,9 @@ def render_quest(quest_path: str) -> None:
         quest_info = processing.get_quest_info(quest_path, data_repo=data_repo)
 
         # Render the quest
-        rendered = rendering.render_quest(quest_info)
+        rendered = rendering.render_quest(
+            quest_info, language=localization.Language.CHS
+        )
 
         # Output only the content
         click.echo(rendered.content)

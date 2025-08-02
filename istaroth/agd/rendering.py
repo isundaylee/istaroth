@@ -2,7 +2,7 @@
 
 import re
 
-from istaroth.agd import types
+from istaroth.agd import localization, text_utils, types
 
 
 def render_readable(
@@ -21,7 +21,9 @@ def render_readable(
     return types.RenderedItem(filename=filename, content=rendered_content)
 
 
-def render_talk(talk: types.TalkInfo) -> types.RenderedItem:
+def render_talk(
+    talk: types.TalkInfo, *, language: localization.Language
+) -> types.RenderedItem:
     """Render talk dialog into RAG-suitable format."""
     # Generate filename - use first few dialog lines to create a meaningful name
     if talk.text:
@@ -41,6 +43,9 @@ def render_talk(talk: types.TalkInfo) -> types.RenderedItem:
     content_lines = ["# Talk Dialog\n"]
 
     for talk_text in talk.text:
+        if text_utils.should_skip_text(talk_text.message, language):
+            continue
+
         content_lines.append(f"{talk_text.role}: {talk_text.message}")
 
     rendered_content = "\n".join(content_lines)
@@ -48,7 +53,9 @@ def render_talk(talk: types.TalkInfo) -> types.RenderedItem:
     return types.RenderedItem(filename=filename, content=rendered_content)
 
 
-def render_quest(quest: types.QuestInfo) -> types.RenderedItem:
+def render_quest(
+    quest: types.QuestInfo, language: localization.Language
+) -> types.RenderedItem:
     """Render quest information into RAG-suitable format."""
     # Generate filename based on quest title
     safe_title = re.sub(r"[^\w\s-]", "", quest.title[:50])
@@ -64,6 +71,8 @@ def render_quest(quest: types.QuestInfo) -> types.RenderedItem:
             content_lines.append(f"\n## Talk {i}\n")
 
         for talk_text in talk.text:
+            if text_utils.should_skip_text(talk_text.message, language):
+                continue
             content_lines.append(f"{talk_text.role}: {talk_text.message}")
 
     # Render non-subquest talks in a separate section
@@ -76,6 +85,8 @@ def render_quest(quest: types.QuestInfo) -> types.RenderedItem:
                 content_lines.append(f"\n### Additional Talk {i}\n")
 
             for talk_text in talk.text:
+                if text_utils.should_skip_text(talk_text.message, language):
+                    continue
                 content_lines.append(f"{talk_text.role}: {talk_text.message}")
 
     rendered_content = "\n".join(content_lines)

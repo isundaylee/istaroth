@@ -4,19 +4,7 @@ from abc import ABC, abstractmethod
 from typing import ClassVar
 
 from istaroth import text_cleanup
-from istaroth.agd import localization, processing, rendering, repo, types
-
-
-def _should_skip(title: str, language: localization.Language) -> bool:
-    """Skip test items only for CHS language."""
-    if language != localization.Language.CHS:
-        return False
-    lower_title = title.lower()
-    return (
-        lower_title.startswith(("test", "(test", "（test"))
-        or "$hidden" in lower_title
-        or "$unreleased" in lower_title
-    )
+from istaroth.agd import localization, processing, rendering, repo, text_utils, types
 
 
 class BaseRenderableType(ABC):
@@ -62,7 +50,7 @@ class Readables(BaseRenderableType):
         metadata = processing.get_readable_metadata(renderable_key, data_repo=data_repo)
 
         # Skip if title starts with "test" (case-insensitive) and language is CHS
-        if _should_skip(metadata.title, data_repo.language):
+        if text_utils.should_skip_text(metadata.title, data_repo.language):
             return None
 
         # Read the actual readable content
@@ -108,7 +96,7 @@ class Quests(BaseRenderableType):
         quest_info = processing.get_quest_info(quest_path, data_repo=data_repo)
 
         # Skip if title starts with "test" (case-insensitive) and language is CHS
-        if _should_skip(quest_info.title, data_repo.language):
+        if text_utils.should_skip_text(quest_info.title, data_repo.language):
             return None
 
         if not (quest_info.talks or quest_info.non_subquest_talks):
@@ -116,7 +104,7 @@ class Quests(BaseRenderableType):
             return None
 
         # Render the quest
-        return rendering.render_quest(quest_info)
+        return rendering.render_quest(quest_info, language=data_repo.language)
 
 
 class CharacterStories(BaseRenderableType):
@@ -191,7 +179,7 @@ class Materials(BaseRenderableType):
             renderable_key, data_repo=data_repo
         )
 
-        if _should_skip(material_info.name, data_repo.language):
+        if text_utils.should_skip_text(material_info.name, data_repo.language):
             return None
 
         return rendering.render_material(material_info)
@@ -266,4 +254,4 @@ class Talks(BaseRenderableType):
             return None
 
         # Render the talk
-        return rendering.render_talk(talk_info)
+        return rendering.render_talk(talk_info, language=data_repo.language)
