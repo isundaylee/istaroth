@@ -48,9 +48,11 @@ def test_render_talk_basic() -> None:
     ]
     talk_info = types.TalkInfo(text=talk_texts)
 
-    rendered = rendering.render_talk(talk_info, language=localization.Language.CHS)
+    rendered = rendering.render_talk(
+        talk_info, talk_id="12345", language=localization.Language.CHS
+    )
 
-    assert rendered.filename == "talk_这里看起来很神秘呢.txt"
+    assert rendered.filename == "talk_这里看起来很神秘呢_12345.txt"
     expected_content = (
         "# Talk Dialog\n\n" "派蒙: 这里看起来很神秘呢！\n" "旅行者: 我们小心一点。\n" "神秘声音: 欢迎来到这里..."
     )
@@ -63,10 +65,12 @@ def test_render_talk_long_message() -> None:
     talk_texts = [types.TalkText(role="NPC", message=long_message)]
     talk_info = types.TalkInfo(text=talk_texts)
 
-    rendered = rendering.render_talk(talk_info, language=localization.Language.CHS)
+    rendered = rendering.render_talk(
+        talk_info, talk_id="67890", language=localization.Language.CHS
+    )
 
     # Should be truncated to 50 characters
-    assert rendered.filename == "talk_这是一个非常长的消息超过了五十个字符的限制应该被截断以创建合适的文件名.txt"
+    assert rendered.filename == "talk_这是一个非常长的消息超过了五十个字符的限制应该被截断以创建合适的文件名_67890.txt"
     assert "这是一个非常长的消息，超过了五十个字符的限制，应该被截断以创建合适的文件名。" in rendered.content
 
 
@@ -74,9 +78,11 @@ def test_render_talk_empty() -> None:
     """Test talk rendering with empty talk."""
     talk_info = types.TalkInfo(text=[])
 
-    rendered = rendering.render_talk(talk_info, language=localization.Language.CHS)
+    rendered = rendering.render_talk(
+        talk_info, talk_id="99999", language=localization.Language.CHS
+    )
 
-    assert rendered.filename == "talk_empty.txt"
+    assert rendered.filename == "talk_empty_99999.txt"
     assert rendered.content == "# Talk Dialog\n"
 
 
@@ -85,7 +91,9 @@ def test_render_talk_special_characters() -> None:
     talk_texts = [types.TalkText(role="角色", message="「这是引号」—还有破折号！")]
     talk_info = types.TalkInfo(text=talk_texts)
 
-    rendered = rendering.render_talk(talk_info, language=localization.Language.CHS)
+    rendered = rendering.render_talk(
+        talk_info, talk_id="11111", language=localization.Language.CHS
+    )
 
-    assert rendered.filename == "talk_这是引号还有破折号.txt"
+    assert rendered.filename == "talk_这是引号还有破折号_11111.txt"
     assert "角色: 「这是引号」—还有破折号！" in rendered.content

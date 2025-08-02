@@ -22,7 +22,7 @@ def render_readable(
 
 
 def render_talk(
-    talk: types.TalkInfo, *, language: localization.Language
+    talk: types.TalkInfo, *, talk_id: str, language: localization.Language
 ) -> types.RenderedItem:
     """Render talk dialog into RAG-suitable format."""
     # Generate filename - use first few dialog lines to create a meaningful name
@@ -35,9 +35,9 @@ def render_talk(
         # Take first 50 characters and clean for filename
         safe_title = re.sub(r"[^\w\s-]", "", first_message[:50])
         safe_title = re.sub(r"\s+", "_", safe_title.strip())
-        filename = f"talk_{safe_title}.txt"
+        filename = f"talk_{safe_title}_{talk_id}.txt"
     else:
-        filename = "talk_empty.txt"
+        filename = f"talk_empty_{talk_id}.txt"
 
     # Format content as dialog with role labels
     content_lines = ["# Talk Dialog\n"]
@@ -139,12 +139,14 @@ def render_subtitle(
     return types.RenderedItem(filename=filename, content=rendered_content)
 
 
-def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
+def render_material(
+    material_info: types.MaterialInfo, *, material_id: str
+) -> types.RenderedItem:
     """Render material content into RAG-suitable format."""
     # Generate filename based on material name
     safe_name = re.sub(r"[^\w\s-]", "", material_info.name)
     safe_name = re.sub(r"\s+", "_", safe_name.strip())
-    filename = f"material_{safe_name}.txt"
+    filename = f"material_{safe_name}_{material_id}.txt"
 
     # Format content with material name header and description
     content_lines = [f"# {material_info.name}\n"]

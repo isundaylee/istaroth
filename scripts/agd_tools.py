@@ -502,8 +502,13 @@ def render_talk(talk_path: str) -> None:
         # Get talk info
         talk_info = processing.get_talk_info(talk_path, data_repo=data_repo)
 
+        # Extract talk ID from path (e.g., "BinOutput/Talk/NPC/100001.json" -> "100001")
+        talk_id = pathlib.Path(talk_path).stem
+
         # Render the talk
-        rendered = rendering.render_talk(talk_info, language=localization.Language.CHS)
+        rendered = rendering.render_talk(
+            talk_info, talk_id=talk_id, language=localization.Language.CHS
+        )
 
         # Output only the content
         click.echo(rendered.content)

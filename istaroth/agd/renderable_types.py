@@ -182,7 +182,7 @@ class Materials(BaseRenderableType):
         if text_utils.should_skip_text(material_info.name, data_repo.language):
             return None
 
-        return rendering.render_material(material_info)
+        return rendering.render_material(material_info, material_id=renderable_key)
 
 
 class Voicelines(BaseRenderableType):
@@ -254,4 +254,6 @@ class Talks(BaseRenderableType):
             return None
 
         # Render the talk
-        return rendering.render_talk(talk_info, language=data_repo.language)
+        return rendering.render_talk(
+            talk_info, talk_id=renderable_key, language=data_repo.language
+        )
