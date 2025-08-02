@@ -4,7 +4,6 @@
 import pathlib
 import sys
 
-import uvicorn
 from fastmcp import FastMCP
 
 # Add the parent directory to Python path to find istaroth module
@@ -56,9 +55,4 @@ def retrieve(query: str, k: int = 10) -> str:
 
 
 if __name__ == "__main__":
-    mcp.run(
-        uvicorn_config={
-            "forwarded_allow_ips": "*",
-            "proxy_headers": True,
-        }
-    )
+    mcp.run()
