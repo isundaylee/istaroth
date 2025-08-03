@@ -13,6 +13,7 @@ rank-bm25
 mcp
 fastmcp
 jieba
+tabulate
 
 # Development dependencies
 pip-tools

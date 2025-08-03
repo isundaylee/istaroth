@@ -20,7 +20,13 @@ from langchain_google_genai import llms as google_llms
 
 from istaroth import utils
 from istaroth.agd import localization
-from istaroth.rag import document_store, output_rendering, pipeline, tracing
+from istaroth.rag import (
+    document_store,
+    output_rendering,
+    pipeline,
+    retrieval_diff,
+    tracing,
+)
 
 
 def _create_llm() -> google_llms.GoogleGenerativeAI:
@@ -275,6 +281,30 @@ def chunk_stats(path: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     print(f"25th percentile: {p25} characters")
     print(f"50th percentile (median): {p50} characters")
     print(f"75th percentile: {p75} characters")
+
+
+@cli.command("diff-retrieval")  # type: ignore[misc]
+@click.argument("file1", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
+@click.argument("file2", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
+def diff_retrieval(file1: pathlib.Path, file2: pathlib.Path) -> None:
+    """Compare two retrieval result files and show differences."""
+    # Load and compare the JSON files
+    json1 = json.loads(file1.read_text())
+    json2 = json.loads(file2.read_text())
+
+    # Create the diff object
+    diff = retrieval_diff.compare_retrievals(
+        json1, json2, filename1=file1.name, filename2=file2.name
+    )
+
+    # Render all sections
+    print(retrieval_diff.render_comparison_headers(diff))
+    print()
+    print(retrieval_diff.render_document_sections(diff))
+    print()
+    print(retrieval_diff.render_summary_table(diff))
+    print()
+    print(retrieval_diff.render_final_summary(diff))
 
 
 if __name__ == "__main__":
