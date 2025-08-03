@@ -1,6 +1,6 @@
 """Type definitions for RAG (Retrieval-Augmented Generation) module."""
 
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import attrs
 from langchain_core.documents import Document
@@ -22,6 +22,13 @@ class ScoredDocument:
 
     document: Document
     score: float
+
+    def to_langsmith_output(self) -> dict[str, Any]:
+        return {
+            "page_content": self.document.page_content,
+            "type": "Document",
+            "metadata": self.document.metadata,
+        }
 
 
 @attrs.define

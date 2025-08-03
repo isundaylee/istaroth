@@ -9,6 +9,7 @@ from typing import cast
 
 import attrs
 import jieba
+import langsmith as ls
 from langchain_community.retrievers import BM25Retriever
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
@@ -51,13 +52,22 @@ class _VectorStore:
         )
         return cls(embeddings, vector_store)
 
-    @traceable(name="vector_search")  # type: ignore[misc]
     def search(self, query: str, k: int) -> list[types.ScoredDocument]:
         """Vector similarity search."""
-        results = self._vector_store.similarity_search_with_score(query, k=k)
-        return [
-            types.ScoredDocument(document=doc, score=score) for doc, score in results
-        ]
+        with ls.trace(
+            "vector_search",
+            "retriever",
+            inputs={"query": query, "k": k},
+        ) as rt:
+            results = self._vector_store.similarity_search_with_score(query, k=k)
+            scored_docs = [
+                types.ScoredDocument(document=doc, score=score)
+                for doc, score in results
+            ]
+            rt.end(
+                outputs={"documents": [sd.to_langsmith_output() for sd in scored_docs]}
+            )
+            return scored_docs
 
     def save(self, path: pathlib.Path) -> None:
         """Save vector store."""
@@ -97,7 +107,6 @@ class _BM25Store:
         )
         return cls(bm25_retriever)
 
-    @traceable(name="bm25_search")  # type: ignore[misc]
     def search(self, query: str, k: int) -> list[types.ScoredDocument]:
         """BM25 keyword search."""
         docs = self._bm25_retriever.invoke(query, k=k)
