@@ -98,8 +98,9 @@ def build(path: pathlib.Path, force: bool) -> None:
 
 @cli.command()  # type: ignore[misc]
 @click.argument("query", type=str)  # type: ignore[misc]
-@click.option("--k", default=5, help="Number of results to return")  # type: ignore[misc]
-def retrieve(query: str, k: int) -> None:
+@click.option("-k", "--k", default=5, help="Number of results to return")  # type: ignore[misc]
+@click.option("-c", "--chunk-context", default=5, help="Context size for each chunk")  # type: ignore[misc]
+def retrieve(query: str, *, k: int, chunk_context: int) -> None:
     """Retrieve similar documents from the document store."""
     store = _load_or_create_store()
 
@@ -108,7 +109,7 @@ def retrieve(query: str, k: int) -> None:
         sys.exit(1)
 
     print(f"Searching for: '{query}'\n")
-    results = store.retrieve(query, k=k)
+    results = store.retrieve(query, k=k, chunk_context=chunk_context)
 
     if not results:
         print("No results found.")
