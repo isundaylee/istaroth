@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """RAG tools for document management and querying."""
 
+import datetime
 import json
 import logging
+import os
 import pathlib
 import re
 import shutil
@@ -16,6 +18,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 import langsmith as ls
 from langchain_google_genai import llms as google_llms
 
+from istaroth import utils
 from istaroth.agd import localization
 from istaroth.rag import document_store, output_rendering, pipeline, tracing
 
@@ -101,7 +104,10 @@ def build(path: pathlib.Path, force: bool) -> None:
 @click.argument("query", type=str)  # type: ignore[misc]
 @click.option("-k", "--k", default=5, help="Number of results to return")  # type: ignore[misc]
 @click.option("-c", "--chunk-context", default=5, help="Context size for each chunk")  # type: ignore[misc]
-def retrieve(query: str, *, k: int, chunk_context: int) -> None:
+@click.option("--save", type=pathlib.Path)
+def retrieve(
+    query: str, *, k: int, chunk_context: int, save: pathlib.Path | None
+) -> None:
     """Retrieve similar documents from the document store."""
 
     with ls.trace(
@@ -126,6 +132,30 @@ def retrieve(query: str, *, k: int, chunk_context: int) -> None:
             retrieve_output.results
         )
         rt.end(outputs=retrieve_output.to_langsmith_output(formatted_output))
+
+        if save is not None:
+            save_path = save / (
+                datetime.datetime.now().strftime("%Y%m%d_%H%M%S_")
+                + utils.make_safe_filename_part(query, max_length=50)
+                + ".txt"
+            )
+            save_path.write_text(
+                json.dumps(
+                    {
+                        "query": {
+                            "query": query,
+                            "k": k,
+                            "chunk_context": chunk_context,
+                        },
+                        "env": {
+                            k: v
+                            for k, v in os.environ.items()
+                            if k.startswith("ISTAROTH_")
+                        },
+                        "results": retrieve_output.to_dict(),
+                    }
+                )
+            )
 
         print(formatted_output)
 

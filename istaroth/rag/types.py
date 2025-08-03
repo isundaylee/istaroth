@@ -47,3 +47,38 @@ class RetrieveOutput:
             "total_documents": self.total_documents,
             "formatted_output": formatted_output,
         }
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert RetrieveOutput to dictionary for serialization."""
+        return {
+            "results": [
+                {
+                    "score": score,
+                    "documents": [
+                        {
+                            "page_content": doc.page_content,
+                            "metadata": doc.metadata,
+                        }
+                        for doc in documents
+                    ],
+                }
+                for score, documents in self.results
+            ]
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "RetrieveOutput":
+        """Create RetrieveOutput from dictionary."""
+        results = []
+        for result_data in data["results"]:
+            score = result_data["score"]
+            documents = [
+                Document(
+                    page_content=doc_data["page_content"],
+                    metadata=doc_data["metadata"],
+                )
+                for doc_data in result_data["documents"]
+            ]
+            results.append((score, documents))
+
+        return cls(results=results)

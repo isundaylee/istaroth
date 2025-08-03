@@ -1,5 +1,6 @@
 """Utility functions for type checking and assertions."""
 
+import re
 import typing
 
 T = typing.TypeVar("T")
@@ -15,3 +16,12 @@ def assert_not_none(obj: T | None) -> T:
     """Assert object is not None and return it with proper typing."""
     assert obj is not None, "Expected non-None value"
     return obj
+
+
+def make_safe_filename_part(text: str, *, max_length: int = 50) -> str:
+    """Convert text to a safe filename part by removing special chars and normalizing spaces."""
+    # Remove special characters, keeping only word chars, spaces, and hyphens
+    safe_text = re.sub(r"[^\w\s-]", "", text[:max_length])
+    # Replace multiple spaces with single underscore
+    safe_text = re.sub(r"\s+", "_", safe_text.strip())
+    return safe_text
