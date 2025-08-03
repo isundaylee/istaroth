@@ -17,7 +17,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from tqdm import tqdm
 
 from istaroth.langsmith_utils import traceable
-from istaroth.rag import types
+from istaroth.rag import query_transform, types
 
 logger = logging.getLogger(__name__)
 
@@ -210,6 +210,7 @@ class DocumentStore:
 
     _vector_store: _VectorStore = attrs.field()
     _bm25_store: _BM25Store = attrs.field()
+    _query_transformer: query_transform.QueryTransformer = attrs.field()
 
     _documents: dict[str, dict[int, Document]] = attrs.field()
 
@@ -219,6 +220,7 @@ class DocumentStore:
         file_paths: list[pathlib.Path],
         *,
         chunk_size_multiplier: float,
+        query_transformer: query_transform.QueryTransformer | None = None,
         show_progress: bool = False,
     ) -> "DocumentStore":
         """Build a document store from file paths."""
@@ -243,21 +245,35 @@ class DocumentStore:
         vector_store = _VectorStore.build(all_chunks, all_metadatas)
         bm25_store = _BM25Store.build(all_documents)
 
-        return cls(vector_store, bm25_store, all_documents)
+        # Use provided query transformer or default to identity transformer
+        if query_transformer is None:
+            query_transformer = query_transform.IdentityTransformer()
+
+        return cls(vector_store, bm25_store, query_transformer, all_documents)
 
     @traceable(name="hybrid_search")
     def retrieve(
         self, query: str, *, k: int, chunk_context: int = 5
     ) -> list[tuple[float, list[Document]]]:
         """Search using hybrid vector + BM25 retrieval with reciprocal rank fusion."""
-        # Get results from both retrievers (these return chunk content)
-        vector_results = self._vector_store.search(query, k * 2)
-        bm25_results = self._bm25_store.search(query, k * 2)
+        # Transform the query into multiple queries
+        queries = self._query_transformer.transform(query)
 
-        # Combine using reciprocal rank fusion with equal weights
-        fused_results = _reciprocal_rank_fusion(
-            [vector_results, bm25_results], weights=[0.5, 0.5]
-        )
+        # Collect all results from all queries
+        all_results = []
+
+        for transformed_query in queries:
+            # Get results from both retrievers for this query
+            vector_results = self._vector_store.search(transformed_query, k * 2)
+            bm25_results = self._bm25_store.search(transformed_query, k * 2)
+
+            # Add both vector and BM25 results to the collection
+            all_results.extend([vector_results, bm25_results])
+
+        # Combine all results using reciprocal rank fusion with equal weights
+        # Each query contributes equally, with vector and BM25 weighted equally within each query
+        weights = [0.5 / len(queries)] * len(all_results)
+        fused_results = _reciprocal_rank_fusion(all_results, weights)
 
         final_file_ids = list[tuple[float, str]]()
         final_chunk_indices = dict[str, set[int]]()
@@ -337,7 +353,10 @@ class DocumentStore:
         vector_store = _VectorStore.load(path)
         bm25_store = _BM25Store.build(documents)
 
-        instance = cls(vector_store, bm25_store, documents)
+        # Use default identity transformer for loaded stores
+        query_transformer = query_transform.IdentityTransformer()
+
+        instance = cls(vector_store, bm25_store, query_transformer, documents)
         logger.info(
             "Loaded document store from %s with %d documents",
             path,
@@ -364,7 +383,10 @@ class DocumentStore:
             # Create empty store
             empty_vector_store = _VectorStore.build([], [])
             empty_bm25_store = _BM25Store.build({})
-            return cls(empty_vector_store, empty_bm25_store, {})
+            empty_query_transformer = query_transform.IdentityTransformer()
+            return cls(
+                empty_vector_store, empty_bm25_store, empty_query_transformer, {}
+            )
 
     def save_to_env(self) -> None:
         """Save DocumentStore to path specified by ISTAROTH_DOCUMENT_STORE env var."""
