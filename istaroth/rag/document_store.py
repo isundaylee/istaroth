@@ -152,7 +152,10 @@ def get_document_store_path() -> pathlib.Path:
 
 
 def chunk_documents(
-    file_paths: list[pathlib.Path], show_progress: bool = False
+    file_paths: list[pathlib.Path],
+    *,
+    chunk_size_multiplier: float,
+    show_progress: bool = False,
 ) -> dict[str, dict[int, Document]]:
     """Chunk documents from file paths.
 
@@ -161,8 +164,8 @@ def chunk_documents(
     """
     text_splitter = RecursiveCharacterTextSplitter(
         separators=["\n\n", "\n", ""],
-        chunk_size=300,
-        chunk_overlap=100,
+        chunk_size=int(chunk_size_multiplier * 300),
+        chunk_overlap=int(chunk_size_multiplier * 100),
         length_function=len,
         is_separator_regex=False,
     )
@@ -197,7 +200,7 @@ def chunk_documents(
             continue
 
     total_chunks = sum(len(docs) for docs in all_documents.values())
-    logger.info("Added %d chunks from %d files", total_chunks, len(file_paths))
+    logger.info("Splitted %d chunks from %d files", total_chunks, len(file_paths))
     return all_documents
 
 
@@ -212,10 +215,18 @@ class DocumentStore:
 
     @classmethod
     def build(
-        cls, file_paths: list[pathlib.Path], show_progress: bool = False
+        cls,
+        file_paths: list[pathlib.Path],
+        *,
+        chunk_size_multiplier: float,
+        show_progress: bool = False,
     ) -> "DocumentStore":
         """Build a document store from file paths."""
-        all_documents = chunk_documents(file_paths, show_progress=show_progress)
+        all_documents = chunk_documents(
+            file_paths,
+            chunk_size_multiplier=chunk_size_multiplier,
+            show_progress=show_progress,
+        )
 
         # Extract chunks and metadatas from all_documents
         all_chunks = [

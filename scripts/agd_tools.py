@@ -5,6 +5,7 @@ import json
 import multiprocessing
 import pathlib
 import random
+import shutil
 import subprocess
 import sys
 from typing import TextIO
@@ -65,11 +66,12 @@ def _is_git_repo_dirty(repo_path: pathlib.Path) -> bool:
 
 
 def _generate_metadata(
-    agd_path: pathlib.Path, istaroth_path: pathlib.Path
+    data_repo: repo.DataRepo, istaroth_path: pathlib.Path
 ) -> dict[str, str | bool]:
     """Generate metadata dictionary with Git information."""
     return {
-        "agd_git_commit": _get_git_commit_hash(agd_path),
+        "language": data_repo.language.value,
+        "agd_git_commit": _get_git_commit_hash(data_repo.agd_path),
         "istaroth_git_commit": _get_git_commit_hash(istaroth_path),
         "istaroth_git_dirty": _is_git_repo_dirty(istaroth_path),
     }
@@ -259,11 +261,13 @@ def cli() -> None:
 
 @cli.command("generate-all")  # type: ignore[misc]
 @click.argument("output_dir", type=click.Path(path_type=pathlib.Path))  # type: ignore[misc]
+@click.option("-f", "--force", is_flag=True, help="Delete output dir if it exists")  # type: ignore[misc]
 @click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "subtitles", "materials", "voicelines", "talks"]), help="Generate only specific content type")  # type: ignore[misc]
 @click.option("--processes", "-j", type=int, help="Number of parallel processes (default: CPU count)")  # type: ignore[misc]
 @click.option("--sample-rate", type=float, default=1.0, help="Percentage of each type to process (0.0-1.0, default: 1.0)")  # type: ignore[misc]
 def generate_all(
     output_dir: pathlib.Path,
+    force: bool,
     only: str | None,
     processes: int | None,
     sample_rate: float,
@@ -281,11 +285,13 @@ def generate_all(
         sys.exit(1)
 
     # Create output directory
+    if force and output_dir.exists():
+        shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate and write metadata.json
     istaroth_path = pathlib.Path(__file__).parent.parent
-    metadata = _generate_metadata(data_repo.agd_path, istaroth_path)
+    metadata = _generate_metadata(data_repo, istaroth_path)
     metadata_path = output_dir / "metadata.json"
     with metadata_path.open("w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)

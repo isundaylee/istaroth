@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """RAG tools for document management and querying."""
 
+import json
 import logging
 import pathlib
 import re
@@ -14,6 +15,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from langchain_google_genai import llms as google_llms
 
+from istaroth.agd import localization
 from istaroth.rag import document_store, output_rendering, pipeline, tracing
 
 
@@ -73,8 +75,22 @@ def build(path: pathlib.Path, force: bool) -> None:
         print("Error: No .txt files found to process.")
         sys.exit(1)
 
+    metadata = json.loads((path / "metadata.json").read_text())
+
+    match localization.Language(metadata["language"]):
+        case localization.Language.CHS:
+            chunk_size_multiplier = 1.0
+        case localization.Language.ENG:
+            chunk_size_multiplier = 3.5
+        case _:
+            raise RuntimeError(f"Unsupported language: {metadata['language']}.")
+
     print(f"Building document store from {len(files_to_process)} files in: {path}")
-    store = document_store.DocumentStore.build(files_to_process, show_progress=True)
+    store = document_store.DocumentStore.build(
+        files_to_process,
+        chunk_size_multiplier=chunk_size_multiplier,
+        show_progress=True,
+    )
 
     print(f"\nTotal documents in store: {store.num_documents}")
     store.save_to_env()
@@ -138,7 +154,8 @@ def query(question: str, k: int, show_sources: bool) -> None:
 
 @cli.command()  # type: ignore[misc]
 @click.argument("path", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
-def chunk_stats(path: pathlib.Path) -> None:
+@click.option("--chunk-size-multiplier", default=1.0, type=float, help="Multiplier for chunk size")  # type: ignore[misc]
+def chunk_stats(path: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     """Show statistics about document chunks from a file or folder."""
     files_to_process = _get_files_to_process(path)
 
@@ -149,7 +166,11 @@ def chunk_stats(path: pathlib.Path) -> None:
     print(f"Analyzing chunks from {len(files_to_process)} files...")
 
     # Chunk the documents
-    all_documents = document_store.chunk_documents(files_to_process, show_progress=True)
+    all_documents = document_store.chunk_documents(
+        files_to_process,
+        chunk_size_multiplier=chunk_size_multiplier,
+        show_progress=True,
+    )
 
     # Collect chunk lengths
     chunk_lengths = []
