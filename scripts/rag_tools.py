@@ -13,6 +13,7 @@ import click
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
+import langsmith as ls
 from langchain_google_genai import llms as google_llms
 
 from istaroth.agd import localization
@@ -102,20 +103,31 @@ def build(path: pathlib.Path, force: bool) -> None:
 @click.option("-c", "--chunk-context", default=5, help="Context size for each chunk")  # type: ignore[misc]
 def retrieve(query: str, *, k: int, chunk_context: int) -> None:
     """Retrieve similar documents from the document store."""
-    store = _load_or_create_store()
 
-    if store.num_documents == 0:
-        print("Error: No documents in store. Use 'add-documents' command first.")
-        sys.exit(1)
+    with ls.trace(
+        "rag_tools_retrieve",
+        "chain",
+        inputs={"query": query, "k": k, "chunk_context": chunk_context},
+    ) as rt:
+        store = _load_or_create_store()
 
-    print(f"Searching for: '{query}'\n")
-    retrieve_output = store.retrieve(query, k=k, chunk_context=chunk_context)
+        if store.num_documents == 0:
+            print("Error: No documents in store. Use 'add-documents' command first.")
+            sys.exit(1)
 
-    if not retrieve_output.results:
-        print("No results found.")
-        return
+        print(f"Searching for: '{query}'\n")
+        retrieve_output = store.retrieve(query, k=k, chunk_context=chunk_context)
 
-    print(output_rendering.render_retrieve_output(retrieve_output.results))
+        if not retrieve_output.results:
+            print("No results found.")
+            return
+
+        formatted_output = output_rendering.render_retrieve_output(
+            retrieve_output.results
+        )
+        rt.end(outputs=retrieve_output.to_langsmith_output(formatted_output))
+
+        print(formatted_output)
 
 
 @cli.command()  # type: ignore[misc]

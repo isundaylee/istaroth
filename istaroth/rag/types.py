@@ -41,3 +41,9 @@ class RetrieveOutput:
     def total_documents(self) -> int:
         """Total number of documents in the results."""
         return sum(len(docs) for _, docs in self.results)
+
+    def to_langsmith_output(self, formatted_output: str) -> dict[str, Any]:
+        return {
+            "total_documents": self.total_documents,
+            "formatted_output": formatted_output,
+        }

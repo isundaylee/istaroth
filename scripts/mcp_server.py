@@ -59,12 +59,7 @@ def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
                     ]
                 )
 
-            rt.end(
-                outputs={
-                    "total_documents": retrieve_output.total_documents,
-                    "formatted_output": formatted_output,
-                }
-            )
+            rt.end(outputs=retrieve_output.to_langsmith_output(formatted_output))
 
         return formatted_output
     except Exception as e:
