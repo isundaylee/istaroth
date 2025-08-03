@@ -1,6 +1,6 @@
 """Type definitions for AnimeGameData (AGD) structures."""
 
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypeAlias, TypedDict
 
 if TYPE_CHECKING:
     from istaroth.agd.repo import TextMapTracker, TalkTracker
@@ -12,7 +12,7 @@ import attrs
 # ============================================================================
 # These types match the structure of JSON files from AnimeGameData
 
-type TextMap = dict[str, str]
+TextMap: TypeAlias = dict[str, str]
 """Dictionary mapping string IDs to localized text content.
 
 Example file: TextMap/TextMapCHS.json
@@ -38,7 +38,7 @@ class NpcExcelConfigDataItem(TypedDict):
     lodPatternName: str
 
 
-type NpcExcelConfigData = list[NpcExcelConfigDataItem]
+NpcExcelConfigData: TypeAlias = list[NpcExcelConfigDataItem]
 """List of NPC configuration items from Excel data.
 
 Example file: ExcelBinOutput/NpcExcelConfigData.json
@@ -64,7 +64,7 @@ class DialogExcelConfigDataItem(TypedDict):
     talkRoleNameTextMapHash: int
 
 
-type DialogExcelConfigData = list[DialogExcelConfigDataItem]
+DialogExcelConfigData: TypeAlias = list[DialogExcelConfigDataItem]
 """List of dialog configuration items from Excel data.
 
 Example file: ExcelBinOutput/DialogExcelConfigData.json
@@ -94,7 +94,7 @@ class LocalizationExcelConfigDataItem(TypedDict):
     itPath: str
 
 
-type LocalizationExcelConfigData = list[LocalizationExcelConfigDataItem]
+LocalizationExcelConfigData: TypeAlias = list[LocalizationExcelConfigDataItem]
 """List of localization configuration items.
 
 Example file: ExcelBinOutput/LocalizationExcelConfigData.json
@@ -114,7 +114,7 @@ class DocumentExcelConfigDataItem(TypedDict):
     isImportant: bool
 
 
-type DocumentExcelConfigData = list[DocumentExcelConfigDataItem]
+DocumentExcelConfigData: TypeAlias = list[DocumentExcelConfigDataItem]
 """List of document configuration items mapping materials to readable content.
 
 Example file: ExcelBinOutput/DocumentExcelConfigData.json
@@ -134,7 +134,7 @@ class MaterialExcelConfigDataItem(TypedDict):
     gadgetId: int
 
 
-type MaterialExcelConfigData = list[MaterialExcelConfigDataItem]
+MaterialExcelConfigData: TypeAlias = list[MaterialExcelConfigDataItem]
 """List of material configuration items.
 
 Example file: ExcelBinOutput/MaterialExcelConfigData.json
@@ -162,7 +162,7 @@ class TalkExcelConfigDataItem(TypedDict):
     nextRandomTalks: list[int]
 
 
-type TalkExcelConfigData = list[TalkExcelConfigDataItem]
+TalkExcelConfigData: TypeAlias = list[TalkExcelConfigDataItem]
 """List of talk configuration items.
 
 Example file: ExcelBinOutput/TalkExcelConfigData.json
@@ -267,7 +267,7 @@ class AvatarExcelConfigDataItem(TypedDict):
     LODPatternName: str
 
 
-type AvatarExcelConfigData = list[AvatarExcelConfigDataItem]
+AvatarExcelConfigData: TypeAlias = list[AvatarExcelConfigDataItem]
 """List of avatar configuration items.
 
 Example file: ExcelBinOutput/AvatarExcelConfigData.json
@@ -287,7 +287,7 @@ class FetterStoryExcelConfigDataItem(TypedDict):
     finishConds: list[dict[str, Any]]
 
 
-type FetterStoryExcelConfigData = list[FetterStoryExcelConfigDataItem]
+FetterStoryExcelConfigData: TypeAlias = list[FetterStoryExcelConfigDataItem]
 
 
 class FettersExcelConfigDataItem(TypedDict):
@@ -297,7 +297,7 @@ class FettersExcelConfigDataItem(TypedDict):
     voiceFileTextTextMapHash: int
 
 
-type FettersExcelConfigData = list[FettersExcelConfigDataItem]
+FettersExcelConfigData: TypeAlias = list[FettersExcelConfigDataItem]
 
 
 class MainQuestExcelConfigDataItem(TypedDict):
@@ -308,7 +308,7 @@ class MainQuestExcelConfigDataItem(TypedDict):
     showType: str
 
 
-type MainQuestExcelConfigData = list[MainQuestExcelConfigDataItem]
+MainQuestExcelConfigData: TypeAlias = list[MainQuestExcelConfigDataItem]
 """List of fetter story configuration items.
 
 Example file: ExcelBinOutput/FetterStoryExcelConfigData.json
