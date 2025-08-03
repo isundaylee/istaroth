@@ -163,6 +163,85 @@ def query(question: str, k: int, show_sources: bool) -> None:
             print(f"\n🔗 View traces: {trace_url}")
 
 
+@cli.command()  # type: ignore[misc]
+@click.argument("path", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
+def chunk_stats(path: pathlib.Path) -> None:
+    """Show statistics about document chunks from a file or folder."""
+    files_to_process = _get_files_to_process(path)
+
+    if not files_to_process:
+        print("Error: No .txt files found to process.")
+        sys.exit(1)
+
+    print(f"Analyzing chunks from {len(files_to_process)} files...")
+
+    # Chunk the documents
+    all_documents, _ = document_store.chunk_documents(
+        files_to_process, show_progress=True
+    )
+
+    # Collect chunk lengths
+    chunk_lengths = []
+    file_count = len(all_documents)
+
+    for file_docs in all_documents.values():
+        for doc in file_docs.values():
+            chunk_lengths.append(len(doc.page_content))
+
+    if not chunk_lengths:
+        print("No chunks were generated.")
+        return
+
+    # Calculate statistics
+    total_chunks = len(chunk_lengths)
+    avg_length = sum(chunk_lengths) / total_chunks
+    min_length = min(chunk_lengths)
+    max_length = max(chunk_lengths)
+
+    # Calculate distribution (bins of 50 characters)
+    bins: dict[int, int] = {}
+    bin_size = 50
+    for length in chunk_lengths:
+        bin_key = (length // bin_size) * bin_size
+        if bin_key in bins:
+            bins[bin_key] += 1
+        else:
+            bins[bin_key] = 1
+
+    # Display statistics
+    print("\nDocument Chunk Statistics")
+    print("=" * 40)
+    print(f"Total files: {file_count}")
+    print(f"Total chunks: {total_chunks}")
+    print(f"Average chunk length: {avg_length:.1f} characters")
+    print(f"Min chunk length: {min_length} characters")
+    print(f"Max chunk length: {max_length} characters")
+
+    print("\nLength Distribution:")
+    print("-" * 40)
+
+    # Sort bins and display histogram
+    max_count = max(bins.values())
+    for bin_start in sorted(bins.keys()):
+        bin_end = bin_start + bin_size - 1
+        count = bins[bin_start]
+        bar_length = int((count / max_count) * 40)
+        bar = "█" * bar_length
+        print(f"{bin_start:3d}-{bin_end:3d}: {bar} {count:4d} chunks")
+
+    # Calculate percentiles
+    sorted_lengths = sorted(chunk_lengths)
+    p25 = sorted_lengths[len(sorted_lengths) // 4]
+    p50 = sorted_lengths[len(sorted_lengths) // 2]
+    p75 = sorted_lengths[3 * len(sorted_lengths) // 4]
+
+    print("\nPercentiles:")
+    print("-" * 40)
+    print(f"25th percentile: {p25} characters")
+    print(f"50th percentile (median): {p50} characters")
+    print(f"75th percentile: {p75} characters")
+
+
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,

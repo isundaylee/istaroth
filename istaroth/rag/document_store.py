@@ -151,6 +151,58 @@ def get_document_store_path() -> pathlib.Path:
     return pathlib.Path(path_str)
 
 
+def chunk_documents(
+    file_paths: list[pathlib.Path], show_progress: bool = False
+) -> tuple[dict[str, dict[int, Document]], dict[str, str]]:
+    """Chunk documents from file paths.
+
+    Returns:
+        Tuple of (all_documents, full_texts)
+    """
+    text_splitter = RecursiveCharacterTextSplitter(
+        separators=["\n\n", "\n", ""],
+        chunk_size=300,
+        chunk_overlap=100,
+        length_function=len,
+        is_separator_regex=False,
+    )
+
+    all_documents = {}
+    full_texts = {}
+
+    for file_path in tqdm(
+        file_paths, desc="Reading & chunking files", disable=not show_progress
+    ):
+        try:
+            content = file_path.read_text(encoding="utf-8")
+            file_id = str(uuid.uuid4())
+            chunks = text_splitter.split_text(content.strip())
+
+            file_docs = dict[int, Document]()
+            for chunk_index, chunk in enumerate(chunks):
+                metadata: types.DocumentMetadata = {
+                    "source": str(file_path),
+                    "type": "document",
+                    "filename": file_path.name,
+                    "file_id": file_id,
+                    "chunk_index": chunk_index,
+                }
+
+                doc = Document(page_content=chunk, metadata=metadata)
+                file_docs[chunk_index] = doc
+
+            all_documents[file_id] = file_docs
+            full_texts[file_id] = content.strip()
+
+        except Exception as e:
+            logger.warning("Failed to read %s: %s", file_path, e)
+            continue
+
+    total_chunks = sum(len(docs) for docs in all_documents.values())
+    logger.info("Added %d chunks from %d files", total_chunks, len(file_paths))
+    return all_documents, full_texts
+
+
 @attrs.define
 class DocumentStore:
     """A document store using FAISS for vector similarity search."""
@@ -166,51 +218,21 @@ class DocumentStore:
         cls, file_paths: list[pathlib.Path], show_progress: bool = False
     ) -> "DocumentStore":
         """Build a document store from file paths."""
-        text_splitter = RecursiveCharacterTextSplitter(
-            separators=["\n\n", "\n", ""],
-            chunk_size=300,
-            chunk_overlap=100,
-            length_function=len,
-            is_separator_regex=False,
+        all_documents, full_texts = chunk_documents(
+            file_paths, show_progress=show_progress
         )
 
-        all_chunks = []
-        all_metadatas = []
-        all_documents = {}
-        full_texts = {}
-
-        for file_path in tqdm(
-            file_paths, desc="Reading & chunking files", disable=not show_progress
-        ):
-            try:
-                content = file_path.read_text(encoding="utf-8")
-                file_id = str(uuid.uuid4())
-                chunks = text_splitter.split_text(content.strip())
-
-                file_docs = dict[int, Document]()
-                for chunk_index, chunk in enumerate(chunks):
-                    metadata: types.DocumentMetadata = {
-                        "source": str(file_path),
-                        "type": "document",
-                        "filename": file_path.name,
-                        "file_id": file_id,
-                        "chunk_index": chunk_index,
-                    }
-
-                    all_chunks.append(chunk)
-                    all_metadatas.append(metadata)
-
-                    doc = Document(page_content=chunk, metadata=metadata)
-                    file_docs[chunk_index] = doc
-
-                all_documents[file_id] = file_docs
-                full_texts[file_id] = content.strip()
-
-            except Exception as e:
-                logger.warning("Failed to read %s: %s", file_path, e)
-                continue
-
-        logger.info("Added %d chunks from %d files", len(all_chunks), len(file_paths))
+        # Extract chunks and metadatas from all_documents
+        all_chunks = [
+            doc.page_content
+            for file_docs in all_documents.values()
+            for doc in file_docs.values()
+        ]
+        all_metadatas = [
+            cast(types.DocumentMetadata, doc.metadata)
+            for file_docs in all_documents.values()
+            for doc in file_docs.values()
+        ]
 
         vector_store = _VectorStore.build(all_chunks, all_metadatas)
         bm25_store = _BM25Store.build(all_documents)
