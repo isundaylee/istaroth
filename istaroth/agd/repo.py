@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import functools
 import json
+import logging
 import os
 import pathlib
 
@@ -11,6 +12,8 @@ import attrs
 
 from istaroth import text_cleanup
 from istaroth.agd import localization, types
+
+logger = logging.getLogger(__name__)
 
 
 class IdTracker:
@@ -226,16 +229,20 @@ class DataRepo:
         talk_id_to_path: dict[str, str] = {}
         base_talk_path = self.agd_path / "BinOutput" / "Talk"
 
-        if not base_talk_path.exists():
-            return talk_id_to_path
-
         # Scan all subdirectories for JSON files
         for subdir in base_talk_path.iterdir():
             if subdir.is_dir():
                 subdir_name = subdir.name
                 for json_file in subdir.glob("*.json"):
-                    # Extract talk ID from filename (remove .json extension)
-                    talk_id = json_file.stem
+                    with open(json_file, encoding="utf-8") as f:
+                        talk_data = json.load(f)
+                    if (
+                        isinstance(talk_data, dict)
+                        and (v := talk_data.get("talkId")) is not None
+                    ):
+                        talk_id = str(v)
+                    else:
+                        talk_id = json_file.stem
                     # Store relative path from agd_path
                     relative_path = f"BinOutput/Talk/{subdir_name}/{json_file.name}"
                     talk_id_to_path[talk_id] = relative_path

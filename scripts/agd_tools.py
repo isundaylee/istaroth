@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """AGD tools for processing and rendering game content."""
 
+import functools
 import json
 import multiprocessing
 import pathlib
@@ -89,11 +90,15 @@ class _ErrorLimitError(Exception):
         )
 
 
-def _process_single_item(
-    args: tuple[str, BaseRenderableType, repo.DataRepo],
-) -> _RenderableResult:
+@functools.cache
+def _get_data_repo_from_env() -> repo.DataRepo:
+    return repo.DataRepo.from_env()
+
+
+def _process_single_item(args: tuple[str, BaseRenderableType]) -> _RenderableResult:
     """Worker function to process a single renderable item."""
-    renderable_key, renderable_type, data_repo = args
+    renderable_key, renderable_type = args
+    data_repo = _get_data_repo_from_env()
     try:
         with (
             data_repo.load_text_map() as text_map_tracker,
@@ -156,7 +161,7 @@ def _generate_content(
         )
 
     # Prepare arguments for multiprocessing
-    process_args = [(key, renderable_type, data_repo) for key in renderable_keys]
+    process_args = [(key, renderable_type) for key in renderable_keys]
 
     # Use multiprocessing to process items in parallel
     if processes is None:
