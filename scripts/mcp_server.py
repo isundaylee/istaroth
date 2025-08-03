@@ -9,7 +9,8 @@ from fastmcp import FastMCP
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from istaroth.langsmith_utils import traceable
+import langsmith as ls
+
 from istaroth.rag import document_store, output_rendering
 
 # Create an MCP server
@@ -18,7 +19,6 @@ store = document_store.DocumentStore.from_env()
 
 
 @mcp.tool()  # type: ignore[misc]
-@traceable(name="mcp_retrieve")  # type: ignore[misc]
 def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
     """从Istaroth原神知识库中检索相关文档
 
@@ -39,18 +39,34 @@ def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
         if store.num_documents == 0:
             return "错误：文档库为空，请先添加文档。"
 
-        retrieve_output = store.retrieve(query, k=k, chunk_context=chunk_context)
+        with ls.trace(
+            "mcp_retrieve",
+            "chain",
+            inputs={"query": query, "k": k, "chunk_context": chunk_context},
+        ) as rt:
+            retrieve_output = store.retrieve(query, k=k, chunk_context=chunk_context)
 
-        if not retrieve_output.results:
-            return "未找到相关结果。"
+            if not retrieve_output.results:
+                formatted_output = "未找到相关结果。"
+            else:
+                formatted_output = "\n".join(
+                    [
+                        f"查询 '{query}' 检索到 {len(retrieve_output.results)} 个文档：",
+                        "",
+                        output_rendering.render_retrieve_output(
+                            retrieve_output.results
+                        ),
+                    ]
+                )
 
-        output_parts = [
-            f"查询 '{query}' 检索到 {len(retrieve_output.results)} 个文档：",
-            "",
-            output_rendering.render_retrieve_output(retrieve_output.results),
-        ]
+            rt.end(
+                outputs={
+                    "total_documents": retrieve_output.total_documents,
+                    "formatted_output": formatted_output,
+                }
+            )
 
-        return "\n".join(output_parts)
+        return formatted_output
     except Exception as e:
         return f"检索文档时发生错误：{e}"
 

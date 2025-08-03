@@ -29,3 +29,8 @@ class RetrieveOutput:
     """Output from document retrieval containing all scored document groups."""
 
     results: list[tuple[float, list[Document]]]
+
+    @property
+    def total_documents(self) -> int:
+        """Total number of documents in the results."""
+        return sum(len(docs) for _, docs in self.results)
