@@ -4,12 +4,13 @@
 import functools
 import json
 import multiprocessing
+import multiprocessing.pool
 import pathlib
 import random
 import shutil
 import subprocess
 import sys
-from typing import TextIO
+from typing import Any, TextIO
 
 import attrs
 import click
@@ -125,8 +126,8 @@ def _generate_content(
     desc: str,
     *,
     data_repo: repo.DataRepo,
+    pool: multiprocessing.pool.Pool,
     errors_file: TextIO | None = None,
-    processes: int | None = None,
     sample_rate: float = 1.0,
 ) -> tuple[int, int, int, types.TrackerStats]:
     """Generate content files using renderable type.
@@ -163,10 +164,6 @@ def _generate_content(
     # Prepare arguments for multiprocessing
     process_args = [(key, renderable_type) for key in renderable_keys]
 
-    # Use multiprocessing to process items in parallel
-    if processes is None:
-        processes = multiprocessing.cpu_count()
-
     # Track used filenames to prevent collisions
     used_filenames: set[str] = set()
 
@@ -191,64 +188,64 @@ def _generate_content(
 
         return filename
 
-    with multiprocessing.Pool(processes=processes) as pool:
-        # Process with progress bar
-        with tqdm(total=len(process_args), desc=desc) as pbar:
-            for result in pool.imap(_process_single_item, process_args):
-                pbar.update(1)
+    # Use the provided multiprocessing pool
+    # Process with progress bar
+    with tqdm(total=len(process_args), desc=desc) as pbar:
+        for result in pool.imap(_process_single_item, process_args):
+            pbar.update(1)
 
-                # Collect accessed text map IDs regardless of success/failure
-                tracker_stats.update(result.tracker_stats)
+            # Collect accessed text map IDs regardless of success/failure
+            tracker_stats.update(result.tracker_stats)
 
-                if result.error_message is not None:
-                    log_message(
-                        f"✗ {result.renderable_key} -> ERROR: {result.error_message}"
-                    )
-                    error_count += 1
+            if result.error_message is not None:
+                log_message(
+                    f"✗ {result.renderable_key} -> ERROR: {result.error_message}"
+                )
+                error_count += 1
 
-                    # Check if error limit exceeded
-                    effective_error_limit = (
-                        renderable_type.error_limit
-                        if data_repo.language == "CHS"
-                        else renderable_type.error_limit_non_chinese
-                    )
-                    if error_count > effective_error_limit:
-                        error_msg = f"Error limit exceeded ({error_count} > {effective_error_limit}), stopping generation"
-                        log_message(error_msg)
-                        raise _ErrorLimitError(
-                            renderable_type.__class__.__name__,
-                            error_count,
-                            effective_error_limit,
-                        )
-
-                    continue
-
-                # Skip if rendered is None (filtered out)
-                if result.rendered_item is None:
-                    log_message(f"⚠ {result.renderable_key} -> SKIPPED (filtered)")
-                    skipped_count += 1
-                    continue
-
-                # Handle filename collisions
-                original_filename = result.rendered_item.filename
-                filename = resolve_filename_collision(original_filename)
-
-                # Log warning if there was a collision
-                if filename != original_filename:
-                    log_message(
-                        f"Warning: Filename collision for {result.renderable_key}, renamed to {filename}"
+                # Check if error limit exceeded
+                effective_error_limit = (
+                    renderable_type.error_limit
+                    if data_repo.language == "CHS"
+                    else renderable_type.error_limit_non_chinese
+                )
+                if error_count > effective_error_limit:
+                    error_msg = f"Error limit exceeded ({error_count} > {effective_error_limit}), stopping generation"
+                    log_message(error_msg)
+                    raise _ErrorLimitError(
+                        renderable_type.__class__.__name__,
+                        error_count,
+                        effective_error_limit,
                     )
 
-                used_filenames.add(filename)
+                continue
 
-                # Write to output file
-                output_file = output_dir / filename
-                with open(output_file, "w", encoding="utf-8") as f:
-                    f.write(result.rendered_item.content)
+            # Skip if rendered is None (filtered out)
+            if result.rendered_item is None:
+                log_message(f"⚠ {result.renderable_key} -> SKIPPED (filtered)")
+                skipped_count += 1
+                continue
 
-                success_count += 1
+            # Handle filename collisions
+            original_filename = result.rendered_item.filename
+            filename = resolve_filename_collision(original_filename)
 
-                pbar.set_postfix({"errors": error_count, "skipped": skipped_count})
+            # Log warning if there was a collision
+            if filename != original_filename:
+                log_message(
+                    f"Warning: Filename collision for {result.renderable_key}, renamed to {filename}"
+                )
+
+            used_filenames.add(filename)
+
+            # Write to output file
+            output_file = output_dir / filename
+            with open(output_file, "w", encoding="utf-8") as f:
+                f.write(result.rendered_item.content)
+
+            success_count += 1
+
+            pbar.set_postfix({"errors": error_count, "skipped": skipped_count})
 
     return (
         success_count,
@@ -315,17 +312,24 @@ def generate_all(
     generate_materials = only is None or only == "materials"
     generate_talks = only is None or only == "talks"
 
+    # Set up multiprocessing pool to reuse across all content generation
+    if processes is None:
+        processes = multiprocessing.cpu_count()
+
     # Open errors file for writing
     errors_file_path = output_dir / "errors.info"
-    with errors_file_path.open("w", encoding="utf-8") as errors_file:
+    with (
+        errors_file_path.open("w", encoding="utf-8") as errors_file,
+        multiprocessing.Pool(processes=processes) as pool,
+    ):
         if generate_readable:
             success, error, skipped, tracker_stats = _generate_content(
                 Readables(),
                 output_dir / "readable",
                 "Generating readable content",
                 data_repo=data_repo,
+                pool=pool,
                 errors_file=errors_file,
-                processes=processes,
                 sample_rate=sample_rate,
             )
             total_success += success
@@ -342,8 +346,8 @@ def generate_all(
                 output_dir / "quest",
                 "Generating quest content",
                 data_repo=data_repo,
+                pool=pool,
                 errors_file=errors_file,
-                processes=processes,
                 sample_rate=sample_rate,
             )
             total_success += success
@@ -358,8 +362,8 @@ def generate_all(
                 output_dir / "character_stories",
                 "Generating character stories",
                 data_repo=data_repo,
+                pool=pool,
                 errors_file=errors_file,
-                processes=processes,
                 sample_rate=sample_rate,
             )
             total_success += success
@@ -376,8 +380,8 @@ def generate_all(
                 output_dir / "subtitles",
                 "Generating subtitle content",
                 data_repo=data_repo,
+                pool=pool,
                 errors_file=errors_file,
-                processes=processes,
                 sample_rate=sample_rate,
             )
             total_success += success
@@ -394,8 +398,8 @@ def generate_all(
                 output_dir / "materials",
                 "Generating material content",
                 data_repo=data_repo,
+                pool=pool,
                 errors_file=errors_file,
-                processes=processes,
                 sample_rate=sample_rate,
             )
             total_success += success
@@ -412,8 +416,8 @@ def generate_all(
                 output_dir / "voicelines",
                 "Generating voiceline content",
                 data_repo=data_repo,
+                pool=pool,
                 errors_file=errors_file,
-                processes=processes,
                 sample_rate=sample_rate,
             )
             total_success += success
@@ -433,8 +437,8 @@ def generate_all(
                 output_dir / "talks",
                 "Generating standalone talk content",
                 data_repo=data_repo,
+                pool=pool,
                 errors_file=errors_file,
-                processes=processes,
                 sample_rate=sample_rate,
             )
             total_success += success
