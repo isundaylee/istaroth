@@ -39,15 +39,15 @@ def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
         if store.num_documents == 0:
             return "错误：文档库为空，请先添加文档。"
 
-        results = store.retrieve(query, k=k, chunk_context=chunk_context)
+        retrieve_output = store.retrieve(query, k=k, chunk_context=chunk_context)
 
-        if not results:
+        if not retrieve_output.results:
             return "未找到相关结果。"
 
         output_parts = [
-            f"查询 '{query}' 检索到 {len(results)} 个文档：",
+            f"查询 '{query}' 检索到 {len(retrieve_output.results)} 个文档：",
             "",
-            output_rendering.render_retrieve_output(results),
+            output_rendering.render_retrieve_output(retrieve_output.results),
         ]
 
         return "\n".join(output_parts)

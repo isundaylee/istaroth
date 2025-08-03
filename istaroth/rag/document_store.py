@@ -254,7 +254,7 @@ class DocumentStore:
     @traceable(name="hybrid_search")
     def retrieve(
         self, query: str, *, k: int, chunk_context: int = 5
-    ) -> list[tuple[float, list[Document]]]:
+    ) -> types.RetrieveOutput:
         """Search using hybrid vector + BM25 retrieval with reciprocal rank fusion."""
         # Transform the query into multiple queries
         queries = self._query_transformer.transform(query)
@@ -300,16 +300,18 @@ class DocumentStore:
             ):
                 final_chunk_indices[file_id].add(chunk_index)
 
-        return [
-            (
-                score,
-                [
-                    self._documents[file_id][chunk_index]
-                    for chunk_index in sorted(final_chunk_indices[file_id])
-                ],
-            )
-            for score, file_id in final_file_ids
-        ]
+        return types.RetrieveOutput(
+            results=[
+                (
+                    score,
+                    [
+                        self._documents[file_id][chunk_index]
+                        for chunk_index in sorted(final_chunk_indices[file_id])
+                    ],
+                )
+                for score, file_id in final_file_ids
+            ]
+        )
 
     def save(self, path: pathlib.Path) -> None:
         """Save the document store to a directory."""

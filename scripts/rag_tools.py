@@ -109,13 +109,13 @@ def retrieve(query: str, *, k: int, chunk_context: int) -> None:
         sys.exit(1)
 
     print(f"Searching for: '{query}'\n")
-    results = store.retrieve(query, k=k, chunk_context=chunk_context)
+    retrieve_output = store.retrieve(query, k=k, chunk_context=chunk_context)
 
-    if not results:
+    if not retrieve_output.results:
         print("No results found.")
         return
 
-    print(output_rendering.render_retrieve_output(results))
+    print(output_rendering.render_retrieve_output(retrieve_output.results))
 
 
 @cli.command()  # type: ignore[misc]

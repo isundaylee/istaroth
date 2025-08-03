@@ -22,3 +22,10 @@ class ScoredDocument:
 
     document: Document
     score: float
+
+
+@attrs.define
+class RetrieveOutput:
+    """Output from document retrieval containing all scored document groups."""
+
+    results: list[tuple[float, list[Document]]]

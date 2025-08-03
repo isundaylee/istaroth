@@ -72,43 +72,47 @@ class RAGPipeline:
 
     def _retrieve_context(self, query: str) -> str:
         """Retrieve and format documents as context."""
-        results = self._document_store.retrieve(query, k=self._k)
+        retrieve_output = self._document_store.retrieve(query, k=self._k)
 
-        if not results:
+        if not retrieve_output.results:
             return "（未找到相关资料）"
 
         # Format the retrieved documents
-        return "\n\n".join(
-            f"【资料{i}】\n{content}" for i, (content, _) in enumerate(results, 1)
-        )
+        formatted_content = []
+        for i, (score, documents) in enumerate(retrieve_output.results, 1):
+            content = "\n".join(doc.page_content for doc in documents)
+            formatted_content.append(f"【资料{i}】\n{content}")
+
+        return "\n\n".join(formatted_content)
 
     def answer_with_sources(self, question: str) -> _AnswerWithMetadata:
         """Answer question with source documents."""
 
         # Retrieve relevant documents
-        results = self._document_store.retrieve(question, k=self._k)
+        retrieve_output = self._document_store.retrieve(question, k=self._k)
 
         # Add tracing metadata
         run_metadata = {
             "question": question,
             "k": self._k,
             "num_documents": self._document_store.num_documents,
-            "num_retrieved": len(results),
-            "retrieval_scores": [score for _, score in results],
+            "num_retrieved": len(retrieve_output.results),
+            "retrieval_scores": [score for score, _ in retrieve_output.results],
         }
 
         # Format context
-        if not results:
+        if not retrieve_output.results:
             retrieved_context = "（未找到相关资料）"
             sources = []
         else:
-            retrieved_context = "\n\n".join(
-                f"【资料{i}】\n{content}" for i, (content, _) in enumerate(results, 1)
-            )
-            sources = [
-                _SourceDocument(content=content, score=score, index=i)
-                for i, (content, score) in enumerate(results, 1)
-            ]
+            formatted_content = []
+            sources = []
+            for i, (score, documents) in enumerate(retrieve_output.results, 1):
+                content = "\n".join(doc.page_content for doc in documents)
+                formatted_content.append(f"【资料{i}】\n{content}")
+                sources.append(_SourceDocument(content=content, score=score, index=i))
+
+            retrieved_context = "\n\n".join(formatted_content)
 
         # Generate answer with tracing context
         config: RunnableConfig = {"metadata": run_metadata}
