@@ -5,14 +5,21 @@ import re
 from istaroth.agd import localization, text_utils, types
 
 
+def _make_safe_filename_part(text: str, *, max_length: int = 50) -> str:
+    """Convert text to a safe filename part by removing special chars and normalizing spaces."""
+    # Remove special characters, keeping only word chars, spaces, and hyphens
+    safe_text = re.sub(r"[^\w\s-]", "", text[:max_length])
+    # Replace multiple spaces with single underscore
+    safe_text = re.sub(r"\s+", "_", safe_text.strip())
+    return safe_text
+
+
 def render_readable(
     content: str, metadata: types.ReadableMetadata
 ) -> types.RenderedItem:
     """Render readable content into RAG-suitable format."""
     # Generate filename based on title
-    # Remove special characters and replace spaces with underscores
-    safe_title = re.sub(r"[^\w\s-]", "", metadata.title)
-    safe_title = re.sub(r"\s+", "_", safe_title.strip())
+    safe_title = _make_safe_filename_part(metadata.title)
     filename = f"readable_{safe_title}.txt"
 
     # Format content with title header
@@ -33,8 +40,7 @@ def render_talk(
             "unknown_talk",
         )
         # Take first 50 characters and clean for filename
-        safe_title = re.sub(r"[^\w\s-]", "", first_message[:50])
-        safe_title = re.sub(r"\s+", "_", safe_title.strip())
+        safe_title = _make_safe_filename_part(first_message)
         filename = f"talk_{safe_title}_{talk_id}.txt"
     else:
         filename = f"talk_empty_{talk_id}.txt"
@@ -58,8 +64,7 @@ def render_quest(
 ) -> types.RenderedItem:
     """Render quest information into RAG-suitable format."""
     # Generate filename based on quest title
-    safe_title = re.sub(r"[^\w\s-]", "", quest.title[:50])
-    safe_title = re.sub(r"\s+", "_", safe_title.strip())
+    safe_title = _make_safe_filename_part(quest.title)
     filename = f"quest_{safe_title}.txt"
 
     # Format content with quest title and all talks
@@ -97,8 +102,7 @@ def render_quest(
 def render_character_story(story_info: types.CharacterStoryInfo) -> types.RenderedItem:
     """Render all character stories into RAG-suitable format."""
     # Generate filename based on character name with collision safeguards
-    safe_name = re.sub(r"[^\w\s-]", "", story_info.character_name)
-    safe_name = re.sub(r"\s+", "_", safe_name.strip())
+    safe_name = _make_safe_filename_part(story_info.character_name)
 
     # Add character count for additional uniqueness
     story_count = len(story_info.stories)
@@ -126,8 +130,7 @@ def render_subtitle(
     import pathlib
 
     path_obj = pathlib.Path(subtitle_path)
-    safe_name = re.sub(r"[^\w\s-]", "", path_obj.stem)
-    safe_name = re.sub(r"\s+", "_", safe_name.strip())
+    safe_name = _make_safe_filename_part(path_obj.stem)
     filename = f"subtitle_{safe_name}.txt"
 
     # Format content with subtitle header and all text lines
@@ -144,8 +147,7 @@ def render_material(
 ) -> types.RenderedItem:
     """Render material content into RAG-suitable format."""
     # Generate filename based on material name
-    safe_name = re.sub(r"[^\w\s-]", "", material_info.name)
-    safe_name = re.sub(r"\s+", "_", safe_name.strip())
+    safe_name = _make_safe_filename_part(material_info.name)
     filename = f"material_{safe_name}_{material_id}.txt"
 
     # Format content with material name header and description
@@ -160,8 +162,7 @@ def render_material(
 def render_voiceline(voiceline_info: types.VoicelineInfo) -> types.RenderedItem:
     """Render voiceline content into RAG-suitable format."""
     # Generate filename based on character name
-    safe_name = re.sub(r"[^\w\s-]", "", voiceline_info.character_name)
-    safe_name = re.sub(r"\s+", "_", safe_name.strip())
+    safe_name = _make_safe_filename_part(voiceline_info.character_name)
     filename = f"voiceline_{safe_name}.txt"
 
     # Format content with character name header and all voicelines
