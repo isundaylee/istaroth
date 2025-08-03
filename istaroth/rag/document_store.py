@@ -259,6 +259,8 @@ class DocumentStore:
         # Transform the query into multiple queries
         queries = self._query_transformer.transform(query)
 
+        logger.info("Transformed query '%s' into: %r", query, queries)
+
         # Collect all results from all queries
         all_results = []
 
@@ -331,7 +333,12 @@ class DocumentStore:
         )
 
     @classmethod
-    def load(cls, path: pathlib.Path) -> "DocumentStore":
+    def load(
+        cls,
+        path: pathlib.Path,
+        *,
+        query_transformer: query_transform.QueryTransformer | None = None,
+    ) -> "DocumentStore":
         """Load document store from a directory."""
 
         # Load documents to build BM25 store
@@ -353,10 +360,12 @@ class DocumentStore:
         vector_store = _VectorStore.load(path)
         bm25_store = _BM25Store.build(documents)
 
-        # Use default identity transformer for loaded stores
-        query_transformer = query_transform.IdentityTransformer()
-
-        instance = cls(vector_store, bm25_store, query_transformer, documents)
+        instance = cls(
+            vector_store,
+            bm25_store,
+            query_transformer or query_transform.IdentityTransformer(),
+            documents,
+        )
         logger.info(
             "Loaded document store from %s with %d documents",
             path,
@@ -378,7 +387,15 @@ class DocumentStore:
         store_path = get_document_store_path()
 
         if store_path.exists():
-            return cls.load(store_path)
+            match (qtv := os.environ.get("ISTAROTH_QUERY_TRANSFORMER", "identity")):
+                case "identity":
+                    query_transformer = query_transform.IdentityTransformer()
+                case "rewrite":
+                    query_transformer = query_transform.RewriteQueryTransformer.create()
+                case _:
+                    raise ValueError(f"Unknown ISTAROTH_QUERY_TRANSFORMER: {qtv}")
+
+            return cls.load(store_path, query_transformer=query_transformer)
         else:
             # Create empty store
             empty_vector_store = _VectorStore.build([], [])
