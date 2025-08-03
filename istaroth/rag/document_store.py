@@ -153,11 +153,11 @@ def get_document_store_path() -> pathlib.Path:
 
 def chunk_documents(
     file_paths: list[pathlib.Path], show_progress: bool = False
-) -> tuple[dict[str, dict[int, Document]], dict[str, str]]:
+) -> dict[str, dict[int, Document]]:
     """Chunk documents from file paths.
 
     Returns:
-        Tuple of (all_documents, full_texts)
+        Dictionary of all_documents
     """
     text_splitter = RecursiveCharacterTextSplitter(
         separators=["\n\n", "\n", ""],
@@ -168,7 +168,6 @@ def chunk_documents(
     )
 
     all_documents = {}
-    full_texts = {}
 
     for file_path in tqdm(
         file_paths, desc="Reading & chunking files", disable=not show_progress
@@ -192,7 +191,6 @@ def chunk_documents(
                 file_docs[chunk_index] = doc
 
             all_documents[file_id] = file_docs
-            full_texts[file_id] = content.strip()
 
         except Exception as e:
             logger.warning("Failed to read %s: %s", file_path, e)
@@ -200,7 +198,7 @@ def chunk_documents(
 
     total_chunks = sum(len(docs) for docs in all_documents.values())
     logger.info("Added %d chunks from %d files", total_chunks, len(file_paths))
-    return all_documents, full_texts
+    return all_documents
 
 
 @attrs.define
@@ -211,16 +209,13 @@ class DocumentStore:
     _bm25_store: _BM25Store = attrs.field()
 
     _documents: dict[str, dict[int, Document]] = attrs.field()
-    _full_texts: dict[str, str] = attrs.field()
 
     @classmethod
     def build(
         cls, file_paths: list[pathlib.Path], show_progress: bool = False
     ) -> "DocumentStore":
         """Build a document store from file paths."""
-        all_documents, full_texts = chunk_documents(
-            file_paths, show_progress=show_progress
-        )
+        all_documents = chunk_documents(file_paths, show_progress=show_progress)
 
         # Extract chunks and metadatas from all_documents
         all_chunks = [
@@ -237,7 +232,7 @@ class DocumentStore:
         vector_store = _VectorStore.build(all_chunks, all_metadatas)
         bm25_store = _BM25Store.build(all_documents)
 
-        return cls(vector_store, bm25_store, all_documents, full_texts)
+        return cls(vector_store, bm25_store, all_documents)
 
     @traceable(name="hybrid_search")
     def retrieve(
@@ -287,17 +282,6 @@ class DocumentStore:
             for score, file_id in final_file_ids
         ]
 
-    def search_fulltext(self, query: str) -> list[str]:
-        """Full-text case-insensitive search for documents containing the query string."""
-        results = []
-        search_query = query.lower()
-
-        for content in self._full_texts.values():
-            if search_query in content.lower():
-                results.append(content)
-
-        return results
-
     def save(self, path: pathlib.Path) -> None:
         """Save the document store to a directory."""
         # Save stores
@@ -319,19 +303,9 @@ class DocumentStore:
             )
         )
 
-        # Write out full texts
-        (path / "full_texts.json").write_text(json.dumps(self._full_texts))
-
     @classmethod
     def load(cls, path: pathlib.Path) -> "DocumentStore":
         """Load document store from a directory."""
-        # Load full texts
-        full_texts_file = path / "full_texts.json"
-        if full_texts_file.exists():
-            with open(full_texts_file, "r") as f:
-                full_texts = json.load(f)
-        else:
-            full_texts = {}
 
         # Load documents to build BM25 store
         documents_file = path / "documents.json"
@@ -352,7 +326,7 @@ class DocumentStore:
         vector_store = _VectorStore.load(path)
         bm25_store = _BM25Store.build(documents)
 
-        instance = cls(vector_store, bm25_store, documents, full_texts)
+        instance = cls(vector_store, bm25_store, documents)
         logger.info(
             "Loaded document store from %s with %d documents",
             path,
@@ -379,7 +353,7 @@ class DocumentStore:
             # Create empty store
             empty_vector_store = _VectorStore.build([], [])
             empty_bm25_store = _BM25Store.build({})
-            return cls(empty_vector_store, empty_bm25_store, {}, {})
+            return cls(empty_vector_store, empty_bm25_store, {})
 
     def save_to_env(self) -> None:
         """Save DocumentStore to path specified by ISTAROTH_DOCUMENT_STORE env var."""
