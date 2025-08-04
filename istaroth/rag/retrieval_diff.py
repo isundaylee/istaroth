@@ -204,63 +204,48 @@ def render_summary_table(diff: RetrievalDiff) -> str:
     return "\n".join(lines)
 
 
+def _render_document_list(
+    doc_ids: set[_ChunkKey], doc_info: dict[_ChunkKey, Document], title: str
+) -> list[str]:
+    """Helper function to render a list of documents with consistent formatting."""
+    lines = []
+    if doc_ids:
+        lines.append(f"📄 {title} ({len(doc_ids)} documents):")
+        lines.append("-" * _SECTION_DIVIDER_WIDTH)
+        for i, doc_id in enumerate(sorted(doc_ids), 1):
+            doc = doc_info[doc_id]
+            content = doc.page_content
+            # Split into lines and indent continuation lines
+            content_lines = content.split("\n")
+            lines.append(f"{i:2d}. {content_lines[0]}")
+            for line in content_lines[1:]:
+                lines.append(f"    {line}")
+            if i < len(
+                doc_ids
+            ):  # Add empty line between documents except after the last one
+                lines.append("")
+        # Add empty line after section
+        lines.append("")
+    return lines
+
+
 def render_document_sections(diff: RetrievalDiff) -> str:
     """Render the detailed document sections showing unique documents."""
     lines = []
 
     # Show documents only in file 1
-    if diff.only_in_1:
-        lines.append(
-            f"📄 Documents only in {diff.filename1} ({len(diff.only_in_1)} documents):"
+    lines.extend(
+        _render_document_list(
+            diff.only_in_1, diff.info1, f"Documents only in {diff.filename1}"
         )
-        lines.append("-" * _SECTION_DIVIDER_WIDTH)
-        for i, doc_id in enumerate(sorted(diff.only_in_1), 1):
-            doc = diff.info1[doc_id]
-            content = doc.page_content
-            truncated = (
-                content[:_CONTENT_TRUNCATE_LENGTH] + "..."
-                if len(content) > _CONTENT_TRUNCATE_LENGTH
-                else content
-            )
-            # Split into lines and indent continuation lines
-            content_lines = truncated.split("\n")
-            lines.append(f"{i:2d}. {content_lines[0]}")
-            for line in content_lines[1:]:
-                lines.append(f"    {line}")
-            if i < len(
-                diff.only_in_1
-            ):  # Add empty line between documents except after the last one
-                lines.append("")
-        # Add empty line after section
-        if diff.only_in_1:
-            lines.append("")
+    )
 
     # Show documents only in file 2
-    if diff.only_in_2:
-        lines.append(
-            f"📄 Documents only in {diff.filename2} ({len(diff.only_in_2)} documents):"
+    lines.extend(
+        _render_document_list(
+            diff.only_in_2, diff.info2, f"Documents only in {diff.filename2}"
         )
-        lines.append("-" * _SECTION_DIVIDER_WIDTH)
-        for i, doc_id in enumerate(sorted(diff.only_in_2), 1):
-            doc = diff.info2[doc_id]
-            content = doc.page_content
-            truncated = (
-                content[:_CONTENT_TRUNCATE_LENGTH] + "..."
-                if len(content) > _CONTENT_TRUNCATE_LENGTH
-                else content
-            )
-            # Split into lines and indent continuation lines
-            content_lines = truncated.split("\n")
-            lines.append(f"{i:2d}. {content_lines[0]}")
-            for line in content_lines[1:]:
-                lines.append(f"    {line}")
-            if i < len(
-                diff.only_in_2
-            ):  # Add empty line between documents except after the last one
-                lines.append("")
-        # Add empty line after section
-        if diff.only_in_2:
-            lines.append("")
+    )
 
     # Show score comparison for common documents
     if diff.common and diff.scores1 and diff.scores2:
@@ -285,16 +270,11 @@ def render_document_sections(diff: RetrievalDiff) -> str:
         for i, (diff_val, content, score1, score2) in enumerate(
             score_diffs[:_MAX_SCORE_DIFFS_SHOWN], 1
         ):
-            truncated = (
-                content[:_SCORE_CONTENT_TRUNCATE_LENGTH] + "..."
-                if len(content) > _SCORE_CONTENT_TRUNCATE_LENGTH
-                else content
-            )
             lines.append(
                 f"{i:2d}. Score diff: {diff_val:+.6f} ({score1:.6f} vs {score2:.6f})"
             )
             # Split into lines and indent continuation lines
-            content_lines = truncated.split("\n")
+            content_lines = content.split("\n")
             lines.append(f"    {content_lines[0]}")
             for line in content_lines[1:]:
                 lines.append(f"    {line}")
