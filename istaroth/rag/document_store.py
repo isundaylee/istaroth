@@ -10,11 +10,11 @@ from typing import cast
 import attrs
 import jieba
 import langsmith as ls
-from langchain_community.retrievers import BM25Retriever
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
 from istaroth.langsmith_utils import traceable
@@ -96,21 +96,49 @@ class _VectorStore:
 class _BM25Store:
     """BM25 keyword search store."""
 
-    _bm25_retriever: BM25Retriever = attrs.field()
+    _bm25: BM25Okapi = attrs.field()
+    _documents: list[Document] = attrs.field()
 
     @classmethod
-    def build(cls, documents: dict[str, dict[int, Document]]) -> "_BM25Store":
-        """Build BM25 store from documents."""
-        all_docs = [doc for docs in documents.values() for doc in docs.values()]
-        bm25_retriever = BM25Retriever.from_documents(
-            all_docs, preprocess_func=_chinese_tokenizer
-        )
-        return cls(bm25_retriever)
+    def build(cls, documents: list[Document]) -> "_BM25Store":
+        """Build BM25 store from flattened list of documents."""
+        # Tokenize all document contents for BM25
+        tokenized_corpus = [_chinese_tokenizer(doc.page_content) for doc in documents]
+
+        # Create BM25Okapi instance
+        bm25 = BM25Okapi(tokenized_corpus)
+
+        return cls(bm25, documents)
 
     def search(self, query: str, k: int) -> list[types.ScoredDocument]:
         """BM25 keyword search."""
-        docs = self._bm25_retriever.invoke(query, k=k)
-        return [types.ScoredDocument(document=doc, score=1.0) for doc in docs]
+        with ls.trace(
+            "bm25_search",
+            "retriever",
+            inputs={"query": query, "k": k},
+        ) as rt:
+            # Tokenize the query
+            tokenized_query = _chinese_tokenizer(query)
+
+            # Get BM25 scores for all documents
+            scores = self._bm25.get_scores(tokenized_query)
+
+            # Create list of (score, document) pairs
+            scored_docs = list(zip(scores, self._documents))
+
+            # Sort by score (descending) and take top k
+            scored_docs.sort(key=lambda x: x[0], reverse=True)
+            top_docs = scored_docs[:k]
+
+            # Return as ScoredDocument objects
+            scored_docs = [
+                types.ScoredDocument(document=doc, score=float(score))
+                for score, doc in top_docs
+            ]
+            rt.end(
+                outputs={"documents": [sd.to_langsmith_output() for sd in scored_docs]}
+            )
+            return scored_docs
 
 
 def _reciprocal_rank_fusion(
@@ -250,9 +278,12 @@ class DocumentStore:
             for file_docs in all_documents.values()
             for doc in file_docs.values()
         ]
+        flattened_documents = [
+            doc for file_docs in all_documents.values() for doc in file_docs.values()
+        ]
 
         vector_store = _VectorStore.build(all_chunks, all_metadatas)
-        bm25_store = _BM25Store.build(all_documents)
+        bm25_store = _BM25Store.build(flattened_documents)
 
         # Use provided query transformer or default to identity transformer
         if query_transformer is None:
@@ -369,7 +400,10 @@ class DocumentStore:
 
         # Load stores
         vector_store = _VectorStore.load(path)
-        bm25_store = _BM25Store.build(documents)
+        flattened_documents = [
+            doc for file_docs in documents.values() for doc in file_docs.values()
+        ]
+        bm25_store = _BM25Store.build(flattened_documents)
 
         instance = cls(
             vector_store,
@@ -410,7 +444,7 @@ class DocumentStore:
         else:
             # Create empty store
             empty_vector_store = _VectorStore.build([], [])
-            empty_bm25_store = _BM25Store.build({})
+            empty_bm25_store = _BM25Store.build([])
             empty_query_transformer = query_transform.IdentityTransformer()
             return cls(
                 empty_vector_store, empty_bm25_store, empty_query_transformer, {}
