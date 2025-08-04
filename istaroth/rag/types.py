@@ -27,7 +27,10 @@ class ScoredDocument:
         return {
             "page_content": self.document.page_content,
             "type": "Document",
-            "metadata": self.document.metadata,
+            "metadata": {
+                **self.document.metadata,
+                "score": self.score,
+            },
         }
 
 
