@@ -1,10 +1,10 @@
 """Document store and embedding utilities for RAG pipeline."""
 
+import hashlib
 import json
 import logging
 import os
 import pathlib
-import uuid
 from typing import cast
 
 import attrs
@@ -208,33 +208,40 @@ def chunk_documents(
     )
 
     all_documents = {}
+    seen_basenames = {}
 
     for file_path in tqdm(
         file_paths, desc="Reading & chunking files", disable=not show_progress
     ):
-        try:
-            content = file_path.read_text(encoding="utf-8")
-            file_id = str(uuid.uuid4())
-            chunks = text_splitter.split_text(content.strip())
+        # Generate file ID from MD5 hash of basename
+        basename = file_path.name
+        file_id = hashlib.md5(basename.encode("utf-8")).hexdigest()
 
-            file_docs = dict[int, Document]()
-            for chunk_index, chunk in enumerate(chunks):
-                metadata: types.DocumentMetadata = {
-                    "source": str(file_path),
-                    "type": "document",
-                    "filename": file_path.name,
-                    "file_id": file_id,
-                    "chunk_index": chunk_index,
-                }
+        # Check for duplicate basenames
+        if file_id in seen_basenames:
+            raise ValueError(
+                f"Duplicate basename detected: '{basename}' "
+                f"(current: {file_path}, previous: {seen_basenames[file_id]})"
+            )
+        seen_basenames[file_id] = file_path
 
-                doc = Document(page_content=chunk, metadata=metadata)
-                file_docs[chunk_index] = doc
+        content = file_path.read_text(encoding="utf-8")
+        chunks = text_splitter.split_text(content.strip())
 
-            all_documents[file_id] = file_docs
+        file_docs = dict[int, Document]()
+        for chunk_index, chunk in enumerate(chunks):
+            metadata: types.DocumentMetadata = {
+                "source": str(file_path),
+                "type": "document",
+                "filename": file_path.name,
+                "file_id": file_id,
+                "chunk_index": chunk_index,
+            }
 
-        except Exception as e:
-            logger.warning("Failed to read %s: %s", file_path, e)
-            continue
+            doc = Document(page_content=chunk, metadata=metadata)
+            file_docs[chunk_index] = doc
+
+        all_documents[file_id] = file_docs
 
     total_chunks = sum(len(docs) for docs in all_documents.values())
     logger.info("Splitted %d chunks from %d files", total_chunks, len(file_paths))
