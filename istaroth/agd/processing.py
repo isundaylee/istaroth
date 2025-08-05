@@ -335,3 +335,73 @@ def get_voiceline_info(
                 voicelines[title] = content
 
     return types.VoicelineInfo(character_name=character_name, voicelines=voicelines)
+
+
+def get_artifact_set_info(
+    set_id: str, *, data_repo: repo.DataRepo
+) -> types.ArtifactSetInfo:
+    """Get artifact set information including all pieces and their stories."""
+    # Load required data
+    set_data = data_repo.load_reliquary_set_excel_config_data()
+    reliquary_data = data_repo.load_reliquary_excel_config_data()
+    text_map = data_repo.load_text_map()
+
+    set_id_int = int(set_id)
+
+    # Find the artifact set configuration
+    set_config = None
+    for set_entry in set_data:
+        if set_entry["setId"] == set_id_int:
+            set_config = set_entry
+            break
+
+    if not set_config:
+        # Hard error if set configuration not found
+        raise ValueError(f"Artifact set configuration not found for set ID: {set_id}")
+
+    # Get artifact IDs from the set
+    artifact_ids = set_config["containsList"]
+
+    # Collect artifact information
+    artifacts = list[types.ArtifactInfo]()
+    for artifact_id in artifact_ids:
+        # Find artifact configuration
+        artifact_config = None
+        for reliquary in reliquary_data:
+            if reliquary["id"] == artifact_id:
+                artifact_config = reliquary
+                break
+
+        if not artifact_config:
+            # Hard error if artifact configuration not found
+            raise ValueError(
+                f"Artifact configuration not found for artifact ID: {artifact_id} in set {set_id}"
+            )
+
+        # Get artifact name and description from text map
+        name_hash = str(artifact_config["nameTextMapHash"])
+        name = text_map.get(name_hash, f"Unknown Artifact {artifact_id}")
+
+        description = ""
+        if "descTextMapHash" in artifact_config:
+            desc_hash = str(artifact_config["descTextMapHash"])
+            description = text_map.get(desc_hash, "")
+
+        # Get artifact story from Readable files
+        readables = data_repo.get_readables()
+        # Determine piece number within the set (1-5)
+        piece_num = artifact_ids.index(artifact_id) + 1
+        story = readables.get_relic_story(set_id, piece_num) or ""
+
+        # Create artifact info
+        artifact_info = types.ArtifactInfo(
+            name=name,
+            description=description,
+            story=story,
+        )
+        artifacts.append(artifact_info)
+
+    # Use the first artifact's name prefix as set name, or derive from set ID
+    return types.ArtifactSetInfo(
+        set_name=artifacts[0].name, set_id=set_id, artifacts=artifacts
+    )

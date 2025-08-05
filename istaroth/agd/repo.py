@@ -144,6 +144,45 @@ class TextMapTracker(IdTracker):
         return None
 
 
+class ReadablesTracker(IdTracker):
+    """Tracks which readable file paths have been accessed."""
+
+    def __init__(self, agd_path: pathlib.Path, language_short: str) -> None:
+        self._agd_path = agd_path
+        self._language_short = language_short
+        self._readable_base_path = agd_path / "Readable" / language_short
+
+        # Discover all readable files
+        all_readable_paths = set()
+        if self._readable_base_path.exists():
+            for file_path in self._readable_base_path.glob("*.txt"):
+                # Store relative path from readable base directory
+                relative_path = file_path.name
+                all_readable_paths.add(relative_path)
+
+        super().__init__(all_readable_paths)
+
+    def get_content(self, relative_path: str) -> str | None:
+        """Get readable file content by relative path and track access."""
+        if relative_path in self._all_ids:
+            self._track_access(relative_path)
+            file_path = self._readable_base_path / relative_path
+            return file_path.read_text(encoding="utf-8").strip()
+        return None
+
+    def get_relic_story(self, set_id: str, piece_num: int) -> str | None:
+        """Get artifact story content and track access."""
+        # Try with language suffix first (EN pattern), then without (CHS pattern)
+        path_with_lang = f"Relic{set_id}_{piece_num}_{self._language_short}.txt"
+        path_without_lang = f"Relic{set_id}_{piece_num}.txt"
+
+        if (content := self.get_content(path_with_lang)) is not None:
+            return content
+        elif (content := self.get_content(path_without_lang)) is not None:
+            return content
+        return None
+
+
 @attrs.frozen
 class DataRepo:
     """Repository for loading AnimeGameData files."""
@@ -352,3 +391,26 @@ class DataRepo:
             dialog_id_to_role_hash[dialog_id] = role_name_hash
 
         return dialog_id_to_role_hash
+
+    @functools.lru_cache(maxsize=None)
+    def load_reliquary_set_excel_config_data(self) -> types.ReliquarySetExcelConfigData:
+        """Load ReliquarySetExcelConfigData.json."""
+        file_path = (
+            self.agd_path / "ExcelBinOutput" / "ReliquarySetExcelConfigData.json"
+        )
+        with open(file_path, encoding="utf-8") as f:
+            data: types.ReliquarySetExcelConfigData = json.load(f)
+            return data
+
+    @functools.lru_cache(maxsize=None)
+    def load_reliquary_excel_config_data(self) -> types.ReliquaryExcelConfigData:
+        """Load ReliquaryExcelConfigData.json."""
+        file_path = self.agd_path / "ExcelBinOutput" / "ReliquaryExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.ReliquaryExcelConfigData = json.load(f)
+            return data
+
+    @functools.lru_cache(maxsize=None)
+    def get_readables(self) -> ReadablesTracker:
+        """Get ReadablesTracker for tracking access to readable files."""
+        return ReadablesTracker(self.agd_path, self.language_short)

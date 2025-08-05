@@ -309,9 +309,56 @@ class MainQuestExcelConfigDataItem(TypedDict):
 
 
 MainQuestExcelConfigData: TypeAlias = list[MainQuestExcelConfigDataItem]
-"""List of fetter story configuration items.
 
-Example file: ExcelBinOutput/FetterStoryExcelConfigData.json
+
+class ReliquarySetExcelConfigDataItem(TypedDict):
+    """Type definition for artifact set configuration entries."""
+
+    setId: int
+    containsList: list[int]
+    setNeedNum: list[int]
+    setIcon: str
+    equipAffixId: int
+    bagSortValue: NotRequired[int]
+    disableFilter: NotRequired[int]
+    dungeonGroup: NotRequired[list[Any]]
+    textList: NotRequired[list[int]]
+    JIMKNFNOJGO: NotRequired[int]
+
+
+class ReliquaryExcelConfigDataItem(TypedDict):
+    """Type definition for individual artifact configuration entries."""
+
+    id: int
+    nameTextMapHash: int
+    descTextMapHash: NotRequired[int]
+    setId: int
+    equipType: str
+    itemType: str
+    rank: int
+    rankLevel: int
+    maxLevel: int
+    icon: str
+    storyId: NotRequired[int]
+    addPropLevels: NotRequired[list[Any]]
+    mainPropDepotId: NotRequired[int]
+    appendPropDepotId: NotRequired[int]
+    appendPropNum: NotRequired[int]
+    gadgetId: NotRequired[int]
+    dropable: NotRequired[bool]
+    initialLockState: NotRequired[int]
+    showPic: NotRequired[str]
+    useLevel: NotRequired[int]
+    weight: NotRequired[int]
+    globalItemLimit: NotRequired[int]
+
+
+ReliquarySetExcelConfigData: TypeAlias = list[ReliquarySetExcelConfigDataItem]
+ReliquaryExcelConfigData: TypeAlias = list[ReliquaryExcelConfigDataItem]
+
+"""List of main quest configuration items.
+
+Example file: ExcelBinOutput/MainQuestExcelConfigData.json
 """
 
 
@@ -433,6 +480,24 @@ class TrackerStats:
                 "talk_ids": sorted(talk_tracker.get_unused_ids()),
             },
         }
+
+
+@attrs.define
+class ArtifactInfo:
+    """Individual artifact information with name, description, and story."""
+
+    name: str
+    description: str
+    story: str
+
+
+@attrs.define
+class ArtifactSetInfo:
+    """Artifact set information containing all pieces in the set."""
+
+    set_name: str
+    set_id: str
+    artifacts: list[ArtifactInfo]
 
 
 @attrs.define

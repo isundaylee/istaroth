@@ -212,6 +212,34 @@ class Voicelines(BaseRenderableType):
         return rendering.render_voiceline(voiceline_info)
 
 
+class ArtifactSets(BaseRenderableType):
+    """Artifact set content type (artifact sets with individual piece stories)."""
+
+    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+        """Find all artifact set IDs from ReliquarySetExcelConfigData."""
+        # Load artifact set configuration data
+        set_data = data_repo.load_reliquary_set_excel_config_data()
+
+        # Return all set IDs as strings for processing
+        return [str(set_entry["setId"]) for set_entry in set_data]
+
+    def process(
+        self, renderable_key: str, data_repo: repo.DataRepo
+    ) -> types.RenderedItem | None:
+        """Process artifact set into rendered content."""
+        # Get artifact set info
+        artifact_set_info = processing.get_artifact_set_info(
+            renderable_key, data_repo=data_repo
+        )
+
+        # Skip if no artifacts in set
+        if not artifact_set_info.artifacts:
+            return None
+
+        # Render the artifact set
+        return rendering.render_artifact_set(artifact_set_info)
+
+
 class Talks(BaseRenderableType):
     """Standalone talk content type for talks not used by other renderable types."""
 

@@ -166,3 +166,34 @@ def render_voiceline(voiceline_info: types.VoicelineInfo) -> types.RenderedItem:
     rendered_content = "\n".join(content_lines).rstrip()
 
     return types.RenderedItem(filename=filename, content=rendered_content)
+
+
+def render_artifact_set(artifact_set_info: types.ArtifactSetInfo) -> types.RenderedItem:
+    """Render artifact set content into RAG-suitable format."""
+    # Generate filename based on set name and ID
+    safe_name = utils.make_safe_filename_part(artifact_set_info.set_name)
+    filename = f"artifact_set_{safe_name}_{artifact_set_info.set_id}.txt"
+
+    # Format content with set name header and all artifact pieces
+    content_lines = [f"# {artifact_set_info.set_name}\n"]
+
+    for i, artifact in enumerate(artifact_set_info.artifacts, 1):
+        # Add artifact piece header
+        content_lines.append(f"## Piece {i}: {artifact.name}")
+        content_lines.append("")
+
+        # Add description if available
+        if artifact.description:
+            content_lines.append(f"Description: {artifact.description}")
+
+        # Add story if available
+        if artifact.story:
+            content_lines.append("Story:")
+            content_lines.append("")
+            content_lines.append(artifact.story)
+
+        content_lines.append("")  # Empty line between pieces
+
+    rendered_content = "\n".join(content_lines).rstrip()
+
+    return types.RenderedItem(filename=filename, content=rendered_content)

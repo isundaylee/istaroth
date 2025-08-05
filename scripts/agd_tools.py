@@ -21,6 +21,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from istaroth.agd import localization, processing, rendering, repo, types
 from istaroth.agd.renderable_types import (
+    ArtifactSets,
     BaseRenderableType,
     CharacterStories,
     Materials,
@@ -264,7 +265,7 @@ def cli() -> None:
 @cli.command("generate-all")  # type: ignore[misc]
 @click.argument("output_dir", type=click.Path(path_type=pathlib.Path))  # type: ignore[misc]
 @click.option("-f", "--force", is_flag=True, help="Delete output dir if it exists")  # type: ignore[misc]
-@click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "subtitles", "materials", "voicelines", "talks"]), help="Generate only specific content type")  # type: ignore[misc]
+@click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "subtitles", "materials", "voicelines", "talks", "artifact-sets"]), help="Generate only specific content type")  # type: ignore[misc]
 @click.option("--processes", "-j", type=int, help="Number of parallel processes (default: CPU count)")  # type: ignore[misc]
 @click.option("--sample-rate", type=float, default=1.0, help="Percentage of each type to process (0.0-1.0, default: 1.0)")  # type: ignore[misc]
 def generate_all(
@@ -311,6 +312,7 @@ def generate_all(
     generate_subtitles = only is None or only == "subtitles"
     generate_materials = only is None or only == "materials"
     generate_talks = only is None or only == "talks"
+    generate_artifact_sets = only is None or only == "artifact-sets"
 
     # Set up multiprocessing pool to reuse across all content generation
     if processes is None:
@@ -426,6 +428,24 @@ def generate_all(
             all_tracker_stats.update(tracker_stats)
             click.echo(
                 f"Voicelines: {success} success, {error} errors, {skipped} skipped"
+            )
+
+        if generate_artifact_sets:
+            success, error, skipped, tracker_stats = _generate_content(
+                ArtifactSets(),
+                output_dir / "artifact_sets",
+                "Generating artifact set content",
+                data_repo=data_repo,
+                pool=pool,
+                errors_file=errors_file,
+                sample_rate=sample_rate,
+            )
+            total_success += success
+            total_error += error
+            total_skipped += skipped
+            all_tracker_stats.update(tracker_stats)
+            click.echo(
+                f"Artifact Sets: {success} success, {error} errors, {skipped} skipped"
             )
 
         if generate_talks:
