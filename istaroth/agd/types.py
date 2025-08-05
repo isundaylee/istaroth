@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Any, NotRequired, TypeAlias, TypedDict
 
 if TYPE_CHECKING:
-    from istaroth.agd.repo import TextMapTracker, TalkTracker
+    from istaroth.agd.repo import TextMapTracker, TalkTracker, ReadablesTracker
 
 import attrs
 
@@ -450,21 +450,26 @@ class VoicelineInfo:
 
 @attrs.define
 class TrackerStats:
-    """Statistics for text map and talk ID access tracking."""
+    """Statistics for text map, talk ID, and readable access tracking."""
 
     accessed_text_map_ids: set[str]
     accessed_talk_ids: set[str]
+    accessed_readable_ids: set[str]
 
     def update(self, other: "TrackerStats") -> None:
         """Update this TrackerStats with IDs from another TrackerStats."""
         self.accessed_text_map_ids.update(other.accessed_text_map_ids)
         self.accessed_talk_ids.update(other.accessed_talk_ids)
+        self.accessed_readable_ids.update(other.accessed_readable_ids)
 
     def to_dict(
-        self, text_map_tracker: "TextMapTracker", talk_tracker: "TalkTracker"
+        self,
+        text_map_tracker: "TextMapTracker",
+        talk_tracker: "TalkTracker",
+        readables_tracker: "ReadablesTracker",
     ) -> dict[str, Any]:
         """Convert TrackerStats to dictionary format for JSON serialization."""
-        return {
+        result = {
             "stats": {
                 "text_map": {
                     "unused": len(text_map_tracker.get_unused_ids()),
@@ -474,12 +479,18 @@ class TrackerStats:
                     "unused": len(talk_tracker.get_unused_ids()),
                     "total": talk_tracker.get_total_count(),
                 },
+                "readables": {
+                    "unused": len(readables_tracker.get_unused_ids()),
+                    "total": readables_tracker.get_total_count(),
+                },
             },
             "unused_ids": {
                 "text_map": sorted(text_map_tracker.get_unused_ids()),
                 "talk_ids": sorted(talk_tracker.get_unused_ids()),
+                "readables": sorted(readables_tracker.get_unused_ids()),
             },
         }
+        return result
 
 
 @attrs.define

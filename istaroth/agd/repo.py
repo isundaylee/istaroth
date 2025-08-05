@@ -28,6 +28,9 @@ class IdTracker:
         """Track that an ID has been accessed."""
         self._accessed_ids.add(key)
 
+    def get_all_ids(self) -> set[str]:
+        return self._all_ids.copy()
+
     def get_accessed_ids(self) -> set[str]:
         """Return set of accessed IDs."""
         return self._accessed_ids.copy()
@@ -160,7 +163,7 @@ class ReadablesTracker(IdTracker):
                 relative_path = file_path.name
                 all_readable_paths.add(relative_path)
 
-        super().__init__(all_readable_paths)
+        super().__init__(set(sorted(all_readable_paths)))
 
     def get_content(self, relative_path: str) -> str | None:
         """Get readable file content by relative path and track access."""

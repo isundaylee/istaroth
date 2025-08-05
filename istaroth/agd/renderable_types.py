@@ -32,15 +32,17 @@ class Readables(BaseRenderableType):
     error_limit: ClassVar[int] = 50
     error_limit_non_chinese: ClassVar[int] = 200
 
+    def __init__(self, used_readable_ids: set[str]) -> None:
+        """Initialize with optional set of used readable IDs to exclude."""
+        self.used_readable_ids = used_readable_ids
+
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
-        """Find all readable files."""
-        readable_dir = data_repo.agd_path / "Readable" / data_repo.language_short
-        if readable_dir.exists():
-            return [
-                f"Readable/{data_repo.language_short}/{txt_file.name}"
-                for txt_file in readable_dir.glob("*.txt")
-            ]
-        return []
+        """Find all readable files, excluding those already used."""
+        readables_tracker = data_repo.get_readables()
+        return [
+            f"Readable/{data_repo.language_short}/{filename}"
+            for filename in readables_tracker.get_all_ids() - self.used_readable_ids
+        ]
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo

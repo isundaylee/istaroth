@@ -105,19 +105,23 @@ def _process_single_item(args: tuple[str, BaseRenderableType]) -> _RenderableRes
         with (
             data_repo.load_text_map() as text_map_tracker,
             data_repo.load_talk_excel_config_data() as talk_tracker,
+            data_repo.get_readables() as readables_tracker,
         ):
             rendered = renderable_type.process(renderable_key, data_repo)
             accessed_text_ids = text_map_tracker.get_accessed_ids()
             accessed_talk_ids = talk_tracker.get_accessed_ids()
+            accessed_readable_ids = readables_tracker.get_accessed_ids()
         return _RenderableResult(
             renderable_key,
             rendered,
             None,
-            types.TrackerStats(accessed_text_ids, accessed_talk_ids),
+            types.TrackerStats(
+                accessed_text_ids, accessed_talk_ids, accessed_readable_ids
+            ),
         )
     except Exception as e:
         return _RenderableResult(
-            renderable_key, None, str(e), types.TrackerStats(set(), set())
+            renderable_key, None, str(e), types.TrackerStats(set(), set(), set())
         )
 
 
@@ -140,7 +144,9 @@ def _generate_content(
     error_count = 0
     skipped_count = 0
     tracker_stats = types.TrackerStats(
-        accessed_text_map_ids=set(), accessed_talk_ids=set()
+        accessed_text_map_ids=set(),
+        accessed_talk_ids=set(),
+        accessed_readable_ids=set(),
     )
 
     output_dir.mkdir(exist_ok=True)
@@ -303,7 +309,7 @@ def generate_all(
     total_success = 0
     total_error = 0
     total_skipped = 0
-    all_tracker_stats = types.TrackerStats(set(), set())
+    all_tracker_stats = types.TrackerStats(set(), set(), set())
 
     # Determine which content types to generate
     generate_readable = only is None or only == "readable"
@@ -324,9 +330,30 @@ def generate_all(
         errors_file_path.open("w", encoding="utf-8") as errors_file,
         multiprocessing.Pool(processes=processes) as pool,
     ):
-        if generate_readable:
+        if generate_artifact_sets:
             success, error, skipped, tracker_stats = _generate_content(
-                Readables(),
+                ArtifactSets(),
+                output_dir / "artifact_sets",
+                "Generating artifact set content",
+                data_repo=data_repo,
+                pool=pool,
+                errors_file=errors_file,
+                sample_rate=sample_rate,
+            )
+            total_success += success
+            total_error += error
+            total_skipped += skipped
+            all_tracker_stats.update(tracker_stats)
+            click.echo(
+                f"Artifact Sets: {success} success, {error} errors, {skipped} skipped"
+            )
+
+        if generate_readable:
+            # Create Readables renderable with all previously used readable IDs
+            used_readable_ids = all_tracker_stats.accessed_readable_ids.copy()
+
+            success, error, skipped, tracker_stats = _generate_content(
+                Readables(used_readable_ids),
                 output_dir / "readable",
                 "Generating readable content",
                 data_repo=data_repo,
@@ -430,24 +457,6 @@ def generate_all(
                 f"Voicelines: {success} success, {error} errors, {skipped} skipped"
             )
 
-        if generate_artifact_sets:
-            success, error, skipped, tracker_stats = _generate_content(
-                ArtifactSets(),
-                output_dir / "artifact_sets",
-                "Generating artifact set content",
-                data_repo=data_repo,
-                pool=pool,
-                errors_file=errors_file,
-                sample_rate=sample_rate,
-            )
-            total_success += success
-            total_error += error
-            total_skipped += skipped
-            all_tracker_stats.update(tracker_stats)
-            click.echo(
-                f"Artifact Sets: {success} success, {error} errors, {skipped} skipped"
-            )
-
         if generate_talks:
             # Create Talks renderable with all previously used talk IDs
             used_talk_ids = all_tracker_stats.accessed_talk_ids.copy()
@@ -480,8 +489,14 @@ def generate_all(
     talk_tracker._accessed_ids.update(all_tracker_stats.accessed_talk_ids)
     click.echo(f"Talk IDs: {talk_tracker.format_unused_stats()} unused")
 
+    readables_tracker = data_repo.get_readables()
+    readables_tracker._accessed_ids.update(all_tracker_stats.accessed_readable_ids)
+    click.echo(f"Readables: {readables_tracker.format_unused_stats()} unused")
+
     # Write unused stats to JSON file
-    unused_stats_data = all_tracker_stats.to_dict(text_map_tracker, talk_tracker)
+    unused_stats_data = all_tracker_stats.to_dict(
+        text_map_tracker, talk_tracker, readables_tracker
+    )
     unused_stats_path = output_dir / "unused_stats.json"
     with unused_stats_path.open("w", encoding="utf-8") as f:
         json.dump(unused_stats_data, f, indent=2, ensure_ascii=False)
