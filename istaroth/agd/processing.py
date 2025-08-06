@@ -57,7 +57,7 @@ def get_readable_metadata(
     if title is None:
         raise ValueError(f"Title not found for title hash: {title_hash}")
 
-    return types.ReadableMetadata(title=title)
+    return types.ReadableMetadata(localization_id=localization_id, title=title)
 
 
 def get_talk_info_by_id(

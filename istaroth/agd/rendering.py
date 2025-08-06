@@ -10,7 +10,7 @@ def render_readable(
     """Render readable content into RAG-suitable format."""
     # Generate filename based on title
     safe_title = utils.make_safe_filename_part(metadata.title)
-    filename = f"readable_{safe_title}.txt"
+    filename = f"readable_{safe_title}_{metadata.localization_id}.txt"
 
     # Format content with title header
     rendered_content = f"# {metadata.title}\n\n{content}"

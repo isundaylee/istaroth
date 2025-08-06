@@ -382,6 +382,7 @@ class LocalizedRoleNames:
 class ReadableMetadata:
     """Metadata for a readable item."""
 
+    localization_id: int
     title: str
 
 

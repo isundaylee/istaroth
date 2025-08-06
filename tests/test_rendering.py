@@ -6,7 +6,7 @@ from istaroth.agd import localization, rendering, types
 def test_render_readable_basic() -> None:
     """Test basic readable rendering functionality."""
     content = "This is some readable content.\nWith multiple lines."
-    metadata = types.ReadableMetadata(title="Test Book Title")
+    metadata = types.ReadableMetadata(localization_id=0, title="Test Book Title")
 
     rendered = rendering.render_readable(content, metadata)
 
@@ -20,7 +20,7 @@ def test_render_readable_basic() -> None:
 def test_render_readable_special_characters() -> None:
     """Test readable rendering with special characters in title."""
     content = "Content here."
-    metadata = types.ReadableMetadata(title="神霄折戟录·第六卷")
+    metadata = types.ReadableMetadata(localization_id=0, title="神霄折戟录·第六卷")
 
     rendered = rendering.render_readable(content, metadata)
 
@@ -31,7 +31,9 @@ def test_render_readable_special_characters() -> None:
 def test_render_readable_whitespace() -> None:
     """Test readable rendering with excessive whitespace in title."""
     content = "Some content."
-    metadata = types.ReadableMetadata(title="  Title   With   Spaces  ")
+    metadata = types.ReadableMetadata(
+        localization_id=0, title="  Title   With   Spaces  "
+    )
 
     rendered = rendering.render_readable(content, metadata)
 
