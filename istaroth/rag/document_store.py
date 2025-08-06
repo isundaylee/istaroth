@@ -309,19 +309,19 @@ class DocumentStore:
         logger.info("Transformed query '%s' into: %r", query, queries)
 
         # Collect all results from all queries
+        weights = []
         all_results = []
 
+        # Get vector store results for all queries.
         for transformed_query in queries:
-            # Get results from both retrievers for this query
-            vector_results = self._vector_store.search(transformed_query, k * 2)
-            bm25_results = self._bm25_store.search(transformed_query, k * 2)
+            weights.append(1.0)
+            all_results.append(self._vector_store.search(transformed_query, k * 2))
 
-            # Add both vector and BM25 results to the collection
-            all_results.extend([vector_results, bm25_results])
+        # Only get BM25 results for the original query (with scaled up weight).
+        weights.append(float(len(queries)))
+        all_results.append(self._bm25_store.search(queries[0], k * 2))
 
         # Combine all results using reciprocal rank fusion with equal weights
-        # Each query contributes equally, with vector and BM25 weighted equally within each query
-        weights = [0.5 / len(queries)] * len(all_results)
         fused_results = _reciprocal_rank_fusion(all_results, weights)
 
         final_file_ids = list[tuple[float, str]]()

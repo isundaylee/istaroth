@@ -6,8 +6,7 @@ __pycache__/
 # C extensions
 *.so
 
-# Distribution / packaging
-.Python
+# Distribution / packaging .Python
 build/
 develop-eggs/
 dist/
@@ -214,4 +213,5 @@ CLAUDE.local.md
 istaroth.code-workspace
 
 /tmp
+/claude-prompts
 scripts/mcp_wrapper.sh

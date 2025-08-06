@@ -16,14 +16,8 @@ class QueryTransformer(ABC):
 
     @abstractmethod
     def transform(self, query: str) -> list[str]:
-        """Transform a single query into a list of queries.
-
-        Args:
-            query: The input query string
-
-        Returns:
-            List of transformed query strings
-        """
+        """Transform a single query into a list of queries. The first returned
+        query must be the original query."""
         pass
 
 
