@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Default checkpoint URL if not provided
-ISTAROTH_CHECKPOINT_URL="${ISTAROTH_CHECKPOINT_URL:-https://github.com/isundaylee/istaroth/releases/download/checkpoint%2F20250803-ccd4dfe1aa771ef6adf14d6bfd17ed2fdbeeb7bf/chs.tar.gz}"
+ISTAROTH_CHECKPOINT_URL="${ISTAROTH_CHECKPOINT_URL:-https://github.com/isundaylee/istaroth/releases/download/checkpoint%2F20250806-c7c76f4db72d57d9f4a06a8399694ad27eb7394d/chs.tar.gz}"
 
 # Function to log messages
 log() {
