@@ -1,5 +1,6 @@
 """Type definitions for RAG (Retrieval-Augmented Generation) module."""
 
+import os
 from typing import Any, TypedDict
 
 import attrs
@@ -35,9 +36,34 @@ class ScoredDocument:
 
 
 @attrs.define
+class RetrieveQuery:
+    query: str
+    k: int
+    chunk_context: int
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert RetrieveQuery to dictionary for serialization."""
+        return {
+            "query": self.query,
+            "k": self.k,
+            "chunk_context": self.chunk_context,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "RetrieveQuery":
+        """Create RetrieveQuery from dictionary."""
+        return cls(
+            query=data["query"],
+            k=data["k"],
+            chunk_context=data["chunk_context"],
+        )
+
+
+@attrs.define
 class RetrieveOutput:
     """Output from document retrieval containing all scored document groups."""
 
+    query: RetrieveQuery
     results: list[tuple[float, list[Document]]]
 
     @property
@@ -45,7 +71,7 @@ class RetrieveOutput:
         """Total number of documents in the results."""
         return sum(len(docs) for _, docs in self.results)
 
-    def to_langsmith_output(self, formatted_output: str) -> dict[str, Any]:
+    def to_langsmith_output(self, formatted_output: str | None) -> dict[str, Any]:
         return {
             "total_documents": self.total_documents,
             "formatted_output": formatted_output,
@@ -54,6 +80,8 @@ class RetrieveOutput:
     def to_dict(self) -> dict[str, Any]:
         """Convert RetrieveOutput to dictionary for serialization."""
         return {
+            "query": self.query.to_dict(),
+            "env": {k: v for k, v in os.environ.items() if k.startswith("ISTAROTH_")},
             "results": [
                 {
                     "score": score,
@@ -66,12 +94,13 @@ class RetrieveOutput:
                     ],
                 }
                 for score, documents in self.results
-            ]
+            ],
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "RetrieveOutput":
         """Create RetrieveOutput from dictionary."""
+        query = RetrieveQuery.from_dict(data["query"])
         results = []
         for result_data in data["results"]:
             score = result_data["score"]
@@ -84,4 +113,4 @@ class RetrieveOutput:
             ]
             results.append((score, documents))
 
-        return cls(results=results)
+        return cls(query=query, results=results)

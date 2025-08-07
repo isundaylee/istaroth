@@ -46,9 +46,9 @@ class RetrievalDiff:
     info1: dict[_ChunkKey, Document]
     info2: dict[_ChunkKey, Document]
 
-    # Score mappings for common documents
-    scores1: dict[_ChunkKey, float]
-    scores2: dict[_ChunkKey, float]
+    # Rank mappings for documents
+    ranks1: dict[_ChunkKey, int]
+    ranks2: dict[_ChunkKey, int]
 
 
 def _load_retrieval_json(
@@ -89,18 +89,26 @@ def _collect_document_info(results: types.RetrieveOutput) -> dict[_ChunkKey, Doc
     return doc_info
 
 
-def _create_document_score_map(results: types.RetrieveOutput) -> dict[_ChunkKey, float]:
-    """Map document (file_id, chunk_index) to its score."""
-    doc_scores = {}
+def _create_document_rank_map(results: types.RetrieveOutput) -> dict[_ChunkKey, int]:
+    """Map document (file_id, chunk_index) to its rank (1-based)."""
+    # Collect all documents with their scores
+    all_docs = []
     for score, documents in results.results:
         for doc in documents:
             file_id = doc.metadata["file_id"]
             chunk_index = doc.metadata["chunk_index"]
             doc_id = (file_id, chunk_index)
-            # Each chunk key should appear only once
-            assert doc_id not in doc_scores, f"Duplicate chunk key: {doc_id}"
-            doc_scores[doc_id] = score
-    return doc_scores
+            all_docs.append((score, doc_id))
+
+    # Sort by score (descending) to get ranking
+    all_docs.sort(key=lambda x: x[0], reverse=True)
+
+    # Create rank mapping
+    doc_ranks = {}
+    for rank, (_, doc_id) in enumerate(all_docs, 1):
+        doc_ranks[doc_id] = rank
+
+    return doc_ranks
 
 
 def compare_retrievals(
@@ -117,8 +125,8 @@ def compare_retrievals(
         "env": json2["env"],
     }
 
-    results1 = types.RetrieveOutput.from_dict(json1["results"])
-    results2 = types.RetrieveOutput.from_dict(json2["results"])
+    results1 = types.RetrieveOutput.from_dict(json1)
+    results2 = types.RetrieveOutput.from_dict(json2)
 
     # Extract document ID sets
     docs1 = _get_document_id_set(results1)
@@ -133,9 +141,9 @@ def compare_retrievals(
     info1 = _collect_document_info(results1)
     info2 = _collect_document_info(results2)
 
-    # Create score mappings
-    scores1 = _create_document_score_map(results1)
-    scores2 = _create_document_score_map(results2)
+    # Create rank mappings
+    ranks1 = _create_document_rank_map(results1)
+    ranks2 = _create_document_rank_map(results2)
 
     return RetrievalDiff(
         filename1=filename1,
@@ -149,8 +157,8 @@ def compare_retrievals(
         only_in_2=only_in_2,
         info1=info1,
         info2=info2,
-        scores1=scores1,
-        scores2=scores2,
+        ranks1=ranks1,
+        ranks2=ranks2,
     )
 
 
@@ -185,6 +193,14 @@ def render_summary_table(diff: RetrievalDiff) -> str:
         if len(excerpt) > _CONTENT_EXCERPT_LENGTH:
             excerpt = excerpt[: _CONTENT_EXCERPT_LENGTH - 3] + "..."
 
+        # Calculate rank difference for common documents
+        rank_diff = ""
+        if is_common and doc_id in diff.ranks1 and doc_id in diff.ranks2:
+            diff_val = (
+                diff.ranks2[doc_id] - diff.ranks1[doc_id]
+            )  # positive means higher rank in file1
+            rank_diff = f"{diff_val:+d}" if diff_val != 0 else "0"
+
         table_data.append(
             [
                 file_id,
@@ -192,12 +208,21 @@ def render_summary_table(diff: RetrievalDiff) -> str:
                 "✓" if is_common else "",
                 "✓" if (in_file1 and not in_file2) else "",
                 "✓" if (in_file2 and not in_file1) else "",
+                rank_diff,
                 excerpt,
             ]
         )
 
     # Create table with headers
-    headers = ["File ID", "Chunk", "Common", "Only-A", "Only-B", "Content Excerpt"]
+    headers = [
+        "File ID",
+        "Chunk",
+        "Common",
+        "Only-A",
+        "Only-B",
+        "Rank Diff",
+        "Content Excerpt",
+    ]
     table = tabulate(table_data, headers=headers)
 
     lines.append(table)
@@ -235,43 +260,48 @@ def render_document_sections(diff: RetrievalDiff) -> str:
 
     # Show documents only in file 1
     lines.extend(
-        _render_document_list(
-            diff.only_in_1, diff.info1, f"Documents only in {diff.filename1}"
-        )
+        _render_document_list(diff.only_in_1, diff.info1, f"Documents only in File A")
     )
 
     # Show documents only in file 2
     lines.extend(
-        _render_document_list(
-            diff.only_in_2, diff.info2, f"Documents only in {diff.filename2}"
-        )
+        _render_document_list(diff.only_in_2, diff.info2, f"Documents only in File B")
     )
 
-    # Show score comparison for common documents
-    if diff.common and diff.scores1 and diff.scores2:
-        lines.append("📊 Score Comparison for Common Documents:")
+    # Show rank comparison for common documents
+    if diff.common and diff.ranks1 and diff.ranks2:
+        lines.append("📊 Rank Comparison for Common Documents:")
         lines.append("-" * _SECTION_DIVIDER_WIDTH)
 
-        score_diffs = []
+        rank_diffs = []
         for doc_id in diff.common:
-            if doc_id in diff.scores1 and doc_id in diff.scores2:
-                diff_val = diff.scores1[doc_id] - diff.scores2[doc_id]
+            if doc_id in diff.ranks1 and doc_id in diff.ranks2:
+                diff_val = (
+                    diff.ranks2[doc_id] - diff.ranks1[doc_id]
+                )  # positive means higher rank in file1
                 # Get the document content for display
                 doc = diff.info1[doc_id] if doc_id in diff.info1 else diff.info2[doc_id]
                 content = doc.page_content
-                score_diffs.append(
-                    (diff_val, content, diff.scores1[doc_id], diff.scores2[doc_id])
+                rank_diffs.append(
+                    (diff_val, content, diff.ranks1[doc_id], diff.ranks2[doc_id])
                 )
 
-        # Sort by score difference (largest difference first)
-        score_diffs.sort(key=lambda x: abs(x[0]), reverse=True)
+        # Sort by rank difference (largest absolute difference first)
+        rank_diffs.sort(key=lambda x: abs(x[0]), reverse=True)
 
-        # Show top 5 score differences
-        for i, (diff_val, content, score1, score2) in enumerate(
-            score_diffs[:_MAX_SCORE_DIFFS_SHOWN], 1
+        # Show top 5 rank differences
+        for i, (diff_val, content, rank1, rank2) in enumerate(
+            rank_diffs[:_MAX_SCORE_DIFFS_SHOWN], 1
         ):
+            if diff_val > 0:
+                direction = f"ranked {diff_val} positions higher in File B"
+            elif diff_val < 0:
+                direction = f"ranked {abs(diff_val)} positions higher in File A"
+            else:
+                direction = "same rank"
+
             lines.append(
-                f"{i:2d}. Score diff: {diff_val:+.6f} ({score1:.6f} vs {score2:.6f})"
+                f"{i:2d}. Rank diff: {diff_val:+d} (#{rank1} vs #{rank2}) - {direction}"
             )
             # Split into lines and indent continuation lines
             content_lines = content.split("\n")
@@ -279,11 +309,11 @@ def render_document_sections(diff: RetrievalDiff) -> str:
             for line in content_lines[1:]:
                 lines.append(f"    {line}")
             if i < len(
-                score_diffs[:_MAX_SCORE_DIFFS_SHOWN]
+                rank_diffs[:_MAX_SCORE_DIFFS_SHOWN]
             ):  # Add empty line between documents except after the last one
                 lines.append("")
         # Add empty line after section
-        if score_diffs:
+        if rank_diffs:
             lines.append("")
 
     return "\n".join(lines)
@@ -294,8 +324,8 @@ def render_comparison_headers(diff: RetrievalDiff) -> str:
     lines = []
 
     lines.append(f"Comparing retrieval results:")
-    lines.append(f"File 1: {diff.filename1}")
-    lines.append(f"File 2: {diff.filename2}")
+    lines.append(f"File A: {diff.filename1}")
+    lines.append(f"File B: {diff.filename2}")
     lines.append("=" * _SECTION_DIVIDER_WIDTH)
 
     # Compare query parameters
@@ -311,10 +341,10 @@ def render_comparison_headers(diff: RetrievalDiff) -> str:
     else:
         lines.append("✗ Different query parameters")
         lines.append(
-            f"  File 1 - Query: {diff.meta1['query']['query']}, k: {diff.meta1['query']['k']}, chunk_context: {diff.meta1['query']['chunk_context']}"
+            f"  File A - Query: {diff.meta1['query']['query']}, k: {diff.meta1['query']['k']}, chunk_context: {diff.meta1['query']['chunk_context']}"
         )
         lines.append(
-            f"  File 2 - Query: {diff.meta2['query']['query']}, k: {diff.meta2['query']['k']}, chunk_context: {diff.meta2['query']['chunk_context']}"
+            f"  File B - Query: {diff.meta2['query']['query']}, k: {diff.meta2['query']['k']}, chunk_context: {diff.meta2['query']['chunk_context']}"
         )
 
     # Compare environment settings
@@ -336,11 +366,11 @@ def render_comparison_headers(diff: RetrievalDiff) -> str:
     lines.append("")
     lines.append("Document Comparison:")
     lines.append("-" * 80)
-    lines.append(f"Total documents in File 1: {len(diff.docs1)}")
-    lines.append(f"Total documents in File 2: {len(diff.docs2)}")
+    lines.append(f"Total documents in File A: {len(diff.docs1)}")
+    lines.append(f"Total documents in File B: {len(diff.docs2)}")
     lines.append(f"Common documents: {len(diff.common)}")
-    lines.append(f"Only in File 1: {len(diff.only_in_1)}")
-    lines.append(f"Only in File 2: {len(diff.only_in_2)}")
+    lines.append(f"Only in File A: {len(diff.only_in_1)}")
+    lines.append(f"Only in File B: {len(diff.only_in_2)}")
 
     return "\n".join(lines)
 
@@ -355,8 +385,8 @@ def render_final_summary(diff: RetrievalDiff) -> str:
         lines.append("✓ Both files contain identical document sets")
     else:
         lines.append("✗ Document sets differ:")
-        lines.append(f"  - {len(diff.only_in_1)} documents unique to {diff.filename1}")
-        lines.append(f"  - {len(diff.only_in_2)} documents unique to {diff.filename2}")
+        lines.append(f"  - {len(diff.only_in_1)} documents unique to File A")
+        lines.append(f"  - {len(diff.only_in_2)} documents unique to File B")
         lines.append(f"  - {len(diff.common)} documents in common")
 
     return "\n".join(lines)

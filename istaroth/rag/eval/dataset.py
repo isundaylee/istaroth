@@ -18,9 +18,9 @@ EVAL_DATA = {
 """Unused for now, but can be used for evaluation purposes later."""
 
 RETRIEVAL_QUESTIONS = [
-    "狐斋宫 生平 事迹 灾厄 白辰血脉 与雷神关系",
-    "厄歌莉娅神明甘露花海500年前",
+    "西比尔是谁？",
+    "希穆兰卡灯塔任务",
     "散兵为什么要从世界树中抹除自己",
-    "长正与桂木的故事 两个武士的关系",
-    "树的比喻 王的园丁 常世大神 祭司",
+    "长正与桂木的故事",
+    "甘露花海神明牺牲",
 ]

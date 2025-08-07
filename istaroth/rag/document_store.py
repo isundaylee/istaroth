@@ -319,6 +319,11 @@ class DocumentStore:
                 final_chunk_indices[file_id].add(chunk_index)
 
         return types.RetrieveOutput(
+            query=types.RetrieveQuery(
+                query=query,
+                k=k,
+                chunk_context=chunk_context,
+            ),
             results=[
                 (
                     score,
@@ -328,7 +333,7 @@ class DocumentStore:
                     ],
                 )
                 for score, file_id in final_file_ids
-            ]
+            ],
         )
 
     def save(self, path: pathlib.Path) -> None:

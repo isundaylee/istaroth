@@ -2,6 +2,7 @@
 """RAG tools for document management and querying."""
 
 import datetime
+import hashlib
 import json
 import logging
 import os
@@ -27,6 +28,7 @@ from istaroth.rag import (
     retrieval_diff,
     tracing,
 )
+from istaroth.rag.eval import dataset
 
 
 def _create_llm() -> google_llms.GoogleGenerativeAI:
@@ -145,25 +147,34 @@ def retrieve(
                 + utils.make_safe_filename_part(query, max_length=50)
                 + ".txt"
             )
-            save_path.write_text(
-                json.dumps(
-                    {
-                        "query": {
-                            "query": query,
-                            "k": k,
-                            "chunk_context": chunk_context,
-                        },
-                        "env": {
-                            k: v
-                            for k, v in os.environ.items()
-                            if k.startswith("ISTAROTH_")
-                        },
-                        "results": retrieve_output.to_dict(),
-                    }
-                )
-            )
+            save_path.write_text(json.dumps(retrieve_output.to_dict()))
 
         print(formatted_output)
+
+
+@cli.command()  # type: ignore[misc]
+@click.argument("output", type=pathlib.Path)  # type: ignore[misc]
+@click.option("-k", "--k", default=5, help="Number of results to return")  # type: ignore[misc]
+@click.option("-c", "--chunk-context", default=5, help="Context size for each chunk")  # type: ignore[misc]
+def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
+    """Evaluate retrieval on a fixed dataset and save into the output path."""
+
+    store = _load_or_create_store()
+
+    for query in dataset.RETRIEVAL_QUESTIONS:
+        with ls.trace(
+            "rag_tools_retrieve_eval",
+            "chain",
+            inputs={"query": query, "k": k, "chunk_context": chunk_context},
+        ) as rt:
+            retrieve_output = store.retrieve(query, k=k, chunk_context=chunk_context)
+            rt.end(outputs=retrieve_output.to_langsmith_output(None))
+
+            query_hash = hashlib.md5(query.encode()).hexdigest()
+            output.mkdir(parents=True, exist_ok=True)
+            (output / f"{query_hash}.json").write_text(
+                json.dumps(retrieve_output.to_dict())
+            )
 
 
 @cli.command()  # type: ignore[misc]
