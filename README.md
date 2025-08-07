@@ -2,6 +2,8 @@
 
 Istaroth is a Retrieval-Augmented Generation (RAG) system for Genshin Impact that extracts, cleans, and structures textual content to answer lore questions about the world of Teyvat.
 
+Special thanks to Dimbreath for his wonderful work on AnimeGameData!
+
 ## Texts Included
 
 - Quests
