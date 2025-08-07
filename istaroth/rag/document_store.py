@@ -17,6 +17,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
+from istaroth import langsmith_utils
 from istaroth.langsmith_utils import traceable
 from istaroth.rag import query_transform, rerank, types
 
@@ -292,6 +293,7 @@ class DocumentStore:
 
         # Combine all results using reciprocal rank fusion with equal weights
         fused_results = self._reranker.rerank(all_results, weights)
+        langsmith_utils.log_scored_docs("reranked_docs", fused_results)
 
         final_file_ids = list[tuple[float, str]]()
         final_chunk_indices = dict[str, set[int]]()
