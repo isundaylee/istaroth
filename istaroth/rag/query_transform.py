@@ -41,6 +41,8 @@ class QueryTransformer(ABC):
             case _:
                 raise ValueError(f"Unknown ISTAROTH_QUERY_TRANSFORMER: {qtv}")
 
+        logger.info("ISTAROTH_QUERY_TRANSFORMER is %s", qtv)
+
 
 class IdentityTransformer(QueryTransformer):
     """Identity transformer that returns the original query unchanged."""

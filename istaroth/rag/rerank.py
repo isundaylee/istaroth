@@ -1,12 +1,16 @@
 import abc
 import itertools
+import logging
 import os
+from typing import Iterator
 
 import attrs
 from langchain_cohere import CohereRerank
 from langchain_core.documents import Document
 
 from istaroth.rag import types
+
+logger = logging.getLogger(__name__)
 
 
 class Reranker(abc.ABC):
@@ -41,6 +45,8 @@ class Reranker(abc.ABC):
                 return CohereReranker()
             case _:
                 raise ValueError(f"Unknown ISTAROTH_RERANKER: {reranker_type}")
+
+        logger.info("ISTAROTH_RERANKER is %s", reranker_type)
 
 
 @attrs.define
@@ -95,6 +101,18 @@ class CohereReranker(Reranker):
 
     model: str = "rerank-v3.5"
 
+    @staticmethod
+    def _flatten_scored_docs(
+        results: list[list[types.ScoredDocument]],
+    ) -> Iterator[types.ScoredDocument]:
+        seen_keys = set[tuple[str, int]]()
+        for r in list(itertools.chain.from_iterable(results)):
+            key = (r.document.metadata["file_id"], r.document.metadata["chunk_index"])
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            yield r
+
     def rerank(
         self,
         query: str,
@@ -106,7 +124,7 @@ class CohereReranker(Reranker):
         Flattens all results, reranks them with Cohere, and returns top documents.
         """
         # Flatten all results into a single list
-        all_scored_docs = list(itertools.chain.from_iterable(results))
+        all_scored_docs = list(self._flatten_scored_docs(results))
         all_docs = [scored_doc.document for scored_doc in all_scored_docs]
 
         if not all_scored_docs:
