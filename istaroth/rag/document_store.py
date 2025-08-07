@@ -18,7 +18,7 @@ from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
 from istaroth.langsmith_utils import traceable
-from istaroth.rag import query_transform, types
+from istaroth.rag import query_transform, rerank, types
 
 logger = logging.getLogger(__name__)
 
@@ -141,42 +141,6 @@ class _BM25Store:
             return scored_docs
 
 
-def _reciprocal_rank_fusion(
-    results: list[list[types.ScoredDocument]], weights: list[float], k: int = 60
-) -> list[types.ScoredDocument]:
-    """Combine multiple retrieval results using reciprocal rank fusion.
-
-    Args:
-        results: List of result lists from different retrievers
-        weights: Weights for each retriever
-        k: Constant added to rank (default 60)
-
-    Returns:
-        Fused results sorted by score
-    """
-    doc_scores: dict[str, tuple[float, Document]] = {}
-
-    for retriever_results, weight in zip(results, weights):
-        for rank, scored_doc in enumerate(retriever_results, 1):
-            score = weight / (k + rank)
-            content = scored_doc.document.page_content
-            if content in doc_scores:
-                # Update score, keep first document encountered
-                doc_scores[content] = (
-                    doc_scores[content][0] + score,
-                    doc_scores[content][1],
-                )
-            else:
-                doc_scores[content] = (score, scored_doc.document)
-
-    # Sort by combined score (highest first) and return with document
-    sorted_results = sorted(doc_scores.items(), key=lambda x: x[1][0], reverse=True)
-    return [
-        types.ScoredDocument(document=doc, score=score)
-        for _, (score, doc) in sorted_results
-    ]
-
-
 def get_document_store_path() -> pathlib.Path:
     """Get document store path from ISTAROTH_DOCUMENT_STORE environment variable."""
     path_str = os.getenv("ISTAROTH_DOCUMENT_STORE")
@@ -252,11 +216,13 @@ def chunk_documents(
 class DocumentStore:
     """A document store using FAISS for vector similarity search."""
 
-    _vector_store: _VectorStore = attrs.field()
-    _bm25_store: _BM25Store = attrs.field()
-    _query_transformer: query_transform.QueryTransformer = attrs.field()
+    _vector_store: _VectorStore
+    _bm25_store: _BM25Store
 
-    _documents: dict[str, dict[int, Document]] = attrs.field()
+    _query_transformer: query_transform.QueryTransformer
+    _reranker: rerank.Reranker
+
+    _documents: dict[str, dict[int, Document]]
 
     @classmethod
     def build(
@@ -265,6 +231,7 @@ class DocumentStore:
         *,
         chunk_size_multiplier: float,
         query_transformer: query_transform.QueryTransformer | None = None,
+        reranker: rerank.Reranker | None = None,
         show_progress: bool = False,
     ) -> "DocumentStore":
         """Build a document store from file paths."""
@@ -292,11 +259,13 @@ class DocumentStore:
         vector_store = _VectorStore.build(all_chunks, all_metadatas)
         bm25_store = _BM25Store.build(flattened_documents)
 
-        # Use provided query transformer or default to identity transformer
-        if query_transformer is None:
-            query_transformer = query_transform.IdentityTransformer()
-
-        return cls(vector_store, bm25_store, query_transformer, all_documents)
+        return cls(
+            vector_store,
+            bm25_store,
+            query_transformer or query_transform.IdentityTransformer(),
+            reranker or rerank.RRFReranker(),
+            all_documents,
+        )
 
     @traceable(name="hybrid_search")
     def retrieve(
@@ -322,7 +291,7 @@ class DocumentStore:
         all_results.append(self._bm25_store.search(queries[0], k * 2))
 
         # Combine all results using reciprocal rank fusion with equal weights
-        fused_results = _reciprocal_rank_fusion(all_results, weights)
+        fused_results = self._reranker.rerank(all_results, weights)
 
         final_file_ids = list[tuple[float, str]]()
         final_chunk_indices = dict[str, set[int]]()
@@ -387,6 +356,7 @@ class DocumentStore:
         path: pathlib.Path,
         *,
         query_transformer: query_transform.QueryTransformer | None = None,
+        reranker: rerank.Reranker | None = None,
     ) -> "DocumentStore":
         """Load document store from a directory."""
 
@@ -416,6 +386,7 @@ class DocumentStore:
             vector_store,
             bm25_store,
             query_transformer or query_transform.IdentityTransformer(),
+            reranker or rerank.RRFReranker(),
             documents,
         )
         logger.info(
@@ -438,23 +409,28 @@ class DocumentStore:
         """
         store_path = get_document_store_path()
 
-        if store_path.exists():
-            match (qtv := os.environ.get("ISTAROTH_QUERY_TRANSFORMER", "identity")):
-                case "identity":
-                    query_transformer = query_transform.IdentityTransformer()
-                case "rewrite":
-                    query_transformer = query_transform.RewriteQueryTransformer.create()
-                case _:
-                    raise ValueError(f"Unknown ISTAROTH_QUERY_TRANSFORMER: {qtv}")
+        match (qtv := os.environ.get("ISTAROTH_QUERY_TRANSFORMER", "identity")):
+            case "identity":
+                query_transformer = query_transform.IdentityTransformer()
+            case "rewrite":
+                query_transformer = query_transform.RewriteQueryTransformer.create()
+            case _:
+                raise ValueError(f"Unknown ISTAROTH_QUERY_TRANSFORMER: {qtv}")
 
-            return cls.load(store_path, query_transformer=query_transformer)
+        reranker = rerank.RRFReranker()
+
+        if store_path.exists():
+            return cls.load(
+                store_path, query_transformer=query_transformer, reranker=reranker
+            )
         else:
             # Create empty store
-            empty_vector_store = _VectorStore.build([], [])
-            empty_bm25_store = _BM25Store.build([])
-            empty_query_transformer = query_transform.IdentityTransformer()
             return cls(
-                empty_vector_store, empty_bm25_store, empty_query_transformer, {}
+                _VectorStore.build([], []),
+                _BM25Store.build([]),
+                query_transformer,
+                reranker,
+                {},
             )
 
     def save_to_env(self) -> None:
