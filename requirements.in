@@ -8,6 +8,7 @@ langchain
 langchain-community
 langchain-google-genai
 langchain-huggingface
+langchain-cohere
 faiss-cpu
 rank-bm25
 mcp

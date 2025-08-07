@@ -292,7 +292,7 @@ class DocumentStore:
         all_results.append(self._bm25_store.search(queries[0], k * 2))
 
         # Combine all results using reciprocal rank fusion with equal weights
-        fused_results = self._reranker.rerank(all_results, weights)
+        fused_results = self._reranker.rerank(query, all_results, weights)
         langsmith_utils.log_scored_docs("reranked_docs", fused_results)
 
         final_file_ids = list[tuple[float, str]]()
@@ -411,15 +411,8 @@ class DocumentStore:
         """
         store_path = get_document_store_path()
 
-        match (qtv := os.environ.get("ISTAROTH_QUERY_TRANSFORMER", "identity")):
-            case "identity":
-                query_transformer = query_transform.IdentityTransformer()
-            case "rewrite":
-                query_transformer = query_transform.RewriteQueryTransformer.create()
-            case _:
-                raise ValueError(f"Unknown ISTAROTH_QUERY_TRANSFORMER: {qtv}")
-
-        reranker = rerank.RRFReranker()
+        query_transformer = query_transform.QueryTransformer.from_env()
+        reranker = rerank.Reranker.from_env()
 
         if store_path.exists():
             return cls.load(

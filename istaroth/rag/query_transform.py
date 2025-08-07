@@ -1,6 +1,7 @@
 """Query transformation interfaces and implementations for RAG pipeline."""
 
 import logging
+import os
 import typing
 from abc import ABC, abstractmethod
 
@@ -19,6 +20,26 @@ class QueryTransformer(ABC):
         """Transform a single query into a list of queries. The first returned
         query must be the original query."""
         pass
+
+    @classmethod
+    def from_env(cls) -> "QueryTransformer":
+        """Get query transformer instance based on ISTAROTH_QUERY_TRANSFORMER environment variable.
+
+        Returns:
+            QueryTransformer instance based on environment setting:
+            - "identity": IdentityTransformer (default)
+            - "rewrite": RewriteQueryTransformer
+
+        Raises:
+            ValueError: If ISTAROTH_QUERY_TRANSFORMER has an unknown value
+        """
+        match (qtv := os.environ.get("ISTAROTH_QUERY_TRANSFORMER", "identity")):
+            case "identity":
+                return IdentityTransformer()
+            case "rewrite":
+                return RewriteQueryTransformer.create()
+            case _:
+                raise ValueError(f"Unknown ISTAROTH_QUERY_TRANSFORMER: {qtv}")
 
 
 class IdentityTransformer(QueryTransformer):
