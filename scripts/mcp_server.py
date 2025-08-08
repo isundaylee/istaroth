@@ -149,6 +149,7 @@ def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
                         "=" * 60,
                         "提示：如需获取某个文件的完整内容，请使用 get_file_content 工具，",
                         "传入上面结果中的文件ID（file_id）即可获取该文件的所有内容片段。",
+                        "注意：大文件可能需要多次调用，使用不同的 start_index 参数来获取所有内容。",
                     ]
                 )
 
