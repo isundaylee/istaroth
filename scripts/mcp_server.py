@@ -36,44 +36,72 @@ def get_file_content(file_id: str, max_chunks: int = 50, start_index: int = 0) -
         if store.num_documents == 0:
             return "错误：文档库为空。"
 
-        # Get all chunks for the file
-        all_chunks = store.get_file_chunks(file_id)
+        with ls.trace(
+            "mcp_get_file_content",
+            "chain",
+            inputs={
+                "file_id": file_id,
+                "max_chunks": max_chunks,
+                "start_index": start_index,
+            },
+        ) as rt:
+            # Get all chunks for the file
+            all_chunks = store.get_file_chunks(file_id)
 
-        if all_chunks is None:
-            return f"错误：未找到文件ID '{file_id}'。"
+            if all_chunks is None:
+                error_msg = f"错误：未找到文件ID '{file_id}'。"
+                rt.end(outputs={"error": error_msg})
+                return error_msg
 
-        total_chunks = len(all_chunks)
+            total_chunks = len(all_chunks)
 
-        # Validate start_index
-        if start_index < 0 or start_index >= total_chunks:
-            return f"错误：起始索引 {start_index} 超出范围。文件共有 {total_chunks} 个片段。"
+            # Validate start_index
+            if start_index < 0 or start_index >= total_chunks:
+                error_msg = f"错误：起始索引 {start_index} 超出范围。文件共有 {total_chunks} 个片段。"
+                rt.end(outputs={"error": error_msg})
+                return error_msg
 
-        # Apply pagination
-        end_index = min(start_index + max_chunks, total_chunks)
-        chunks = all_chunks[start_index:end_index]
+            # Apply pagination
+            end_index = min(start_index + max_chunks, total_chunks)
+            chunks = all_chunks[start_index:end_index]
 
-        # Format output
-        output_lines = [
-            f"文件ID: {file_id}",
-            f"总片段数: {total_chunks}",
-            f"返回片段: {start_index} 至 {end_index - 1}",
-            "=" * 60,
-            "",
-        ]
+            # Format output
+            output_lines = [
+                f"文件ID: {file_id}",
+                f"总片段数: {total_chunks}",
+                f"返回片段: {start_index} 至 {end_index - 1}",
+                "=" * 60,
+                "",
+            ]
 
-        for i, doc in enumerate(chunks, start=start_index):
-            output_lines.append(f"【片段 {i}】")
-            output_lines.append(doc.page_content)
-            output_lines.append("-" * 60)
+            for i, doc in enumerate(chunks, start=start_index):
+                output_lines.append(f"【片段 {i}】")
+                output_lines.append(doc.page_content)
+                output_lines.append("-" * 60)
 
-        # Add navigation info if there are more chunks
-        if end_index < total_chunks:
-            remaining = total_chunks - end_index
-            output_lines.append(
-                f"\n还有 {remaining} 个片段未显示。使用 start_index={end_index} 获取下一批。"
+            # Add navigation info if there are more chunks
+            if end_index < total_chunks:
+                remaining = total_chunks - end_index
+                output_lines.append(
+                    f"\n还有 {remaining} 个片段未显示。使用 start_index={end_index} 获取下一批。"
+                )
+
+            formatted_output = "\n".join(output_lines)
+
+            # Log to LangSmith with metadata about the retrieved chunks
+            rt.end(
+                outputs={
+                    "file_id": file_id,
+                    "total_chunks": total_chunks,
+                    "chunks_returned": len(chunks),
+                    "start_index": start_index,
+                    "end_index": end_index - 1,
+                    "has_more": end_index < total_chunks,
+                    "output": formatted_output,
+                }
             )
 
-        return "\n".join(output_lines)
+            return formatted_output
 
     except Exception as e:
         return f"获取文件时发生错误：{e}"
