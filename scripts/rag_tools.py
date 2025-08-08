@@ -295,6 +295,56 @@ def chunk_stats(path: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     print(f"75th percentile: {p75} characters")
 
 
+@cli.command("chunk-file")  # type: ignore[misc]
+@click.argument("file", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
+@click.option("--chunk-size-multiplier", default=1.0, type=float, help="Multiplier for chunk size")  # type: ignore[misc]
+def chunk_file(file: pathlib.Path, *, chunk_size_multiplier: float) -> None:
+    """Chunk a single text file and print individual chunks."""
+    if not file.is_file() or file.suffix != ".txt":
+        print(f"Error: {file} must be a .txt file")
+        sys.exit(1)
+
+    print(f"Chunking file: {file}")
+    print("=" * 60)
+
+    # Import the necessary components from document_store module
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+    # Create text splitter with the same parameters as in document_store
+    text_splitter = RecursiveCharacterTextSplitter(
+        separators=["\n\n", "\n", ""],
+        chunk_size=int(chunk_size_multiplier * 300),
+        chunk_overlap=int(chunk_size_multiplier * 100),
+        length_function=len,
+        is_separator_regex=False,
+    )
+
+    # Read and chunk the file
+    content = file.read_text(encoding="utf-8")
+    chunks = text_splitter.split_text(content.strip())
+
+    # Import the merge function from document_store
+    from istaroth.rag.document_store import _merge_small_chunks
+
+    # Merge small chunks
+    merged_chunks = _merge_small_chunks(chunks, 50 * chunk_size_multiplier)
+
+    # Print each chunk
+    for i, chunk in enumerate(merged_chunks):
+        print(f"\n--- Chunk {i + 1} (length: {len(chunk)} chars) ---")
+        print(chunk)
+        print("-" * 60)
+
+    # Print summary
+    print(f"\nSummary:")
+    print(f"  Total chunks: {len(merged_chunks)}")
+    print(
+        f"  Average chunk size: {sum(len(c) for c in merged_chunks) / len(merged_chunks):.1f} chars"
+    )
+    print(f"  Min chunk size: {min(len(c) for c in merged_chunks)} chars")
+    print(f"  Max chunk size: {max(len(c) for c in merged_chunks)} chars")
+
+
 @cli.command("diff-retrieval")  # type: ignore[misc]
 @click.argument("file1", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
 @click.argument("file2", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
