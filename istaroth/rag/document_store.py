@@ -458,3 +458,18 @@ class DocumentStore:
         store_path = get_document_store_path()
         store_path.mkdir(parents=True, exist_ok=True)
         self.save(store_path)
+
+    def get_file_chunks(self, file_id: str) -> list[Document] | None:
+        """Get all chunks from a specific file.
+
+        Args:
+            file_id: The file ID (MD5 hash)
+
+        Returns:
+            List of all Document objects or None if file not found
+        """
+        if file_id not in self._documents:
+            return None
+
+        file_docs = self._documents[file_id]
+        return [file_docs[i] for i in sorted(file_docs.keys())]

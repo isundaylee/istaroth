@@ -19,6 +19,67 @@ store = document_store.DocumentStore.from_env()
 
 
 @mcp.tool()  # type: ignore[misc]
+def get_file_content(file_id: str, max_chunks: int = 50, start_index: int = 0) -> str:
+    """获取指定文件的内容块
+
+    根据文件ID返回文件中的内容片段，支持分页获取。
+
+    参数：
+    - file_id: 文件ID（MD5哈希值）
+    - max_chunks: 返回的最大片段数，默认50个
+    - start_index: 起始片段索引，默认从0开始
+
+    返回：
+    - 文件的内容片段，每个片段包含索引和内容
+    """
+    try:
+        if store.num_documents == 0:
+            return "错误：文档库为空。"
+
+        # Get all chunks for the file
+        all_chunks = store.get_file_chunks(file_id)
+
+        if all_chunks is None:
+            return f"错误：未找到文件ID '{file_id}'。"
+
+        total_chunks = len(all_chunks)
+
+        # Validate start_index
+        if start_index < 0 or start_index >= total_chunks:
+            return f"错误：起始索引 {start_index} 超出范围。文件共有 {total_chunks} 个片段。"
+
+        # Apply pagination
+        end_index = min(start_index + max_chunks, total_chunks)
+        chunks = all_chunks[start_index:end_index]
+
+        # Format output
+        output_lines = [
+            f"文件ID: {file_id}",
+            f"总片段数: {total_chunks}",
+            f"返回片段: {start_index} 至 {end_index - 1}",
+            "=" * 60,
+            "",
+        ]
+
+        for i, doc in enumerate(chunks, start=start_index):
+            output_lines.append(f"【片段 {i}】")
+            output_lines.append(doc.page_content)
+            output_lines.append("-" * 60)
+
+        # Add navigation info if there are more chunks
+        if end_index < total_chunks:
+            remaining = total_chunks - end_index
+            output_lines.append(
+                f"\n还有 {remaining} 个片段未显示。使用 start_index={end_index} 获取下一批。"
+            )
+
+        return "\n".join(output_lines)
+
+    except Exception as e:
+        return f"获取文件时发生错误：{e}"
+
+
+@mcp.tool()  # type: ignore[misc]
 def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
     """从Istaroth原神知识库中检索相关文档
 
@@ -51,11 +112,15 @@ def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
             else:
                 formatted_output = "\n".join(
                     [
-                        f"查询 '{query}' 检索到 {len(retrieve_output.results)} 个文档：",
+                        f"查询 '{query}' 检索到 {len(retrieve_output.results)} 个文件：",
                         "",
                         output_rendering.render_retrieve_output(
                             retrieve_output.results
                         ),
+                        "",
+                        "=" * 60,
+                        "提示：如需获取某个文件的完整内容，请使用 get_file_content 工具，",
+                        "传入上面结果中的文件ID（file_id）即可获取该文件的所有内容片段。",
                     ]
                 )
 

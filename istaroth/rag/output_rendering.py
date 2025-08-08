@@ -11,20 +11,20 @@ def render_retrieve_output(r: list[tuple[float, list[Document]]]) -> str:
 
         parts.append("#" * 80)
         parts.append(
-            f"# 文档 {i + 1} "
+            f"# 文件 {i + 1} "
             f"(相关性分数: {score:.4f}, "
-            f"文档ID: {file_id}, "
-            f"文档片段序号: {chunk_start} 到 {chunk_end}):\n"
+            f"文件ID: {file_id}, "
+            f"文件片段序号: {chunk_start} 到 {chunk_end}):\n"
         )
 
         last_chunk_index: int | None = None
         for doc in file_docs:
             chunk_index = doc.metadata["chunk_index"]
             if last_chunk_index is not None and chunk_index != last_chunk_index + 1:
-                parts.append(f"（注意：文档片段 {last_chunk_index} 和 {chunk_index} 之间有省略）\n")
+                parts.append(f"（注意：文件片段 {last_chunk_index} 和 {chunk_index} 之间有省略）\n")
             last_chunk_index = chunk_index
 
-            parts.append(f"------------------- 文档片段 {chunk_index}:\n")
+            parts.append(f"------------------- 文件片段 {chunk_index}:\n")
             parts.append(doc.page_content)
             parts.append("\n")
 
