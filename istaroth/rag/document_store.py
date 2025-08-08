@@ -211,7 +211,7 @@ def chunk_documents(
 
         content = file_path.read_text(encoding="utf-8")
         chunks = text_splitter.split_text(content.strip())
-        merged_chunks = _merge_small_chunks(chunks, 50 * chunk_size_multiplier)
+        merged_chunks = _merge_small_chunks(chunks, 100 * chunk_size_multiplier)
 
         file_docs = dict[int, Document]()
         for chunk_index, chunk in enumerate(merged_chunks):

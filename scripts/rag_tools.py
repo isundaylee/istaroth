@@ -307,42 +307,31 @@ def chunk_file(file: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     print(f"Chunking file: {file}")
     print("=" * 60)
 
-    # Import the necessary components from document_store module
-    from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-    # Create text splitter with the same parameters as in document_store
-    text_splitter = RecursiveCharacterTextSplitter(
-        separators=["\n\n", "\n", ""],
-        chunk_size=int(chunk_size_multiplier * 300),
-        chunk_overlap=int(chunk_size_multiplier * 100),
-        length_function=len,
-        is_separator_regex=False,
+    # Use the existing chunk_documents function from document_store
+    all_documents = document_store.chunk_documents(
+        [file], chunk_size_multiplier=chunk_size_multiplier
     )
 
-    # Read and chunk the file
-    content = file.read_text(encoding="utf-8")
-    chunks = text_splitter.split_text(content.strip())
-
-    # Import the merge function from document_store
-    from istaroth.rag.document_store import _merge_small_chunks
-
-    # Merge small chunks
-    merged_chunks = _merge_small_chunks(chunks, 50 * chunk_size_multiplier)
+    # Get the documents for this file
+    file_id = list(all_documents.keys())[0]
+    file_documents = all_documents[file_id]
 
     # Print each chunk
-    for i, chunk in enumerate(merged_chunks):
-        print(f"\n--- Chunk {i + 1} (length: {len(chunk)} chars) ---")
-        print(chunk)
+    for chunk_index, doc in file_documents.items():
+        chunk_content = doc.page_content
+        print(f"\n--- Chunk {chunk_index + 1} (length: {len(chunk_content)} chars) ---")
+        print(chunk_content)
         print("-" * 60)
 
     # Print summary
+    chunks_list = [doc.page_content for doc in file_documents.values()]
     print(f"\nSummary:")
-    print(f"  Total chunks: {len(merged_chunks)}")
+    print(f"  Total chunks: {len(chunks_list)}")
     print(
-        f"  Average chunk size: {sum(len(c) for c in merged_chunks) / len(merged_chunks):.1f} chars"
+        f"  Average chunk size: {sum(len(c) for c in chunks_list) / len(chunks_list):.1f} chars"
     )
-    print(f"  Min chunk size: {min(len(c) for c in merged_chunks)} chars")
-    print(f"  Max chunk size: {max(len(c) for c in merged_chunks)} chars")
+    print(f"  Min chunk size: {min(len(c) for c in chunks_list)} chars")
+    print(f"  Max chunk size: {max(len(c) for c in chunks_list)} chars")
 
 
 @cli.command("diff-retrieval")  # type: ignore[misc]
