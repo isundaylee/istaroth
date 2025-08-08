@@ -266,6 +266,7 @@ def chunk_stats(path: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     print(f"Total files: {file_count}")
     print(f"Total chunks: {total_chunks}")
     print(f"Average chunk length: {avg_length:.1f} characters")
+    print(f"Sum chunk length: {sum(chunk_lengths):.1f} characters")
     print(f"Min chunk length: {min_length} characters")
     print(f"Max chunk length: {max_length} characters")
 

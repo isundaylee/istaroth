@@ -29,6 +29,25 @@ def _chinese_tokenizer(text: str) -> list[str]:
     return list(jieba.cut(text))
 
 
+def _merge_small_chunks(chunks: list[str], min_size: float) -> list[str]:
+    """Merge chunks smaller than min_size with the next chunk."""
+    merged_chunks = []
+    i = 0
+    while i < len(chunks):
+        current_chunk = chunks[i]
+
+        # Keep merging with next chunks until we get a chunk of sufficient size
+        # or we reach the last chunk
+        while len(current_chunk) < min_size and i + 1 < len(chunks):
+            i += 1
+            current_chunk += "\n\n" + chunks[i]
+
+        merged_chunks.append(current_chunk)
+        i += 1
+
+    return merged_chunks
+
+
 @attrs.define
 class _VectorStore:
     """Vector similarity search using FAISS."""
@@ -192,9 +211,10 @@ def chunk_documents(
 
         content = file_path.read_text(encoding="utf-8")
         chunks = text_splitter.split_text(content.strip())
+        merged_chunks = _merge_small_chunks(chunks, 50 * chunk_size_multiplier)
 
         file_docs = dict[int, Document]()
-        for chunk_index, chunk in enumerate(chunks):
+        for chunk_index, chunk in enumerate(merged_chunks):
             metadata: types.DocumentMetadata = {
                 "source": str(file_path),
                 "type": "document",
