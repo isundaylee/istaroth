@@ -15,6 +15,7 @@ mcp
 fastmcp
 jieba
 tabulate
+openai
 
 # Development dependencies
 pip-tools
