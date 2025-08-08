@@ -149,12 +149,11 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
     return types.TalkInfo(text=talk_texts)
 
 
-def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestInfo:
-    """Retrieve quest information from quest file."""
-    # Load quest data
+def get_quest_info(quest_id: str, *, data_repo: repo.DataRepo) -> types.QuestInfo:
+    """Retrieve quest information from quest ID."""
+    # Convert quest ID to path
+    quest_path = f"BinOutput/Quest/{quest_id}.json"
     quest_data = data_repo.load_quest_data(quest_path)
-
-    # Load text map for title resolution
     text_map = data_repo.load_text_map()
 
     # Resolve quest title from title hash, fallback to description hash
@@ -166,6 +165,24 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
         raise ValueError(f"Could not find title for quest {quest_data['id']}")
 
     quest_title = text_map.get(str(title_hash), f"Missing title ({title_hash})")
+
+    # Get chapter information
+    chapter_title = None
+    chapter_id = quest_data.get("chapterId")
+    if chapter_id is not None:
+        chapter_data = data_repo.load_chapter_excel_config_data()
+        chapter = chapter_data[chapter_id]
+
+        if chapter:
+            # Get chapter title and number from text map
+            chapter_title = " ".join(
+                p
+                for p in [
+                    text_map.get_optional(str(chapter["chapterNumTextMapHash"])),
+                    text_map.get_optional(str(chapter["chapterTitleTextMapHash"])),
+                ]
+                if p is not None
+            )
 
     # Process subQuests in order (maintaining quest progression sequence)
     subquest_talk_infos = []
@@ -207,6 +224,7 @@ def get_quest_info(quest_path: str, *, data_repo: repo.DataRepo) -> types.QuestI
 
     return types.QuestInfo(
         title=quest_title,
+        chapter_title=chapter_title,
         talks=subquest_talk_infos,
         non_subquest_talks=non_subquest_talk_infos,
     )

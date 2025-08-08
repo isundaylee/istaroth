@@ -86,16 +86,8 @@ class Quests(BaseRenderableType):
         self, renderable_key: str, data_repo: repo.DataRepo
     ) -> types.RenderedItem | None:
         """Process quest file into rendered content."""
-        # Convert quest ID to path
-        quest_path = f"BinOutput/Quest/{renderable_key}.json"
-
-        # Check if quest file exists
-        file_path = data_repo.agd_path / quest_path
-        if not file_path.exists():
-            return None
-
-        # Get quest info
-        quest_info = processing.get_quest_info(quest_path, data_repo=data_repo)
+        # Get quest info using quest ID directly
+        quest_info = processing.get_quest_info(renderable_key, data_repo=data_repo)
 
         # Skip if title starts with "test" (case-insensitive) and language is CHS
         if text_utils.should_skip_text(quest_info.title, data_repo.language):

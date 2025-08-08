@@ -575,8 +575,10 @@ def render_quest(quest_path: str) -> None:
     try:
         data_repo = repo.DataRepo.from_env()
 
+        # Extract quest ID from path
+        quest_id = pathlib.Path(quest_path).stem
         # Get quest info
-        quest_info = processing.get_quest_info(quest_path, data_repo=data_repo)
+        quest_info = processing.get_quest_info(quest_id, data_repo=data_repo)
 
         # Render the quest
         rendered = rendering.render_quest(

@@ -306,9 +306,27 @@ class MainQuestExcelConfigDataItem(TypedDict):
     descTextMapHash: int
     type: str
     showType: str
+    chapterId: int
 
 
 MainQuestExcelConfigData: TypeAlias = list[MainQuestExcelConfigDataItem]
+
+
+class ChapterExcelConfigDataItem(TypedDict):
+    """Type definition for chapter configuration entries."""
+
+    id: int
+    chapterTitleTextMapHash: int
+    chapterNumTextMapHash: int
+    chapterIcon: str
+    questType: str
+    cityId: int
+    beginQuestId: int
+    endQuestId: int
+    needPlayerLevel: int
+
+
+ChapterExcelConfigData: TypeAlias = list[ChapterExcelConfigDataItem]
 
 
 class ReliquarySetExcelConfigDataItem(TypedDict):
@@ -406,6 +424,7 @@ class QuestInfo:
     """Quest information with associated talk dialogs."""
 
     title: str
+    chapter_title: str | None
     talks: list[TalkInfo]
     non_subquest_talks: list[TalkInfo]
 

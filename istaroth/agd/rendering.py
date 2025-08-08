@@ -57,8 +57,11 @@ def render_quest(
     safe_title = utils.make_safe_filename_part(quest.title)
     filename = f"quest_{safe_title}.txt"
 
-    # Format content with quest title and all talks
-    content_lines = [f"# {quest.title}\n"]
+    # Format content with chapter title (if available) and quest title
+    content_lines = []
+    if quest.chapter_title:
+        content_lines.append(f"(Quest is part of chapter: {quest.chapter_title})\n")
+    content_lines.append(f"# {quest.title}\n")
 
     # Render main quest progression talks (from subQuests)
     for i, talk in enumerate(quest.talks, 1):

@@ -349,6 +349,16 @@ class DataRepo:
             return data
 
     @functools.lru_cache(maxsize=None)
+    def load_chapter_excel_config_data(
+        self,
+    ) -> dict[int, types.ChapterExcelConfigDataItem]:
+        """Load chapter Excel configuration data as a dictionary mapping chapter ID to chapter object."""
+        file_path = self.agd_path / "ExcelBinOutput" / "ChapterExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.ChapterExcelConfigData = json.load(f)
+            return {chapter["id"]: chapter for chapter in data}
+
+    @functools.lru_cache(maxsize=None)
     def get_npc_id_to_name_mapping(self) -> dict[str, str]:
         """Get cached mapping from NPC ID to name."""
         npc_data = self.load_npc_excel_config_data()

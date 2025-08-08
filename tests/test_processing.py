@@ -57,9 +57,9 @@ def test_talk_7407811_info(data_repo: repo.DataRepo) -> None:
 
 def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
     """Test retrieving quest info for 74078.json."""
-    quest_path = "BinOutput/Quest/74078.json"
+    quest_id = "74078"
 
-    quest_info = processing.get_quest_info(quest_path, data_repo=data_repo)
+    quest_info = processing.get_quest_info(quest_id, data_repo=data_repo)
 
     # Verify we got a title
     assert quest_info.title.strip()
