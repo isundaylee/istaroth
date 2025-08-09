@@ -257,6 +257,31 @@ class ArtifactSets(BaseRenderableType):
         return rendering.render_artifact_set(artifact_set_info)
 
 
+class TalkActivityGroups(BaseRenderableType):
+    """Talk activity groups content type (talks grouped by activity)."""
+
+    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+        """Find all ActivityGroup JSON files and return activity IDs."""
+        mapping = data_repo.build_talk_activity_group_mapping()
+        return sorted(mapping.keys())
+
+    def process(
+        self, renderable_key: str, data_repo: repo.DataRepo
+    ) -> types.RenderedItem | None:
+        """Process talk activity group into rendered content."""
+        activity_group_info = processing.get_talk_activity_group_info(
+            renderable_key, data_repo=data_repo
+        )
+
+        # Skip if no talks found for this activity group
+        if not activity_group_info:
+            return None
+
+        return rendering.render_talk_activity_group(
+            renderable_key, activity_group_info, data_repo.language
+        )
+
+
 class Talks(BaseRenderableType):
     """Standalone talk content type for talks not used by other renderable types."""
 

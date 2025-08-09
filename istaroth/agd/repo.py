@@ -427,3 +427,19 @@ class DataRepo:
     def get_readables(self) -> ReadablesTracker:
         """Get ReadablesTracker for tracking access to readable files."""
         return ReadablesTracker(self.agd_path, self.language_short)
+
+    @functools.lru_cache(maxsize=None)
+    def build_talk_activity_group_mapping(self) -> dict[str, pathlib.Path]:
+        """Build mapping from activity ID to ActivityGroup JSON file path."""
+        activity_group_dir = self.agd_path / "BinOutput" / "Talk" / "ActivityGroup"
+        mapping: dict[str, pathlib.Path] = {}
+
+        for json_file in activity_group_dir.glob("*.json"):
+            # Load the JSON to get the actual activityId
+            with open(json_file, "r", encoding="utf-8") as f:
+                activity_data = json.load(f)
+                activity_id = str(activity_data.get("activityId", ""))
+                if activity_id:
+                    mapping[activity_id] = json_file
+
+        return mapping

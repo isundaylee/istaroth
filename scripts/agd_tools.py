@@ -29,6 +29,7 @@ from istaroth.agd.renderable_types import (
     Quests,
     Readables,
     Subtitles,
+    TalkActivityGroups,
     Talks,
     Voicelines,
 )
@@ -84,12 +85,14 @@ def _generate_metadata(
 class _ErrorLimitError(Exception):
     """Exception raised when error limit is exceeded during generation."""
 
-    def __init__(self, content_type: str, error_count: int, error_limit: int) -> None:
+    def __init__(
+        self, content_type: str, error_count: int, error_limit: int, error_msg: str
+    ) -> None:
         self.content_type = content_type
         self.error_count = error_count
         self.error_limit = error_limit
         super().__init__(
-            f"{content_type} generation exceeded error limit ({error_count} > {error_limit})"
+            f"{content_type} generation exceeded error limit ({error_count} > {error_limit}); {error_msg}"
         )
 
 
@@ -224,6 +227,7 @@ def _generate_content(
                         renderable_type.__class__.__name__,
                         error_count,
                         effective_error_limit,
+                        result.error_message,
                     )
 
                 continue
@@ -282,6 +286,7 @@ def cli() -> None:
             "subtitles",
             "material-types",
             "voicelines",
+            "talk-activity-groups",
             "talks",
             "artifact-sets",
         ]
@@ -346,6 +351,8 @@ def generate_all(
     generate_character_stories = only is None or only == "character-stories"
     generate_subtitles = only is None or only == "subtitles"
     generate_material_types = only is None or only == "material-types"
+    generate_voicelines = only is None or only == "voicelines"
+    generate_talk_activity_groups = only is None or only == "talk-activity-groups"
     generate_talks = only is None or only == "talks"
     generate_artifact_sets = only is None or only == "artifact-sets"
 
@@ -458,7 +465,7 @@ def generate_all(
             all_tracker_stats.update(tracker_stats)
             summary_stats.append(["Material Types", success, error, skipped])
 
-        if not only or only == "voicelines":
+        if generate_voicelines:
             success, error, skipped, tracker_stats = _generate_content(
                 Voicelines(),
                 output_dir / "voicelines",
@@ -473,6 +480,22 @@ def generate_all(
             total_skipped += skipped
             all_tracker_stats.update(tracker_stats)
             summary_stats.append(["Voicelines", success, error, skipped])
+
+        if generate_talk_activity_groups:
+            success, error, skipped, tracker_stats = _generate_content(
+                TalkActivityGroups(),
+                output_dir / "talk_activity_groups",
+                "Generating talk activity group content",
+                data_repo=data_repo,
+                pool=pool,
+                errors_file=errors_file,
+                sample_rate=sample_rate,
+            )
+            total_success += success
+            total_error += error
+            total_skipped += skipped
+            all_tracker_stats.update(tracker_stats)
+            summary_stats.append(["Talk Activity Groups", success, error, skipped])
 
         if generate_talks:
             # Create Talks renderable with all previously used talk IDs

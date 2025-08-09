@@ -223,3 +223,29 @@ def render_artifact_set(artifact_set_info: types.ArtifactSetInfo) -> types.Rende
     rendered_content = "\n".join(content_lines).rstrip()
 
     return types.RenderedItem(filename=filename, content=rendered_content)
+
+
+def render_talk_activity_group(
+    activity_id: str, talks: list[types.TalkInfo], language: localization.Language
+) -> types.RenderedItem:
+    """Render multiple talks from an activity group into a single file."""
+    # Generate filename based on activity ID
+    filename = f"talk_activity_group_{activity_id}.txt"
+
+    # Format content with activity group header and all talks
+    content_lines = [f"# Talk Activity Group: {activity_id}\n"]
+
+    for talk in talks:
+        content_lines.append("## Talk\n")
+
+        # Add talk dialog
+        for talk_text in talk.text:
+            if text_utils.should_skip_text(talk_text.message, language):
+                continue
+            content_lines.append(f"{talk_text.role}: {talk_text.message}")
+
+        content_lines.append("")  # Empty line between talks
+
+    rendered_content = "\n".join(content_lines).rstrip()
+
+    return types.RenderedItem(filename=filename, content=rendered_content)

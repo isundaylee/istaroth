@@ -1,8 +1,8 @@
 """Processing functions for AGD data."""
 
 import itertools
+import json
 import pathlib
-from threading import local
 
 from istaroth.agd import localization, repo, types
 
@@ -90,7 +90,9 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
     """Retrieve talk information from talk file."""
     # Load talk data
     talk_data = data_repo.load_talk_data(talk_path)
-    dialog_list = talk_data["dialogList"]
+
+    if (dialog_list := talk_data.get("dialogList")) is None:
+        return types.TalkInfo(text=[])
 
     # Load supporting data
     text_map = data_repo.load_text_map()
@@ -229,7 +231,8 @@ def get_quest_info(quest_id: str, *, data_repo: repo.DataRepo) -> types.QuestInf
 
         try:
             talk_info = get_talk_info_by_id(talk_id_str, data_repo=data_repo)
-            non_subquest_talk_infos.append(talk_info)
+            if talk_info.text:
+                non_subquest_talk_infos.append(talk_info)
         except Exception:
             # Skip talks that can't be loaded
             continue
@@ -437,3 +440,30 @@ def get_artifact_set_info(
     return types.ArtifactSetInfo(
         set_name=artifacts[0].name, set_id=set_id, artifacts=artifacts
     )
+
+
+def get_talk_activity_group_info(
+    activity_id: str, *, data_repo: repo.DataRepo
+) -> list[types.TalkInfo]:
+    """Get all talk info for talks in an activity group."""
+    # Get ActivityGroup JSON file path from mapping
+    mapping = data_repo.build_talk_activity_group_mapping()
+    activity_group_file = mapping[activity_id]
+
+    with open(activity_group_file, "r", encoding="utf-8") as f:
+        activity_data = json.load(f)
+
+    talk_infos = []
+
+    # Extract talk IDs and get talk info for each
+    for talk_entry in activity_data.get("talks", []):
+        talk_id = str(talk_entry["id"])
+
+        # Get talk info using existing function
+        talk_info = get_talk_info_by_id(talk_id, data_repo=data_repo)
+
+        # Only include if talk has content
+        if talk_info.text:
+            talk_infos.append(talk_info)
+
+    return talk_infos
