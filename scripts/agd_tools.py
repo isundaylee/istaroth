@@ -420,10 +420,19 @@ def generate_all(
             generate_talks, Talks(all_tracker_stats.accessed_talk_ids.copy()), "talks"
         )
 
-    # Print summary table
+    # Create summary table
     headers = ["Content Type", "Success", "Errors", "Skipped"]
     summary_stats.append(["TOTAL", total_success, total_error, total_skipped])
-    click.echo("\n" + tabulate(summary_stats, headers=headers, tablefmt="pretty"))
+    summary_table = tabulate(summary_stats, headers=headers, tablefmt="pretty")
+
+    # Print summary table to console
+    click.echo("\n" + summary_table)
+
+    # Write summary table to file
+    summary_table_path = output_dir / "summary_table.txt"
+    with summary_table_path.open("w", encoding="utf-8") as f:
+        f.write(summary_table)
+    click.echo(f"Summary table written to {summary_table_path}")
 
     # Calculate and print unused text map and talk ID entries count
     text_map_tracker = data_repo.load_text_map()
