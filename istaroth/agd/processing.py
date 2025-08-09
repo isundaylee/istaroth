@@ -4,7 +4,7 @@ import itertools
 import json
 import pathlib
 
-from istaroth.agd import localization, repo, types
+from istaroth.agd import localization, repo, talk_parsing, types
 
 
 def get_readable_metadata(
@@ -442,20 +442,23 @@ def get_artifact_set_info(
     )
 
 
-def get_talk_activity_group_info(
-    activity_id: str, *, data_repo: repo.DataRepo
+def get_talk_group_info(
+    talk_group_type: talk_parsing.TalkGroupType,
+    talk_group_id: str,
+    *,
+    data_repo: repo.DataRepo,
 ) -> types.TalkGroupInfo:
     """Get all talk info for talks in an activity group."""
     # Get ActivityGroup JSON file path from mapping
-    activity_group_file = data_repo.build_talk_group_mapping()[
-        ("ActivityGroup", activity_id)
+    talk_group_path = data_repo.build_talk_group_mapping()[
+        (talk_group_type, talk_group_id)
     ]
-    activity_data = data_repo.load_talk_group_data(activity_group_file)
+    talk_group_data = data_repo.load_talk_group_data(talk_group_path)
 
     talk_infos = []
 
     # Extract talk IDs and get talk info for each
-    for talk_entry in activity_data.get("talks", []):
+    for talk_entry in talk_group_data["talks"]:
         talk_id = str(talk_entry["id"])
 
         # Get talk info using existing function

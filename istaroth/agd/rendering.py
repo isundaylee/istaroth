@@ -3,7 +3,7 @@
 import pathlib
 
 from istaroth import utils
-from istaroth.agd import localization, text_utils, types
+from istaroth.agd import localization, talk_parsing, text_utils, types
 
 
 def _extract_talk_type_from_path(talk_file_path: str) -> str:
@@ -260,15 +260,18 @@ def render_artifact_set(artifact_set_info: types.ArtifactSetInfo) -> types.Rende
     return types.RenderedItem(filename=filename, content=rendered_content)
 
 
-def render_talk_activity_group(
-    activity_id: str, talks: types.TalkGroupInfo, language: localization.Language
+def render_talk_group(
+    talk_group_type: talk_parsing.TalkGroupType,
+    talk_group_id: str,
+    talks: types.TalkGroupInfo,
+    language: localization.Language,
 ) -> types.RenderedItem:
     """Render multiple talks from an activity group into a single file."""
     # Generate filename based on activity ID
-    filename = f"talk_activity_group_{activity_id}.txt"
+    filename = f"talk_group_{talk_group_type}_{talk_group_id}.txt"
 
     # Format content with activity group header and all talks
-    content_lines = [f"# Talk Activity Group: {activity_id}\n"]
+    content_lines = [f"# Talk Group: {talk_group_type} - {talk_group_id}\n"]
 
     for talk in talks:
         content_lines.append("## Talk\n")

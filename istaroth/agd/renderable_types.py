@@ -268,16 +268,17 @@ class ArtifactSets(BaseRenderableType[str]):
         return rendering.render_artifact_set(artifact_set_info)
 
 
-class TalkActivityGroups(BaseRenderableType[tuple[talk_parsing.TalkGroupType, str]]):
+class TalkGroups(BaseRenderableType[tuple[talk_parsing.TalkGroupType, str]]):
     """Talk activity groups content type (talks grouped by activity)."""
+
+    error_limit: ClassVar[int] = 100
+    error_limit_non_chinese: ClassVar[int] = 100
 
     def discover(
         self, data_repo: repo.DataRepo
     ) -> list[tuple[talk_parsing.TalkGroupType, str]]:
         """Find all ActivityGroup JSON files and return activity IDs."""
-        return sorted(
-            e for e in data_repo.build_talk_group_mapping() if e[0] == "ActivityGroup"
-        )
+        return sorted(data_repo.build_talk_group_mapping())
 
     def process(
         self,
@@ -285,17 +286,16 @@ class TalkActivityGroups(BaseRenderableType[tuple[talk_parsing.TalkGroupType, st
         data_repo: repo.DataRepo,
     ) -> types.RenderedItem | None:
         """Process talk activity group into rendered content."""
-        assert renderable_key[0] == "ActivityGroup"
-        activity_group_info = processing.get_talk_activity_group_info(
-            renderable_key[1], data_repo=data_repo
+        talk_group_info = processing.get_talk_group_info(
+            renderable_key[0], renderable_key[1], data_repo=data_repo
         )
 
         # Skip if no talks found for this activity group
-        if not activity_group_info:
+        if not talk_group_info:
             return None
 
-        return rendering.render_talk_activity_group(
-            renderable_key[1], activity_group_info, data_repo.language
+        return rendering.render_talk_group(
+            renderable_key[0], renderable_key[1], talk_group_info, data_repo.language
         )
 
 

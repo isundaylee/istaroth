@@ -3,7 +3,7 @@
 import json
 import logging
 import pathlib
-from typing import Any, ClassVar, Literal, TypeAlias, cast
+from typing import Any, ClassVar, Literal, TypeAlias, assert_never, cast
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ class TalkParser:
         pathlib.Path("BinOutput/Talk/NpcOther/12634.json"),
         pathlib.Path("BinOutput/Talk/Quest/80046.json"),
         pathlib.Path("BinOutput/Talk/Quest/GlobalDialog.json"),
+        pathlib.Path("BinOutput/Talk/BlossomGroup/5900009.json"),
     ]
 
     _GROUP_DIRECTORIES: ClassVar[set[str]] = {
@@ -44,6 +45,11 @@ class TalkParser:
         # Scan Talk directory and all subdirectories for JSON files
         for json_file in (agd_path / "BinOutput" / "Talk").glob("**/*.json"):
             relative_path = json_file.relative_to(agd_path)
+
+            if relative_path in self._BAD_TALK_PATHS:
+                logger.warning("Known bad talk file %s", relative_path)
+                continue
+
             with open(json_file, encoding="utf-8") as f:
                 data = json.load(f)
 
@@ -65,13 +71,31 @@ class TalkParser:
         data: dict[str, Any],
     ) -> None:
         match group_type:
-            case "ActivityGroup":
-                self.talk_group_id_to_path[("ActivityGroup", data["activityId"])] = (
-                    relative_path
-                ).as_posix()
-            case _:
-                # TODO add more
+            case "ActivityGroup" | "NpcGroup":
+                id = (
+                    data.get("activityId")
+                    or data.get("npcId")
+                    or data.get("JDOFKFPHIDC")
+                    or data.get("PGCNMMEBDIE")
+                )
+                assert isinstance(id, int), relative_path
+
+                key = (group_type, str(id))
+                if key in self.talk_group_id_to_path:
+                    logger.warning(
+                        "Ignoring %s already present as %s in %s",
+                        relative_path,
+                        key,
+                        self.talk_group_id_to_path[key],
+                    )
+                    return
+
+                self.talk_group_id_to_path[key] = (relative_path).as_posix()
+            case "BlossomGroup" | "GadgetGroup":
+                # TODO fill this in
                 pass
+            case _:
+                assert_never(group_type)
 
     def _handle_talk_file(
         self, relative_path: pathlib.Path, talk_data: dict[str, Any]
@@ -79,13 +103,9 @@ class TalkParser:
         talk_id = str(talk_data["talkId"])
         self.talk_id_to_path[talk_id] = relative_path.as_posix()
 
-    @classmethod
-    def _is_talk_file(cls, relative_path: pathlib.Path, talk_data: Any) -> bool:
+    @staticmethod
+    def _is_talk_file(relative_path: pathlib.Path, talk_data: Any) -> bool:
         """Check if a file is a valid talk file."""
-        if relative_path in cls._BAD_TALK_PATHS:
-            logger.warning("Known bad talk file %s", relative_path)
-            return False
-
         # Check some invariants
         try:
             assert isinstance(talk_data, dict), relative_path

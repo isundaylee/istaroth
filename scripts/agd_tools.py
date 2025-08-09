@@ -29,7 +29,7 @@ from istaroth.agd.renderable_types import (
     Quests,
     Readables,
     Subtitles,
-    TalkActivityGroups,
+    TalkGroups,
     Talks,
     Voicelines,
 )
@@ -501,7 +501,7 @@ def generate_all(
 
         if generate_talk_activity_groups:
             success, error, skipped, tracker_stats = _generate_content(
-                TalkActivityGroups(),
+                TalkGroups(),
                 output_dir / "talk_activity_groups",
                 "Generating talk activity group content",
                 data_repo=data_repo,
