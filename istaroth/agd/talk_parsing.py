@@ -59,10 +59,14 @@ class TalkParser:
                 self._handle_talk_group_file(
                     relative_path, cast(TalkGroupType, relative_path.parts[2]), data
                 )
-            else:
-                if not self._is_talk_file(relative_path, data):
-                    continue
+            elif self._is_talk_file(relative_path, data):
                 self._handle_talk_file(relative_path, data)
+            elif "activityId" in data:
+                self._handle_talk_group_file(relative_path, "ActivityGroup", data)
+            elif "npcId" in data:
+                self._handle_talk_group_file(relative_path, "NpcGroup", data)
+            else:
+                assert False, relative_path
 
     def _handle_talk_group_file(
         self,
@@ -106,22 +110,20 @@ class TalkParser:
     @staticmethod
     def _is_talk_file(relative_path: pathlib.Path, talk_data: Any) -> bool:
         """Check if a file is a valid talk file."""
+
         # Check some invariants
         try:
             assert isinstance(talk_data, dict), relative_path
-            assert not (
-                talk_data.get("talkId") and talk_data.get("activityId")
-            ), relative_path
+
+            has_talk_id = "talkId" in talk_data
+            has_activity_id = "activityId" in talk_data
+            has_npc_id = "npcId" in talk_data
+            assert (
+                sum(1 if t else 0 for t in [has_talk_id, has_activity_id, has_npc_id])
+                <= 1
+            )
         except AssertionError:
             logger.warning("Invariant-violating talk file %s", relative_path)
             return False
 
-        if talk_data.get("activityId"):
-            logger.warning("Misplaced talk activity group file %s", relative_path)
-            return False
-
-        if talk_data.get("talkId") is None:
-            logger.warning("Talk without talkId: %s", relative_path)
-            return False
-
-        return True
+        return has_talk_id
