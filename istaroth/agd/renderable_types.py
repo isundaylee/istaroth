@@ -1,6 +1,7 @@
 """Renderable content type classes for different AGD content."""
 
 from abc import ABC, abstractmethod
+from collections import Counter
 from typing import ClassVar
 
 from istaroth import text_cleanup
@@ -157,28 +158,48 @@ class Subtitles(BaseRenderableType):
         return rendering.render_subtitle(subtitle_info, renderable_key)
 
 
-class Materials(BaseRenderableType):
-    """Material content type (item names and descriptions)."""
+class MaterialTypes(BaseRenderableType):
+    """Material types content type (materials grouped by type)."""
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
-        return [
-            str(m["id"]) for m in data_repo.load_material_excel_config_data().get_all()
-        ]
+        """Discover all unique material types."""
+        materials_data = data_repo.load_material_excel_config_data().get_all()
+        return sorted(
+            Counter(material["materialType"] for material in materials_data).keys()
+        )
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
     ) -> types.RenderedItem | None:
-        """Process material into rendered content."""
-        material_info = processing.get_material_info(
-            renderable_key, data_repo=data_repo
-        )
+        """Process all materials of a given type into rendered content."""
+        # Load all materials and filter by the given material type
+        materials_data = data_repo.load_material_excel_config_data().get_all()
+        materials_of_type = []
 
-        if text_utils.should_skip_text(
-            material_info.name, data_repo.language
-        ) or text_utils.should_skip_text(material_info.description, data_repo.language):
+        for material in materials_data:
+            if material["materialType"] != renderable_key:
+                continue
+
+            material_id = str(material["id"])
+            material_info = processing.get_material_info(
+                material_id, data_repo=data_repo
+            )
+
+            # Skip materials with test names or descriptions
+            if text_utils.should_skip_text(
+                material_info.name, data_repo.language
+            ) or text_utils.should_skip_text(
+                material_info.description, data_repo.language
+            ):
+                continue
+
+            materials_of_type.append(material_info)
+
+        # Skip if no materials found for this type
+        if not materials_of_type:
             return None
 
-        return rendering.render_material(material_info, material_id=renderable_key)
+        return rendering.render_materials_by_type(renderable_key, materials_of_type)
 
 
 class Voicelines(BaseRenderableType):

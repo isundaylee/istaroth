@@ -135,19 +135,42 @@ def render_subtitle(
     return types.RenderedItem(filename=filename, content=rendered_content)
 
 
-def render_material(
-    material_info: types.MaterialInfo, *, material_id: str
-) -> types.RenderedItem:
+def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
     """Render material content into RAG-suitable format."""
     # Generate filename based on material name
     safe_name = utils.make_safe_filename_part(material_info.name)
-    filename = f"material_{safe_name}_{material_id}.txt"
+    filename = f"material_{safe_name}_{material_info.material_id}.txt"
 
     # Format content with material name header and description
     content_lines = [f"# {material_info.name}\n"]
     content_lines.append(material_info.description)
 
     rendered_content = "\n".join(content_lines)
+
+    return types.RenderedItem(filename=filename, content=rendered_content)
+
+
+def render_materials_by_type(
+    material_type: str, materials: list[types.MaterialInfo]
+) -> types.RenderedItem:
+    """Render multiple materials of the same type into a single RAG-suitable format file."""
+    # Generate filename based on material type
+    safe_type = utils.make_safe_filename_part(material_type)
+    filename = f"material_type_{safe_type}.txt"
+
+    # Format content with material type header and all materials
+    content_lines = [f"# Materials: {material_type}\n"]
+
+    # Sort materials by ID for deterministic output
+    sorted_materials = sorted(materials, key=lambda x: int(x.material_id))
+
+    for material_info in sorted_materials:
+        content_lines.append(f"## {material_info.name}")
+        content_lines.append("")
+        content_lines.append(material_info.description)
+        content_lines.append("")
+
+    rendered_content = "\n".join(content_lines).rstrip()
 
     return types.RenderedItem(filename=filename, content=rendered_content)
 

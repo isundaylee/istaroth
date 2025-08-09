@@ -24,7 +24,7 @@ from istaroth.agd.renderable_types import (
     ArtifactSets,
     BaseRenderableType,
     CharacterStories,
-    Materials,
+    MaterialTypes,
     Quests,
     Readables,
     Subtitles,
@@ -279,7 +279,7 @@ def cli() -> None:
             "quest",
             "character-stories",
             "subtitles",
-            "materials",
+            "material-types",
             "voicelines",
             "talks",
             "artifact-sets",
@@ -341,7 +341,7 @@ def generate_all(
     generate_quest = only is None or only == "quest"
     generate_character_stories = only is None or only == "character-stories"
     generate_subtitles = only is None or only == "subtitles"
-    generate_materials = only is None or only == "materials"
+    generate_material_types = only is None or only == "material-types"
     generate_talks = only is None or only == "talks"
     generate_artifact_sets = only is None or only == "artifact-sets"
 
@@ -446,11 +446,11 @@ def generate_all(
                 f"Subtitles: {success} success, {error} errors, {skipped} skipped"
             )
 
-        if generate_materials:
+        if generate_material_types:
             success, error, skipped, tracker_stats = _generate_content(
-                Materials(),
-                output_dir / "materials",
-                "Generating material content",
+                MaterialTypes(),
+                output_dir / "material_types",
+                "Generating material types content",
                 data_repo=data_repo,
                 pool=pool,
                 errors_file=errors_file,
@@ -461,7 +461,7 @@ def generate_all(
             total_skipped += skipped
             all_tracker_stats.update(tracker_stats)
             click.echo(
-                f"Materials: {success} success, {error} errors, {skipped} skipped"
+                f"Material types: {success} success, {error} errors, {skipped} skipped"
             )
 
         if not only or only == "voicelines":

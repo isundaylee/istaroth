@@ -24,3 +24,6 @@ def data_repo() -> repo.DataRepo:
         return repo.DataRepo.from_env()
     except ValueError:
         pytest.skip("AGD_PATH environment variable not set")
+        # This line will never be reached due to pytest.skip() raising an exception
+        # but mypy doesn't understand that, so we need a return statement
+        raise  # pragma: no cover
