@@ -447,11 +447,10 @@ def get_talk_activity_group_info(
 ) -> list[types.TalkInfo]:
     """Get all talk info for talks in an activity group."""
     # Get ActivityGroup JSON file path from mapping
-    mapping = data_repo.build_talk_activity_group_mapping()
-    activity_group_file = mapping[activity_id]
-
-    with open(activity_group_file, "r", encoding="utf-8") as f:
-        activity_data = json.load(f)
+    activity_group_file = data_repo.build_talk_group_mapping()[
+        ("ActivityGroup", activity_id)
+    ]
+    activity_data = data_repo.load_talk_group_data(activity_group_file)
 
     talk_infos = []
 

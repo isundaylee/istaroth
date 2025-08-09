@@ -5,7 +5,15 @@ from collections import Counter
 from typing import ClassVar
 
 from istaroth import text_cleanup
-from istaroth.agd import localization, processing, rendering, repo, text_utils, types
+from istaroth.agd import (
+    localization,
+    processing,
+    rendering,
+    repo,
+    talk_parsing,
+    text_utils,
+    types,
+)
 
 
 class BaseRenderableType(ABC):
@@ -262,8 +270,11 @@ class TalkActivityGroups(BaseRenderableType):
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all ActivityGroup JSON files and return activity IDs."""
-        mapping = data_repo.build_talk_activity_group_mapping()
-        return sorted(mapping.keys())
+        return sorted(
+            e[1]
+            for e in data_repo.build_talk_group_mapping()
+            if e[0] == "ActivityGroup"
+        )
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
@@ -325,5 +336,8 @@ class Talks(BaseRenderableType):
 
         # Render the talk
         return rendering.render_talk(
-            talk_info, talk_id=renderable_key, language=data_repo.language, talk_file_path=talk_file_path
+            talk_info,
+            talk_id=renderable_key,
+            language=data_repo.language,
+            talk_file_path=talk_file_path,
         )
