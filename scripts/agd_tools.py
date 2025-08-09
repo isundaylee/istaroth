@@ -14,6 +14,7 @@ from typing import Any, TextIO
 
 import attrs
 import click
+from tabulate import tabulate
 from tqdm import tqdm
 
 # Add the parent directory to Python path to find istaroth module
@@ -336,6 +337,9 @@ def generate_all(
     total_skipped = 0
     all_tracker_stats = types.TrackerStats(set(), set(), set())
 
+    # Collect stats for summary table
+    summary_stats = []
+
     # Determine which content types to generate
     generate_readable = only is None or only == "readable"
     generate_quest = only is None or only == "quest"
@@ -369,9 +373,7 @@ def generate_all(
             total_error += error
             total_skipped += skipped
             all_tracker_stats.update(tracker_stats)
-            click.echo(
-                f"Artifact Sets: {success} success, {error} errors, {skipped} skipped"
-            )
+            summary_stats.append(["Artifact Sets", success, error, skipped])
 
         if generate_readable:
             # Create Readables renderable with all previously used readable IDs
@@ -390,9 +392,7 @@ def generate_all(
             total_error += error
             total_skipped += skipped
             all_tracker_stats.update(tracker_stats)
-            click.echo(
-                f"Readable: {success} success, {error} errors, {skipped} skipped"
-            )
+            summary_stats.append(["Readable", success, error, skipped])
 
         if generate_quest:
             success, error, skipped, tracker_stats = _generate_content(
@@ -408,7 +408,7 @@ def generate_all(
             total_error += error
             total_skipped += skipped
             all_tracker_stats.update(tracker_stats)
-            click.echo(f"Quest: {success} success, {error} errors, {skipped} skipped")
+            summary_stats.append(["Quest", success, error, skipped])
 
         if generate_character_stories:
             success, error, skipped, tracker_stats = _generate_content(
@@ -424,9 +424,7 @@ def generate_all(
             total_error += error
             total_skipped += skipped
             all_tracker_stats.update(tracker_stats)
-            click.echo(
-                f"Character stories: {success} success, {error} errors, {skipped} skipped"
-            )
+            summary_stats.append(["Character Stories", success, error, skipped])
 
         if generate_subtitles:
             success, error, skipped, tracker_stats = _generate_content(
@@ -442,9 +440,7 @@ def generate_all(
             total_error += error
             total_skipped += skipped
             all_tracker_stats.update(tracker_stats)
-            click.echo(
-                f"Subtitles: {success} success, {error} errors, {skipped} skipped"
-            )
+            summary_stats.append(["Subtitles", success, error, skipped])
 
         if generate_material_types:
             success, error, skipped, tracker_stats = _generate_content(
@@ -460,9 +456,7 @@ def generate_all(
             total_error += error
             total_skipped += skipped
             all_tracker_stats.update(tracker_stats)
-            click.echo(
-                f"Material types: {success} success, {error} errors, {skipped} skipped"
-            )
+            summary_stats.append(["Material Types", success, error, skipped])
 
         if not only or only == "voicelines":
             success, error, skipped, tracker_stats = _generate_content(
@@ -478,9 +472,7 @@ def generate_all(
             total_error += error
             total_skipped += skipped
             all_tracker_stats.update(tracker_stats)
-            click.echo(
-                f"Voicelines: {success} success, {error} errors, {skipped} skipped"
-            )
+            summary_stats.append(["Voicelines", success, error, skipped])
 
         if generate_talks:
             # Create Talks renderable with all previously used talk IDs
@@ -499,11 +491,12 @@ def generate_all(
             total_error += error
             total_skipped += skipped
             all_tracker_stats.update(tracker_stats)
-            click.echo(f"Talks: {success} success, {error} errors, {skipped} skipped")
+            summary_stats.append(["Talks", success, error, skipped])
 
-    click.echo(
-        f"\nTotal: {total_success} files generated, {total_error} errors, {total_skipped} skipped"
-    )
+    # Print summary table
+    headers = ["Content Type", "Success", "Errors", "Skipped"]
+    summary_stats.append(["TOTAL", total_success, total_error, total_skipped])
+    click.echo("\n" + tabulate(summary_stats, headers=headers, tablefmt="pretty"))
 
     # Calculate and print unused text map and talk ID entries count
     text_map_tracker = data_repo.load_text_map()
