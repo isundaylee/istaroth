@@ -57,18 +57,18 @@ class _VectorStore:
 
     @classmethod
     def build(
-        cls, texts: list[str], metadatas: list[types.DocumentMetadata]
+        cls, documents: list[tuple[str, types.DocumentMetadata]]
     ) -> "_VectorStore":
-        """Build vector store from texts and metadatas."""
+        """Build vector store from document tuples."""
         embeddings = HuggingFaceEmbeddings(
             model_name="BAAI/bge-m3",
             model_kwargs={"device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")},
             encode_kwargs={"normalize_embeddings": True},
         )
         vector_store = FAISS.from_texts(
-            texts=texts,
+            texts=[text for text, _ in documents],
             embedding=embeddings,
-            metadatas=cast(list[dict], metadatas),
+            metadatas=cast(list[dict], [metadata for _, metadata in documents]),
         )
         return cls(embeddings, vector_store)
 
@@ -263,21 +263,15 @@ class DocumentStore:
         )
 
         # Extract chunks and metadatas from all_documents
-        all_chunks = [
-            doc.page_content
-            for file_docs in all_documents.values()
-            for doc in file_docs.values()
-        ]
-        all_metadatas = [
-            cast(types.DocumentMetadata, doc.metadata)
-            for file_docs in all_documents.values()
-            for doc in file_docs.values()
-        ]
         flattened_documents = [
             doc for file_docs in all_documents.values() for doc in file_docs.values()
         ]
+        document_tuples = [
+            (doc.page_content, cast(types.DocumentMetadata, doc.metadata))
+            for doc in flattened_documents
+        ]
 
-        vector_store = _VectorStore.build(all_chunks, all_metadatas)
+        vector_store = _VectorStore.build(document_tuples)
         bm25_store = _BM25Store.build(flattened_documents)
 
         return cls(
@@ -446,7 +440,7 @@ class DocumentStore:
         else:
             # Create empty store
             return cls(
-                _VectorStore.build([], []),
+                _VectorStore.build([]),
                 _BM25Store.build([]),
                 query_transformer,
                 reranker,
