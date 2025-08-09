@@ -20,7 +20,7 @@ openai
 # Development dependencies
 pip-tools
 pre-commit
-pyrefly
+mypy
 attrs
 pytest
 types-tabulate
