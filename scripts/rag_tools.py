@@ -234,43 +234,43 @@ def chunk_stats(path: pathlib.Path, *, chunk_size_multiplier: float) -> None:
         show_progress=True,
     )
 
-    # Collect chunk lengths
-    chunk_lengths = []
+    # Collect chunk lengths and content
+    chunk_data = []
     file_count = len(all_documents)
 
     for file_docs in all_documents.values():
         for doc in file_docs.values():
-            chunk_lengths.append(len(doc.page_content))
+            chunk_data.append((len(doc.page_content), doc.page_content))
+
+    chunk_lengths = [length for length, _ in chunk_data]
 
     if not chunk_lengths:
         print("No chunks were generated.")
         return
 
-    # Calculate statistics
-    total_chunks = len(chunk_lengths)
-    avg_length = sum(chunk_lengths) / total_chunks
-    min_length = min(chunk_lengths)
-    max_length = max(chunk_lengths)
-
-    # Calculate distribution (bins of 50 characters)
+    # Calculate distribution (bins of 50 characters) and collect examples
     bins: dict[int, int] = {}
+    bin_examples: dict[int, list[str]] = {}
     bin_size = 50
-    for length in chunk_lengths:
+    for length, content in chunk_data:
         bin_key = (length // bin_size) * bin_size
-        if bin_key in bins:
-            bins[bin_key] += 1
-        else:
-            bins[bin_key] = 1
+        bins[bin_key] = bins.get(bin_key, 0) + 1
+        if bin_key not in bin_examples:
+            bin_examples[bin_key] = []
+        if len(bin_examples[bin_key]) < 3:
+            bin_examples[bin_key].append(content)
 
     # Display statistics
     print("\nDocument Chunk Statistics")
     print("=" * 40)
     print(f"Total files: {file_count}")
-    print(f"Total chunks: {total_chunks}")
-    print(f"Average chunk length: {avg_length:.1f} characters")
+    print(f"Total chunks: {len(chunk_lengths)}")
+    print(
+        f"Average chunk length: {sum(chunk_lengths) / len(chunk_lengths):.1f} characters"
+    )
     print(f"Sum chunk length: {sum(chunk_lengths):.1f} characters")
-    print(f"Min chunk length: {min_length} characters")
-    print(f"Max chunk length: {max_length} characters")
+    print(f"Min chunk length: {min(chunk_lengths)} characters")
+    print(f"Max chunk length: {max(chunk_lengths)} characters")
 
     print("\nLength Distribution:")
     print("-" * 40)
@@ -295,6 +295,21 @@ def chunk_stats(path: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     print(f"25th percentile: {p25} characters")
     print(f"50th percentile (median): {p50} characters")
     print(f"75th percentile: {p75} characters")
+
+    print("\nExamples by Size Range:")
+    print("=" * 60)
+    for bin_start in sorted(bin_examples.keys()):
+        print(
+            f"\n{bin_start}-{bin_start + bin_size - 1} characters ({bins[bin_start]} chunks):"
+        )
+        print("-" * 30)
+
+        for i, example in enumerate(bin_examples[bin_start], 1):
+            print(f"Example {i}:")
+            print("─" * 80)
+            print(example)
+            print("─" * 80)
+            print()
 
 
 @cli.command("chunk-file")
