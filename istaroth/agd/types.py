@@ -107,6 +107,8 @@ class DocumentExcelConfigDataItem(TypedDict):
     id: int
     titleTextMapHash: int
     contentTextMapHash: int
+    ICGFBCENKJD: list[int]
+    questContentLocalizedId: list[int]
     questIDList: list[int]
     showOnlyUnlocked: bool
     isDisuse: bool

@@ -49,20 +49,20 @@ class Readables(BaseRenderableType):
         self, renderable_key: str, data_repo: repo.DataRepo
     ) -> types.RenderedItem | None:
         """Process readable file into rendered content."""
+        # Read the actual readable content
+        readable_file_path = data_repo.agd_path / renderable_key
+        with open(readable_file_path, "r", encoding="utf-8") as f:
+            content = text_cleanup.clean_text_markers(f.read(), data_repo.language)
+
+        if text_utils.should_skip_text(content, data_repo.language):
+            return None
+
         # Get readable metadata
         metadata = processing.get_readable_metadata(renderable_key, data_repo=data_repo)
 
         # Skip if title starts with "test" (case-insensitive) and language is CHS
         if text_utils.should_skip_text(metadata.title, data_repo.language):
             return None
-
-        # Read the actual readable content
-        readable_file_path = data_repo.agd_path / renderable_key
-        with open(readable_file_path, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        # Clean text markers in readable content
-        content = text_cleanup.clean_text_markers(content, data_repo.language)
 
         # Render the content
         return rendering.render_readable(content, metadata)

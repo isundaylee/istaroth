@@ -1,5 +1,6 @@
 """Processing functions for AGD data."""
 
+import itertools
 import pathlib
 from threading import local
 
@@ -11,25 +12,33 @@ def get_readable_metadata(
 ) -> types.ReadableMetadata:
     """Retrieve metadata for a readable file."""
     # Extract readable identifier from path (e.g., "Book100" or "Weapon11101" from path)
+    language_short = data_repo.language_short
     path_obj = pathlib.Path(readable_path)
-    readable_id = path_obj.stem
+    readable_stem = path_obj.stem
+    readable_id = readable_stem.removesuffix(f"_{language_short}")
 
     # Load required data files
     localization_data = data_repo.load_localization_excel_config_data()
     document_data = data_repo.load_document_excel_config_data()
     text_map = data_repo.load_text_map()
-    language_short = data_repo.language_short
 
     # Step 1: Find localization ID for the readable
     for entry in localization_data:
         # Look through all fields to find one with a path ending in the target language_short
         for _, path_value in entry.items():
+            if not isinstance(path_value, str):
+                continue
+
+            # CHS format: ART/UI/Readable/CHS/Book711
+            # ENG format: ART/UI/Readable/EN/Book711_EN
+            path = pathlib.Path(path_value)
             if (
-                isinstance(path_value, str)
-                and (readable_id in path_value)
+                # Is it the right readable?
+                (path.name == readable_stem)
+                # Is it the right language?
                 and (
                     path_value.endswith(f"_{language_short}")
-                    or (f"/{language_short}/" in path_value)
+                    or (language_short in path.parts)
                 )
             ):
                 localization_id = entry["id"]
@@ -42,7 +51,13 @@ def get_readable_metadata(
 
     # Step 2: Find document entry using localization ID
     for doc_item in document_data:
-        if localization_id in doc_item["questIDList"]:
+        if localization_id in list(
+            itertools.chain(
+                doc_item["ICGFBCENKJD"],
+                doc_item["questContentLocalizedId"],
+                doc_item["questIDList"],
+            )
+        ):
             doc_entry = doc_item
             break
     else:
@@ -52,10 +67,7 @@ def get_readable_metadata(
 
     # Step 3: Get title from document's titleTextMapHash
     title_hash = str(doc_entry["titleTextMapHash"])
-    title = text_map.get_optional(title_hash)
-
-    if title is None:
-        raise ValueError(f"Title not found for title hash: {title_hash}")
+    title = text_map.get(title_hash, "Unknown Title")
 
     return types.ReadableMetadata(localization_id=localization_id, title=title)
 
