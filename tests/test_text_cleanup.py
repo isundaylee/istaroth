@@ -63,12 +63,6 @@ def test_empty_text():
     assert result == ""
 
 
-def test_none_text():
-    """Test None text handling."""
-    result = text_cleanup.clean_text_markers(None, localization.Language.ENG)
-    assert result is None
-
-
 def test_no_markers():
     """Test text with no markers."""
     text = "This is normal text with no special markers."

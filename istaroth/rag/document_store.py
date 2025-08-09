@@ -8,13 +8,13 @@ import pathlib
 from typing import cast
 
 import attrs
-import jieba  # type: ignore[import-untyped]
+import jieba
 import langsmith as ls
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from rank_bm25 import BM25Okapi  # type: ignore[import-untyped]
+from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
 from istaroth import langsmith_utils

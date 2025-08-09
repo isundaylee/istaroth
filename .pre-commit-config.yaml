@@ -26,4 +26,4 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
-        additional_dependencies: [types-tabulate, types-tqdm]
+        additional_dependencies: [attrs, types-tabulate, types-tqdm, types-attrs]

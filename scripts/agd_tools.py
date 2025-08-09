@@ -262,18 +262,43 @@ def _generate_content(
     )
 
 
-@click.group()  # type: ignore[misc]
+@click.group()
 def cli() -> None:
     """AGD tools for processing and rendering game content."""
     pass
 
 
-@cli.command("generate-all")  # type: ignore[misc]
-@click.argument("output_dir", type=click.Path(path_type=pathlib.Path))  # type: ignore[misc]
-@click.option("-f", "--force", is_flag=True, help="Delete output dir if it exists")  # type: ignore[misc]
-@click.option("--only", type=click.Choice(["readable", "quest", "character-stories", "subtitles", "materials", "voicelines", "talks", "artifact-sets"]), help="Generate only specific content type")  # type: ignore[misc]
-@click.option("--processes", "-j", type=int, help="Number of parallel processes (default: CPU count)")  # type: ignore[misc]
-@click.option("--sample-rate", type=float, default=1.0, help="Percentage of each type to process (0.0-1.0, default: 1.0)")  # type: ignore[misc]
+@cli.command("generate-all")
+@click.argument("output_dir", type=click.Path(path_type=pathlib.Path))
+@click.option("-f", "--force", is_flag=True, help="Delete output dir if it exists")
+@click.option(
+    "--only",
+    type=click.Choice(
+        [
+            "readable",
+            "quest",
+            "character-stories",
+            "subtitles",
+            "materials",
+            "voicelines",
+            "talks",
+            "artifact-sets",
+        ]
+    ),
+    help="Generate only specific content type",
+)
+@click.option(
+    "--processes",
+    "-j",
+    type=int,
+    help="Number of parallel processes (default: CPU count)",
+)
+@click.option(
+    "--sample-rate",
+    type=float,
+    default=1.0,
+    help="Percentage of each type to process (0.0-1.0, default: 1.0)",
+)
 def generate_all(
     output_dir: pathlib.Path,
     force: bool,
@@ -510,14 +535,14 @@ def generate_all(
             errors_file_path.unlink()
 
 
-@cli.group(name="render")  # type: ignore[misc]
+@cli.group(name="render")
 def render_group() -> None:
     """Render AGD content into RAG-suitable text format."""
     pass
 
 
-@render_group.command("readable")  # type: ignore[misc]
-@click.argument("readable_path")  # type: ignore[misc]
+@render_group.command("readable")
+@click.argument("readable_path")
 def render_readable(readable_path: str) -> None:
     """Render readable content from the given path."""
     try:
@@ -542,8 +567,8 @@ def render_readable(readable_path: str) -> None:
         sys.exit(1)
 
 
-@render_group.command("talk")  # type: ignore[misc]
-@click.argument("talk_path")  # type: ignore[misc]
+@render_group.command("talk")
+@click.argument("talk_path")
 def render_talk(talk_path: str) -> None:
     """Render talk dialog from the given path."""
     try:
@@ -568,8 +593,8 @@ def render_talk(talk_path: str) -> None:
         sys.exit(1)
 
 
-@render_group.command("quest")  # type: ignore[misc]
-@click.argument("quest_path")  # type: ignore[misc]
+@render_group.command("quest")
+@click.argument("quest_path")
 def render_quest(quest_path: str) -> None:
     """Render quest dialog from the given path."""
     try:
@@ -593,7 +618,7 @@ def render_quest(quest_path: str) -> None:
         sys.exit(1)
 
 
-@cli.command("list-readables")  # type: ignore[misc]
+@cli.command("list-readables")
 def list_readables() -> None:
     """List readable metadata for all CHS files."""
     try:

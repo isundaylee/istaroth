@@ -30,7 +30,10 @@ def test_retrieve_output_serialization():
     )
 
     # Create RetrieveOutput with test data
-    original = types.RetrieveOutput(results=[(0.95, [doc1, doc2]), (0.80, [doc1])])
+    query = types.RetrieveQuery(query="test query", k=2, chunk_context=5)
+    original = types.RetrieveOutput(
+        query=query, results=[(0.95, [doc1, doc2]), (0.80, [doc1])]
+    )
 
     # Test serialization
     data = original.to_dict()
@@ -76,7 +79,8 @@ def test_retrieve_output_serialization():
 
 def test_retrieve_output_empty():
     """Test RetrieveOutput serialization with empty results."""
-    original = types.RetrieveOutput(results=[])
+    query = types.RetrieveQuery(query="empty test", k=0, chunk_context=0)
+    original = types.RetrieveOutput(query=query, results=[])
 
     data = original.to_dict()
     assert data == {"results": []}
@@ -91,6 +95,9 @@ def test_retrieve_output_total_documents():
     doc2 = Document(page_content="Test 2", metadata={})
     doc3 = Document(page_content="Test 3", metadata={})
 
-    output = types.RetrieveOutput(results=[(0.9, [doc1, doc2]), (0.8, [doc3])])
+    query = types.RetrieveQuery(query="total documents test", k=3, chunk_context=5)
+    output = types.RetrieveOutput(
+        query=query, results=[(0.9, [doc1, doc2]), (0.8, [doc3])]
+    )
 
     assert output.total_documents == 3

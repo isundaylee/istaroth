@@ -72,7 +72,7 @@ def test_bm25_store_k_exceeds_total():
 
 def test_bm25_store_with_empty_documents():
     """Test _BM25Store with empty document list."""
-    documents = []
+    documents: list[Document] = []
 
     # BM25Okapi raises ZeroDivisionError with empty corpus, so we expect this
     with pytest.raises(ZeroDivisionError):

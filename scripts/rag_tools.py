@@ -58,15 +58,15 @@ def _load_or_create_store() -> document_store.DocumentStore:
     return store
 
 
-@click.group()  # type: ignore[misc]
+@click.group()
 def cli() -> None:
     """RAG tools for document management and querying."""
     pass
 
 
-@cli.command()  # type: ignore[misc]
-@click.argument("path", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
-@click.option("-f", "--force", is_flag=True, help="Delete target if it exists")  # type: ignore[misc]
+@cli.command()
+@click.argument("path", type=click.Path(exists=True, path_type=pathlib.Path))
+@click.option("-f", "--force", is_flag=True, help="Delete target if it exists")
 def build(path: pathlib.Path, force: bool) -> None:
     """Build document store from a file or folder."""
     # Get target path from environment
@@ -108,10 +108,10 @@ def build(path: pathlib.Path, force: bool) -> None:
     store.save_to_env()
 
 
-@cli.command()  # type: ignore[misc]
-@click.argument("query", type=str)  # type: ignore[misc]
-@click.option("-k", "--k", default=5, help="Number of results to return")  # type: ignore[misc]
-@click.option("-c", "--chunk-context", default=5, help="Context size for each chunk")  # type: ignore[misc]
+@cli.command()
+@click.argument("query", type=str)
+@click.option("-k", "--k", default=5, help="Number of results to return")
+@click.option("-c", "--chunk-context", default=5, help="Context size for each chunk")
 @click.option("--save", type=pathlib.Path)
 def retrieve(
     query: str, *, k: int, chunk_context: int, save: pathlib.Path | None
@@ -152,10 +152,10 @@ def retrieve(
         print(formatted_output)
 
 
-@cli.command()  # type: ignore[misc]
-@click.argument("output", type=pathlib.Path)  # type: ignore[misc]
-@click.option("-k", "--k", default=5, help="Number of results to return")  # type: ignore[misc]
-@click.option("-c", "--chunk-context", default=5, help="Context size for each chunk")  # type: ignore[misc]
+@cli.command()
+@click.argument("output", type=pathlib.Path)
+@click.option("-k", "--k", default=5, help="Number of results to return")
+@click.option("-c", "--chunk-context", default=5, help="Context size for each chunk")
 def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
     """Evaluate retrieval on a fixed dataset and save into the output path."""
 
@@ -177,10 +177,10 @@ def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
             )
 
 
-@cli.command()  # type: ignore[misc]
-@click.argument("question", type=str)  # type: ignore[misc]
-@click.option("--k", default=5, help="Number of documents to retrieve")  # type: ignore[misc]
-@click.option("--show-sources", is_flag=True, help="Show source documents")  # type: ignore[misc]
+@cli.command()
+@click.argument("question", type=str)
+@click.option("--k", default=5, help="Number of documents to retrieve")
+@click.option("--show-sources", is_flag=True, help="Show source documents")
 def query(question: str, k: int, show_sources: bool) -> None:
     """Answer a question using RAG pipeline."""
     store = _load_or_create_store()
@@ -212,9 +212,11 @@ def query(question: str, k: int, show_sources: bool) -> None:
             print(f"\n🔗 View traces: {trace_url}")
 
 
-@cli.command()  # type: ignore[misc]
-@click.argument("path", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
-@click.option("--chunk-size-multiplier", default=1.0, type=float, help="Multiplier for chunk size")  # type: ignore[misc]
+@cli.command()
+@click.argument("path", type=click.Path(exists=True, path_type=pathlib.Path))
+@click.option(
+    "--chunk-size-multiplier", default=1.0, type=float, help="Multiplier for chunk size"
+)
 def chunk_stats(path: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     """Show statistics about document chunks from a file or folder."""
     files_to_process = _get_files_to_process(path)
@@ -295,9 +297,11 @@ def chunk_stats(path: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     print(f"75th percentile: {p75} characters")
 
 
-@cli.command("chunk-file")  # type: ignore[misc]
-@click.argument("file", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
-@click.option("--chunk-size-multiplier", default=1.0, type=float, help="Multiplier for chunk size")  # type: ignore[misc]
+@cli.command("chunk-file")
+@click.argument("file", type=click.Path(exists=True, path_type=pathlib.Path))
+@click.option(
+    "--chunk-size-multiplier", default=1.0, type=float, help="Multiplier for chunk size"
+)
 def chunk_file(file: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     """Chunk a single text file and print individual chunks."""
     if not file.is_file() or file.suffix != ".txt":
@@ -334,9 +338,9 @@ def chunk_file(file: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     print(f"  Max chunk size: {max(len(c) for c in chunks_list)} chars")
 
 
-@cli.command("diff-retrieval")  # type: ignore[misc]
-@click.argument("file1", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
-@click.argument("file2", type=click.Path(exists=True, path_type=pathlib.Path))  # type: ignore[misc]
+@cli.command("diff-retrieval")
+@click.argument("file1", type=click.Path(exists=True, path_type=pathlib.Path))
+@click.argument("file2", type=click.Path(exists=True, path_type=pathlib.Path))
 def diff_retrieval(file1: pathlib.Path, file2: pathlib.Path) -> None:
     """Compare two retrieval result files and show differences."""
     # Load and compare the JSON files

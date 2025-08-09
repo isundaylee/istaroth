@@ -24,7 +24,7 @@ Pre-commit hooks are configured with:
 - Sync dependencies: `pip-sync requirements.txt`
 - Install pre-commit: `pre-commit install`
 - Run pre-commit manually: `pre-commit run --all-files`
-- Type checking: `mypy istaroth/ tests/ scripts/`
+- Type checking: `mypy`
 
 ### Project Structure
 ```
@@ -86,5 +86,5 @@ Optional environment variables:
 Tracing is automatically enabled when all required environment variables are set.
 
 ## Development Conventions
-- ALWAYS invoke mypy as `env/bin/mypy istaroth/ tests/ scripts/`
+- ALWAYS invoke mypy as `env/bin/mypy`
 - ALWAYS invoke python as `env/bin/python`; you can source `.source_me` to get env vars if needed.

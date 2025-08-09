@@ -18,7 +18,7 @@ mcp: FastMCP = FastMCP("istaroth")
 store = document_store.DocumentStore.from_env()
 
 
-@mcp.tool()  # type: ignore[misc]
+@mcp.tool()
 def get_file_content(file_id: str, max_chunks: int = 50, start_index: int = 0) -> str:
     """获取指定文件的内容块
 
@@ -107,7 +107,7 @@ def get_file_content(file_id: str, max_chunks: int = 50, start_index: int = 0) -
         return f"获取文件时发生错误：{e}"
 
 
-@mcp.tool()  # type: ignore[misc]
+@mcp.tool()
 def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
     """从Istaroth原神知识库中检索相关文档
 
