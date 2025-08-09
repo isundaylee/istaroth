@@ -173,7 +173,9 @@ class Materials(BaseRenderableType):
             renderable_key, data_repo=data_repo
         )
 
-        if text_utils.should_skip_text(material_info.name, data_repo.language):
+        if text_utils.should_skip_text(
+            material_info.name, data_repo.language
+        ) or text_utils.should_skip_text(material_info.description, data_repo.language):
             return None
 
         return rendering.render_material(material_info, material_id=renderable_key)
