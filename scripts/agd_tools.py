@@ -101,9 +101,11 @@ def _get_data_repo_from_env() -> repo.DataRepo:
     return repo.DataRepo.from_env()
 
 
-def _process_single_item(args: tuple[str, BaseRenderableType]) -> _RenderableResult:
+def _process_single_item(
+    args: tuple[str, BaseRenderableType, bool],
+) -> _RenderableResult:
     """Worker function to process a single renderable item."""
-    renderable_key, renderable_type = args
+    renderable_key, renderable_type, strict = args
     data_repo = _get_data_repo_from_env()
     try:
         with (
@@ -124,8 +126,10 @@ def _process_single_item(args: tuple[str, BaseRenderableType]) -> _RenderableRes
             ),
         )
     except Exception as e:
+        if strict:
+            raise
         return _RenderableResult(
-            renderable_key, None, str(e), types.TrackerStats(set(), set(), set())
+            renderable_key, None, repr(e), types.TrackerStats(set(), set(), set())
         )
 
 
@@ -138,6 +142,7 @@ def _generate_content(
     pool: multiprocessing.pool.Pool,
     errors_file: TextIO | None = None,
     sample_rate: float = 1.0,
+    strict: bool = False,
 ) -> tuple[int, int, int, types.TrackerStats]:
     """Generate content files using renderable type.
 
@@ -173,7 +178,7 @@ def _generate_content(
         )
 
     # Prepare arguments for multiprocessing
-    process_args = [(key, renderable_type) for key in renderable_keys]
+    process_args = [(key, renderable_type, strict) for key in renderable_keys]
 
     # Track used filenames to prevent collisions
     used_filenames: set[str] = set()
@@ -305,12 +310,18 @@ def cli() -> None:
     default=1.0,
     help="Percentage of each type to process (0.0-1.0, default: 1.0)",
 )
+@click.option(
+    "--strict",
+    is_flag=True,
+    help="Throw exceptions instead of catching them when processing fails",
+)
 def generate_all(
     output_dir: pathlib.Path,
     force: bool,
     only: str | None,
     processes: int | None,
     sample_rate: float,
+    strict: bool,
 ) -> None:
     """Generate content into RAG-suitable text files."""
     # Validate sample_rate parameter
@@ -375,6 +386,7 @@ def generate_all(
                 pool=pool,
                 errors_file=errors_file,
                 sample_rate=sample_rate,
+                strict=strict,
             )
             total_success += success
             total_error += error
@@ -394,6 +406,7 @@ def generate_all(
                 pool=pool,
                 errors_file=errors_file,
                 sample_rate=sample_rate,
+                strict=strict,
             )
             total_success += success
             total_error += error
@@ -410,6 +423,7 @@ def generate_all(
                 pool=pool,
                 errors_file=errors_file,
                 sample_rate=sample_rate,
+                strict=strict,
             )
             total_success += success
             total_error += error
@@ -426,6 +440,7 @@ def generate_all(
                 pool=pool,
                 errors_file=errors_file,
                 sample_rate=sample_rate,
+                strict=strict,
             )
             total_success += success
             total_error += error
@@ -442,6 +457,7 @@ def generate_all(
                 pool=pool,
                 errors_file=errors_file,
                 sample_rate=sample_rate,
+                strict=strict,
             )
             total_success += success
             total_error += error
@@ -458,6 +474,7 @@ def generate_all(
                 pool=pool,
                 errors_file=errors_file,
                 sample_rate=sample_rate,
+                strict=strict,
             )
             total_success += success
             total_error += error
@@ -474,6 +491,7 @@ def generate_all(
                 pool=pool,
                 errors_file=errors_file,
                 sample_rate=sample_rate,
+                strict=strict,
             )
             total_success += success
             total_error += error
@@ -490,6 +508,7 @@ def generate_all(
                 pool=pool,
                 errors_file=errors_file,
                 sample_rate=sample_rate,
+                strict=strict,
             )
             total_success += success
             total_error += error
@@ -509,6 +528,7 @@ def generate_all(
                 pool=pool,
                 errors_file=errors_file,
                 sample_rate=sample_rate,
+                strict=strict,
             )
             total_success += success
             total_error += error
@@ -598,7 +618,10 @@ def render_talk(talk_path: str) -> None:
 
         # Render the talk
         rendered = rendering.render_talk(
-            talk_info, talk_id=talk_id, language=localization.Language.CHS
+            talk_info,
+            talk_id=talk_id,
+            talk_file_path=talk_path,
+            language=localization.Language.CHS,
         )
 
         # Output only the content

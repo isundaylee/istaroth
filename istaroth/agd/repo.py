@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import pathlib
+from typing import Any, ClassVar
 
 import attrs
 
@@ -190,6 +191,18 @@ class ReadablesTracker(IdTracker):
 class DataRepo:
     """Repository for loading AnimeGameData files."""
 
+    _BAD_TALK_PATHS: ClassVar[list[pathlib.Path]] = [
+        pathlib.Path("BinOutput/Talk/Coop/1900102_10.json"),
+        pathlib.Path("BinOutput/Talk/Gadget/6800002.json"),
+        pathlib.Path("BinOutput/Talk/Gadget/80045.json"),
+        pathlib.Path("BinOutput/Talk/Npc/7401203.json"),
+        pathlib.Path("BinOutput/Talk/Npc/7401204.json"),
+        pathlib.Path("BinOutput/Talk/Npc/7401205.json"),
+        pathlib.Path("BinOutput/Talk/NpcOther/12634.json"),
+        pathlib.Path("BinOutput/Talk/Quest/80046.json"),
+        pathlib.Path("BinOutput/Talk/Quest/GlobalDialog.json"),
+    ]
+
     agd_path: pathlib.Path = attrs.field(converter=pathlib.Path)
     language: localization.Language
 
@@ -266,28 +279,72 @@ class DataRepo:
             return MaterialTracker(data)
 
     @functools.lru_cache(maxsize=None)
+    def build_talk_activity_group_mapping(self) -> dict[str, pathlib.Path]:
+        """Build mapping from activity ID to ActivityGroup JSON file path."""
+        activity_group_dir = self.agd_path / "BinOutput" / "Talk" / "ActivityGroup"
+        mapping: dict[str, pathlib.Path] = {}
+
+        for json_file in activity_group_dir.glob("*.json"):
+            # Load the JSON to get the actual activityId
+            with open(json_file, "r", encoding="utf-8") as f:
+                activity_data = json.load(f)
+                activity_id = str(activity_data.get("activityId", ""))
+                if activity_id:
+                    mapping[activity_id] = json_file
+
+        return mapping
+
+    @classmethod
+    def _is_talk_file(cls, relative_path: pathlib.Path, talk_data: Any) -> bool:
+        if relative_path in cls._BAD_TALK_PATHS:
+            logger.warning("Known bad talk file %s", relative_path)
+            return False
+
+        # Check some invariants
+        try:
+            assert isinstance(talk_data, dict), relative_path
+            assert not (
+                talk_data.get("talkId") and talk_data.get("activityId")
+            ), relative_path
+        except AssertionError:
+            logger.warning("Invariant-violating talk file %s", relative_path)
+            return False
+
+        if talk_data.get("activityId"):
+            logger.warning("Misplaced talk activity group file %s", relative_path)
+            return False
+
+        assert talk_data.get("talkId") is not None, relative_path
+
+        return True
+
+    @functools.lru_cache(maxsize=None)
     def _build_talk_file_mapping(self) -> dict[str, str]:
         """Build a mapping from talk ID to BinOutput/Talk file path by scanning directories."""
         talk_id_to_path: dict[str, str] = {}
         base_talk_path = self.agd_path / "BinOutput" / "Talk"
 
-        # Scan all subdirectories for JSON files
-        for subdir in base_talk_path.iterdir():
-            if subdir.is_dir():
-                subdir_name = subdir.name
-                for json_file in subdir.glob("*.json"):
-                    with open(json_file, encoding="utf-8") as f:
-                        talk_data = json.load(f)
-                    if (
-                        isinstance(talk_data, dict)
-                        and (v := talk_data.get("talkId")) is not None
-                    ):
-                        talk_id = str(v)
-                    else:
-                        talk_id = json_file.stem
-                    # Store relative path from agd_path
-                    relative_path = f"BinOutput/Talk/{subdir_name}/{json_file.name}"
-                    talk_id_to_path[talk_id] = relative_path
+        # Scan Talk directory and all subdirectories for JSON files
+        for json_file in base_talk_path.glob("**/*.json"):
+            relative_path = json_file.relative_to(self.agd_path)
+            if relative_path.parts[2] in {
+                "ActivityGroup",
+                "BlossomGroup",
+                "GadgetGroup",
+                "NpcGroup",
+            }:
+                continue
+
+            with open(json_file, encoding="utf-8") as f:
+                talk_data = json.load(f)
+
+            if not self._is_talk_file(relative_path, talk_data):
+                continue
+
+            talk_id = str(talk_data["talkId"])
+
+            # Store relative path from agd_path
+            talk_id_to_path[talk_id] = relative_path.as_posix()
 
         return talk_id_to_path
 
@@ -427,19 +484,3 @@ class DataRepo:
     def get_readables(self) -> ReadablesTracker:
         """Get ReadablesTracker for tracking access to readable files."""
         return ReadablesTracker(self.agd_path, self.language_short)
-
-    @functools.lru_cache(maxsize=None)
-    def build_talk_activity_group_mapping(self) -> dict[str, pathlib.Path]:
-        """Build mapping from activity ID to ActivityGroup JSON file path."""
-        activity_group_dir = self.agd_path / "BinOutput" / "Talk" / "ActivityGroup"
-        mapping: dict[str, pathlib.Path] = {}
-
-        for json_file in activity_group_dir.glob("*.json"):
-            # Load the JSON to get the actual activityId
-            with open(json_file, "r", encoding="utf-8") as f:
-                activity_data = json.load(f)
-                activity_id = str(activity_data.get("activityId", ""))
-                if activity_id:
-                    mapping[activity_id] = json_file
-
-        return mapping

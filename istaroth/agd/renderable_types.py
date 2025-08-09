@@ -325,5 +325,5 @@ class Talks(BaseRenderableType):
 
         # Render the talk
         return rendering.render_talk(
-            talk_info, talk_id=renderable_key, language=data_repo.language
+            talk_info, talk_id=renderable_key, language=data_repo.language, talk_file_path=talk_file_path
         )

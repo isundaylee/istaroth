@@ -1,7 +1,33 @@
 """Rendering functions for converting AGD content to RAG-suitable text format."""
 
+import pathlib
+
 from istaroth import utils
 from istaroth.agd import localization, text_utils, types
+
+
+def _extract_talk_type_from_path(talk_file_path: str) -> str:
+    """Extract talk type from file path.
+
+    Args:
+        talk_file_path: Relative path like "BinOutput/Talk/Quest/123.json" or "BinOutput/Talk/456.json"
+
+    Returns:
+        Talk type: "quest", "npc", "root", etc.
+    """
+    path = pathlib.Path(talk_file_path)
+    assert path.parts[0] == "BinOutput"
+    assert path.parts[1] == "Talk"
+
+    # Expected format: BinOutput/Talk/[subdir]/file.json or BinOutput/Talk/file.json
+    if len(path.parts) >= 4:
+        # File is in a subdirectory: BinOutput/Talk/Quest/123.json -> "quest"
+        return path.parts[2].lower()
+    elif len(path.parts) == 3:
+        # File is in root Talk directory: BinOutput/Talk/123.json -> "root"
+        return "root"
+    else:
+        raise ValueError(f"Invalid talk file path {talk_file_path}")
 
 
 def render_readable(
@@ -19,9 +45,18 @@ def render_readable(
 
 
 def render_talk(
-    talk: types.TalkInfo, *, talk_id: str, language: localization.Language
+    talk: types.TalkInfo,
+    *,
+    talk_id: str,
+    talk_file_path: str | None = None,
+    language: localization.Language,
 ) -> types.RenderedItem:
     """Render talk dialog into RAG-suitable format."""
+    # Extract talk type from file path if provided
+    talk_type = (
+        _extract_talk_type_from_path(talk_file_path) if talk_file_path else "unknown"
+    )
+
     # Generate filename - use first few dialog lines to create a meaningful name
     if talk.text:
         # Use first non-empty message for filename
@@ -31,9 +66,9 @@ def render_talk(
         )
         # Take first 50 characters and clean for filename
         safe_title = utils.make_safe_filename_part(first_message)
-        filename = f"talk_{safe_title}_{talk_id}.txt"
+        filename = f"talk_{talk_type}_{safe_title}_{talk_id}.txt"
     else:
-        filename = f"talk_empty_{talk_id}.txt"
+        filename = f"talk_{talk_type}_empty_{talk_id}.txt"
 
     # Format content as dialog with role labels
     content_lines = ["# Talk Dialog\n"]
