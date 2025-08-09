@@ -444,7 +444,7 @@ def get_artifact_set_info(
 
 def get_talk_activity_group_info(
     activity_id: str, *, data_repo: repo.DataRepo
-) -> list[types.TalkInfo]:
+) -> types.TalkGroupInfo:
     """Get all talk info for talks in an activity group."""
     # Get ActivityGroup JSON file path from mapping
     activity_group_file = data_repo.build_talk_group_mapping()[

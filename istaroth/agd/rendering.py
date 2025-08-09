@@ -261,7 +261,7 @@ def render_artifact_set(artifact_set_info: types.ArtifactSetInfo) -> types.Rende
 
 
 def render_talk_activity_group(
-    activity_id: str, talks: list[types.TalkInfo], language: localization.Language
+    activity_id: str, talks: types.TalkGroupInfo, language: localization.Language
 ) -> types.RenderedItem:
     """Render multiple talks from an activity group into a single file."""
     # Generate filename based on activity ID

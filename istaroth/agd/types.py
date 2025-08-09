@@ -423,6 +423,9 @@ class TalkInfo:
     text: list[TalkText]
 
 
+TalkGroupInfo: TypeAlias = list[TalkInfo]
+
+
 @attrs.define
 class QuestInfo:
     """Quest information with associated talk dialogs."""
