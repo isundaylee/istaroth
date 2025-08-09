@@ -244,6 +244,7 @@ class QuestData(TypedDict):
     id: int
     series: int
     descTextMapHash: int
+    chapterId: NotRequired[int]
     subQuests: list[SubQuestItem]
     talks: NotRequired[list[QuestTalkItem]]  # Optional field, not always present
 

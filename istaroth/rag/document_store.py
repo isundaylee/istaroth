@@ -8,13 +8,13 @@ import pathlib
 from typing import cast
 
 import attrs
-import jieba
+import jieba  # type: ignore[import-untyped]
 import langsmith as ls
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from rank_bm25 import BM25Okapi
+from rank_bm25 import BM25Okapi  # type: ignore[import-untyped]
 from tqdm import tqdm
 
 from istaroth import langsmith_utils
@@ -144,11 +144,11 @@ class _BM25Store:
             scores = self._bm25.get_scores(tokenized_query)
 
             # Create list of (score, document) pairs
-            scored_docs = list(zip(scores, self._documents))
+            score_doc_pairs = list(zip(scores, self._documents))
 
             # Sort by score (descending) and take top k
-            scored_docs.sort(key=lambda x: x[0], reverse=True)
-            top_docs = scored_docs[:k]
+            score_doc_pairs.sort(key=lambda x: x[0], reverse=True)
+            top_docs = score_doc_pairs[:k]
 
             # Return as ScoredDocument objects
             scored_docs = [
@@ -192,7 +192,7 @@ def chunk_documents(
     )
 
     all_documents = {}
-    seen_basenames = {}
+    seen_basenames: dict[str, pathlib.Path] = {}
 
     for file_path in tqdm(
         file_paths, desc="Reading & chunking files", disable=not show_progress

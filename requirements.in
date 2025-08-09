@@ -23,3 +23,5 @@ pre-commit
 pyrefly
 attrs
 pytest
+types-tabulate
+types-tqdm

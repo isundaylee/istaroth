@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import functools
-from typing import TYPE_CHECKING, Callable, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Callable, ParamSpec, TypeVar, cast
 
 import langsmith as ls
 
@@ -22,7 +22,7 @@ def traceable(name: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
             """Wrapped function to apply traceable decorator."""
             return f(*args, **kwargs)
 
-        return wrapped
+        return cast(Callable[P, T], wrapped)
 
     return decorator
 

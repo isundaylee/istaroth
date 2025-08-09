@@ -101,6 +101,7 @@ class RAGPipeline:
         }
 
         # Format context
+        sources: list[_SourceDocument]
         if not retrieve_output.results:
             retrieved_context = "（未找到相关资料）"
             sources = []

@@ -374,7 +374,7 @@ class DataRepo:
         return npc_id_to_name
 
     @functools.lru_cache(maxsize=None)
-    def get_gadget_role_names_mapping(self) -> dict[tuple[int, str], str]:
+    def get_gadget_role_names_mapping(self) -> dict[tuple[str, str], str]:
         """Get cached mapping from (gadget_id, content_hash) to role name."""
         dialog_data = self.load_dialog_excel_config_data()
         text_map = self.load_text_map()

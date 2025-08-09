@@ -14,7 +14,7 @@ import langsmith as ls
 from istaroth.rag import document_store, output_rendering
 
 # Create an MCP server
-mcp = FastMCP("istaroth")
+mcp: FastMCP = FastMCP("istaroth")
 store = document_store.DocumentStore.from_env()
 
 
