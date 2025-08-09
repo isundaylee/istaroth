@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 from collections import Counter
-from typing import ClassVar
+from typing import ClassVar, Generic, TypeVar
 
 from istaroth import text_cleanup
 from istaroth.agd import (
@@ -15,27 +15,30 @@ from istaroth.agd import (
     types,
 )
 
+# Generic type variable for renderable keys
+TKey = TypeVar("TKey")
 
-class BaseRenderableType(ABC):
+
+class BaseRenderableType(ABC, Generic[TKey]):
     """Abstract base class for renderable content types."""
 
     error_limit: ClassVar[int] = 0  # Default error limit
     error_limit_non_chinese: ClassVar[int] = 0  # Higher limit for non-Chinese languages
 
     @abstractmethod
-    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+    def discover(self, data_repo: repo.DataRepo) -> list[TKey]:
         """Find and return list of renderable keys for this renderable type."""
         pass
 
     @abstractmethod
     def process(
-        self, renderable_key: str, data_repo: repo.DataRepo
+        self, renderable_key: TKey, data_repo: repo.DataRepo
     ) -> types.RenderedItem | None:
         """Process renderable key into rendered content."""
         pass
 
 
-class Readables(BaseRenderableType):
+class Readables(BaseRenderableType[str]):
     """Readable content type (books, weapons, etc.)."""
 
     error_limit: ClassVar[int] = 50
@@ -76,8 +79,8 @@ class Readables(BaseRenderableType):
         return rendering.render_readable(content, metadata)
 
 
-class Quests(BaseRenderableType):
-    """Quest content type (dialog, cutscenes, etc.)."""
+class Quests(BaseRenderableType[str]):
+    """Quest content type (dialog, cutscenes, etc.)"""
 
     error_limit: ClassVar[int] = 100
     error_limit_non_chinese: ClassVar[int] = 2000
@@ -110,7 +113,7 @@ class Quests(BaseRenderableType):
         return rendering.render_quest(quest_info, language=data_repo.language)
 
 
-class CharacterStories(BaseRenderableType):
+class CharacterStories(BaseRenderableType[str]):
     """Character story content type."""
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
@@ -140,7 +143,7 @@ class CharacterStories(BaseRenderableType):
         return rendering.render_character_story(story_info)
 
 
-class Subtitles(BaseRenderableType):
+class Subtitles(BaseRenderableType[str]):
     """Subtitle content type (.srt files)."""
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
@@ -166,7 +169,7 @@ class Subtitles(BaseRenderableType):
         return rendering.render_subtitle(subtitle_info, renderable_key)
 
 
-class MaterialTypes(BaseRenderableType):
+class MaterialTypes(BaseRenderableType[str]):
     """Material types content type (materials grouped by type)."""
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
@@ -210,7 +213,7 @@ class MaterialTypes(BaseRenderableType):
         return rendering.render_materials_by_type(renderable_key, materials_of_type)
 
 
-class Voicelines(BaseRenderableType):
+class Voicelines(BaseRenderableType[str]):
     """Voiceline content type (character voice lines)."""
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
@@ -237,7 +240,7 @@ class Voicelines(BaseRenderableType):
         return rendering.render_voiceline(voiceline_info)
 
 
-class ArtifactSets(BaseRenderableType):
+class ArtifactSets(BaseRenderableType[str]):
     """Artifact set content type (artifact sets with individual piece stories)."""
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
@@ -265,7 +268,7 @@ class ArtifactSets(BaseRenderableType):
         return rendering.render_artifact_set(artifact_set_info)
 
 
-class TalkActivityGroups(BaseRenderableType):
+class TalkActivityGroups(BaseRenderableType[str]):
     """Talk activity groups content type (talks grouped by activity)."""
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
@@ -293,7 +296,7 @@ class TalkActivityGroups(BaseRenderableType):
         )
 
 
-class Talks(BaseRenderableType):
+class Talks(BaseRenderableType[str]):
     """Standalone talk content type for talks not used by other renderable types."""
 
     error_limit: ClassVar[int] = 500
