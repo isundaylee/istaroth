@@ -82,24 +82,30 @@ class TalkParser:
                     or data.get("JDOFKFPHIDC")
                     or data.get("PGCNMMEBDIE")
                 )
-                assert isinstance(id, int), relative_path
-
-                key = (group_type, str(id))
-                if key in self.talk_group_id_to_path:
-                    logger.warning(
-                        "Ignoring %s already present as %s in %s",
-                        relative_path,
-                        key,
-                        self.talk_group_id_to_path[key],
-                    )
-                    return
-
-                self.talk_group_id_to_path[key] = (relative_path).as_posix()
-            case "BlossomGroup" | "GadgetGroup":
+            case "GadgetGroup":
+                id = (
+                    data.get("configId")
+                    or data.get("DANPPPLPAEE")
+                    or data.get("JEMDGACPOPC")
+                )
+            case "BlossomGroup":
                 # TODO fill this in
-                pass
+                return
             case _:
                 assert_never(group_type)
+
+        assert isinstance(id, int), relative_path
+        key = (group_type, str(id))
+        if key in self.talk_group_id_to_path:
+            logger.warning(
+                "Ignoring %s already present as %s in %s",
+                relative_path,
+                key,
+                self.talk_group_id_to_path[key],
+            )
+            return
+
+        self.talk_group_id_to_path[key] = (relative_path).as_posix()
 
     def _handle_talk_file(
         self, relative_path: pathlib.Path, talk_data: dict[str, Any]
