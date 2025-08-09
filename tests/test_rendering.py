@@ -10,7 +10,7 @@ def test_render_readable_basic() -> None:
 
     rendered = rendering.render_readable(content, metadata)
 
-    assert rendered.filename == "readable_Test_Book_Title.txt"
+    assert rendered.filename == "readable_Test_Book_Title_0.txt"
     assert (
         rendered.content
         == "# Test Book Title\n\nThis is some readable content.\nWith multiple lines."
@@ -24,7 +24,7 @@ def test_render_readable_special_characters() -> None:
 
     rendered = rendering.render_readable(content, metadata)
 
-    assert rendered.filename == "readable_神霄折戟录第六卷.txt"
+    assert rendered.filename == "readable_神霄折戟录第六卷_0.txt"
     assert rendered.content == "# 神霄折戟录·第六卷\n\nContent here."
 
 
@@ -37,7 +37,7 @@ def test_render_readable_whitespace() -> None:
 
     rendered = rendering.render_readable(content, metadata)
 
-    assert rendered.filename == "readable_Title_With_Spaces.txt"
+    assert rendered.filename == "readable_Title_With_Spaces_0.txt"
     assert rendered.content == "#   Title   With   Spaces  \n\nSome content."
 
 

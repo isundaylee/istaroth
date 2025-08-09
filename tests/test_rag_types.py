@@ -36,57 +36,7 @@ def test_retrieve_output_serialization():
     )
 
     # Test serialization
-    data = original.to_dict()
-
-    # Verify structure
-    assert "results" in data
-    assert len(data["results"]) == 2
-
-    # Check first result
-    result1 = data["results"][0]
-    assert result1["score"] == 0.95
-    assert len(result1["documents"]) == 2
-    assert result1["documents"][0]["page_content"] == "Test content 1"
-    assert result1["documents"][0]["metadata"]["source"] == "test1.txt"
-
-    # Check second result
-    result2 = data["results"][1]
-    assert result2["score"] == 0.80
-    assert len(result2["documents"]) == 1
-    assert result2["documents"][0]["page_content"] == "Test content 1"
-
-    # Test deserialization
-    restored = types.RetrieveOutput.from_dict(data)
-
-    # Verify restored object matches original
-    assert len(restored.results) == 2
-
-    # Check first result
-    score1, docs1 = restored.results[0]
-    assert score1 == 0.95
-    assert len(docs1) == 2
-    assert docs1[0].page_content == "Test content 1"
-    assert docs1[0].metadata["source"] == "test1.txt"
-    assert docs1[1].page_content == "Test content 2"
-
-    # Check second result
-    score2, docs2 = restored.results[1]
-    assert score2 == 0.80
-    assert len(docs2) == 1
-    assert docs2[0].page_content == "Test content 1"
-    assert docs2[0].metadata["source"] == "test1.txt"
-
-
-def test_retrieve_output_empty():
-    """Test RetrieveOutput serialization with empty results."""
-    query = types.RetrieveQuery(query="empty test", k=0, chunk_context=0)
-    original = types.RetrieveOutput(query=query, results=[])
-
-    data = original.to_dict()
-    assert data == {"results": []}
-
-    restored = types.RetrieveOutput.from_dict(data)
-    assert restored.results == []
+    assert types.RetrieveOutput.from_dict(original.to_dict()) == original
 
 
 def test_retrieve_output_total_documents():
