@@ -13,7 +13,7 @@ def test_chinese_corpus_sanity():
     test_cases = {
         "artifact_sets/artifact_set_旅途中的鲜花_15029.txt": "「是啊，我不会怨恨。我明白，你不曾见到我曾目睹的景象。所以你才会想阻止我。」",
         "character_stories/character_story_烟绯.txt": "所以烟绯也拥有神之眼——而且她的神之眼，与她信奉的「规则」等价。",
-        "materials/material_无垢之海的苦盏_114057.txt": "传说在最初的僭主来到原始之海时，水国的先主曾赠予他一杯水。",
+        "material_types/material_type_MATERIAL_AVATAR_MATERIAL.txt": "传说在最初的僭主来到原始之海时，水国的先主曾赠予他一杯水。",
         "quest/quest_溪舟的尾波.txt": "水仙的追迹·第四幕 溪舟的尾波",
         "quest/quest_溪舟的尾波.txt": "纳齐森科鲁兹: 我想知道，你们做了什么样的梦。",
         "readable/readable_日月前事_200334.txt": "我们称呼她「卡伊洛斯」，或者「不变世界的统领与执政」。真正秘密的名字，我们不敢直言，所以在这里倒写。「露塔斯伊」——我仅提一次。",
@@ -43,7 +43,7 @@ def test_english_corpus_sanity():
     test_cases = {
         "artifact_sets/artifact_set_Odyssean_Flower_15029.txt": "Yes, hatred shall not fill me. I know that you have not seen the sights I have, and that is why you wish to stop me.",
         "character_stories/character_story_Yanfei.txt": "That is why Yanfei possesses a Vision, one that is of equal weight to her principles.",
-        "materials/material_Broken_Goblet_of_the_Pristine_Sea_114057.txt": "Legend says that when the first usurper came to the primordial sea, the first sovereign gave him a goblet of water.",
+        "material_types/material_type_MATERIAL_AVATAR_MATERIAL.txt": "Legend says that when the first usurper came to the primordial sea, the first sovereign gave him a goblet of water.",
         "quest/quest_Rowboats_Wake.txt": "In the Wake of Narcissus: Act IV Rowboat's Wake",
         "quest/quest_Rowboats_Wake.txt": "Narzissenkreuz: I would like to know what sort of dreams you had.",
         "readable/readable_Before_Sun_and_Moon_200334.txt": 'We call her Kairos, or "the ruler of the unchanging world." We dare not speak her true, secret name, and so I pen it here, only once, and in reverse: "Htoratsi."',
