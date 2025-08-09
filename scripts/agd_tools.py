@@ -136,7 +136,6 @@ def _process_single_item(
 def _generate_content(
     renderable_type: BaseRenderableType,
     output_dir: pathlib.Path,
-    desc: str,
     *,
     data_repo: repo.DataRepo,
     pool: multiprocessing.pool.Pool,
@@ -206,7 +205,7 @@ def _generate_content(
 
     # Use the provided multiprocessing pool
     # Process with progress bar
-    with tqdm(total=len(process_args), desc=desc) as pbar:
+    with tqdm(total=len(process_args), desc=type(renderable_type).__name__) as pbar:
         for result in pool.imap(_process_single_item, process_args):
             pbar.update(1)
 
@@ -291,7 +290,7 @@ def cli() -> None:
             "subtitles",
             "material-types",
             "voicelines",
-            "talk-activity-groups",
+            "talk-groups",
             "talks",
             "artifact-sets",
         ]
@@ -356,14 +355,38 @@ def generate_all(
     # Collect stats for summary table
     summary_stats = []
 
+    # Helper function to process a content type conditionally
+    def process_content_type(
+        should_generate: bool, renderable: BaseRenderableType, output_subdir: str
+    ) -> None:
+        """Process a single content type if condition is met and update global stats."""
+        if not should_generate:
+            return
+
+        nonlocal total_success, total_error, total_skipped
+        success, error, skipped, tracker_stats = _generate_content(
+            renderable,
+            output_dir / output_subdir,
+            data_repo=data_repo,
+            pool=pool,
+            errors_file=errors_file,
+            sample_rate=sample_rate,
+            strict=strict,
+        )
+        total_success += success
+        total_error += error
+        total_skipped += skipped
+        all_tracker_stats.update(tracker_stats)
+        summary_stats.append([output_subdir, success, error, skipped])
+
     # Determine which content types to generate
-    generate_readable = only is None or only == "readable"
-    generate_quest = only is None or only == "quest"
+    generate_readable = only is None or only == "readables"
+    generate_quest = only is None or only == "quests"
     generate_character_stories = only is None or only == "character-stories"
     generate_subtitles = only is None or only == "subtitles"
     generate_material_types = only is None or only == "material-types"
     generate_voicelines = only is None or only == "voicelines"
-    generate_talk_activity_groups = only is None or only == "talk-activity-groups"
+    generate_talk_groups = only is None or only == "talk-groups"
     generate_talks = only is None or only == "talks"
     generate_artifact_sets = only is None or only == "artifact-sets"
 
@@ -377,164 +400,25 @@ def generate_all(
         errors_file_path.open("w", encoding="utf-8") as errors_file,
         multiprocessing.Pool(processes=processes) as pool,
     ):
-        if generate_artifact_sets:
-            success, error, skipped, tracker_stats = _generate_content(
-                ArtifactSets(),
-                output_dir / "artifact_sets",
-                "Generating artifact set content",
-                data_repo=data_repo,
-                pool=pool,
-                errors_file=errors_file,
-                sample_rate=sample_rate,
-                strict=strict,
-            )
-            total_success += success
-            total_error += error
-            total_skipped += skipped
-            all_tracker_stats.update(tracker_stats)
-            summary_stats.append(["Artifact Sets", success, error, skipped])
+        process_content_type(generate_artifact_sets, ArtifactSets(), "artifact_sets")
+        process_content_type(generate_quest, Quests(), "quest")
+        process_content_type(
+            generate_character_stories, CharacterStories(), "character_stories"
+        )
+        process_content_type(generate_subtitles, Subtitles(), "subtitles")
+        process_content_type(generate_material_types, MaterialTypes(), "material_types")
+        process_content_type(generate_voicelines, Voicelines(), "voicelines")
+        process_content_type(generate_talk_groups, TalkGroups(), "talk_groups")
 
-        if generate_readable:
-            # Create Readables renderable with all previously used readable IDs
-            used_readable_ids = all_tracker_stats.accessed_readable_ids.copy()
-
-            success, error, skipped, tracker_stats = _generate_content(
-                Readables(used_readable_ids),
-                output_dir / "readable",
-                "Generating readable content",
-                data_repo=data_repo,
-                pool=pool,
-                errors_file=errors_file,
-                sample_rate=sample_rate,
-                strict=strict,
-            )
-            total_success += success
-            total_error += error
-            total_skipped += skipped
-            all_tracker_stats.update(tracker_stats)
-            summary_stats.append(["Readable", success, error, skipped])
-
-        if generate_quest:
-            success, error, skipped, tracker_stats = _generate_content(
-                Quests(),
-                output_dir / "quest",
-                "Generating quest content",
-                data_repo=data_repo,
-                pool=pool,
-                errors_file=errors_file,
-                sample_rate=sample_rate,
-                strict=strict,
-            )
-            total_success += success
-            total_error += error
-            total_skipped += skipped
-            all_tracker_stats.update(tracker_stats)
-            summary_stats.append(["Quest", success, error, skipped])
-
-        if generate_character_stories:
-            success, error, skipped, tracker_stats = _generate_content(
-                CharacterStories(),
-                output_dir / "character_stories",
-                "Generating character stories",
-                data_repo=data_repo,
-                pool=pool,
-                errors_file=errors_file,
-                sample_rate=sample_rate,
-                strict=strict,
-            )
-            total_success += success
-            total_error += error
-            total_skipped += skipped
-            all_tracker_stats.update(tracker_stats)
-            summary_stats.append(["Character Stories", success, error, skipped])
-
-        if generate_subtitles:
-            success, error, skipped, tracker_stats = _generate_content(
-                Subtitles(),
-                output_dir / "subtitles",
-                "Generating subtitle content",
-                data_repo=data_repo,
-                pool=pool,
-                errors_file=errors_file,
-                sample_rate=sample_rate,
-                strict=strict,
-            )
-            total_success += success
-            total_error += error
-            total_skipped += skipped
-            all_tracker_stats.update(tracker_stats)
-            summary_stats.append(["Subtitles", success, error, skipped])
-
-        if generate_material_types:
-            success, error, skipped, tracker_stats = _generate_content(
-                MaterialTypes(),
-                output_dir / "material_types",
-                "Generating material types content",
-                data_repo=data_repo,
-                pool=pool,
-                errors_file=errors_file,
-                sample_rate=sample_rate,
-                strict=strict,
-            )
-            total_success += success
-            total_error += error
-            total_skipped += skipped
-            all_tracker_stats.update(tracker_stats)
-            summary_stats.append(["Material Types", success, error, skipped])
-
-        if generate_voicelines:
-            success, error, skipped, tracker_stats = _generate_content(
-                Voicelines(),
-                output_dir / "voicelines",
-                "Generating voiceline content",
-                data_repo=data_repo,
-                pool=pool,
-                errors_file=errors_file,
-                sample_rate=sample_rate,
-                strict=strict,
-            )
-            total_success += success
-            total_error += error
-            total_skipped += skipped
-            all_tracker_stats.update(tracker_stats)
-            summary_stats.append(["Voicelines", success, error, skipped])
-
-        if generate_talk_activity_groups:
-            success, error, skipped, tracker_stats = _generate_content(
-                TalkGroups(),
-                output_dir / "talk_activity_groups",
-                "Generating talk activity group content",
-                data_repo=data_repo,
-                pool=pool,
-                errors_file=errors_file,
-                sample_rate=sample_rate,
-                strict=strict,
-            )
-            total_success += success
-            total_error += error
-            total_skipped += skipped
-            all_tracker_stats.update(tracker_stats)
-            summary_stats.append(["Talk Activity Groups", success, error, skipped])
-
-        if generate_talks:
-            # Create Talks renderable with all previously used talk IDs
-            used_talk_ids = all_tracker_stats.accessed_talk_ids.copy()
-
-            success, error, skipped, tracker_stats = _generate_content(
-                Talks(used_talk_ids),
-                output_dir / "talks",
-                "Generating standalone talk content",
-                data_repo=data_repo,
-                pool=pool,
-                errors_file=errors_file,
-                sample_rate=sample_rate,
-                strict=strict,
-            )
-            total_success += success
-            total_error += error
-            total_skipped += skipped
-            all_tracker_stats.update(tracker_stats)
-            summary_stats.append(["Talks", success, error, skipped])
+        # Generating remaining unused readables/talks
+        process_content_type(
+            generate_readable,
+            Readables(all_tracker_stats.accessed_readable_ids.copy()),
+            "readable",
+        )
+        process_content_type(
+            generate_talks, Talks(all_tracker_stats.accessed_talk_ids.copy()), "talks"
+        )
 
     # Print summary table
     headers = ["Content Type", "Success", "Errors", "Skipped"]
