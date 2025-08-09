@@ -9,6 +9,17 @@ repos:
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: debug-statements
+      - id: check-case-conflict
+
+  - repo: local
+    hooks:
+      - id: forbid-nocommit
+        name: Forbid NOCOMMIT
+        description: Reject commits that contain NOCOMMIT
+        entry: 'NOCOMMIT'
+        language: pygrep
+        types: [text]
+        exclude: ^\.pre-commit-config\.yaml$
 
   - repo: https://github.com/psf/black
     rev: 23.7.0
