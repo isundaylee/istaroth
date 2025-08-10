@@ -50,8 +50,8 @@ jobs:
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta-backend.outputs.tags }}
         labels: ${{ steps.meta-backend.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: type=registry,ref=isundaylee/istaroth:cache
+        cache-to: type=registry,ref=isundaylee/istaroth:cache,mode=max
         platforms: linux/amd64,linux/arm64
 
   build-frontend:
@@ -91,6 +91,6 @@ jobs:
         push: ${{ github.event_name != 'pull_request' }}
         tags: ${{ steps.meta-frontend.outputs.tags }}
         labels: ${{ steps.meta-frontend.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: type=registry,ref=isundaylee/istaroth-frontend:cache
+        cache-to: type=registry,ref=isundaylee/istaroth-frontend:cache,mode=max
         platforms: linux/amd64,linux/arm64
