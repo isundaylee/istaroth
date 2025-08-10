@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import ReactMarkdown from 'react-markdown'
 
 interface QueryResponse {
   question: string
@@ -88,9 +89,7 @@ function App() {
           <div className="response">
             <h3>回答</h3>
             <div className="answer">
-              {response.answer.split('\n').map((line, index) => (
-                <p key={index}>{line}</p>
-              ))}
+              <ReactMarkdown>{response.answer}</ReactMarkdown>
             </div>
           </div>
         )}
