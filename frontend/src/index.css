@@ -314,12 +314,17 @@ body {
   padding-bottom: 0;
 }
 
+.answer-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .share-section {
   text-align: center;
   margin: 2rem 0;
 }
 
-.share-button {
+.share-button, .export-button {
   background: #007bff;
   color: white;
   border: none;
@@ -327,10 +332,24 @@ body {
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.9rem;
+  transition: background-color 0.2s;
 }
 
-.share-button:hover {
+.share-button:hover, .export-button:hover:not(:disabled) {
   background: #0056b3;
+}
+
+.export-button {
+  background: #28a745;
+}
+
+.export-button:hover:not(:disabled) {
+  background: #218838;
+}
+
+.export-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
 }
 
 .share-url {
@@ -371,6 +390,21 @@ body {
 
   .conversation-header {
     flex-direction: column;
+    text-align: center;
+  }
+
+  .answer-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .answer-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .answer-header h3 {
     text-align: center;
   }
 }

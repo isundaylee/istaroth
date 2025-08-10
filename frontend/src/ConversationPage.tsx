@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
+import html2canvas from 'html2canvas'
 import QueryForm from './QueryForm'
 
 interface ConversationResponse {
@@ -21,6 +22,7 @@ function ConversationPage() {
   const [conversation, setConversation] = useState<ConversationResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     const fetchConversation = async () => {
@@ -72,6 +74,41 @@ function ConversationPage() {
     })
   }
 
+  const exportPageAsPNG = async () => {
+    if (!conversation) return
+
+    setExporting(true)
+
+    try {
+      const element = document.querySelector('.conversation-content') as HTMLElement
+      if (!element) {
+        throw new Error('对话内容元素未找到')
+      }
+
+      const canvas = await html2canvas(element, {
+        useCORS: true,
+        scale: 2,
+        scrollX: 0,
+        scrollY: 0,
+        backgroundColor: '#f5f5f5',
+        x: -20,
+        y: -20,
+        width: element.scrollWidth + 40,
+        height: element.scrollHeight + 40
+      } as any)
+
+      const link = document.createElement('a')
+      link.download = `istaroth-conversation-${conversation.id}-${Date.now()}.png`
+      link.href = canvas.toDataURL()
+      link.click()
+    } catch (error) {
+      console.error('导出PNG失败:', error)
+      alert('导出PNG失败，请重试')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="app">
@@ -112,9 +149,18 @@ function ConversationPage() {
           <div className="answer-section">
             <div className="answer-header">
               <h3>回答:</h3>
-              <button onClick={copyCurrentUrl} className="share-button">
-                复制分享链接
-              </button>
+              <div className="answer-buttons">
+                <button onClick={copyCurrentUrl} className="share-button">
+                  复制分享链接
+                </button>
+                <button
+                  onClick={exportPageAsPNG}
+                  className="export-button"
+                  disabled={exporting}
+                >
+                  {exporting ? '导出中...' : '导出为PNG'}
+                </button>
+              </div>
             </div>
             <div className="answer">
               <ReactMarkdown>{conversation!.answer}</ReactMarkdown>
