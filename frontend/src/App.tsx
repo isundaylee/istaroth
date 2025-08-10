@@ -91,6 +91,7 @@ function App() {
 
         <header className={`header${titleFadeOut ? ' fade-out' : ''}`}>
           <h1>伊斯塔露</h1>
+          <img src="/istaroth-logo.png" alt="Istaroth Logo" className="logo" />
         </header>
 
         {error && (
