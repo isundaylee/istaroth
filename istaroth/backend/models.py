@@ -9,6 +9,7 @@ class QueryRequest:
 
     question: str = attrs.field()
     k: int = attrs.field(default=10)
+    model: str | None = attrs.field(default=None)
 
     @k.validator
     def _validate_k(self, attribute: attrs.Attribute, value: int) -> None:

@@ -187,11 +187,11 @@ def query(question: str, k: int) -> None:
     print(f"问题: {question}")
     print("=" * 50)
 
-    # Create RAG pipeline with Google Gemini
+    # Create RAG pipeline and LLM
     llm = pipeline.create_llm_from_env()
-    rag = pipeline.RAGPipeline(store, llm)
+    rag = pipeline.RAGPipeline(store)
 
-    answer = rag.answer(question, k=k)
+    answer = rag.answer(question, k=k, llm=llm)
     print(f"回答: {answer}")
 
 

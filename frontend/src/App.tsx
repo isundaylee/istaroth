@@ -12,6 +12,7 @@ interface ErrorResponse {
 
 function App() {
   const [question, setQuestion] = useState('')
+  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-lite')
   const [response, setResponse] = useState<QueryResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -47,6 +48,7 @@ function App() {
         body: JSON.stringify({
           question: question.trim(),
           k: 10,
+          model: selectedModel,
         }),
       })
 
@@ -69,7 +71,7 @@ function App() {
     <div className="app">
       <main className="main">
         <form onSubmit={handleSubmit} className="query-form">
-          <div className="input-group">
+          <div className="input-row">
             <input
               ref={inputRef}
               type="text"
@@ -79,6 +81,18 @@ function App() {
               disabled={loading}
               className="question-input"
             />
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              disabled={loading}
+              className="model-select"
+            >
+              <option value="gemini-2.5-flash-lite">超快速 (gemini-2.5-flash-lite)</option>
+              <option value="gemini-2.5-flash">快速 (gemini-2.5-flash)</option>
+              <option value="gpt-5-nano">快速 (gpt-5-nano)</option>
+              <option value="gpt-5-mini">中速 (gpt-5-mini)</option>
+              <option value="gemini-2.5-pro">慢速 (gemini-2.5-pro)</option>
+            </select>
             <button
               type="submit"
               disabled={loading || !question.trim()}

@@ -72,10 +72,11 @@ body {
   margin-bottom: 30px;
 }
 
-.input-group {
+.input-row {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  align-items: stretch;
 }
 
 .question-input {
@@ -95,6 +96,27 @@ body {
 .question-input:disabled {
   background-color: #f8f8f8;
   color: #999;
+}
+
+.model-select {
+  padding: 12px 16px;
+  border: 2px solid #e1e1e1;
+  border-radius: 4px;
+  font-size: 1rem;
+  background-color: white;
+  min-width: 180px;
+  cursor: pointer;
+}
+
+.model-select:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.model-select:disabled {
+  background-color: #f8f8f8;
+  color: #999;
+  cursor: not-allowed;
 }
 
 .submit-button {
@@ -229,11 +251,15 @@ body {
 }
 
 @media (max-width: 600px) {
-  .input-group {
+  .input-row {
     flex-direction: column;
   }
 
   .question-input {
+    min-width: auto;
+  }
+
+  .model-select {
     min-width: auto;
   }
 }

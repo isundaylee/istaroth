@@ -29,12 +29,12 @@ class BackendApp:
             "Document store loaded with %d documents", self.document_store.num_documents
         )
 
-        # Initialize LLM
-        logger.info("Initializing LLM")
-        self.llm = pipeline.create_llm_from_env()
+        # Initialize LLM manager
+        logger.info("Initializing LLM manager")
+        self.llm_manager = pipeline.LLMManager()
 
-        # Create RAG pipeline with default k=10
-        self.rag_pipeline = pipeline.RAGPipeline(self.document_store, self.llm)
+        # Create RAG pipeline (without fixed LLM)
+        self.rag_pipeline = pipeline.RAGPipeline(self.document_store)
         logger.info("RAG pipeline initialized successfully")
 
         # Register routes
@@ -57,13 +57,29 @@ class BackendApp:
 
             # Validate request
             try:
-                request = models.QueryRequest(question=data["question"], k=data["k"])
+                request = models.QueryRequest(
+                    question=data["question"],
+                    k=data.get("k", 10),
+                    model=data.get("model"),
+                )
             except (TypeError, ValueError, KeyError) as e:
                 return attrs.asdict(models.ErrorResponse(error=repr(e))), 400
 
+            # Get LLM for the requested model
+            try:
+                llm = self.llm_manager.get_llm(request.model)
+            except ValueError as e:
+                return attrs.asdict(models.ErrorResponse(error=str(e))), 400
+
             # Get answer
-            logger.info("Processing query: %s with k=%d", request.question, request.k)
-            answer = self.rag_pipeline.answer(request.question, k=request.k)
+            model_info = getattr(llm, "model", getattr(llm, "model_name", "unknown"))
+            logger.info(
+                "Processing query: %s with k=%d using model: %s",
+                request.question,
+                request.k,
+                model_info,
+            )
+            answer = self.rag_pipeline.answer(request.question, k=request.k, llm=llm)
 
             # Return response
             return (
