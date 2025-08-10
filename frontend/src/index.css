@@ -269,6 +269,13 @@ body {
   margin: 0 auto;
 }
 
+.conversation-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 2rem;
+}
+
 .question-section, .answer-section {
   margin: 2rem 0;
   padding: 1.5rem;
@@ -340,6 +347,7 @@ body {
 .back-link:hover {
   text-decoration: underline;
 }
+
 
 .loading {
   text-align: center;

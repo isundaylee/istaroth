@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
+import QueryForm from './QueryForm'
 
 interface ConversationResponse {
   id: number
@@ -101,11 +102,7 @@ function ConversationPage() {
   return (
     <div className="app">
       <main className="main">
-        <div className="conversation-header">
-          <Link to="/" className="back-link">
-            ← 返回首页
-          </Link>
-        </div>
+        <QueryForm />
 
         <div className="conversation-content">
           <div className="question-section">
@@ -124,10 +121,15 @@ function ConversationPage() {
             </div>
           </div>
 
-          <div className="conversation-meta">
-            <p>对话 #{conversation.id}</p>
-            <p>时间: {formatDate(conversation.created_at)}</p>
-            {conversation.model && <p>模型: {conversation.model}</p>}
+          <div className="conversation-footer">
+            <div className="conversation-meta">
+              <p>对话 #{conversation.id}</p>
+              <p>时间: {formatDate(conversation.created_at)}</p>
+              {conversation.model && <p>模型: {conversation.model}</p>}
+            </div>
+            <Link to="/" className="back-link">
+              ← 返回首页
+            </Link>
           </div>
         </div>
       </main>
