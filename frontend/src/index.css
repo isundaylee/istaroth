@@ -20,6 +20,10 @@ body {
 .header {
   text-align: center;
   margin-bottom: 40px;
+  padding: 30px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   transition: opacity 0.3s ease-out, transform 0.3s ease-out, margin 0.3s ease-out, height 0.3s ease-out, padding 0.3s ease-out;
   opacity: 1;
   transform: translateY(0);
