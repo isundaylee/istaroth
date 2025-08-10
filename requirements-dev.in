@@ -1,0 +1,8 @@
+# Development dependencies
+pip-tools
+pre-commit
+mypy
+attrs
+pytest
+types-tabulate
+types-tqdm

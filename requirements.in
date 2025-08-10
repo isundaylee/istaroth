@@ -1,31 +1,4 @@
-# Core dependencies for Istaroth project
-# Add your main project dependencies here
-click
-tqdm
-sentence-transformers
-numpy
-langchain
-langchain-community
-langchain-google-genai
-langchain-openai
-langchain-huggingface
-langchain-cohere
-faiss-cpu
-rank-bm25
-mcp
-fastmcp
-jieba
-tabulate
-openai
-flask
-sqlalchemy
-alembic
-
-# Development dependencies
-pip-tools
-pre-commit
-mypy
-attrs
-pytest
-types-tabulate
-types-tqdm
+# Include all dependency subsets
+-r requirements-ml.in
+-r requirements-app.in
+-r requirements-dev.in

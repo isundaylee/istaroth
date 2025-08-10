@@ -4,16 +4,33 @@ FROM python:3.12-slim AS builder
 # Install system dependencies for building Python packages
 RUN apt-get update && apt-get install -y \
     build-essential \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Create and activate virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy requirements and install dependencies
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install --upgrade pip && \
-    pip install -r /tmp/requirements.txt
+# Upgrade pip and install pip-tools (cache this layer)
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel pip-tools
+
+# Copy requirements files
+COPY requirements.txt requirements-ml.in requirements-app.in /tmp/
+
+# Install heavy ML dependencies first (cached layer)
+RUN pip-compile --resolver=backtracking --strip-extras \
+    --constraint /tmp/requirements.txt \
+    --output-file /tmp/requirements-ml.txt /tmp/requirements-ml.in && \
+    pip install --no-cache-dir \
+    --find-links https://download.pytorch.org/whl/cpu \
+    -r /tmp/requirements-ml.txt
+
+# Then install remaining app dependencies (separate cached layer)
+RUN pip-compile --resolver=backtracking --strip-extras \
+    --constraint /tmp/requirements.txt \
+    --output-file /tmp/requirements-app.txt /tmp/requirements-app.in && \
+    pip install --no-cache-dir \
+    -r /tmp/requirements-app.txt
 
 # Final stage
 FROM python:3.12-slim

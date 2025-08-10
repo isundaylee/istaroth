@@ -1,0 +1,18 @@
+# Application dependencies (non-ML)
+click
+tqdm
+langchain
+langchain-community
+langchain-google-genai
+langchain-openai
+langchain-huggingface
+langchain-cohere
+rank-bm25
+mcp
+fastmcp
+jieba
+tabulate
+openai
+flask
+sqlalchemy
+alembic
