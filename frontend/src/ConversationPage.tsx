@@ -106,7 +106,7 @@ function ConversationPage() {
 
         <div className="conversation-content">
           <div className="question-section">
-            <h3>问题: <span style={{fontWeight: 'normal'}}>{conversation.question}</span></h3>
+            <h3>问题: <span style={{fontWeight: 'normal'}}>{conversation!.question}</span></h3>
           </div>
 
           <div className="answer-section">
@@ -117,15 +117,15 @@ function ConversationPage() {
               </button>
             </div>
             <div className="answer">
-              <ReactMarkdown>{conversation.answer}</ReactMarkdown>
+              <ReactMarkdown>{conversation!.answer}</ReactMarkdown>
             </div>
           </div>
 
           <div className="conversation-footer">
             <div className="conversation-meta">
-              <p>对话 #{conversation.id}</p>
-              <p>时间: {formatDate(conversation.created_at)}</p>
-              {conversation.model && <p>模型: {conversation.model}</p>}
+              <p>对话 #{conversation!.id}</p>
+              <p>时间: {formatDate(conversation!.created_at)}</p>
+              {conversation!.model && <p>模型: {conversation!.model}</p>}
             </div>
             <Link to="/" className="back-link">
               ← 返回首页
