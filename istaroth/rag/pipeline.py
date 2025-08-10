@@ -64,7 +64,7 @@ class RAGPipeline:
         # Create the chain
         self._chain = self._prompt | self._llm
 
-    @langsmith_utils.traceable(name="hybrid_search")
+    @langsmith_utils.traceable(name="pipeline_query")
     def answer(self, question: str, *, k: int) -> str:
         """Answer question with source documents."""
 
