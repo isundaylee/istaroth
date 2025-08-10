@@ -291,7 +291,7 @@ class TalkGroups(BaseRenderableType[tuple[talk_parsing.TalkGroupType, str]]):
         )
 
         # Skip if no talks found for this activity group
-        if not talk_group_info:
+        if not talk_group_info.talks:
             return None
 
         return rendering.render_talk_group(

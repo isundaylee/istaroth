@@ -456,17 +456,22 @@ def get_talk_group_info(
     ]
     talk_group_data = data_repo.load_talk_group_data(talk_group_path)
 
-    talk_infos = []
-
     # Extract talk IDs and get talk info for each
+    talks = []
     for talk_entry in talk_group_data["talks"]:
         talk_id = str(talk_entry["id"])
 
         # Get talk info using existing function
         talk_info = get_talk_info_by_id(talk_id, data_repo=data_repo)
 
+        next_talks = list[types.TalkInfo]()
+        for next_talk_id in talk_entry.get("nextTalks", []):
+            next_talk_info = get_talk_info_by_id(str(next_talk_id), data_repo=data_repo)
+            if next_talk_info.text:
+                next_talks.append(next_talk_info)
+
         # Only include if talk has content
         if talk_info.text:
-            talk_infos.append(talk_info)
+            talks.append((talk_info, next_talks))
 
-    return talk_infos
+    return types.TalkGroupInfo(talks=talks)

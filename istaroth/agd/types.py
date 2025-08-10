@@ -423,7 +423,10 @@ class TalkInfo:
     text: list[TalkText]
 
 
-TalkGroupInfo: TypeAlias = list[TalkInfo]
+@attrs.define
+class TalkGroupInfo:
+    talks: list[tuple[TalkInfo, list[TalkInfo]]]
+    """List of (talk, next_talks)."""
 
 
 @attrs.define
