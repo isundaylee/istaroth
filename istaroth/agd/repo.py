@@ -10,6 +10,7 @@ import pathlib
 from typing import Any
 
 import attrs
+from numpy import isin
 
 from istaroth import text_cleanup
 from istaroth.agd import localization, talk_parsing, types
@@ -271,6 +272,37 @@ class DataRepo:
         self,
     ) -> dict[tuple[talk_parsing.TalkGroupType, str], str]:
         return self._get_talk_parser().talk_group_id_to_path
+
+    @functools.lru_cache(maxsize=None)
+    def build_quest_mapping(self) -> dict[str, str]:
+        """Build a mapping from quest ID to BinOutput/Quest file path by scanning directories."""
+        quest_id_to_path: dict[str, str] = {}
+
+        # Scan Quest directory for JSON files
+        for json_file in (self.agd_path / "BinOutput" / "Quest").glob("*.json"):
+            relative_path = json_file.relative_to(self.agd_path)
+
+            with open(json_file, encoding="utf-8") as f:
+                quest_data = json.load(f)
+
+            assert isinstance(quest_data, dict), relative_path
+            quest_id = quest_data.get("id")
+            assert isinstance(quest_id, int), relative_path
+
+            # Check for duplicates
+            if quest_id in quest_id_to_path:
+                logger.warning(
+                    "Duplicate quest ID %s: already mapped to %s, ignoring %s",
+                    quest_id,
+                    quest_id_to_path[str(quest_id)],
+                    relative_path.as_posix(),
+                )
+                continue
+
+            # Store the mapping
+            quest_id_to_path[str(quest_id)] = relative_path.as_posix()
+
+        return quest_id_to_path
 
     @functools.lru_cache(maxsize=None)
     def _get_talk_parser(self) -> talk_parsing.TalkParser:

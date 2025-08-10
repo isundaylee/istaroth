@@ -284,8 +284,8 @@ def cli() -> None:
     "--only",
     type=click.Choice(
         [
-            "readable",
-            "quest",
+            "readables",
+            "quests",
             "character-stories",
             "subtitles",
             "material-types",

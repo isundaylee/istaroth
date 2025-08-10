@@ -166,7 +166,7 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
 def get_quest_info(quest_id: str, *, data_repo: repo.DataRepo) -> types.QuestInfo:
     """Retrieve quest information from quest ID."""
     # Convert quest ID to path
-    quest_path = f"BinOutput/Quest/{quest_id}.json"
+    quest_path = data_repo.build_quest_mapping()[quest_id]
     quest_data = data_repo.load_quest_data(quest_path)
     text_map = data_repo.load_text_map()
 
