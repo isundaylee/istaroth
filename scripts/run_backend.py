@@ -17,11 +17,7 @@ from istaroth.backend import app
 @click.option("--host", default="0.0.0.0", help="Host to bind the server to")
 @click.option("--port", default=5000, type=int, help="Port to bind the server to")
 @click.option("--debug", is_flag=True, help="Run in debug mode")
-def main(
-    host: str,
-    port: int,
-    debug: bool,
-) -> None:
+def main(host: str, port: int, debug: bool) -> None:
     """Run the Istaroth backend server."""
     # Configure logging
     logging.basicConfig(
@@ -36,7 +32,7 @@ def main(
     logger.info("Debug mode: %s", debug)
 
     # Create and run the application
-    flask_app = app.create_app()
+    flask_app = app.BackendApp().app
     flask_app.run(host=host, port=port, debug=debug)
 
 
