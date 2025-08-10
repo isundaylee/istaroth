@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 
 interface QueryResponse {
@@ -15,6 +15,15 @@ function App() {
   const [response, setResponse] = useState<QueryResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [titleFadeOut, setTitleFadeOut] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTitleFadeOut(true)
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,7 +63,7 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>伊斯塔露</h1>
+        <h1 className={titleFadeOut ? 'fade-out' : ''}>伊斯塔露</h1>
       </header>
 
       <main className="main">
