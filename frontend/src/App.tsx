@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 
 interface QueryResponse {
@@ -16,11 +16,17 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [titleFadeOut, setTitleFadeOut] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setTitleFadeOut(true)
     }, 500)
+
+    // Focus the input field when component mounts
+    if (inputRef.current) {
+      inputRef.current.focus()
+    }
 
     return () => clearTimeout(timer)
   }, [])
@@ -70,6 +76,7 @@ function App() {
         <form onSubmit={handleSubmit} className="query-form">
           <div className="input-group">
             <input
+              ref={inputRef}
               type="text"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
