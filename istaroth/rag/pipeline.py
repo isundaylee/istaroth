@@ -8,7 +8,7 @@ from langchain import prompts
 from langchain_core import language_models, messages
 from langchain_core.runnables import RunnableConfig
 from langchain_google_genai import llms as google_llms
-from langchain_openai import llms as openai_llms
+from langchain_openai import chat_models as openai_llms
 
 from istaroth import langsmith_utils
 from istaroth.rag import document_store, output_rendering, tracing
@@ -27,7 +27,7 @@ def create_llm_from_env() -> language_models.BaseLanguageModel:
     if model_name.startswith("gemini"):
         return google_llms.GoogleGenerativeAI(model=model_name)
     elif model_name.startswith(("gpt-", "chatgpt-", "o1-")):
-        return openai_llms.OpenAI(model=model_name)
+        return openai_llms.ChatOpenAI(model=model_name, max_tokens=100000)
     else:
         raise ValueError(f"Unrecognized model name '{model_name}'.")
 
