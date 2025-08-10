@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import html2canvas from 'html2canvas'
 import QueryForm from './QueryForm'
+import Card from './components/Card'
 
 interface ConversationResponse {
   id: number
@@ -142,14 +143,16 @@ function ConversationPage() {
         <QueryForm />
 
         <div className="conversation-content">
-          <div className="question-section">
-            <h3>问题: <span style={{fontWeight: 'normal'}}>{conversation!.question}</span></h3>
-          </div>
+          <Card borderColor="green">
+            <h3>
+              问题: <span style={{fontWeight: 'normal'}}>{conversation!.question}</span>
+            </h3>
+          </Card>
 
-          <div className="answer-section">
-            <div className="answer-header">
+          <Card borderColor="blue">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <h3>回答:</h3>
-              <div className="answer-buttons">
+              <div>
                 <button onClick={copyCurrentUrl} className="share-button">
                   复制分享链接
                 </button>
@@ -165,7 +168,7 @@ function ConversationPage() {
             <div className="answer">
               <ReactMarkdown>{conversation!.answer}</ReactMarkdown>
             </div>
-          </div>
+          </Card>
 
           <div className="conversation-footer">
             <div className="conversation-meta">

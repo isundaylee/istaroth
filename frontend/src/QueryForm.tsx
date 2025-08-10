@@ -11,11 +11,7 @@ interface ErrorResponse {
   error: string
 }
 
-interface QueryFormProps {
-  onTitleFadeOut?: () => void
-}
-
-function QueryForm({ onTitleFadeOut }: QueryFormProps) {
+function QueryForm() {
   const navigate = useNavigate()
   const [question, setQuestion] = useState('')
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-lite')
@@ -33,11 +29,6 @@ function QueryForm({ onTitleFadeOut }: QueryFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!question.trim()) return
-
-    // Trigger title fade out on first query (only on home page)
-    if (onTitleFadeOut) {
-      onTitleFadeOut()
-    }
 
     setLoading(true)
     setError(null)
