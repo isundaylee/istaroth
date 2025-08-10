@@ -152,7 +152,7 @@ function ConversationPage() {
           <Card borderColor="blue">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
               <h3>回答:</h3>
-              <div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={copyCurrentUrl} className="share-button">
                   复制分享链接
                 </button>
