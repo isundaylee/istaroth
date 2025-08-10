@@ -1,14 +1,22 @@
 """RAG pipeline for end-to-end question answering."""
 
+import os
 import typing
 
 import attrs
 from langchain import prompts
 from langchain_core import language_models, messages
 from langchain_core.runnables import RunnableConfig
+from langchain_google_genai import llms as google_llms
 
 from istaroth import langsmith_utils
 from istaroth.rag import document_store, output_rendering, tracing
+
+
+def create_llm_from_env() -> google_llms.GoogleGenerativeAI:
+    """Create Google Gemini LLM instance using ISTAROTH_PIPELINE_MODEL environment variable."""
+    model_name = os.environ.get("ISTAROTH_PIPELINE_MODEL", "gemini-2.5-flash-lite")
+    return google_llms.GoogleGenerativeAI(model=model_name)
 
 
 class RAGPipeline:

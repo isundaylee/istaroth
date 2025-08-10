@@ -10,7 +10,7 @@ import click
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from istaroth.backend import app, config
+from istaroth.backend import app
 
 
 @click.command()
@@ -29,9 +29,6 @@ def main(
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
-    # Create config from environment
-    backend_config = config.BackendConfig.from_env()
-
     # Log startup information
     logger = logging.getLogger(__name__)
     logger.info("Starting Istaroth backend server")
@@ -39,7 +36,7 @@ def main(
     logger.info("Debug mode: %s", debug)
 
     # Create and run the application
-    flask_app = app.create_app(backend_config)
+    flask_app = app.create_app()
     flask_app.run(host=host, port=port, debug=debug)
 
 

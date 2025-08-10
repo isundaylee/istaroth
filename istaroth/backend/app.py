@@ -5,7 +5,6 @@ import traceback
 
 import attrs
 import flask
-from langchain_google_genai import llms as google_llms
 
 from istaroth.backend import models
 from istaroth.rag import document_store, pipeline
@@ -32,7 +31,8 @@ class BackendApp:
 
         # Initialize LLM
         logger.info("Initializing Google Gemini LLM")
-        self.llm = google_llms.GoogleGenerativeAI(model="gemini-2.0-flash-lite")
+        self.llm = pipeline.create_llm_from_env()
+        logger.info("LLM initialized with model: %s", self.llm.model)
 
         # Create RAG pipeline with default k=10
         self.rag_pipeline = pipeline.RAGPipeline(self.document_store, self.llm)

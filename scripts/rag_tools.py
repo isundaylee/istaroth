@@ -33,7 +33,7 @@ from istaroth.rag.eval import dataset
 
 def _create_llm() -> google_llms.GoogleGenerativeAI:
     """Create Google Gemini LLM instance."""
-    return google_llms.GoogleGenerativeAI(model="gemini-2.5-flash-lite")
+    return pipeline.create_llm_from_env()
 
 
 def _get_files_to_process(path: pathlib.Path) -> list[pathlib.Path]:
@@ -193,9 +193,9 @@ def query(question: str, k: int) -> None:
 
     # Create RAG pipeline with Google Gemini
     llm = _create_llm()
-    rag = pipeline.RAGPipeline(store, llm, k=k)
+    rag = pipeline.RAGPipeline(store, llm)
 
-    answer = rag.answer(question)
+    answer = rag.answer(question, k=k)
     print(f"回答: {answer}")
 
 
