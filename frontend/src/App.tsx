@@ -19,21 +19,20 @@ function App() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setTitleFadeOut(true)
-    }, 500)
-
     // Focus the input field when component mounts
     if (inputRef.current) {
       inputRef.current.focus()
     }
-
-    return () => clearTimeout(timer)
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!question.trim()) return
+
+    // Hide the title when user submits their first query
+    if (!titleFadeOut) {
+      setTitleFadeOut(true)
+    }
 
     setLoading(true)
     setError(null)
@@ -68,10 +67,6 @@ function App() {
 
   return (
     <div className="app">
-      <header className="header">
-        <h1 className={titleFadeOut ? 'fade-out' : ''}>伊斯塔露</h1>
-      </header>
-
       <main className="main">
         <form onSubmit={handleSubmit} className="query-form">
           <div className="input-group">
@@ -89,10 +84,14 @@ function App() {
               disabled={loading || !question.trim()}
               className="submit-button"
             >
-              {loading ? '搜索中...' : '提问'}
+              {loading ? '回答中...' : '提问'}
             </button>
           </div>
         </form>
+
+        <header className={`header${titleFadeOut ? ' fade-out' : ''}`}>
+          <h1>伊斯塔露</h1>
+        </header>
 
         {error && (
           <div className="error">
