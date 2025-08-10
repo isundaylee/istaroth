@@ -48,13 +48,10 @@ class RAGPipeline:
         self,
         document_store: document_store.DocumentStore,
         llm: language_models.BaseLanguageModel,
-        *,
-        k: int,
     ):
         """Initialize RAG pipeline."""
         self._document_store = document_store
         self._llm = llm
-        self._k = k
 
         # Create the prompt template
         self._prompt = prompts.ChatPromptTemplate.from_messages(
@@ -67,33 +64,18 @@ class RAGPipeline:
         # Create the chain
         self._chain = self._prompt | self._llm
 
-    def _retrieve_context(self, query: str) -> str:
-        """Retrieve and format documents as context."""
-        retrieve_output = self._document_store.retrieve(query, k=self._k)
-
-        if not retrieve_output.results:
-            return "（未找到相关资料）"
-
-        # Format the retrieved documents
-        formatted_content = []
-        for i, (_, documents) in enumerate(retrieve_output.results, 1):
-            content = "\n".join(doc.page_content for doc in documents)
-            formatted_content.append(f"【资料{i}】\n{content}")
-
-        return "\n\n".join(formatted_content)
-
     @langsmith_utils.traceable(name="hybrid_search")
-    def answer(self, question: str) -> str:
+    def answer(self, question: str, *, k: int) -> str:
         """Answer question with source documents."""
 
         # Retrieve relevant documents
-        retrieve_output = self._document_store.retrieve(question, k=self._k)
+        retrieve_output = self._document_store.retrieve(question, k=k)
 
         # Generate answer with tracing context
         config: RunnableConfig = {
             "metadata": {
                 "question": question,
-                "k": self._k,
+                "k": k,
                 "num_documents": self._document_store.num_documents,
                 "num_retrieved": len(retrieve_output.results),
                 "retrieval_scores": [score for score, _ in retrieve_output.results],
