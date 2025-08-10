@@ -90,7 +90,7 @@ def render_quest(
     """Render quest information into RAG-suitable format."""
     # Generate filename based on quest title
     safe_title = utils.make_safe_filename_part(quest.title)
-    filename = f"quest_{safe_title}.txt"
+    filename = f"quest_{safe_title}_{quest.quest_id}.txt"
 
     # Format content with chapter title (if available) and quest title
     content_lines = []

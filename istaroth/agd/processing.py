@@ -238,6 +238,7 @@ def get_quest_info(quest_id: str, *, data_repo: repo.DataRepo) -> types.QuestInf
             continue
 
     return types.QuestInfo(
+        quest_id=quest_id,
         title=quest_title,
         chapter_title=chapter_title,
         talks=subquest_talk_infos,

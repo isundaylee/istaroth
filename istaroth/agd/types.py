@@ -430,6 +430,7 @@ TalkGroupInfo: TypeAlias = list[TalkInfo]
 class QuestInfo:
     """Quest information with associated talk dialogs."""
 
+    quest_id: str
     title: str
     chapter_title: str | None
     talks: list[TalkInfo]
