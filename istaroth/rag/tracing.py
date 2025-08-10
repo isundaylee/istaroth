@@ -18,24 +18,6 @@ OPTIONAL_TRACING_ENV_VARS = [
 ]
 
 
-def check_tracing_requirements() -> bool:
-    """Check if tracing requirements are met."""
-    missing_vars = []
-    for var in REQUIRED_TRACING_ENV_VARS:
-        if not os.getenv(var):
-            missing_vars.append(var)
-
-    if missing_vars:
-        logger.warning(
-            "LangSmith tracing disabled. Missing environment variables: %s",
-            ", ".join(missing_vars),
-        )
-        return False
-
-    logger.info("LangSmith tracing enabled")
-    return True
-
-
 def is_tracing_enabled() -> bool:
     """Check if tracing is enabled."""
     return os.getenv("LANGCHAIN_TRACING_V2", "false").lower() == "true"

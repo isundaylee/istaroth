@@ -33,7 +33,7 @@ from istaroth.rag.eval import dataset
 
 def _create_llm() -> google_llms.GoogleGenerativeAI:
     """Create Google Gemini LLM instance."""
-    return google_llms.GoogleGenerativeAI(model="gemini-2.5-flash")
+    return google_llms.GoogleGenerativeAI(model="gemini-2.5-flash-lite")
 
 
 def _get_files_to_process(path: pathlib.Path) -> list[pathlib.Path]:
@@ -179,14 +179,13 @@ def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
 
 @cli.command()
 @click.argument("question", type=str)
-@click.option("--k", default=5, help="Number of documents to retrieve")
-@click.option("--show-sources", is_flag=True, help="Show source documents")
-def query(question: str, k: int, show_sources: bool) -> None:
+@click.option("--k", default=10, help="Number of documents to retrieve")
+def query(question: str, k: int) -> None:
     """Answer a question using RAG pipeline."""
     store = _load_or_create_store()
 
     if store.num_documents == 0:
-        print("Error: No documents in store. Use 'add-documents' command first.")
+        print("Error: No documents in store.")
         sys.exit(1)
 
     print(f"问题: {question}")
@@ -194,22 +193,10 @@ def query(question: str, k: int, show_sources: bool) -> None:
 
     # Create RAG pipeline with Google Gemini
     llm = _create_llm()
-    rag = pipeline.RAGPipeline(store, llm=llm, k=k)
+    rag = pipeline.RAGPipeline(store, llm, k=k)
 
-    result = rag.answer_with_sources(question)
-    print(f"回答: {result.answer}")
-
-    if show_sources and result.sources:
-        print(f"\n使用的资料源 ({len(result.sources)} 个):")
-        for source in result.sources:
-            print(f"\n【资料{source.index}】(相似度: {source.score:.4f})")
-            print(f"{source.content[:200]}...")
-
-    # Show trace URL if tracing is enabled
-    if tracing.is_tracing_enabled():
-        trace_url = tracing.get_trace_url()
-        if trace_url:
-            print(f"\n🔗 View traces: {trace_url}")
+    answer = rag.answer(question)
+    print(f"回答: {answer}")
 
 
 @cli.command()

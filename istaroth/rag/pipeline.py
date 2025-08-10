@@ -7,24 +7,8 @@ from langchain import prompts
 from langchain_core import language_models, messages
 from langchain_core.runnables import RunnableConfig
 
-from istaroth.rag import document_store, tracing
-
-
-@attrs.define
-class _SourceDocument:
-    """Source document with similarity score."""
-
-    content: str
-    score: float
-    index: int
-
-
-@attrs.define
-class _AnswerWithMetadata:
-    """Answer with sources."""
-
-    answer: str
-    sources: list[_SourceDocument]
+from istaroth import langsmith_utils
+from istaroth.rag import document_store, output_rendering, tracing
 
 
 class RAGPipeline:
@@ -32,9 +16,22 @@ class RAGPipeline:
 
     _SYSTEM_PROMPT: typing.ClassVar[
         str
-    ] = """你是一位了解《原神》世界观与剧情细节的专家学者，精通提瓦特大陆的历史、人物关系、神明传说与各类事件背景。你将根据提供的资料（如对话文本、任务描述、角色档案等）来回答用户提出的关于《原神》剧情、角色背景与世界观的问题。
-请确保回答准确、详实，引用资料时要清晰、贴合上下文，不要编造原作中不存在的内容。若资料中没有明确提及，请指出"原文未明示"，避免主观臆断。
-请用中文回答。"""
+    ] = """你是一位专精《原神》世界观与剧情的学者，对提瓦特大陆拥有深厚的研究基础。你的专业领域包括：
+
+- **历史脉络**：从古代文明、神魔战争到各国兴衰，掌握完整时间线
+- **神明体系**：七神权能、魔神残留、神之眼赋予原理等知识
+- **人物关系**：角色背景、人际网络、组织架构与政治格局
+- **预言传说**：古籍记载、民间传说与其现实对应关系
+
+回答原则：
+- **准确性第一**：严格基于提供的资料内容，绝不编造或臆测不存在的情节
+- **明确资料边界**：当资料不足时，明确指出"资料未明示"或"原文未详述"
+- **逻辑推理**：在资料支撑下，可进行合理的逻辑推导，但需明确区分事实与推论
+- **结构清晰**：按逻辑层次组织答案，重要信息优先，次要细节补充
+- **引用原文**：当需要引用原文的时候，必须在回答重复原始文本段落，使用引号标注。用户无法看到检索的上下文，因此你需要在答案中重复关键原文。无需提供引用的文件与片段编号
+- **原文展示**：对于关键论据，应完整引用相关原文段落，而非仅做概括总结
+
+请始终用中文回答，语言准确专业，避免过度解读或主观臆断。记住：用户看不到你检索到的资料，所以必须在回答中充分引用原文。"""
 
     _USER_PROMPT_TEMPLATE: typing.ClassVar[
         str
@@ -43,21 +40,21 @@ class RAGPipeline:
 请根据以下资料进行回答：
 {retrieved_context}
 
+回答要求：
+
 请基于资料内容，结合你对《原神》剧情的理解，简洁清晰地回答用户问题。"""
 
     def __init__(
         self,
         document_store: document_store.DocumentStore,
         llm: language_models.BaseLanguageModel,
-        k: int = 5,
+        *,
+        k: int,
     ):
         """Initialize RAG pipeline."""
         self._document_store = document_store
         self._llm = llm
         self._k = k
-
-        # Check tracing requirements
-        tracing.check_tracing_requirements()
 
         # Create the prompt template
         self._prompt = prompts.ChatPromptTemplate.from_messages(
@@ -79,48 +76,35 @@ class RAGPipeline:
 
         # Format the retrieved documents
         formatted_content = []
-        for i, (score, documents) in enumerate(retrieve_output.results, 1):
+        for i, (_, documents) in enumerate(retrieve_output.results, 1):
             content = "\n".join(doc.page_content for doc in documents)
             formatted_content.append(f"【资料{i}】\n{content}")
 
         return "\n\n".join(formatted_content)
 
-    def answer_with_sources(self, question: str) -> _AnswerWithMetadata:
+    @langsmith_utils.traceable(name="hybrid_search")
+    def answer(self, question: str) -> str:
         """Answer question with source documents."""
 
         # Retrieve relevant documents
         retrieve_output = self._document_store.retrieve(question, k=self._k)
 
-        # Add tracing metadata
-        run_metadata = {
-            "question": question,
-            "k": self._k,
-            "num_documents": self._document_store.num_documents,
-            "num_retrieved": len(retrieve_output.results),
-            "retrieval_scores": [score for score, _ in retrieve_output.results],
-        }
-
-        # Format context
-        sources: list[_SourceDocument]
-        if not retrieve_output.results:
-            retrieved_context = "（未找到相关资料）"
-            sources = []
-        else:
-            formatted_content = []
-            sources = []
-            for i, (score, documents) in enumerate(retrieve_output.results, 1):
-                content = "\n".join(doc.page_content for doc in documents)
-                formatted_content.append(f"【资料{i}】\n{content}")
-                sources.append(_SourceDocument(content=content, score=score, index=i))
-
-            retrieved_context = "\n\n".join(formatted_content)
-
         # Generate answer with tracing context
-        config: RunnableConfig = {"metadata": run_metadata}
+        config: RunnableConfig = {
+            "metadata": {
+                "question": question,
+                "k": self._k,
+                "num_documents": self._document_store.num_documents,
+                "num_retrieved": len(retrieve_output.results),
+                "retrieval_scores": [score for score, _ in retrieve_output.results],
+            }
+        }
         response = self._chain.invoke(
             {
                 "user_question": question,
-                "retrieved_context": retrieved_context,
+                "retrieved_context": output_rendering.render_retrieve_output(
+                    retrieve_output.results
+                ),
             },
             config=config,
         )
@@ -133,4 +117,4 @@ class RAGPipeline:
         else:
             answer = str(response)
 
-        return _AnswerWithMetadata(answer=answer, sources=sources)
+        return answer
