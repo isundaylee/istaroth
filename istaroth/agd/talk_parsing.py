@@ -8,9 +8,7 @@ from typing import Any, ClassVar, Literal, TypeAlias, assert_never, cast
 logger = logging.getLogger(__name__)
 
 
-TalkGroupType: TypeAlias = Literal[
-    "ActivityGroup", "BlossomGroup", "GadgetGroup", "NpcGroup"
-]
+TalkGroupType: TypeAlias = Literal["ActivityGroup", "GadgetGroup", "NpcGroup"]
 
 
 class TalkParser:
@@ -29,9 +27,10 @@ class TalkParser:
         pathlib.Path("BinOutput/Talk/BlossomGroup/5900009.json"),
     ]
 
+    _EXCLUDE_DIRECTORIES: ClassVar[set[str]] = {"BlossomGroup"}
+
     _GROUP_DIRECTORIES: ClassVar[set[str]] = {
         "ActivityGroup",
-        "BlossomGroup",
         "GadgetGroup",
         "NpcGroup",
     }
@@ -53,9 +52,11 @@ class TalkParser:
             with open(json_file, encoding="utf-8") as f:
                 data = json.load(f)
 
-            if len(relative_path.parts) > 2 and (
-                relative_path.parts[2] in self._GROUP_DIRECTORIES
-            ):
+            subdir = relative_path.parts[2]
+
+            if subdir in self._EXCLUDE_DIRECTORIES:
+                continue
+            elif subdir in self._GROUP_DIRECTORIES:
                 self._handle_talk_group_file(
                     relative_path, cast(TalkGroupType, relative_path.parts[2]), data
                 )
@@ -88,9 +89,6 @@ class TalkParser:
                     or data.get("DANPPPLPAEE")
                     or data.get("JEMDGACPOPC")
                 )
-            case "BlossomGroup":
-                # TODO fill this in
-                return
             case _:
                 assert_never(group_type)
 
