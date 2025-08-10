@@ -6,7 +6,7 @@ import traceback
 import attrs
 import flask
 
-from istaroth.backend import models
+from istaroth.backend import database, db_models, models
 from istaroth.rag import document_store, pipeline
 
 logger = logging.getLogger(__name__)
@@ -21,6 +21,13 @@ class BackendApp:
 
         # Initialize resources
         logger.info("Initializing backend resources...")
+
+        # Initialize database
+        logger.info("Initializing database connection")
+        self.db_engine = database.create_engine()
+        database.init_database(self.db_engine)
+        self.db_session_factory = database.get_session_factory(self.db_engine)
+        logger.info("Database initialized successfully")
 
         # Load document store from environment
         logger.info("Loading document store from environment")
@@ -81,6 +88,9 @@ class BackendApp:
             )
             answer = self.rag_pipeline.answer(request.question, k=request.k, llm=llm)
 
+            # Save conversation to database
+            self._save_conversation(request, answer)
+
             # Return response
             return (
                 attrs.asdict(
@@ -92,6 +102,24 @@ class BackendApp:
         except Exception as e:
             logger.error("Error processing query: %s\n%s", e, traceback.format_exc())
             return {"error": "Internal server error"}, 500
+
+    def _save_conversation(self, request: models.QueryRequest, answer: str) -> None:
+        """Save conversation to database."""
+        try:
+            with self.db_session_factory() as session:
+                conversation = db_models.Conversation(
+                    question=request.question,
+                    answer=answer,
+                    model=request.model,
+                    k=request.k,
+                )
+                session.add(conversation)
+                session.commit()
+                logger.info(
+                    "Conversation saved to database with ID: %d", conversation.id
+                )
+        except Exception as e:
+            logger.error("Failed to save conversation to database: %s", e)
 
 
 def create_app() -> flask.Flask:

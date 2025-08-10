@@ -18,6 +18,7 @@ jieba
 tabulate
 openai
 flask
+sqlalchemy
 
 # Development dependencies
 pip-tools
