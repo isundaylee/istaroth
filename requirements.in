@@ -19,6 +19,7 @@ tabulate
 openai
 flask
 sqlalchemy
+alembic
 
 # Development dependencies
 pip-tools

@@ -2,7 +2,10 @@
 
 import logging
 import os
+from pathlib import Path
 
+import alembic.command
+import alembic.config
 import sqlalchemy
 import sqlalchemy.orm
 
@@ -34,8 +37,31 @@ def get_session_factory(engine: sqlalchemy.Engine) -> sqlalchemy.orm.sessionmake
     return sqlalchemy.orm.sessionmaker(bind=engine)
 
 
+def run_migrations() -> None:
+    """Run database migrations using Alembic."""
+    logger.info("Running database migrations...")
+
+    # Get the project root directory
+    project_root = Path(__file__).parent.parent.parent
+    alembic_cfg_path = project_root / "alembic.ini"
+
+    if not alembic_cfg_path.exists():
+        raise FileNotFoundError(f"Alembic config file not found at {alembic_cfg_path}")
+
+    # Create Alembic configuration
+    alembic_cfg = alembic.config.Config(str(alembic_cfg_path))
+
+    # Run migrations to head
+    alembic.command.upgrade(alembic_cfg, "head")
+
+    logger.info("Database migrations completed successfully")
+
+
 def init_database(engine: sqlalchemy.Engine) -> None:
-    """Initialize database tables."""
-    logger.info("Initializing database tables...")
-    db_models.Base.metadata.create_all(engine)
-    logger.info("Database tables initialized successfully")
+    """Initialize database using migrations."""
+    logger.info("Initializing database...")
+
+    # Run migrations instead of create_all
+    run_migrations()
+
+    logger.info("Database initialization completed")
