@@ -17,7 +17,6 @@ jieba
 tabulate
 openai
 flask
-flask-cors
 
 # Development dependencies
 pip-tools

@@ -5,10 +5,9 @@ import traceback
 
 import attrs
 import flask
-from flask_cors import CORS
 from langchain_google_genai import llms as google_llms
 
-from istaroth.backend import config, models
+from istaroth.backend import models
 from istaroth.rag import document_store, pipeline
 
 logger = logging.getLogger(__name__)
@@ -17,13 +16,9 @@ logger = logging.getLogger(__name__)
 class BackendApp:
     """Flask backend application."""
 
-    def __init__(self, backend_config: config.BackendConfig):
+    def __init__(self):
         """Initialize the backend application."""
-        self.config = backend_config
         self.app = flask.Flask(__name__)
-
-        # Configure CORS
-        CORS(self.app, origins=self.config.cors_origins)
 
         # Initialize resources
         logger.info("Initializing backend resources...")
@@ -84,10 +79,7 @@ class BackendApp:
             return {"error": "Internal server error"}, 500
 
 
-def create_app(backend_config: config.BackendConfig | None = None) -> flask.Flask:
+def create_app() -> flask.Flask:
     """Create and configure the Flask application."""
-    if backend_config is None:
-        backend_config = config.BackendConfig.from_env()
-
-    backend = BackendApp(backend_config)
+    backend = BackendApp()
     return backend.app
