@@ -57,6 +57,7 @@ WORKDIR /app
 # Copy only the necessary directories with correct ownership
 COPY --chown=app:app istaroth/ ./istaroth/
 COPY --chown=app:app scripts/ ./scripts/
+COPY --chown=app:app migrations/ ./migrations/
 COPY --chown=app:app alembic.ini ./alembic.ini
 
 # Copy and set up entrypoint script
