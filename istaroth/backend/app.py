@@ -73,6 +73,12 @@ class BackendApp:
     def _register_routes(self) -> None:
         """Register API routes."""
         self.app.add_url_rule("/api/query", "query", self._query, methods=["POST"])
+        self.app.add_url_rule(
+            "/api/conversations/<int:conversation_id>",
+            "get_conversation",
+            self._get_conversation,
+            methods=["GET"],
+        )
 
     @_handle_unexpected_exception
     def _query(self) -> tuple[dict, int]:
@@ -111,18 +117,22 @@ class BackendApp:
         answer = self.rag_pipeline.answer(request.question, k=request.k, llm=llm)
 
         # Save conversation to database
-        self._save_conversation(request, answer)
+        conversation_id = self._save_conversation(request, answer)
 
         # Return response
         return (
             attrs.asdict(
-                models.QueryResponse(question=request.question, answer=answer)
+                models.QueryResponse(
+                    question=request.question,
+                    answer=answer,
+                    conversation_id=conversation_id,
+                )
             ),
             200,
         )
 
-    def _save_conversation(self, request: models.QueryRequest, answer: str) -> None:
-        """Save conversation to database."""
+    def _save_conversation(self, request: models.QueryRequest, answer: str) -> int:
+        """Save conversation to database and return the conversation ID."""
         try:
             with self.db_session_factory() as session:
                 conversation = db_models.Conversation(
@@ -136,5 +146,40 @@ class BackendApp:
                 logger.info(
                     "Conversation saved to database with ID: %d", conversation.id
                 )
+                return conversation.id
         except Exception as e:
             logger.error("Failed to save conversation to database: %s", e)
+            return 0  # Return 0 on error
+
+    @_handle_unexpected_exception
+    def _get_conversation(self, conversation_id: int) -> tuple[dict, int]:
+        """Get a specific conversation by ID."""
+        with self.db_session_factory() as session:
+            conversation = (
+                session.query(db_models.Conversation)
+                .filter_by(id=conversation_id)
+                .first()
+            )
+
+            if not conversation:
+                return (
+                    attrs.asdict(models.ErrorResponse(error="Conversation not found")),
+                    404,
+                )
+
+            response = models.ConversationResponse(
+                id=conversation.id,
+                question=conversation.question,
+                answer=conversation.answer,
+                model=conversation.model,
+                k=conversation.k,
+                created_at=conversation.created_at.timestamp(),
+            )
+
+            return attrs.asdict(response), 200
+
+
+def create_app() -> flask.Flask:
+    """Create and configure the Flask application."""
+    backend = BackendApp()
+    return backend.app

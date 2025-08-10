@@ -1,5 +1,7 @@
 """Request and response models for the backend API."""
 
+import datetime
+
 import attrs
 
 
@@ -25,6 +27,19 @@ class QueryResponse:
 
     question: str = attrs.field()
     answer: str = attrs.field()
+    conversation_id: int = attrs.field()
+
+
+@attrs.define
+class ConversationResponse:
+    """Response model for conversation retrieval."""
+
+    id: int = attrs.field()
+    question: str = attrs.field()
+    answer: str = attrs.field()
+    model: str | None = attrs.field()
+    k: int = attrs.field()
+    created_at: float = attrs.field()  # Unix timestamp as float
 
 
 @attrs.define
