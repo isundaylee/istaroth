@@ -8,15 +8,28 @@ from langchain import prompts
 from langchain_core import language_models, messages
 from langchain_core.runnables import RunnableConfig
 from langchain_google_genai import llms as google_llms
+from langchain_openai import llms as openai_llms
 
 from istaroth import langsmith_utils
 from istaroth.rag import document_store, output_rendering, tracing
 
 
-def create_llm_from_env() -> google_llms.GoogleGenerativeAI:
-    """Create Google Gemini LLM instance using ISTAROTH_PIPELINE_MODEL environment variable."""
+def create_llm_from_env() -> language_models.BaseLanguageModel:
+    """Create LLM instance using ISTAROTH_PIPELINE_MODEL environment variable.
+
+    Supports both Google Gemini and OpenAI models:
+    - Gemini models: gemini-1.5-flash, gemini-2.0-flash-lite, etc.
+    - OpenAI models: gpt-4, gpt-4-turbo, chatgpt-5, etc.
+    """
     model_name = os.environ.get("ISTAROTH_PIPELINE_MODEL", "gemini-2.5-flash-lite")
-    return google_llms.GoogleGenerativeAI(model=model_name)
+
+    # Detect provider based on model name
+    if model_name.startswith("gemini"):
+        return google_llms.GoogleGenerativeAI(model=model_name)
+    elif model_name.startswith(("gpt-", "chatgpt-", "o1-")):
+        return openai_llms.OpenAI(model=model_name)
+    else:
+        raise ValueError(f"Unrecognized model name '{model_name}'.")
 
 
 class RAGPipeline:

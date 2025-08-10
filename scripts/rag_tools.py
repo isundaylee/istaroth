@@ -17,6 +17,7 @@ import click
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 import langsmith as ls
+from langchain_core import language_models
 from langchain_google_genai import llms as google_llms
 
 from istaroth import utils
@@ -29,11 +30,6 @@ from istaroth.rag import (
     tracing,
 )
 from istaroth.rag.eval import dataset
-
-
-def _create_llm() -> google_llms.GoogleGenerativeAI:
-    """Create Google Gemini LLM instance."""
-    return pipeline.create_llm_from_env()
 
 
 def _get_files_to_process(path: pathlib.Path) -> list[pathlib.Path]:
@@ -192,7 +188,7 @@ def query(question: str, k: int) -> None:
     print("=" * 50)
 
     # Create RAG pipeline with Google Gemini
-    llm = _create_llm()
+    llm = pipeline.create_llm_from_env()
     rag = pipeline.RAGPipeline(store, llm)
 
     answer = rag.answer(question, k=k)

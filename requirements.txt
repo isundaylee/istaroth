@@ -200,12 +200,15 @@ langchain-core==0.3.72
     #   langchain-experimental
     #   langchain-google-genai
     #   langchain-huggingface
+    #   langchain-openai
     #   langchain-text-splitters
 langchain-experimental==0.3.4
     # via langchain-cohere
 langchain-google-genai==2.1.8
     # via -r requirements.in
 langchain-huggingface==0.3.1
+    # via -r requirements.in
+langchain-openai==0.3.28
     # via -r requirements.in
 langchain-text-splitters==0.3.9
     # via langchain
@@ -256,7 +259,9 @@ numpy==2.3.2
     #   scipy
     #   transformers
 openai==1.99.3
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   langchain-openai
 openapi-pydantic==0.5.1
     # via fastmcp
 orjson==3.11.1
@@ -368,7 +373,9 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-specifications
 regex==2024.11.6
-    # via transformers
+    # via
+    #   tiktoken
+    #   transformers
 requests==2.32.4
     # via
     #   cohere
@@ -378,6 +385,7 @@ requests==2.32.4
     #   langchain-community
     #   langsmith
     #   requests-toolbelt
+    #   tiktoken
     #   transformers
 requests-toolbelt==1.0.0
     # via langsmith
@@ -432,6 +440,8 @@ tenacity==9.1.2
     #   langchain-core
 threadpoolctl==3.6.0
     # via scikit-learn
+tiktoken==0.11.0
+    # via langchain-openai
 tokenizers==0.21.2
     # via
     #   cohere

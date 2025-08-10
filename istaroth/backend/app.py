@@ -30,9 +30,8 @@ class BackendApp:
         )
 
         # Initialize LLM
-        logger.info("Initializing Google Gemini LLM")
+        logger.info("Initializing LLM")
         self.llm = pipeline.create_llm_from_env()
-        logger.info("LLM initialized with model: %s", self.llm.model)
 
         # Create RAG pipeline with default k=10
         self.rag_pipeline = pipeline.RAGPipeline(self.document_store, self.llm)
