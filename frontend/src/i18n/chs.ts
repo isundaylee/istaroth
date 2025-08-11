@@ -19,6 +19,7 @@ export const chs = {
   query: {
     title: '伊斯塔露',
     placeholder: '请输入关于原神背景故事的问题...',
+    exampleLoading: '正在加载示例问题...',
     submitButton: '提问',
     submitting: '回答中...',
     models: {

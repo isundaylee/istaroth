@@ -1,8 +1,14 @@
-"""Request and response models for the backend API."""
+"""Request and response models for the backend API.
+
+IMPORTANT: Keep these models in sync with frontend/src/types/api.ts
+Any changes to request/response structures should be reflected in both files.
+"""
 
 import datetime
 
 import attrs
+
+from istaroth.agd import localization
 
 
 @attrs.define
@@ -58,3 +64,23 @@ class ModelsResponse:
     """Response model for available models endpoint."""
 
     models: list[str]
+
+
+@attrs.define
+class ExampleQuestionRequest:
+    """Request model for example question endpoint."""
+
+    language: str = attrs.field()
+
+    @language.validator
+    def _validate_language(self, attribute: attrs.Attribute, value: str) -> None:
+        if value not in {l.value for l in localization.Language}:
+            raise ValueError(f"Invalid language: {value}")
+
+
+@attrs.define
+class ExampleQuestionResponse:
+    """Response model for example question endpoint."""
+
+    question: str
+    language: str

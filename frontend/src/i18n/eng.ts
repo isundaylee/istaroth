@@ -19,6 +19,7 @@ export const eng = {
   query: {
     title: 'Istaroth',
     placeholder: 'Enter your question about Genshin Impact lore...',
+    exampleLoading: 'Loading example question...',
     submitButton: 'Ask',
     submitting: 'Answering...',
     models: {

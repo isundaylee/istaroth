@@ -1,21 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useT, useTranslation } from './contexts/LanguageContext'
-
-interface QueryResponse {
-  question: string
-  answer: string
-  conversation_id: string
-  language: string
-}
-
-interface ErrorResponse {
-  error: string
-}
-
-interface ModelsResponse {
-  models: string[]
-}
+import type { QueryResponse, ErrorResponse, ModelsResponse, ExampleQuestionResponse } from './types/api'
 
 function QueryForm() {
   const navigate = useNavigate()
@@ -27,6 +13,8 @@ function QueryForm() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [modelsLoading, setModelsLoading] = useState(true)
+  const [exampleQuestion, setExampleQuestion] = useState<string>('')
+  const [exampleLoading, setExampleLoading] = useState(true)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Helper function to convert model ID to translation key
@@ -46,6 +34,30 @@ function QueryForm() {
       inputRef.current.focus()
     }
   }, [])
+
+  useEffect(() => {
+    // Fetch example question when component mounts or language changes
+    const fetchExampleQuestion = async () => {
+      try {
+        setExampleLoading(true)
+        const res = await fetch(`/api/example-question?language=${language.toUpperCase()}`)
+        if (res.ok) {
+          const data = await res.json() as ExampleQuestionResponse
+          setExampleQuestion(data.question)
+        } else {
+          console.error('Failed to fetch example question from server')
+          // Don't set error state as this is not critical
+        }
+      } catch (err) {
+        console.error('Error fetching example question:', err)
+        // Don't set error state as this is not critical
+      } finally {
+        setExampleLoading(false)
+      }
+    }
+
+    fetchExampleQuestion()
+  }, [language])
 
   useEffect(() => {
     // Fetch available models from backend
@@ -76,7 +88,10 @@ function QueryForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!question.trim()) return
+
+    // Use example question if user didn't enter anything
+    const questionToSubmit = question.trim() || exampleQuestion
+    if (!questionToSubmit) return
 
     setLoading(true)
     setError(null)
@@ -88,7 +103,7 @@ function QueryForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          question: question.trim(),
+          question: questionToSubmit,
           k: 10,
           model: selectedModel,
           language: language.toUpperCase(),
@@ -122,7 +137,7 @@ function QueryForm() {
             type="text"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder={t('query.placeholder')}
+            placeholder={exampleLoading ? t('query.exampleLoading') : exampleQuestion || t('query.placeholder')}
             disabled={loading}
             className="question-input"
           />
@@ -144,7 +159,7 @@ function QueryForm() {
           </select>
           <button
             type="submit"
-            disabled={loading || !question.trim() || availableModels.length === 0}
+            disabled={loading || (!question.trim() && !exampleQuestion) || availableModels.length === 0}
             className="submit-button"
           >
             {loading ? t('query.submitting') : t('query.submitButton')}

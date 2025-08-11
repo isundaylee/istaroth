@@ -10,7 +10,7 @@ import attrs
 import flask
 
 from istaroth.agd import localization
-from istaroth.backend import database, db_models, models
+from istaroth.backend import database, db_models, example_questions, models
 from istaroth.rag import document_store_set, pipeline
 
 logger = logging.getLogger(__name__)
@@ -82,6 +82,12 @@ class BackendApp:
         )
         self.app.add_url_rule(
             "/api/models", "get_models", self._get_models, methods=["GET"]
+        )
+        self.app.add_url_rule(
+            "/api/example-question",
+            "get_example_question",
+            self._get_example_question,
+            methods=["GET"],
         )
 
     @_handle_unexpected_exception
@@ -214,6 +220,31 @@ class BackendApp:
             attrs.asdict(models.ModelsResponse(models=pipeline.get_available_models())),
             200,
         )
+
+    @_handle_unexpected_exception
+    def _get_example_question(self) -> tuple[dict, int]:
+        """Get a random example question for the specified language."""
+        # Get language parameter from query string
+        language = flask.request.args.get("language", "eng")
+
+        # Validate request
+        try:
+            request = models.ExampleQuestionRequest(language=language)
+        except (TypeError, ValueError) as e:
+            return attrs.asdict(models.ErrorResponse(error=repr(e))), 400
+
+        # Get random example question
+        try:
+            # Convert string to Language enum
+            question = example_questions.get_random_example_question(
+                localization.Language(request.language)
+            )
+            response = models.ExampleQuestionResponse(
+                question=question, language=request.language
+            )
+            return attrs.asdict(response), 200
+        except (ValueError, KeyError) as e:
+            return attrs.asdict(models.ErrorResponse(error=repr(e))), 400
 
 
 def create_app() -> flask.Flask:

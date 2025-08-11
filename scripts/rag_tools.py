@@ -189,7 +189,7 @@ def query(question: str, k: int) -> None:
 
     # Create RAG pipeline and LLM
     llm = pipeline.create_llm_from_env()
-    rag = pipeline.RAGPipeline(store)
+    rag = pipeline.RAGPipeline(store, language=localization.Language.CHS)
 
     answer = rag.answer(question, k=k, llm=llm)
     print(f"回答: {answer}")
