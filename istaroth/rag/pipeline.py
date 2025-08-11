@@ -14,14 +14,14 @@ from istaroth import langsmith_utils
 from istaroth.agd import localization
 from istaroth.rag import document_store, output_rendering, prompt_set, tracing
 
-# All technically supported models (for validation)
-_ALL_SUPPORTED_MODELS: set[str] = {
-    "gemini-2.5-flash-lite",
+# All technically supported models in order of decreasing speed
+_ALL_SUPPORTED_MODELS: list[str] = [
+    "gemini-2.5-flash-lite",  # Fastest
     "gemini-2.5-flash",
-    "gemini-2.5-pro",
     "gpt-5-nano",
     "gpt-5-mini",
-}
+    "gemini-2.5-pro",  # Slowest
+]
 
 # Cache for available models from environment
 _available_models_cache: set[str] | None = None
@@ -52,8 +52,7 @@ def get_available_models() -> list[str]:
 
     # Check for special value
     if models_env.strip().lower() == "all":
-        _available_models_cache = _ALL_SUPPORTED_MODELS.copy()
-        return sorted(_available_models_cache)
+        return _ALL_SUPPORTED_MODELS.copy()
 
     # Parse comma-separated list
     requested_models = {m.strip() for m in models_env.split(",") if m.strip()}
@@ -62,15 +61,18 @@ def get_available_models() -> list[str]:
         raise ValueError("ISTAROTH_AVAILABLE_MODELS cannot be empty")
 
     # Validate that all requested models are supported
-    unsupported = requested_models - _ALL_SUPPORTED_MODELS
+    unsupported = requested_models - set(_ALL_SUPPORTED_MODELS)
     if unsupported:
         raise ValueError(
             f"Unsupported models in ISTAROTH_AVAILABLE_MODELS: {', '.join(sorted(unsupported))}. "
-            f"Supported models are: {', '.join(sorted(_ALL_SUPPORTED_MODELS))}"
+            f"Supported models are: {', '.join(_ALL_SUPPORTED_MODELS)}"
         )
 
     _available_models_cache = requested_models
-    return sorted(_available_models_cache)
+    # Return in speed order (preserve order from _ALL_SUPPORTED_MODELS)
+    return [
+        model for model in _ALL_SUPPORTED_MODELS if model in _available_models_cache
+    ]
 
 
 def create_llm(model_name: str) -> language_models.BaseLanguageModel:
