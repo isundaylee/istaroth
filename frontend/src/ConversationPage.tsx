@@ -24,6 +24,7 @@ function ConversationPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
+  const [exportedImage, setExportedImage] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchConversation = async () => {
@@ -99,7 +100,7 @@ function ConversationPage() {
       } as any)
 
       const dataURL = canvas.toDataURL()
-      window.open(dataURL, '_blank')
+      setExportedImage(dataURL)
     } catch (error) {
       console.error('导出PNG失败:', error)
       alert('导出PNG失败，请重试')
@@ -159,10 +160,64 @@ function ConversationPage() {
                   className="export-button"
                   disabled={exporting}
                 >
-                  {exporting ? '导出中...' : '导出为PNG'}
+                  {exporting ? '导出中...' : '导出图片'}
                 </button>
               </div>
             </div>
+
+            {exportedImage && (
+              <div style={{
+                marginTop: '1rem',
+                marginBottom: '1rem',
+                display: 'flex',
+                justifyContent: 'center'
+              }}>
+                <div style={{
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  padding: '1rem',
+                  backgroundColor: 'white',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                  display: 'inline-block',
+                  textAlign: 'center'
+                }}>
+                  <img
+                    src={exportedImage}
+                    alt="导出的对话截图"
+                    style={{
+                      width: '50vw',
+                      maxWidth: '400px',
+                      height: 'auto',
+                      borderRadius: '4px',
+                      display: 'block',
+                      marginBottom: '0.75rem'
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                    <button
+                      onClick={() => {
+                        const link = document.createElement('a')
+                        link.download = `istaroth-conversation-${conversation!.id}-${Date.now()}.png`
+                        link.href = exportedImage
+                        link.click()
+                      }}
+                      className="share-button"
+                      style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
+                    >
+                      下载
+                    </button>
+                    <button
+                      onClick={() => setExportedImage(null)}
+                      className="export-button"
+                      style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
+                    >
+                      关闭
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="answer">
               <ReactMarkdown>{conversation!.answer}</ReactMarkdown>
             </div>

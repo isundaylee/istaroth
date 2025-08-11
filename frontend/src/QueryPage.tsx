@@ -14,7 +14,7 @@ function QueryPage() {
           <Card style={{
             backgroundColor: 'white',
             borderRadius: '12px',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
             padding: '30px',
             margin: '0'
           }}>
