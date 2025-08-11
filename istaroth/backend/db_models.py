@@ -27,6 +27,7 @@ class Conversation(Base):
     answer = sqlalchemy.Column(sqlalchemy.Text, nullable=False)
     model = sqlalchemy.Column(sqlalchemy.String(100), nullable=True)
     k = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
+    language = sqlalchemy.Column(sqlalchemy.String(10), nullable=False)
     created_at = sqlalchemy.Column(
         sqlalchemy.DateTime, default=datetime.datetime.utcnow
     )

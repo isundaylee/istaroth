@@ -39,6 +39,7 @@ export const chs = {
     metadata: {
       conversation: '对话',
       time: '时间',
+      language: '语言',
       model: '模型',
       generationTime: '生成时间',
       seconds: '秒'

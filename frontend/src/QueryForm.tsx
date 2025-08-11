@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useT } from './contexts/LanguageContext'
+import { useT, useTranslation } from './contexts/LanguageContext'
 
 interface QueryResponse {
   question: string
   answer: string
   conversation_id: string
+  language: string
 }
 
 interface ErrorResponse {
@@ -15,6 +16,7 @@ interface ErrorResponse {
 function QueryForm() {
   const navigate = useNavigate()
   const t = useT()
+  const { language } = useTranslation()
   const [question, setQuestion] = useState('')
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-lite')
   const [error, setError] = useState<string | null>(null)
@@ -56,6 +58,7 @@ function QueryForm() {
           question: question.trim(),
           k: 10,
           model: selectedModel,
+          language: language.toUpperCase(),
         }),
       })
 

@@ -11,6 +11,7 @@ interface ConversationResponse {
   uuid: string
   question: string
   answer: string
+  language: string
   model: string | null
   k: number
   created_at: number
@@ -247,6 +248,7 @@ function ConversationPage() {
             <div className="conversation-meta">
               <p>{t('conversation.metadata.conversation')} #{conversation!.uuid}</p>
               <p>{t('conversation.metadata.time')}: {formatDate(conversation!.created_at)}</p>
+              <p>{t('conversation.metadata.language')}: {conversation!.language}</p>
               <p>{t('conversation.metadata.model')}: {conversation!.model}</p>
               {conversation!.generation_time_seconds && <p>{t('conversation.metadata.generationTime')}: {conversation!.generation_time_seconds.toFixed(2)}{t('conversation.metadata.seconds')}</p>}
             </div>

@@ -9,8 +9,9 @@ from typing import Callable, ParamSpec, TypeVar
 import attrs
 import flask
 
+from istaroth.agd import localization
 from istaroth.backend import database, db_models, models
-from istaroth.rag import document_store, pipeline
+from istaroth.rag import document_store, document_store_set, pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -53,20 +54,21 @@ class BackendApp:
         self.db_session_factory = database.get_session_factory(self.db_engine)
         logger.info("Database initialized successfully")
 
-        # Load document store from environment
-        logger.info("Loading document store from environment")
-        self.document_store = document_store.DocumentStore.from_env()
+        # Load document store set from environment
+        logger.info("Loading document store set from environment")
+        self.document_store_set = document_store_set.DocumentStoreSet.from_env()
         logger.info(
-            "Document store loaded with %d documents", self.document_store.num_documents
+            "Document store set loaded %d languages: %s",
+            len(self.document_store_set.available_languages),
+            ", ".join(l.value for l in self.document_store_set.available_languages),
         )
 
         # Initialize LLM manager
         logger.info("Initializing LLM manager")
         self.llm_manager = pipeline.LLMManager()
 
-        # Create RAG pipeline (without fixed LLM)
-        self.rag_pipeline = pipeline.RAGPipeline(self.document_store)
-        logger.info("RAG pipeline initialized successfully")
+        # RAG pipeline will be created per-query with language-specific document store
+        logger.info("Backend initialization completed successfully")
 
         # Register routes
         self._register_routes()
@@ -84,9 +86,6 @@ class BackendApp:
     @_handle_unexpected_exception
     def _query(self) -> tuple[dict, int]:
         """Answer a question using the RAG pipeline."""
-        if not self.rag_pipeline:
-            return {"error": "RAG pipeline not initialized"}, 503
-
         # Parse request
         data = flask.request.get_json()
         if not data:
@@ -98,8 +97,18 @@ class BackendApp:
                 question=data["question"],
                 k=data.get("k", 10),
                 model=data.get("model"),
+                language=data["language"],
             )
         except (TypeError, ValueError, KeyError) as e:
+            return attrs.asdict(models.ErrorResponse(error=repr(e))), 400
+
+        # Get document store for requested language
+        try:
+            selected_store = self.document_store_set.get_store(
+                localization.Language(request.language)
+            )
+            language_name = request.language.upper()
+        except (ValueError, KeyError) as e:
             return attrs.asdict(models.ErrorResponse(error=repr(e))), 400
 
         # Get LLM for the requested model
@@ -108,15 +117,19 @@ class BackendApp:
         except ValueError as e:
             return attrs.asdict(models.ErrorResponse(error=repr(e))), 400
 
+        # Create RAG pipeline for the selected language
+        rag_pipeline = pipeline.RAGPipeline(selected_store)
+
         # Get answer and track timing
         logger.info(
-            "Processing query: %s with k=%d using model: %s",
+            "Processing query: %s with k=%d using model: %s, language: %s",
             request.question,
             request.k,
             request.model,
+            language_name,
         )
         start_time = time.perf_counter()
-        answer = self.rag_pipeline.answer(request.question, k=request.k, llm=llm)
+        answer = rag_pipeline.answer(request.question, k=request.k, llm=llm)
         generation_time = time.perf_counter() - start_time
 
         logger.info("Query completed in %.2f seconds", generation_time)
@@ -131,6 +144,7 @@ class BackendApp:
                     question=request.question,
                     answer=answer,
                     conversation_id=conversation_uuid,
+                    language=language_name,
                 )
             ),
             200,
@@ -147,6 +161,7 @@ class BackendApp:
                     answer=answer,
                     model=request.model,
                     k=request.k,
+                    language=request.language,
                     generation_time_seconds=generation_time,
                 )
                 session.add(conversation)
@@ -183,6 +198,7 @@ class BackendApp:
                 k=conversation.k,
                 created_at=conversation.created_at.timestamp(),
                 generation_time_seconds=conversation.generation_time_seconds,
+                language=conversation.language,
             )
 
             return attrs.asdict(response), 200

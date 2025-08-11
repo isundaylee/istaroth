@@ -39,6 +39,7 @@ export const eng = {
     metadata: {
       conversation: 'Conversation',
       time: 'Time',
+      language: 'Language',
       model: 'Model',
       generationTime: 'Generation Time',
       seconds: 's'
