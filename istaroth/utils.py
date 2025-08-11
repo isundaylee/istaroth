@@ -1,6 +1,9 @@
 """Utility functions for type checking and assertions."""
 
+import contextlib
+import logging
 import re
+import time
 import typing
 
 T = typing.TypeVar("T")
@@ -25,3 +28,22 @@ def make_safe_filename_part(text: str, *, max_length: int = 50) -> str:
     # Replace multiple spaces with single underscore
     safe_text = re.sub(r"\s+", "_", safe_text.strip())
     return safe_text
+
+
+logger = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def timer(operation_name: str) -> typing.Iterator[None]:
+    """Context manager for timing operations with automatic logging."""
+    start_time = time.perf_counter()
+    try:
+        yield
+    finally:
+        elapsed = time.perf_counter() - start_time
+        logger.log(
+            logging.INFO,
+            "%s completed in %.2f seconds",
+            operation_name.capitalize(),
+            elapsed,
+        )

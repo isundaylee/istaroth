@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import pathlib
+import time
 from typing import cast
 
 import attrs
@@ -17,7 +18,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
-from istaroth import langsmith_utils
+from istaroth import langsmith_utils, utils
 from istaroth.langsmith_utils import traceable
 from istaroth.rag import query_transform, rerank, types
 
@@ -60,17 +61,24 @@ class _VectorStore:
         cls, documents: list[tuple[str, types.DocumentMetadata]]
     ) -> "_VectorStore":
         """Build vector store from document tuples."""
-        embeddings = HuggingFaceEmbeddings(
-            model_name="BAAI/bge-m3",
-            model_kwargs={"device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")},
-            encode_kwargs={"normalize_embeddings": True},
-        )
-        vector_store = FAISS.from_texts(
-            texts=[text for text, _ in documents],
-            embedding=embeddings,
-            metadatas=cast(list[dict], [metadata for _, metadata in documents]),
-        )
-        return cls(embeddings, vector_store)
+        with utils.timer(f"building vector store with {len(documents)} documents"):
+            with utils.timer("loading vector embeddings model"):
+                embeddings = HuggingFaceEmbeddings(
+                    model_name="BAAI/bge-m3",
+                    model_kwargs={
+                        "device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")
+                    },
+                    encode_kwargs={"normalize_embeddings": True},
+                )
+
+            with utils.timer("document vectorization"):
+                vector_store = FAISS.from_texts(
+                    texts=[text for text, _ in documents],
+                    embedding=embeddings,
+                    metadatas=cast(list[dict], [metadata for _, metadata in documents]),
+                )
+
+            return cls(embeddings, vector_store)
 
     def search(self, query: str, k: int) -> list[types.ScoredDocument]:
         """Vector similarity search."""
@@ -96,20 +104,25 @@ class _VectorStore:
     @classmethod
     def load(cls, path: pathlib.Path) -> "_VectorStore":
         """Load vector store."""
-        # Create embeddings instance
-        embeddings = HuggingFaceEmbeddings(
-            model_name="BAAI/bge-m3",
-            model_kwargs={"device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")},
-            encode_kwargs={"normalize_embeddings": True},
-        )
+        with utils.timer(f"loading vector store from {path}"):
+            # Create embeddings instance
+            with utils.timer("loading vector embeddings model"):
+                embeddings = HuggingFaceEmbeddings(
+                    model_name="BAAI/bge-m3",
+                    model_kwargs={
+                        "device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")
+                    },
+                    encode_kwargs={"normalize_embeddings": True},
+                )
 
-        vector_store = FAISS.load_local(
-            str(path / "faiss_index"),
-            embeddings=embeddings,
-            allow_dangerous_deserialization=True,
-        )
+            with utils.timer("loading FAISS index"):
+                vector_store = FAISS.load_local(
+                    str(path / "faiss_index"),
+                    embeddings=embeddings,
+                    allow_dangerous_deserialization=True,
+                )
 
-        return cls(embeddings, vector_store)
+            return cls(embeddings, vector_store)
 
 
 @attrs.define
@@ -122,13 +135,18 @@ class _BM25Store:
     @classmethod
     def build(cls, documents: list[Document]) -> "_BM25Store":
         """Build BM25 store from flattened list of documents."""
-        # Tokenize all document contents for BM25
-        tokenized_corpus = [_chinese_tokenizer(doc.page_content) for doc in documents]
+        with utils.timer(f"building BM25 store with {len(documents)} documents"):
+            # Tokenize all document contents for BM25
+            with utils.timer("document tokenization"):
+                tokenized_corpus = [
+                    _chinese_tokenizer(doc.page_content) for doc in documents
+                ]
 
-        # Create BM25Okapi instance
-        bm25 = BM25Okapi(tokenized_corpus)
+            # Create BM25Okapi instance
+            with utils.timer("building BM25 index"):
+                bm25 = BM25Okapi(tokenized_corpus)
 
-        return cls(bm25, documents)
+            return cls(bm25, documents)
 
     def search(self, query: str, k: int) -> list[types.ScoredDocument]:
         """BM25 keyword search."""
@@ -380,42 +398,45 @@ class DocumentStore:
         reranker: rerank.Reranker | None = None,
     ) -> "DocumentStore":
         """Load document store from a directory."""
+        with utils.timer(f"loading document store from {path}"):
+            # Load documents to build BM25 store
+            with utils.timer("loading documents"):
+                documents_file = path / "documents.json"
+                if documents_file.exists():
+                    documents = {
+                        cast(str, file_id): {
+                            cast(int, doc["metadata"]["chunk_index"]): Document(
+                                page_content=doc["page_content"],
+                                metadata=doc["metadata"],
+                            )
+                            for doc in file_docs
+                        }
+                        for file_id, file_docs in json.loads(
+                            documents_file.read_text()
+                        ).items()
+                    }
+                else:
+                    documents = {}
 
-        # Load documents to build BM25 store
-        documents_file = path / "documents.json"
-        if documents_file.exists():
-            documents = {
-                cast(str, file_id): {
-                    cast(int, doc["metadata"]["chunk_index"]): Document(
-                        page_content=doc["page_content"], metadata=doc["metadata"]
-                    )
-                    for doc in file_docs
-                }
-                for file_id, file_docs in json.loads(documents_file.read_text()).items()
-            }
-        else:
-            documents = {}
+            # Load stores
+            vector_store = _VectorStore.load(path)
+            flattened_documents = [
+                doc for file_docs in documents.values() for doc in file_docs.values()
+            ]
+            bm25_store = _BM25Store.build(flattened_documents)
 
-        # Load stores
-        vector_store = _VectorStore.load(path)
-        flattened_documents = [
-            doc for file_docs in documents.values() for doc in file_docs.values()
-        ]
-        bm25_store = _BM25Store.build(flattened_documents)
+            instance = cls(
+                vector_store,
+                bm25_store,
+                query_transformer or query_transform.IdentityTransformer(),
+                reranker or rerank.RRFReranker(),
+                documents,
+            )
 
-        instance = cls(
-            vector_store,
-            bm25_store,
-            query_transformer or query_transform.IdentityTransformer(),
-            reranker or rerank.RRFReranker(),
-            documents,
-        )
-        logger.info(
-            "Loaded document store from %s with %d documents",
-            path,
-            instance.num_documents,
-        )
-        return instance
+            logger.info(
+                "Document store loaded with %d documents", instance.num_documents
+            )
+            return instance
 
     @property
     def num_documents(self) -> int:
@@ -428,24 +449,29 @@ class DocumentStore:
 
         Loads existing store if path exists, otherwise creates new empty store.
         """
-        store_path = get_document_store_path()
+        with utils.timer("document store initialization from environment"):
+            store_path = get_document_store_path()
 
-        query_transformer = query_transform.QueryTransformer.from_env()
-        reranker = rerank.Reranker.from_env()
+            query_transformer = query_transform.QueryTransformer.from_env()
+            reranker = rerank.Reranker.from_env()
 
-        if store_path.exists():
-            return cls.load(
-                store_path, query_transformer=query_transformer, reranker=reranker
-            )
-        else:
-            # Create empty store
-            return cls(
-                _VectorStore.build([]),
-                _BM25Store.build([]),
-                query_transformer,
-                reranker,
-                {},
-            )
+            if store_path.exists():
+                logger.info("Found existing document store at %s", store_path)
+                result = cls.load(
+                    store_path, query_transformer=query_transformer, reranker=reranker
+                )
+            else:
+                logger.info("Creating empty document store (no existing store found)")
+                # Create empty store
+                result = cls(
+                    _VectorStore.build([]),
+                    _BM25Store.build([]),
+                    query_transformer,
+                    reranker,
+                    {},
+                )
+
+            return result
 
     def save_to_env(self) -> None:
         """Save DocumentStore to path specified by ISTAROTH_DOCUMENT_STORE env var."""
