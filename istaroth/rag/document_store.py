@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import pathlib
+import pickle
 import time
 from typing import cast
 
@@ -147,6 +148,21 @@ class _BM25Store:
                 bm25 = BM25Okapi(tokenized_corpus)
 
             return cls(bm25, documents)
+
+    def save(self, path: pathlib.Path) -> None:
+        """Save BM25 store to disk using pickle."""
+        with utils.timer("saving BM25 store"):
+            bm25_file = path / "bm25_store.pkl"
+            with open(bm25_file, "wb") as f:
+                pickle.dump(self, f)
+
+    @classmethod
+    def load(cls, path: pathlib.Path) -> "_BM25Store":
+        """Load BM25 store from disk using pickle."""
+        with utils.timer("loading BM25 store"):
+            bm25_file = path / "bm25_store.pkl"
+            with open(bm25_file, "rb") as f:
+                return pickle.load(f)
 
     def search(self, query: str, k: int) -> list[types.ScoredDocument]:
         """BM25 keyword search."""
@@ -372,6 +388,7 @@ class DocumentStore:
         """Save the document store to a directory."""
         # Save stores
         self._vector_store.save(path)
+        self._bm25_store.save(path)
 
         # Write out documents
         (path / "documents.json").write_text(
@@ -399,31 +416,25 @@ class DocumentStore:
     ) -> "DocumentStore":
         """Load document store from a directory."""
         with utils.timer(f"loading document store from {path}"):
-            # Load documents to build BM25 store
+            # Load documents
             with utils.timer("loading documents"):
                 documents_file = path / "documents.json"
-                if documents_file.exists():
-                    documents = {
-                        cast(str, file_id): {
-                            cast(int, doc["metadata"]["chunk_index"]): Document(
-                                page_content=doc["page_content"],
-                                metadata=doc["metadata"],
-                            )
-                            for doc in file_docs
-                        }
-                        for file_id, file_docs in json.loads(
-                            documents_file.read_text()
-                        ).items()
+                documents = {
+                    cast(str, file_id): {
+                        cast(int, doc["metadata"]["chunk_index"]): Document(
+                            page_content=doc["page_content"],
+                            metadata=doc["metadata"],
+                        )
+                        for doc in file_docs
                     }
-                else:
-                    documents = {}
+                    for file_id, file_docs in json.loads(
+                        documents_file.read_text()
+                    ).items()
+                }
 
             # Load stores
             vector_store = _VectorStore.load(path)
-            flattened_documents = [
-                doc for file_docs in documents.values() for doc in file_docs.values()
-            ]
-            bm25_store = _BM25Store.build(flattened_documents)
+            bm25_store = _BM25Store.load(path)
 
             instance = cls(
                 vector_store,
