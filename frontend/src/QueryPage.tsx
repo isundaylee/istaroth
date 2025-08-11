@@ -41,7 +41,7 @@ function QueryPage() {
               maxWidth: '600px',
               margin: '0 auto 25px auto'
             }}>
-              {t('query.description')}
+              {t('meta.description')}
             </p>
             <img
               src="/istaroth-logo.png"

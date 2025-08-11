@@ -11,9 +11,13 @@ export const eng = {
     download: 'Download'
   },
 
+  meta: {
+    title: 'Istaroth - Genshin Impact Knowledge Assistant',
+    description: 'Explore the mysterious legends and profound lore of Teyvat. An intelligent knowledge base built from Genshin Impact game texts, ready to answer all your questions about characters, history, culture, and worldview.'
+  },
+
   query: {
     title: 'Istaroth',
-    description: 'Explore the mysterious legends and profound lore of Teyvat. An intelligent knowledge base built from Genshin Impact game texts, ready to answer all your questions about characters, history, culture, and worldview.',
     placeholder: 'Enter your question about Genshin Impact lore...',
     submitButton: 'Ask',
     submitting: 'Answering...',
