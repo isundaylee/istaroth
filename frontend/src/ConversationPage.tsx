@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import html2canvas from 'html2canvas'
-import { useT, useTranslation } from './contexts/LanguageContext'
+import { useT } from './contexts/LanguageContext'
 import QueryForm from './QueryForm'
 import Card from './components/Card'
 import LanguageSwitcher from './components/LanguageSwitcher'
@@ -24,7 +24,6 @@ interface ErrorResponse {
 
 function ConversationPage() {
   const { id } = useParams<{ id: string }>()
-  const { language } = useTranslation()
   const t = useT()
   const [conversation, setConversation] = useState<ConversationResponse | null>(null)
   const [error, setError] = useState<string | null>(null)

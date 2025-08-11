@@ -66,4 +66,4 @@ export const chs = {
     message: '抱歉，您访问的页面不存在。',
     backButton: '返回首页'
   }
-} as const
+}

@@ -1,7 +1,7 @@
 import { chs } from './chs'
 import { eng } from './eng'
 
-export const translations = { chs, eng } as const
+export const translations = { chs, eng }
 export type Language = keyof typeof translations
 export type TranslationKey = typeof chs
 

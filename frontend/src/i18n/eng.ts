@@ -66,4 +66,4 @@ export const eng = {
     message: 'Sorry, the page you are looking for does not exist.',
     backButton: 'Back to Home'
   }
-} as const
+}
