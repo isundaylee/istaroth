@@ -12,6 +12,7 @@ interface ConversationResponse {
   model: string | null
   k: number
   created_at: number
+  generation_time_seconds: number | null
 }
 
 interface ErrorResponse {
@@ -144,7 +145,7 @@ function ConversationPage() {
         <div className="conversation-content">
           <Card borderColor="green">
             <h3>
-              问题: <span style={{fontWeight: 'normal'}}>{conversation!.question}</span>
+              问题: <span style={{ fontWeight: 'normal' }}>{conversation!.question}</span>
             </h3>
           </Card>
 
@@ -227,7 +228,8 @@ function ConversationPage() {
             <div className="conversation-meta">
               <p>对话 #{conversation!.id}</p>
               <p>时间: {formatDate(conversation!.created_at)}</p>
-              {conversation!.model && <p>模型: {conversation!.model}</p>}
+              <p>模型: {conversation!.model}</p>
+              {conversation!.generation_time_seconds && <p>生成时间: {conversation!.generation_time_seconds.toFixed(2)}秒</p>}
             </div>
             <Link to="/" className="back-link">
               ← 返回首页

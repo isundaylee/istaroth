@@ -2,6 +2,7 @@
 
 import functools
 import logging
+import time
 import traceback
 from typing import Callable, ParamSpec, TypeVar
 
@@ -107,17 +108,21 @@ class BackendApp:
         except ValueError as e:
             return attrs.asdict(models.ErrorResponse(error=repr(e))), 400
 
-        # Get answer
+        # Get answer and track timing
         logger.info(
             "Processing query: %s with k=%d using model: %s",
             request.question,
             request.k,
             request.model,
         )
+        start_time = time.perf_counter()
         answer = self.rag_pipeline.answer(request.question, k=request.k, llm=llm)
+        generation_time = time.perf_counter() - start_time
+
+        logger.info("Query completed in %.2f seconds", generation_time)
 
         # Save conversation to database
-        conversation_id = self._save_conversation(request, answer)
+        conversation_id = self._save_conversation(request, answer, generation_time)
 
         # Return response
         return (
@@ -131,7 +136,9 @@ class BackendApp:
             200,
         )
 
-    def _save_conversation(self, request: models.QueryRequest, answer: str) -> int:
+    def _save_conversation(
+        self, request: models.QueryRequest, answer: str, generation_time: float
+    ) -> int:
         """Save conversation to database and return the conversation ID."""
         try:
             with self.db_session_factory() as session:
@@ -140,6 +147,7 @@ class BackendApp:
                     answer=answer,
                     model=request.model,
                     k=request.k,
+                    generation_time_seconds=generation_time,
                 )
                 session.add(conversation)
                 session.commit()
@@ -174,6 +182,7 @@ class BackendApp:
                 model=conversation.model,
                 k=conversation.k,
                 created_at=conversation.created_at.timestamp(),
+                generation_time_seconds=conversation.generation_time_seconds,
             )
 
             return attrs.asdict(response), 200

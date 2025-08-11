@@ -23,3 +23,4 @@ class Conversation(Base):
     created_at = sqlalchemy.Column(
         sqlalchemy.DateTime, default=datetime.datetime.utcnow
     )
+    generation_time_seconds = sqlalchemy.Column(sqlalchemy.Float, nullable=True)

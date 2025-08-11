@@ -40,6 +40,7 @@ class ConversationResponse:
     model: str | None = attrs.field()
     k: int = attrs.field()
     created_at: float = attrs.field()  # Unix timestamp as float
+    generation_time_seconds: float | None = attrs.field(default=None)
 
 
 @attrs.define
