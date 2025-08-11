@@ -98,10 +98,8 @@ function ConversationPage() {
         height: element.scrollHeight + 40
       } as any)
 
-      const link = document.createElement('a')
-      link.download = `istaroth-conversation-${conversation.id}-${Date.now()}.png`
-      link.href = canvas.toDataURL()
-      link.click()
+      const dataURL = canvas.toDataURL()
+      window.open(dataURL, '_blank')
     } catch (error) {
       console.error('导出PNG失败:', error)
       alert('导出PNG失败，请重试')
