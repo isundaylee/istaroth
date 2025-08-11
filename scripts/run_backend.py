@@ -33,7 +33,7 @@ def main(host: str, port: int, debug: bool) -> None:
 
     # Create and run the application
     flask_app = app.BackendApp().app
-    flask_app.run(host=host, port=port, debug=debug)
+    flask_app.run(host=host, port=port, debug=debug, use_reloader=False)
 
 
 if __name__ == "__main__":

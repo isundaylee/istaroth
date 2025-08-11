@@ -11,7 +11,7 @@ import flask
 
 from istaroth.agd import localization
 from istaroth.backend import database, db_models, models
-from istaroth.rag import document_store, document_store_set, pipeline
+from istaroth.rag import document_store_set, pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +25,8 @@ def _handle_unexpected_exception(
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> tuple[dict, int]:
         try:
             return func(*args, **kwargs)
-        except Exception as e:
-            logger.error(
-                "Error in %s: %s\n%s", func.__name__, e, traceback.format_exc()
-            )
+        except Exception:
+            logger.error("Error in %s", func.__name__, exc_info=True)
             return (
                 attrs.asdict(models.ErrorResponse(error="Internal server error")),
                 500,
@@ -117,8 +115,11 @@ class BackendApp:
         except ValueError as e:
             return attrs.asdict(models.ErrorResponse(error=repr(e))), 400
 
+        # Get the language enum for the RAG pipeline
+        language_enum = localization.Language(request.language)
+
         # Create RAG pipeline for the selected language
-        rag_pipeline = pipeline.RAGPipeline(selected_store)
+        rag_pipeline = pipeline.RAGPipeline(selected_store, language_enum)
 
         # Get answer and track timing
         logger.info(
