@@ -51,3 +51,10 @@ class ErrorResponse:
     """Error response model for API errors."""
 
     error: str
+
+
+@attrs.define
+class ModelsResponse:
+    """Response model for available models endpoint."""
+
+    models: list[str]

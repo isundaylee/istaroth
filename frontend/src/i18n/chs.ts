@@ -30,7 +30,8 @@ export const chs = {
     },
     errors: {
       unknown: '发生了未知错误',
-      noConnection: '无法连接到服务器'
+      noConnection: '无法连接到服务器',
+      modelsLoadFailed: '无法加载可用模型列表，请刷新页面重试'
     }
   },
 

@@ -14,23 +14,36 @@ from istaroth import langsmith_utils
 from istaroth.agd import localization
 from istaroth.rag import document_store, output_rendering, prompt_set, tracing
 
+# Available models for the RAG pipeline
+_ALL_SUPPORTED_MODELS: set[str] = {
+    "gemini-2.5-flash-lite",
+    "gemini-2.5-flash",
+    "gemini-2.5-pro",
+    "gpt-5-nano",
+    "gpt-5-mini",
+}
+
+
+def get_available_models() -> list[str]:
+    """Get sorted list of available model IDs."""
+    return sorted(_ALL_SUPPORTED_MODELS)
+
 
 def create_llm(model_name: str) -> language_models.BaseLanguageModel:
-    """Create LLM instance for the specified model name.
+    """Create LLM instance for the specified model name."""
+    if model_name not in _ALL_SUPPORTED_MODELS:
+        raise ValueError(
+            f"Unsupported model '{model_name}'. Available models: {', '.join(sorted(_ALL_SUPPORTED_MODELS))}"
+        )
 
-    Supported models:
-    - gemini-2.5-flash-lite (default)
-    - gemini-2.5-flash
-    - gemini-2.5-pro
-    - gpt-5-mini
-    """
-    # Only allow specific models
-    if model_name in {"gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.5-pro"}:
+    # Google models
+    if model_name.startswith("gemini-"):
         return google_llms.GoogleGenerativeAI(model=model_name)
-    elif model_name in {"gpt-5-mini", "gpt-5-nano"}:
+    # OpenAI models
+    elif model_name.startswith("gpt-"):
         return openai_llms.ChatOpenAI(model=model_name)
     else:
-        raise ValueError(f"Unsupported model '{model_name}'.")
+        raise ValueError(f"Unknown model provider for '{model_name}'.")
 
 
 def create_llm_from_env() -> language_models.BaseLanguageModel:

@@ -80,6 +80,9 @@ class BackendApp:
             self._get_conversation,
             methods=["GET"],
         )
+        self.app.add_url_rule(
+            "/api/models", "get_models", self._get_models, methods=["GET"]
+        )
 
     @_handle_unexpected_exception
     def _query(self) -> tuple[dict, int]:
@@ -203,6 +206,14 @@ class BackendApp:
             )
 
             return attrs.asdict(response), 200
+
+    @_handle_unexpected_exception
+    def _get_models(self) -> tuple[dict, int]:
+        """Get list of available models."""
+        return (
+            attrs.asdict(models.ModelsResponse(models=pipeline.get_available_models())),
+            200,
+        )
 
 
 def create_app() -> flask.Flask:

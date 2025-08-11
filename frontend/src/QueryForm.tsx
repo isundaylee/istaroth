@@ -13,14 +13,20 @@ interface ErrorResponse {
   error: string
 }
 
+interface ModelsResponse {
+  models: string[]
+}
+
 function QueryForm() {
   const navigate = useNavigate()
   const t = useT()
   const { language } = useTranslation()
   const [question, setQuestion] = useState('')
-  const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-lite')
+  const [availableModels, setAvailableModels] = useState<string[]>([])
+  const [selectedModel, setSelectedModel] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [modelsLoading, setModelsLoading] = useState(true)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Helper function to convert model ID to translation key
@@ -39,6 +45,33 @@ function QueryForm() {
     if (inputRef.current) {
       inputRef.current.focus()
     }
+  }, [])
+
+  useEffect(() => {
+    // Fetch available models from backend
+    const fetchModels = async () => {
+      try {
+        const res = await fetch('/api/models')
+        if (res.ok) {
+          const data = await res.json() as ModelsResponse
+          setAvailableModels(data.models)
+          // Set default to first model if available
+          if (data.models.length > 0) {
+            setSelectedModel(data.models[0])
+          }
+        } else {
+          console.error('Failed to fetch models from server')
+          setError(t('query.errors.modelsLoadFailed'))
+        }
+      } catch (err) {
+        console.error('Error fetching models:', err)
+        setError(t('query.errors.modelsLoadFailed'))
+      } finally {
+        setModelsLoading(false)
+      }
+    }
+
+    fetchModels()
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,18 +129,22 @@ function QueryForm() {
           <select
             value={selectedModel}
             onChange={(e) => setSelectedModel(e.target.value)}
-            disabled={loading}
+            disabled={loading || modelsLoading}
             className="model-select"
           >
-            <option value="gemini-2.5-flash-lite">{getModelText('gemini-2.5-flash-lite')}</option>
-            <option value="gemini-2.5-flash">{getModelText('gemini-2.5-flash')}</option>
-            <option value="gpt-5-nano">{getModelText('gpt-5-nano')}</option>
-            <option value="gpt-5-mini">{getModelText('gpt-5-mini')}</option>
-            <option value="gemini-2.5-pro">{getModelText('gemini-2.5-pro')}</option>
+            {modelsLoading ? (
+              <option value="">{t('common.loading')}</option>
+            ) : (
+              availableModels.map(modelId => (
+                <option key={modelId} value={modelId}>
+                  {getModelText(modelId)}
+                </option>
+              ))
+            )}
           </select>
           <button
             type="submit"
-            disabled={loading || !question.trim()}
+            disabled={loading || !question.trim() || availableModels.length === 0}
             className="submit-button"
           >
             {loading ? t('query.submitting') : t('query.submitButton')}
