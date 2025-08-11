@@ -14,7 +14,7 @@ from istaroth import langsmith_utils
 from istaroth.agd import localization
 from istaroth.rag import document_store, output_rendering, prompt_set, tracing
 
-# Available models for the RAG pipeline
+# All technically supported models (for validation)
 _ALL_SUPPORTED_MODELS: set[str] = {
     "gemini-2.5-flash-lite",
     "gemini-2.5-flash",
@@ -23,17 +23,63 @@ _ALL_SUPPORTED_MODELS: set[str] = {
     "gpt-5-mini",
 }
 
+# Cache for available models from environment
+_available_models_cache: set[str] | None = None
+
 
 def get_available_models() -> list[str]:
-    """Get sorted list of available model IDs."""
-    return sorted(_ALL_SUPPORTED_MODELS)
+    """Get sorted list of available model IDs from environment variable.
+
+    Reads from ISTAROTH_AVAILABLE_MODELS environment variable.
+
+    Special values:
+    - "all": Enable all supported models
+
+    Otherwise expects a comma-separated list of model IDs.
+    """
+    global _available_models_cache
+
+    if _available_models_cache is not None:
+        return sorted(_available_models_cache)
+
+    models_env = os.environ.get("ISTAROTH_AVAILABLE_MODELS")
+    if not models_env:
+        raise ValueError(
+            "ISTAROTH_AVAILABLE_MODELS environment variable is required. "
+            "Set it to 'all' or a comma-separated list of model IDs, e.g., "
+            "'gemini-2.5-flash-lite,gemini-2.5-flash,gpt-5-mini'"
+        )
+
+    # Check for special value
+    if models_env.strip().lower() == "all":
+        _available_models_cache = _ALL_SUPPORTED_MODELS.copy()
+        return sorted(_available_models_cache)
+
+    # Parse comma-separated list
+    requested_models = {m.strip() for m in models_env.split(",") if m.strip()}
+
+    if not requested_models:
+        raise ValueError("ISTAROTH_AVAILABLE_MODELS cannot be empty")
+
+    # Validate that all requested models are supported
+    unsupported = requested_models - _ALL_SUPPORTED_MODELS
+    if unsupported:
+        raise ValueError(
+            f"Unsupported models in ISTAROTH_AVAILABLE_MODELS: {', '.join(sorted(unsupported))}. "
+            f"Supported models are: {', '.join(sorted(_ALL_SUPPORTED_MODELS))}"
+        )
+
+    _available_models_cache = requested_models
+    return sorted(_available_models_cache)
 
 
 def create_llm(model_name: str) -> language_models.BaseLanguageModel:
     """Create LLM instance for the specified model name."""
-    if model_name not in _ALL_SUPPORTED_MODELS:
+    available_models = get_available_models()
+
+    if model_name not in available_models:
         raise ValueError(
-            f"Unsupported model '{model_name}'. Available models: {', '.join(sorted(_ALL_SUPPORTED_MODELS))}"
+            f"Model '{model_name}' is not available. Available models: {', '.join(available_models)}"
         )
 
     # Google models
