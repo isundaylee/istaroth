@@ -1,16 +1,27 @@
 import { Link } from 'react-router-dom'
+import { useT } from './contexts/LanguageContext'
 import Card from './components/Card'
+import LanguageSwitcher from './components/LanguageSwitcher'
 
 function NotFoundPage() {
+  const t = useT()
+
   return (
     <div className="app">
       <main className="main">
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '0.5rem 0 1rem 0'
+        }}>
+          <LanguageSwitcher />
+        </div>
         <Card>
           <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-            <h1 style={{ fontSize: '4rem', margin: '0', color: '#666' }}>404</h1>
-            <h2 style={{ margin: '1rem 0', color: '#333' }}>页面未找到</h2>
+            <h1 style={{ fontSize: '4rem', margin: '0', color: '#666' }}>{t('notFound.title')}</h1>
+            <h2 style={{ margin: '1rem 0', color: '#333' }}>{t('notFound.heading')}</h2>
             <p style={{ margin: '1rem 0', color: '#666' }}>
-              抱歉，您访问的页面不存在。
+              {t('notFound.message')}
             </p>
             <Link
               to="/"
@@ -28,7 +39,7 @@ function NotFoundPage() {
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0056b3'}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#007bff'}
             >
-              返回首页
+              {t('notFound.backButton')}
             </Link>
           </div>
         </Card>

@@ -1,0 +1,64 @@
+export const eng = {
+  common: {
+    loading: 'Loading...',
+    error: 'Error',
+    back: 'Back to Home',
+    submit: 'Submit',
+    copy: 'Copy',
+    copied: 'Copied',
+    copyFailed: 'Copy failed',
+    close: 'Close',
+    download: 'Download'
+  },
+
+  query: {
+    title: 'Istaroth',
+    description: 'Explore the mysterious legends and profound lore of Teyvat. An intelligent knowledge base built from Genshin Impact game texts, ready to answer all your questions about characters, history, culture, and worldview.',
+    placeholder: 'Enter your question about Genshin Impact lore...',
+    submitButton: 'Ask',
+    submitting: 'Answering...',
+    models: {
+      'gemini-2_5-flash-lite': 'Ultra Fast (gemini-2.5-flash-lite)',
+      'gemini-2_5-flash': 'Fast (gemini-2.5-flash)',
+      'gpt-5-nano': 'Fast (gpt-5-nano)',
+      'gpt-5-mini': 'Medium (gpt-5-mini)',
+      'gemini-2_5-pro': 'Slow (gemini-2.5-pro)'
+    },
+    errors: {
+      unknown: 'An unknown error occurred',
+      noConnection: 'Unable to connect to server'
+    }
+  },
+
+  conversation: {
+    question: 'Question',
+    answer: 'Answer',
+    shareLink: 'Copy Share Link',
+    export: 'Export Image',
+    exporting: 'Exporting...',
+    metadata: {
+      conversation: 'Conversation',
+      time: 'Time',
+      model: 'Model',
+      generationTime: 'Generation Time',
+      seconds: 's'
+    },
+    errors: {
+      invalidId: 'Invalid conversation ID',
+      emptyData: 'Server returned empty conversation data',
+      loadFailed: 'Failed to load conversation',
+      exportFailed: 'PNG export failed, please try again',
+      notFound: 'Conversation content element not found'
+    },
+    exportImage: {
+      alt: 'Exported conversation screenshot'
+    }
+  },
+
+  notFound: {
+    title: '404',
+    heading: 'Page Not Found',
+    message: 'Sorry, the page you are looking for does not exist.',
+    backButton: 'Back to Home'
+  }
+} as const

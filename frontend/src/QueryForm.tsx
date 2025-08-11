@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useT } from './contexts/LanguageContext'
 
 interface QueryResponse {
   question: string
@@ -13,11 +14,23 @@ interface ErrorResponse {
 
 function QueryForm() {
   const navigate = useNavigate()
+  const t = useT()
   const [question, setQuestion] = useState('')
   const [selectedModel, setSelectedModel] = useState('gemini-2.5-flash-lite')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Helper function to convert model ID to translation key
+  const getModelTranslationKey = (modelId: string) => {
+    return modelId.replace(/\./g, '_')
+  }
+
+  // Helper function to get model display text
+  const getModelText = (modelId: string) => {
+    const translationKey = `query.models.${getModelTranslationKey(modelId)}`
+    return t(translationKey)
+  }
 
   useEffect(() => {
     // Focus the input field when component mounts
@@ -55,10 +68,10 @@ function QueryForm() {
         navigate(`/conversation/${response.conversation_id}`)
       } else {
         const errorData = data as ErrorResponse
-        setError(errorData.error || '发生了未知错误')
+        setError(errorData.error || t('query.errors.unknown'))
       }
     } catch (err) {
-      setError('无法连接到服务器')
+      setError(t('query.errors.noConnection'))
     } finally {
       setLoading(false)
     }
@@ -73,7 +86,7 @@ function QueryForm() {
             type="text"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="请输入关于原神背景故事的问题..."
+            placeholder={t('query.placeholder')}
             disabled={loading}
             className="question-input"
           />
@@ -83,25 +96,25 @@ function QueryForm() {
             disabled={loading}
             className="model-select"
           >
-            <option value="gemini-2.5-flash-lite">超快速 (gemini-2.5-flash-lite)</option>
-            <option value="gemini-2.5-flash">快速 (gemini-2.5-flash)</option>
-            <option value="gpt-5-nano">快速 (gpt-5-nano)</option>
-            <option value="gpt-5-mini">中速 (gpt-5-mini)</option>
-            <option value="gemini-2.5-pro">慢速 (gemini-2.5-pro)</option>
+            <option value="gemini-2.5-flash-lite">{getModelText('gemini-2.5-flash-lite')}</option>
+            <option value="gemini-2.5-flash">{getModelText('gemini-2.5-flash')}</option>
+            <option value="gpt-5-nano">{getModelText('gpt-5-nano')}</option>
+            <option value="gpt-5-mini">{getModelText('gpt-5-mini')}</option>
+            <option value="gemini-2.5-pro">{getModelText('gemini-2.5-pro')}</option>
           </select>
           <button
             type="submit"
             disabled={loading || !question.trim()}
             className="submit-button"
           >
-            {loading ? '回答中...' : '提问'}
+            {loading ? t('query.submitting') : t('query.submitButton')}
           </button>
         </div>
       </form>
 
       {error && (
         <div className="error">
-          <h3>错误</h3>
+          <h3>{t('common.error')}</h3>
           <p>{error}</p>
         </div>
       )}

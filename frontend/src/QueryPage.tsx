@@ -1,10 +1,22 @@
+import { useT } from './contexts/LanguageContext'
 import QueryForm from './QueryForm'
 import Card from './components/Card'
+import LanguageSwitcher from './components/LanguageSwitcher'
 
 function QueryPage() {
+  const t = useT()
+
   return (
     <div className="app">
       <main className="main">
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '0.5rem 0 1rem 0'
+        }}>
+          <LanguageSwitcher />
+        </div>
+
         <QueryForm />
 
         <div style={{
@@ -19,7 +31,7 @@ function QueryPage() {
             margin: '0'
           }}>
             <h1 style={{ fontSize: '2.5rem', color: '#2c3e50', marginBottom: '15px' }}>
-              伊斯塔露
+              {t('query.title')}
             </h1>
             <p style={{
               fontSize: '1.1rem',
@@ -29,7 +41,7 @@ function QueryPage() {
               maxWidth: '600px',
               margin: '0 auto 25px auto'
             }}>
-              探索提瓦特大陆的神秘传说与深邃背景故事。基于原神游戏文本构建的智能知识库，为您解答关于角色、历史、文化和世界观的疑问。
+              {t('query.description')}
             </p>
             <img
               src="/istaroth-logo.png"

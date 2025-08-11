@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import html2canvas from 'html2canvas'
+import { useT, useTranslation } from './contexts/LanguageContext'
 import QueryForm from './QueryForm'
 import Card from './components/Card'
+import LanguageSwitcher from './components/LanguageSwitcher'
 
 interface ConversationResponse {
   uuid: string
@@ -21,17 +23,23 @@ interface ErrorResponse {
 
 function ConversationPage() {
   const { id } = useParams<{ id: string }>()
+  const { language } = useTranslation()
+  const t = useT()
   const [conversation, setConversation] = useState<ConversationResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [exportedImage, setExportedImage] = useState<string | null>(null)
-  const [copyButtonText, setCopyButtonText] = useState('复制分享链接')
+  const [copyButtonText, setCopyButtonText] = useState('')
+
+  useEffect(() => {
+    setCopyButtonText(t('conversation.shareLink'))
+  }, [t])
 
   useEffect(() => {
     const fetchConversation = async () => {
       if (!id) {
-        setError('无效的对话ID')
+        setError(t('conversation.errors.invalidId'))
         setLoading(false)
         return
       }
@@ -43,15 +51,15 @@ function ConversationPage() {
         if (res.ok) {
           const conversationData = data as ConversationResponse
           if (!conversationData) {
-            throw new Error('服务器返回了空的对话数据')
+            throw new Error(t('conversation.errors.emptyData'))
           }
           setConversation(conversationData)
         } else {
           const errorData = data as ErrorResponse
-          setError(errorData.error || '无法加载对话')
+          setError(errorData.error || t('conversation.errors.loadFailed'))
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : '无法连接到服务器')
+        setError(err instanceof Error ? err.message : t('query.errors.noConnection'))
       } finally {
         setLoading(false)
       }
@@ -72,11 +80,11 @@ function ConversationPage() {
 
   const copyCurrentUrl = () => {
     navigator.clipboard.writeText(window.location.href).then(() => {
-      setCopyButtonText('已复制')
-      setTimeout(() => setCopyButtonText('复制分享链接'), 2000)
+      setCopyButtonText(t('common.copied'))
+      setTimeout(() => setCopyButtonText(t('conversation.shareLink')), 2000)
     }).catch(() => {
-      setCopyButtonText('复制失败')
-      setTimeout(() => setCopyButtonText('复制分享链接'), 2000)
+      setCopyButtonText(t('common.copyFailed'))
+      setTimeout(() => setCopyButtonText(t('conversation.shareLink')), 2000)
     })
   }
 
@@ -88,7 +96,7 @@ function ConversationPage() {
     try {
       const element = document.querySelector('.conversation-content') as HTMLElement
       if (!element) {
-        throw new Error('对话内容元素未找到')
+        throw new Error(t('conversation.errors.notFound'))
       }
 
       const canvas = await html2canvas(element, {
@@ -107,7 +115,7 @@ function ConversationPage() {
       setExportedImage(dataURL)
     } catch (error) {
       console.error('导出PNG失败:', error)
-      alert('导出PNG失败，请重试')
+      alert(t('conversation.errors.exportFailed'))
     } finally {
       setExporting(false)
     }
@@ -117,7 +125,7 @@ function ConversationPage() {
     return (
       <div className="app">
         <main className="main">
-          <div className="loading">加载中...</div>
+          <div className="loading">{t('common.loading')}</div>
         </main>
       </div>
     )
@@ -128,10 +136,10 @@ function ConversationPage() {
       <div className="app">
         <main className="main">
           <div className="error">
-            <h3>错误</h3>
+            <h3>{t('common.error')}</h3>
             <p>{error}</p>
             <Link to="/" className="back-link">
-              返回首页
+              {t('common.back')}
             </Link>
           </div>
         </main>
@@ -143,18 +151,26 @@ function ConversationPage() {
   return (
     <div className="app">
       <main className="main">
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          padding: '0.5rem 0 1rem 0'
+        }}>
+          <LanguageSwitcher />
+        </div>
+
         <QueryForm />
 
         <div className="conversation-content">
           <Card borderColor="green">
             <h3>
-              问题: <span style={{ fontWeight: 'normal' }}>{conversation!.question}</span>
+              {t('conversation.question')}: <span style={{ fontWeight: 'normal' }}>{conversation!.question}</span>
             </h3>
           </Card>
 
           <Card borderColor="blue">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h3>回答:</h3>
+              <h3>{t('conversation.answer')}:</h3>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={copyCurrentUrl} className="share-button">
                   {copyButtonText}
@@ -164,7 +180,7 @@ function ConversationPage() {
                   className="export-button"
                   disabled={exporting}
                 >
-                  {exporting ? '导出中...' : '导出图片'}
+                  {exporting ? t('conversation.exporting') : t('conversation.export')}
                 </button>
               </div>
             </div>
@@ -187,7 +203,7 @@ function ConversationPage() {
                 }}>
                   <img
                     src={exportedImage}
-                    alt="导出的对话截图"
+                    alt={t('conversation.exportImage.alt')}
                     style={{
                       width: '50vw',
                       maxWidth: '400px',
@@ -208,14 +224,14 @@ function ConversationPage() {
                       className="share-button"
                       style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
                     >
-                      下载
+                      {t('common.download')}
                     </button>
                     <button
                       onClick={() => setExportedImage(null)}
                       className="export-button"
                       style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
                     >
-                      关闭
+                      {t('common.close')}
                     </button>
                   </div>
                 </div>
@@ -229,13 +245,13 @@ function ConversationPage() {
 
           <div className="conversation-footer">
             <div className="conversation-meta">
-              <p>对话 #{conversation!.uuid}</p>
-              <p>时间: {formatDate(conversation!.created_at)}</p>
-              <p>模型: {conversation!.model}</p>
-              {conversation!.generation_time_seconds && <p>生成时间: {conversation!.generation_time_seconds.toFixed(2)}秒</p>}
+              <p>{t('conversation.metadata.conversation')} #{conversation!.uuid}</p>
+              <p>{t('conversation.metadata.time')}: {formatDate(conversation!.created_at)}</p>
+              <p>{t('conversation.metadata.model')}: {conversation!.model}</p>
+              {conversation!.generation_time_seconds && <p>{t('conversation.metadata.generationTime')}: {conversation!.generation_time_seconds.toFixed(2)}{t('conversation.metadata.seconds')}</p>}
             </div>
             <Link to="/" className="back-link">
-              ← 返回首页
+              ← {t('common.back')}
             </Link>
           </div>
         </div>
