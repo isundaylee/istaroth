@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 interface QueryResponse {
   question: string
   answer: string
-  conversation_id: number
+  conversation_id: string
 }
 
 interface ErrorResponse {

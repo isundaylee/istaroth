@@ -75,7 +75,7 @@ class BackendApp:
         """Register API routes."""
         self.app.add_url_rule("/api/query", "query", self._query, methods=["POST"])
         self.app.add_url_rule(
-            "/api/conversations/<int:conversation_id>",
+            "/api/conversations/<string:conversation_uuid>",
             "get_conversation",
             self._get_conversation,
             methods=["GET"],
@@ -122,7 +122,7 @@ class BackendApp:
         logger.info("Query completed in %.2f seconds", generation_time)
 
         # Save conversation to database
-        conversation_id = self._save_conversation(request, answer, generation_time)
+        conversation_uuid = self._save_conversation(request, answer, generation_time)
 
         # Return response
         return (
@@ -130,7 +130,7 @@ class BackendApp:
                 models.QueryResponse(
                     question=request.question,
                     answer=answer,
-                    conversation_id=conversation_id,
+                    conversation_id=conversation_uuid,
                 )
             ),
             200,
@@ -138,7 +138,7 @@ class BackendApp:
 
     def _save_conversation(
         self, request: models.QueryRequest, answer: str, generation_time: float
-    ) -> int:
+    ) -> str:
         """Save conversation to database and return the conversation ID."""
         try:
             with self.db_session_factory() as session:
@@ -152,20 +152,20 @@ class BackendApp:
                 session.add(conversation)
                 session.commit()
                 logger.info(
-                    "Conversation saved to database with ID: %d", conversation.id
+                    "Conversation saved to database with UUID: %s", conversation.uuid
                 )
-                return conversation.id
+                return conversation.uuid
         except Exception as e:
             logger.error("Failed to save conversation to database: %s", e)
-            return 0  # Return 0 on error
+            return ""  # Return empty string on error
 
     @_handle_unexpected_exception
-    def _get_conversation(self, conversation_id: int) -> tuple[dict, int]:
+    def _get_conversation(self, conversation_uuid: str) -> tuple[dict, int]:
         """Get a specific conversation by ID."""
         with self.db_session_factory() as session:
             conversation = (
                 session.query(db_models.Conversation)
-                .filter_by(id=conversation_id)
+                .filter_by(uuid=conversation_uuid)
                 .first()
             )
 
@@ -176,7 +176,7 @@ class BackendApp:
                 )
 
             response = models.ConversationResponse(
-                id=conversation.id,
+                uuid=conversation.uuid,
                 question=conversation.question,
                 answer=conversation.answer,
                 model=conversation.model,

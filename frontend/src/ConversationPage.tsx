@@ -6,7 +6,7 @@ import QueryForm from './QueryForm'
 import Card from './components/Card'
 
 interface ConversationResponse {
-  id: number
+  uuid: string
   question: string
   answer: string
   model: string | null
@@ -198,7 +198,7 @@ function ConversationPage() {
                     <button
                       onClick={() => {
                         const link = document.createElement('a')
-                        link.download = `istaroth-conversation-${conversation!.id}-${Date.now()}.png`
+                        link.download = `istaroth-conversation-${conversation!.uuid}-${Date.now()}.png`
                         link.href = exportedImage
                         link.click()
                       }}
@@ -226,7 +226,7 @@ function ConversationPage() {
 
           <div className="conversation-footer">
             <div className="conversation-meta">
-              <p>对话 #{conversation!.id}</p>
+              <p>对话 #{conversation!.uuid}</p>
               <p>时间: {formatDate(conversation!.created_at)}</p>
               <p>模型: {conversation!.model}</p>
               {conversation!.generation_time_seconds && <p>生成时间: {conversation!.generation_time_seconds.toFixed(2)}秒</p>}

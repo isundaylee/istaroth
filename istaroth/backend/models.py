@@ -27,14 +27,14 @@ class QueryResponse:
 
     question: str = attrs.field()
     answer: str = attrs.field()
-    conversation_id: int = attrs.field()
+    conversation_id: str = attrs.field()
 
 
 @attrs.define
 class ConversationResponse:
     """Response model for conversation retrieval."""
 
-    id: int = attrs.field()
+    uuid: str = attrs.field()
     question: str = attrs.field()
     answer: str = attrs.field()
     model: str | None = attrs.field()
