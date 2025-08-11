@@ -26,6 +26,7 @@ function ConversationPage() {
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [exportedImage, setExportedImage] = useState<string | null>(null)
+  const [copyButtonText, setCopyButtonText] = useState('复制分享链接')
 
   useEffect(() => {
     const fetchConversation = async () => {
@@ -71,9 +72,11 @@ function ConversationPage() {
 
   const copyCurrentUrl = () => {
     navigator.clipboard.writeText(window.location.href).then(() => {
-      alert('链接已复制到剪贴板!')
+      setCopyButtonText('已复制')
+      setTimeout(() => setCopyButtonText('复制分享链接'), 2000)
     }).catch(() => {
-      alert('复制失败，请手动复制链接')
+      setCopyButtonText('复制失败')
+      setTimeout(() => setCopyButtonText('复制分享链接'), 2000)
     })
   }
 
@@ -154,7 +157,7 @@ function ConversationPage() {
               <h3>回答:</h3>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={copyCurrentUrl} className="share-button">
-                  复制分享链接
+                  {copyButtonText}
                 </button>
                 <button
                   onClick={exportPageAsPNG}
