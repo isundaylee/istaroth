@@ -21,6 +21,16 @@ function QueryPage() {
             <h1 style={{ fontSize: '2.5rem', color: '#2c3e50', marginBottom: '15px' }}>
               伊斯塔露
             </h1>
+            <p style={{
+              fontSize: '1.1rem',
+              color: '#5a6c7d',
+              lineHeight: '1.6',
+              marginBottom: '25px',
+              maxWidth: '600px',
+              margin: '0 auto 25px auto'
+            }}>
+              探索提瓦特大陆的神秘传说与深邃背景故事。基于原神游戏文本构建的智能知识库，为您解答关于角色、历史、文化和世界观的疑问。
+            </p>
             <img
               src="/istaroth-logo.png"
               alt="Istaroth Logo"
