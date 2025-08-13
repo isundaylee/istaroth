@@ -1,0 +1,15 @@
+apiVersion: v2
+name: istaroth
+description: A Helm chart for Istaroth - a RAG pipeline for Genshin Impact lore
+type: application
+version: 0.1.0
+appVersion: "latest"
+maintainers:
+  - name: isundaylee
+home: https://github.com/isundaylee/istaroth
+sources:
+  - https://github.com/isundaylee/istaroth
+keywords:
+  - istaroth
+  - rag
+  - genshin-impact
