@@ -49,17 +49,19 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
                 background: 'rgba(255, 255, 255, 0.2)',
                 border: 'none',
                 color: 'white',
-                borderRadius: '50%',
-                width: '24px',
-                height: '24px',
+                borderRadius: '25%',
+                width: '22px',
+                height: '22px',
+                lineHeight: '22px',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '14px',
+                fontSize: '16px',
                 fontWeight: 'bold',
                 transition: 'background-color 0.15s ease',
                 marginLeft: '8px',
+                paddingBottom: '1px',
                 flexShrink: 0
               }}
               onMouseEnter={(e) => {
