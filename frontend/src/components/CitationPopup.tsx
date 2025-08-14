@@ -3,11 +3,13 @@ import { forwardRef } from 'react'
 interface CitationPopupProps {
   title: string
   content: string
+  isSticky?: boolean
+  onClose?: () => void
   style?: React.CSSProperties
 }
 
 const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
-  ({ title, content, style }, ref) => {
+  ({ title, content, isSticky = false, onClose, style }, ref) => {
     return (
       <div
         ref={ref}
@@ -21,7 +23,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
           minWidth: '300px',
           zIndex: 1000,
           animation: 'fadeIn 0.2s ease',
-          pointerEvents: 'none',
+          pointerEvents: isSticky ? 'auto' : 'none',
           ...style
         }}
       >
@@ -32,10 +34,45 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
             color: 'white',
             fontWeight: 600,
             fontSize: '0.9rem',
-            borderRadius: '8px 8px 0 0'
+            borderRadius: '8px 8px 0 0',
+            position: 'relative',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
           }}
         >
-          {title}
+          <span>{title}</span>
+          {isSticky && onClose && (
+            <button
+              onClick={onClose}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                color: 'white',
+                borderRadius: '50%',
+                width: '24px',
+                height: '24px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                transition: 'background-color 0.15s ease',
+                marginLeft: '8px',
+                flexShrink: 0
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
+              }}
+              title="Close"
+            >
+              ×
+            </button>
+          )}
         </div>
         <div
           style={{

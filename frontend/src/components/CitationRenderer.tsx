@@ -13,6 +13,7 @@ type CachedCitation = CitationResponse | { error: string }
 
 function CitationRenderer({ content }: CitationRendererProps) {
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
+  const [stickyCitation, setStickyCitation] = useState<string | null>(null)
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 })
   const [citationCache, setCitationCache] = useState<Record<string, CachedCitation>>({})
   const [loadingCitations, setLoadingCitations] = useState<Set<string>>(new Set())
@@ -45,6 +46,9 @@ function CitationRenderer({ content }: CitationRendererProps) {
   }
 
   const handleCitationHover = (e: React.MouseEvent<HTMLElement>, citationId: string) => {
+    // Don't show hover popup if this citation is already sticky
+    if (stickyCitation === citationId) return
+
     const citationRect = e.currentTarget.getBoundingClientRect()
 
     setHoveredCitation(citationId)
@@ -60,6 +64,37 @@ function CitationRenderer({ content }: CitationRendererProps) {
       top: viewportTop,
       left: viewportCenterX
     })
+  }
+
+  const handleCitationClick = (e: React.MouseEvent<HTMLElement>, citationId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const citationRect = e.currentTarget.getBoundingClientRect()
+
+    // Fetch citation content if not already cached
+    fetchCitationContent(citationId)
+
+    // Calculate position relative to viewport (for fixed positioning)
+    const viewportTop = citationRect.bottom + 5
+    const viewportCenterX = citationRect.left + (citationRect.width / 2)
+
+    setPopupPosition({
+      top: viewportTop,
+      left: viewportCenterX
+    })
+
+    // Toggle sticky state
+    if (stickyCitation === citationId) {
+      setStickyCitation(null)
+    } else {
+      setStickyCitation(citationId)
+      setHoveredCitation(null) // Clear hover when making sticky
+    }
+  }
+
+  const handleCloseSticky = () => {
+    setStickyCitation(null)
   }
 
   // Adjust popup position if it goes off-screen
@@ -179,13 +214,13 @@ function CitationRenderer({ content }: CitationRendererProps) {
               data-citation-id={citationId}
               onMouseEnter={(e) => handleCitationHover(e, citationId)}
               onMouseLeave={() => setHoveredCitation(null)}
+              onClick={(e) => handleCitationClick(e, citationId)}
               style={{
-                color: '#5594d9',
-                // fontSize: '0.8em',
+                color: stickyCitation === citationId ? '#2c7cd6' : '#5594d9',
                 fontWeight: 500,
-                cursor: 'help',
+                cursor: 'pointer',
                 transition: 'all 0.15s ease',
-                textDecoration: isHovered ? 'underline' : 'none',
+                textDecoration: isHovered || stickyCitation === citationId ? 'underline' : 'none',
                 padding: '0 1px'
               }}
             >
@@ -202,15 +237,20 @@ function CitationRenderer({ content }: CitationRendererProps) {
 
   const processedContent = preprocessContent(content)
 
+  const displayedCitation = stickyCitation || hoveredCitation
+  const isSticky = stickyCitation !== null
+
   return (
     <div style={{ position: 'relative' }} data-citation-container>
       <ReactMarkdown components={components}>{processedContent}</ReactMarkdown>
 
-      {hoveredCitation && (
+      {displayedCitation && (
         <CitationPopup
           ref={popupRef}
-          title={getSourceContent(hoveredCitation).title}
-          content={getSourceContent(hoveredCitation).content}
+          title={getSourceContent(displayedCitation).title}
+          content={getSourceContent(displayedCitation).content}
+          isSticky={isSticky}
+          onClose={handleCloseSticky}
           style={{
             top: `${popupPosition.top}px`,
             left: `${popupPosition.left}px`
