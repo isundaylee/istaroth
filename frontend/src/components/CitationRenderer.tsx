@@ -20,10 +20,28 @@ function CitationRenderer({ content }: CitationRendererProps) {
   const t = useT()
   const popupRef = useRef<HTMLDivElement>(null)
 
-  // Preprocess content to convert [[file_id:chunk_index]] to markdown links
+  // Preprocess content to convert [[file_id:chunk_index]] to markdown links with document:chunk numbering
   const preprocessContent = (text: string): string => {
-    // Convert [[file_id:chunk_index]] to [chunk_index](http://istaroth.markdown/citation/file_id/chunk_index)
-    return text.replace(/\[\[([^:]+):(\d+)\]\]/g, '[$2](http://istaroth.markdown/citation/$1/$2)')
+    const citationPattern = /\[\[([^:]+):(\d+)\]\]/g
+    const fileIdToDocIndex = new Map<string, number>()
+    let match
+    let documentCounter = 0
+
+    // First pass: assign document indices to unique file IDs in order of appearance
+    citationPattern.lastIndex = 0  // Reset regex state
+    while ((match = citationPattern.exec(text)) !== null) {
+      const fileId = match[1]
+      if (!fileIdToDocIndex.has(fileId)) {
+        documentCounter++
+        fileIdToDocIndex.set(fileId, documentCounter)
+      }
+    }
+
+    // Second pass: replace citations with document_index:chunk_index format
+    return text.replace(citationPattern, (_, fileId, chunkIndex) => {
+      const docIndex = fileIdToDocIndex.get(fileId)!
+      return `[${docIndex}:${chunkIndex}](http://istaroth.markdown/citation/${fileId}/${chunkIndex})`
+    })
   }
 
   const handleCitationHover = (e: React.MouseEvent<HTMLElement>, citationId: string) => {
