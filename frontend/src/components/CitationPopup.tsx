@@ -23,7 +23,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
           minWidth: '300px',
           zIndex: 1000,
           animation: 'fadeIn 0.2s ease',
-          pointerEvents: isSticky ? 'auto' : 'none',
+          pointerEvents: 'auto',
           ...style
         }}
       >
