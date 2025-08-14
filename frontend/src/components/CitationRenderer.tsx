@@ -46,9 +46,8 @@ function CitationRenderer({ content }: CitationRendererProps) {
   }
 
   const handleCitationHover = (e: React.MouseEvent<HTMLElement>, citationId: string) => {
-    // Don't show hover popup if this citation is already sticky
-    if (stickyCitation === citationId) return
-
+    // Don't show hover popup if any citation is sticky
+    if (stickyCitation) return
 
     const citationRect = e.currentTarget.getBoundingClientRect()
 
@@ -68,6 +67,8 @@ function CitationRenderer({ content }: CitationRendererProps) {
   }
 
   const handleCitationLeave = () => {
+    // Don't clear hover if any citation is sticky
+    if (stickyCitation) return
     setHoveredCitation(null)
   }
 
