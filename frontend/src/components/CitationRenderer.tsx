@@ -20,7 +20,6 @@ function CitationRenderer({ content }: CitationRendererProps) {
   const { language } = useTranslation()
   const t = useT()
   const popupRef = useRef<HTMLDivElement>(null)
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Preprocess content to convert [[file_id:chunk_index]] to markdown links with document:chunk numbering
   const preprocessContent = (text: string): string => {
@@ -50,11 +49,6 @@ function CitationRenderer({ content }: CitationRendererProps) {
     // Don't show hover popup if this citation is already sticky
     if (stickyCitation === citationId) return
 
-    // Clear any existing timeout
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current)
-      hoverTimeoutRef.current = null
-    }
 
     const citationRect = e.currentTarget.getBoundingClientRect()
 
@@ -74,10 +68,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
   }
 
   const handleCitationLeave = () => {
-    // Use a small delay to allow for mouse movement to popup
-    hoverTimeoutRef.current = setTimeout(() => {
-      setHoveredCitation(null)
-    }, 100)
+    setHoveredCitation(null)
   }
 
   const handleCitationClick = (e: React.MouseEvent<HTMLElement>, citationId: string) => {

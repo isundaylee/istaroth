@@ -82,8 +82,11 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
             fontSize: '0.9rem',
             lineHeight: 1.6,
             color: '#333',
-            whiteSpace: 'pre-wrap'
+            whiteSpace: 'pre-wrap',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#3498db transparent'
           }}
+          className="citation-popup-content"
         >
           {content}
         </div>
