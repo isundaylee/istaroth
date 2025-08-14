@@ -226,8 +226,10 @@ function CitationRenderer({ content }: CitationRendererProps) {
                 fontWeight: 500,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
-                textDecoration: isHovered || stickyCitation === citationId ? 'underline' : 'none',
-                padding: '0 1px'
+                textDecoration: 'none',
+                padding: '2px 4px',
+                borderRadius: '3px',
+                backgroundColor: isHovered || stickyCitation === citationId ? 'rgba(52, 152, 219, 0.15)' : 'transparent'
               }}
             >
               [{children}]
