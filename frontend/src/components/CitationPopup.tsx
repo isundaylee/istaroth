@@ -1,45 +1,6 @@
 import { forwardRef, useEffect, useRef } from 'react'
 import type { CitationResponse } from '../types/api'
 
-interface LoadButtonProps {
-  onClick: () => void
-  disabled?: boolean
-  loading?: boolean
-  children: React.ReactNode
-  style?: React.CSSProperties
-}
-
-const LoadButton = ({ onClick, disabled = false, loading = false, children, style }: LoadButtonProps) => (
-  <button
-    onClick={onClick}
-    disabled={disabled || loading}
-    style={{
-      padding: '4px 8px',
-      background: '#f8f9fa',
-      border: '1px solid #dee2e6',
-      borderRadius: '4px',
-      cursor: disabled || loading ? 'default' : 'pointer',
-      fontSize: '0.7rem',
-      color: '#495057',
-      transition: 'background-color 0.15s ease',
-      opacity: disabled || loading ? 0.6 : 1,
-      ...style
-    }}
-    onMouseEnter={(e) => {
-      if (!disabled && !loading) {
-        e.currentTarget.style.backgroundColor = '#e9ecef'
-      }
-    }}
-    onMouseLeave={(e) => {
-      if (!disabled && !loading) {
-        e.currentTarget.style.backgroundColor = '#f8f9fa'
-      }
-    }}
-  >
-    {loading ? '载入中...' : children}
-  </button>
-)
-
 interface MainLoadButtonProps {
   onClick: () => void
   disabled?: boolean
