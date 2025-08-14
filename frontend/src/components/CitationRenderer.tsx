@@ -58,11 +58,11 @@ function CitationRenderer({ content }: CitationRendererProps) {
   // Calculate optimal popup position and size to avoid going off-screen
   const calculatePopupPosition = useCallback((citationRect: DOMRect) => {
     // Default popup dimensions
-    const defaultWidth = 500
-    const defaultHeight = 300
+    const defaultWidth = 600
+    const defaultHeight = 500
     const minWidth = 300
     const minHeight = 200 // Increased to ensure enough space for content
-    const margin = 10
+    const margin = 15
 
     // Available viewport space
     const viewportWidth = window.innerWidth

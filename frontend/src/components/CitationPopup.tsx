@@ -110,8 +110,6 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
           border: '1px solid #ddd',
           borderRadius: isFullscreen ? '0' : '8px',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          maxWidth: isFullscreen ? 'none' : '500px',
-          minWidth: isFullscreen ? 'none' : '300px',
           width: isFullscreen ? '100vw' : 'auto',
           height: isFullscreen ? '100vh' : 'auto',
           top: isFullscreen ? 0 : undefined,
