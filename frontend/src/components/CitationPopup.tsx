@@ -12,7 +12,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
       <div
         ref={ref}
         style={{
-          position: 'absolute',
+          position: 'fixed',
           background: 'white',
           border: '1px solid #ddd',
           borderRadius: '8px',
@@ -21,6 +21,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
           minWidth: '300px',
           zIndex: 1000,
           animation: 'fadeIn 0.2s ease',
+          pointerEvents: 'none',
           ...style
         }}
       >

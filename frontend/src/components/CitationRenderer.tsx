@@ -28,23 +28,19 @@ function CitationRenderer({ content }: CitationRendererProps) {
 
   const handleCitationHover = (e: React.MouseEvent<HTMLElement>, citationId: string) => {
     const citationRect = e.currentTarget.getBoundingClientRect()
-    const container = e.currentTarget.closest('[data-citation-container]')
-    const containerRect = container?.getBoundingClientRect()
-
-    if (!containerRect) return
 
     setHoveredCitation(citationId)
 
     // Fetch citation content if not already cached
     fetchCitationContent(citationId)
 
-    // Calculate position relative to the container
-    const relativeTop = citationRect.bottom - containerRect.top + 5
-    const relativeCenterX = citationRect.left + (citationRect.width / 2) - containerRect.left
+    // Calculate position relative to viewport (for fixed positioning)
+    const viewportTop = citationRect.bottom + 5
+    const viewportCenterX = citationRect.left + (citationRect.width / 2)
 
     setPopupPosition({
-      top: relativeTop,
-      left: relativeCenterX
+      top: viewportTop,
+      left: viewportCenterX
     })
   }
 
@@ -52,11 +48,6 @@ function CitationRenderer({ content }: CitationRendererProps) {
   useEffect(() => {
     if (hoveredCitation && popupRef.current) {
       const popup = popupRef.current
-      const containerEl = popup.closest('[data-citation-container]')
-
-      if (!containerEl) return
-
-      const containerRect = containerEl.getBoundingClientRect()
       const popupWidth = popup.offsetWidth
       const popupHeight = popup.offsetHeight
 
@@ -65,20 +56,17 @@ function CitationRenderer({ content }: CitationRendererProps) {
       let adjustedTop = popupPosition.top
 
       // Check if popup goes off left edge of viewport
-      const absoluteLeft = containerRect.left + adjustedLeft
-      if (absoluteLeft < 10) {
-        adjustedLeft = 10 - containerRect.left
+      if (adjustedLeft < 10) {
+        adjustedLeft = 10
       }
 
       // Check if popup goes off right edge of viewport
-      const absoluteRight = containerRect.left + adjustedLeft + popupWidth
-      if (absoluteRight > window.innerWidth - 10) {
-        adjustedLeft = window.innerWidth - 10 - popupWidth - containerRect.left
+      if (adjustedLeft + popupWidth > window.innerWidth - 10) {
+        adjustedLeft = window.innerWidth - 10 - popupWidth
       }
 
       // Check if popup goes off bottom edge of viewport
-      const absoluteBottom = containerRect.top + adjustedTop + popupHeight
-      if (absoluteBottom > window.innerHeight - 20) {
+      if (adjustedTop + popupHeight > window.innerHeight - 20) {
         // Show above the citation instead
         adjustedTop = popupPosition.top - popupHeight - 35
       }
@@ -207,7 +195,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
           content={getSourceContent(hoveredCitation).content}
           style={{
             top: `${popupPosition.top}px`,
-            left: `${popupPosition.left}px`,
+            left: `${popupPosition.left}px`
           }}
         />
       )}
