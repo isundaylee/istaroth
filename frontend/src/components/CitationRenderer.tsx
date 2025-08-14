@@ -248,8 +248,6 @@ function CitationRenderer({ content }: CitationRendererProps) {
 
   return (
     <div style={{ position: 'relative' }} data-citation-container>
-      <ReactMarkdown components={components}>{processedContent}</ReactMarkdown>
-
       {displayedCitation && (
         <CitationPopup
           ref={popupRef}
@@ -263,6 +261,8 @@ function CitationRenderer({ content }: CitationRendererProps) {
           }}
         />
       )}
+
+      <ReactMarkdown components={components}>{processedContent}</ReactMarkdown>
     </div>
   )
 }
