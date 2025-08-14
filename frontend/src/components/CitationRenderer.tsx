@@ -24,7 +24,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
   const [stickyCitation, setStickyCitation] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false)
-  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 })
+  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0, width: 500, height: 300 })
   const [citationCache, setCitationCache] = useState<Record<string, CachedCitation>>({})
   const [loadingCitations, setLoadingCitations] = useState<Set<string>>(new Set())
   const { language } = useTranslation()
@@ -66,14 +66,9 @@ function CitationRenderer({ content }: CitationRendererProps) {
     // Fetch citation content if not already cached
     fetchCitation(citationId)
 
-    // Calculate position relative to viewport (for fixed positioning)
-    const viewportTop = citationRect.bottom + 5
-    const viewportCenterX = citationRect.left + (citationRect.width / 2)
-
-    setPopupPosition({
-      top: viewportTop,
-      left: viewportCenterX
-    })
+    // Calculate optimal position to avoid going off-screen
+    const position = calculatePopupPosition(citationRect)
+    setPopupPosition(position)
   }
 
   // Global mouse move handler to check if mouse has left all instances of the hovered citation
@@ -110,14 +105,9 @@ function CitationRenderer({ content }: CitationRendererProps) {
     // Fetch citation content if not already cached
     fetchCitation(citationId)
 
-    // Calculate position relative to viewport (for fixed positioning)
-    const viewportTop = citationRect.bottom + 5
-    const viewportCenterX = citationRect.left + (citationRect.width / 2)
-
-    setPopupPosition({
-      top: viewportTop,
-      left: viewportCenterX
-    })
+    // Calculate optimal position to avoid going off-screen
+    const position = calculatePopupPosition(citationRect)
+    setPopupPosition(position)
 
     // Toggle sticky state
     if (stickyCitation === citationId) {
@@ -137,38 +127,70 @@ function CitationRenderer({ content }: CitationRendererProps) {
     setIsFullscreen(!isFullscreen)
   }
 
-  // Adjust popup position if it goes off-screen
-  useEffect(() => {
-    if (hoveredCitation && popupRef.current) {
-      const popup = popupRef.current
-      const popupWidth = popup.offsetWidth
-      const popupHeight = popup.offsetHeight
+  // Calculate optimal popup position and size to avoid going off-screen
+  const calculatePopupPosition = (citationRect: DOMRect) => {
+    // Default popup dimensions
+    const defaultWidth = 500
+    const defaultHeight = 300
+    const minWidth = 300
+    const minHeight = 200 // Increased to ensure enough space for content
+    const margin = 10
 
-      // Center the popup horizontally on the citation
-      let adjustedLeft = popupPosition.left - (popupWidth / 2)
-      let adjustedTop = popupPosition.top
+    // Available viewport space
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
 
-      // Check if popup goes off left edge of viewport
-      if (adjustedLeft < 10) {
-        adjustedLeft = 10
-      }
+    // Initial position: below and centered on citation
+    const preferredTop = citationRect.bottom + 5
+    const preferredCenterX = citationRect.left + (citationRect.width / 2)
 
-      // Check if popup goes off right edge of viewport
-      if (adjustedLeft + popupWidth > window.innerWidth - 10) {
-        adjustedLeft = window.innerWidth - 10 - popupWidth
-      }
+    // Calculate maximum available width
+    const maxAvailableWidth = viewportWidth - (2 * margin)
+    const popupWidth = Math.max(minWidth, Math.min(defaultWidth, maxAvailableWidth))
 
-      // Check if popup goes off bottom edge of viewport
-      if (adjustedTop + popupHeight > window.innerHeight - 20) {
-        // Show above the citation instead
-        adjustedTop = popupPosition.top - popupHeight - 35
-      }
-
-      // Apply the calculated position
-      popup.style.left = `${adjustedLeft}px`
-      popup.style.top = `${adjustedTop}px`
+    // Calculate horizontal position (try to center, but stay within bounds)
+    let left = preferredCenterX - (popupWidth / 2)
+    if (left < margin) {
+      left = margin
+    } else if (left + popupWidth > viewportWidth - margin) {
+      left = viewportWidth - margin - popupWidth
     }
-  }, [hoveredCitation, popupPosition])
+
+    // Calculate vertical position and height
+    let top = preferredTop
+    let height = defaultHeight
+
+    // Check if popup fits below citation
+    const spaceBelow = viewportHeight - preferredTop - margin
+    const spaceAbove = citationRect.top - margin
+
+    if (spaceBelow >= minHeight) {
+      // Popup fits below citation
+      top = preferredTop
+      height = Math.max(minHeight, Math.min(defaultHeight, spaceBelow))
+    } else if (spaceAbove >= minHeight) {
+      // Not enough space below, try above citation
+      height = Math.max(minHeight, Math.min(defaultHeight, spaceAbove))
+      top = citationRect.top - height - 5
+    } else {
+      // Very constrained space - use the larger of the two spaces
+      if (spaceBelow > spaceAbove) {
+        top = preferredTop
+        height = Math.max(minHeight, spaceBelow)
+      } else {
+        height = Math.max(minHeight, spaceAbove)
+        top = citationRect.top - height - 5
+      }
+    }
+
+    return {
+      top,
+      left,
+      width: popupWidth,
+      height
+    }
+  }
+
 
   // Generic function to fetch citation content
   const fetchCitation = async (citationId: string) => {
@@ -336,7 +358,9 @@ function CitationRenderer({ content }: CitationRendererProps) {
           loadingCitations={loadingCitations}
           style={{
             top: `${popupPosition.top}px`,
-            left: `${popupPosition.left}px`
+            left: `${popupPosition.left}px`,
+            width: `${popupPosition.width}px`,
+            height: `${popupPosition.height}px`
           }}
         />
       )}

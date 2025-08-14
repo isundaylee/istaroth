@@ -213,13 +213,14 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
         {isSticky && chunks && fileId && currentChunkIndex ? (
           // Sticky mode with multiple chunks and load buttons
           <div style={{
-            display: isFullscreen ? 'flex' : 'block',
-            flexDirection: isFullscreen ? 'column' : undefined,
-            height: isFullscreen ? 'calc(100vh - 60px)' : 'auto'
+            display: 'flex',
+            flexDirection: 'column',
+            height: isFullscreen ? 'calc(100vh - 60px)' : 'calc(100% - 60px)',
+            overflow: 'hidden'
           }}>
             {/* Load previous button */}
             {onLoadChunk && chunks && chunks.length > 0 && chunks[0].metadata.chunk_index > 0 && (
-              <div style={{ padding: '8px 16px', borderBottom: '1px solid #eee' }}>
+              <div style={{ padding: '8px 16px', borderBottom: '1px solid #eee', flexShrink: 0 }}>
                 <MainLoadButton
                   onClick={() => {
                     const firstChunk = chunks[0]
@@ -239,14 +240,15 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
               ref={contentRef}
               style={{
                 padding: '16px',
-                maxHeight: isFullscreen ? 'calc(100vh - 120px)' : '300px',
+                maxHeight: isFullscreen ? 'calc(100vh - 120px)' : undefined,
+                height: isFullscreen ? undefined : 'auto',
                 overflowY: 'auto',
                 fontSize: '0.9rem',
                 lineHeight: 1.6,
                 color: '#333',
                 scrollbarWidth: 'thin',
                 scrollbarColor: '#3498db transparent',
-                flex: isFullscreen ? 1 : 'none'
+                flex: isFullscreen ? 1 : 1
               }}
               className="citation-popup-content"
             >
@@ -370,7 +372,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
 
             {/* Load next button */}
             {onLoadChunk && chunks && chunks.length > 0 && chunks[chunks.length - 1].metadata.chunk_index < chunks[chunks.length - 1].total_chunks - 1 && (
-              <div style={{ padding: '8px 16px', borderTop: '1px solid #eee' }}>
+              <div style={{ padding: '8px 16px', borderTop: '1px solid #eee', flexShrink: 0 }}>
                 <MainLoadButton
                   onClick={() => {
                     const lastChunk = chunks[chunks.length - 1]
@@ -390,14 +392,15 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
           <div
             style={{
               padding: '16px',
-              maxHeight: '300px',
+              height: 'calc(100% - 60px)',
               overflowY: 'auto',
               fontSize: '0.9rem',
               lineHeight: 1.6,
               color: '#333',
               whiteSpace: 'pre-wrap',
               scrollbarWidth: 'thin',
-              scrollbarColor: '#3498db transparent'
+              scrollbarColor: '#3498db transparent',
+              boxSizing: 'border-box'
             }}
             className="citation-popup-content"
           >
