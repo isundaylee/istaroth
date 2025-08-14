@@ -23,7 +23,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
 
   // Preprocess content to convert [[file_id:chunk_index]] to markdown links with document:chunk numbering
   const preprocessContent = (text: string): string => {
-    const citationPattern = /\[\[([^:]+):(\d+)\]\]/g
+    const citationPattern = /\[\[([^:]+):ck(\d+)\]\]/g
     const fileIdToDocIndex = new Map<string, number>()
     let match
     let documentCounter = 0

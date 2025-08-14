@@ -41,7 +41,7 @@ def _get_chinese_prompts() -> RAGPrompts:
         - **明确资料边界**：当资料不足时，明确指出"资料未明示"或"原文未详述"
         - **逻辑推理**：在资料支撑下，可进行合理的逻辑推导，但需明确区分事实与推论
         - **结构清晰**：按逻辑层次组织答案，重要信息优先，次要细节补充
-        - **引用原文**：当需要引用原文的时候，必须在回答重复原始文本段落，使用引号标注，并在引用文本后立即添加格式为 [[<file_id>:<chunk_index>]] 的源信息标注。用户无法看到检索的上下文，因此你需要在答案中重复关键原文并标明来源
+        - **引用原文**：当需要引用原文的时候，必须在回答重复原始文本段落，使用引号标注，并在引用文本后立即添加格式为 [[<file_id>:<chunk_index>]] 的源信息标注。其中 file_id 是类似 UUID 的字符串标识符（不是数字索引），chunk_index 是 "ck" 后跟数字的格式（如 ck1, ck3, ck23 等）。每次引用只能使用一个 chunk_index，不能在同一个引用中使用多个 ck 号码。例如：[[a1ce2a48748b90cbf1da90f01cfb74bb:ck3]]。用户无法看到检索的上下文，因此你需要在答案中重复关键原文并标明来源
         - **原文展示**：对于关键论据，应完整引用相关原文段落，而非仅做概括总结
 
         请始终用中文回答，避免过度解读或主观臆断。记住：用户看不到你检索到的资料，所以必须在回答中充分引用原文。
@@ -56,6 +56,8 @@ def _get_chinese_prompts() -> RAGPrompts:
         回答要求：
 
         请基于资料内容，结合你对《原神》剧情的理解，简洁清晰地回答用户问题。
+
+        重要提醒：引用原文时，必须使用格式 [[<file_id>:<chunk_index>]]，例如：[[a1ce2a48748b90cbf1da90f01cfb74bb:ck3]]
 
         用户提问：{user_question}
         """
@@ -83,7 +85,7 @@ def _get_english_prompts() -> RAGPrompts:
         - **Clarify Material Boundaries**: When information is insufficient, explicitly state "not specified in the source" or "not detailed in the original text"
         - **Logical Reasoning**: Conduct reasonable logical deductions supported by the material, but clearly distinguish between facts and inferences
         - **Clear Structure**: Organize answers by logical hierarchy, prioritizing important information with supplementary details
-        - **Quote Original Text**: When referencing source material, repeat the original text passages in your response using quotation marks, followed immediately by source information in the format [[<file_id>:<chunk_index>]]. Users cannot see the retrieved context, so you must include key source passages and their sources in your answer
+        - **Quote Original Text**: When referencing source material, repeat the original text passages in your response using quotation marks, followed immediately by source information in the format [[<file_id>:<chunk_index>]]. The file_id is a UUID-like string identifier (not a numeric index), and chunk_index is in the format "ck" followed by a number (e.g., ck1, ck3, ck23, etc.). Each citation must use only one chunk_index; do not use multiple ck numbers in the same citation. For example: [[a1ce2a48748b90cbf1da90f01cfb74bb:ck3]]. Users cannot see the retrieved context, so you must include key source passages and their sources in your answer
         - **Display Original Text**: For key evidence, quote complete relevant passages rather than just summarizing
 
         Always respond in English, avoiding over-interpretation or subjective speculation. Remember: users cannot see the retrieved materials, so you must fully quote source text in your responses.
@@ -98,6 +100,8 @@ def _get_english_prompts() -> RAGPrompts:
         Response Requirements:
 
         Please provide a concise and clear answer based on the source material, combined with your understanding of Genshin Impact lore.
+
+        Important Reminder: When citing sources, you must use the format [[<file_id>:<chunk_index>]], for example: [[a1ce2a48748b90cbf1da90f01cfb74bb:ck3]]
 
         User Question: {user_question}
         """
