@@ -512,3 +512,10 @@ class DocumentStore:
 
         file_docs = self._documents[file_id]
         return [file_docs[i] for i in sorted(file_docs.keys())]
+
+    def get_file_chunk_count(self, file_id: str) -> int | None:
+        """Get the total number of chunks for a specific file."""
+        if file_id not in self._documents:
+            return None
+
+        return len(self._documents[file_id])

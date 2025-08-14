@@ -279,12 +279,18 @@ class BackendApp:
                 "error": f"Citation not found: file_id={file_id}, chunk_index={chunk_index}"
             }, 404
 
+        # Get the total number of chunks for this file
+        total_chunks = store.get_file_chunk_count(file_id)
+        if total_chunks is None:
+            return {"error": f"File not found: file_id={file_id}"}, 404
+
         # Return the chunk content and metadata
         response = models.CitationResponse(
             file_id=file_id,
             chunk_index=chunk_index,
             content=chunk.page_content,
             metadata=chunk.metadata,
+            total_chunks=total_chunks,
         )
         return attrs.asdict(response), 200
 

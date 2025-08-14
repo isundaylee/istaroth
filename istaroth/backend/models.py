@@ -94,3 +94,4 @@ class CitationResponse:
     chunk_index: int
     content: str
     metadata: dict
+    total_chunks: int

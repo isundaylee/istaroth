@@ -206,7 +206,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
           // Sticky mode with multiple chunks and load buttons
           <div>
             {/* Load previous button */}
-            {onLoadChunk && chunks && chunks.length > 0 && (
+            {onLoadChunk && chunks && chunks.length > 0 && chunks[0].metadata.chunk_index > 0 && (
               <div style={{ padding: '8px 16px', borderBottom: '1px solid #eee' }}>
                 <MainLoadButton
                   onClick={() => {
@@ -356,7 +356,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
             </div>
 
             {/* Load next button */}
-            {onLoadChunk && chunks && chunks.length > 0 && (
+            {onLoadChunk && chunks && chunks.length > 0 && chunks[chunks.length - 1].metadata.chunk_index < chunks[chunks.length - 1].total_chunks - 1 && (
               <div style={{ padding: '8px 16px', borderTop: '1px solid #eee' }}>
                 <MainLoadButton
                   onClick={() => {

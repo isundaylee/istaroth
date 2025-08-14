@@ -45,4 +45,5 @@ export interface CitationResponse {
   chunk_index: number
   content: string
   metadata: Record<string, any>
+  total_chunks: number
 }
