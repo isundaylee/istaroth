@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef, useEffect, useRef } from 'react'
 import type { CitationResponse } from '../types/api'
 
 interface LoadButtonProps {
@@ -104,6 +104,38 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
     loadingCitations,
     style
   }, ref) => {
+    const contentRef = useRef<HTMLDivElement>(null)
+    const previousChunkIdsRef = useRef<Set<string>>(new Set())
+
+    // Scroll to newly loaded chunk when chunks array changes
+    useEffect(() => {
+      if (chunks && chunks.length > 0 && contentRef.current) {
+        const currentChunkIds = new Set(chunks.map(c => c.metadata.chunk_index.toString()))
+
+        // Find chunks that are new (not in previous set)
+        const newChunkIds = [...currentChunkIds].filter(id => !previousChunkIdsRef.current.has(id))
+
+        if (newChunkIds.length > 0) {
+          // Scroll to the first new chunk found
+          const firstNewChunkId = newChunkIds[0]
+          const chunkElement = contentRef.current.querySelector(`[data-chunk-id="chunk-${firstNewChunkId}"]`)
+
+          if (chunkElement) {
+            // Small delay to ensure DOM is updated
+            setTimeout(() => {
+              chunkElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'nearest'
+              })
+            }, 100)
+          }
+        }
+
+        // Update previous chunk IDs
+        previousChunkIdsRef.current = currentChunkIds
+      }
+    }, [chunks])
     return (
       <div
         ref={ref}
@@ -192,6 +224,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
 
             {/* Chunks content */}
             <div
+              ref={contentRef}
               style={{
                 padding: '16px',
                 maxHeight: '300px',
@@ -211,7 +244,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
                 const hasGap = nextChunkNum !== null && nextChunkNum !== currentChunkNum + 1
 
                 return (
-                  <div key={chunk.metadata.chunk_index}>
+                  <div key={chunk.metadata.chunk_index} data-chunk-id={`chunk-${chunk.metadata.chunk_index}`}>
                     <div style={{ marginBottom: index < chunks.length - 1 || hasGap ? '16px' : '0' }}>
                       <div style={{
                         fontSize: '0.75rem',
