@@ -1,15 +1,109 @@
 import { forwardRef } from 'react'
+import type { CitationResponse } from '../types/api'
+
+interface LoadButtonProps {
+  onClick: () => void
+  disabled?: boolean
+  loading?: boolean
+  children: React.ReactNode
+  style?: React.CSSProperties
+}
+
+const LoadButton = ({ onClick, disabled = false, loading = false, children, style }: LoadButtonProps) => (
+  <button
+    onClick={onClick}
+    disabled={disabled || loading}
+    style={{
+      padding: '4px 8px',
+      background: '#f8f9fa',
+      border: '1px solid #dee2e6',
+      borderRadius: '4px',
+      cursor: disabled || loading ? 'default' : 'pointer',
+      fontSize: '0.7rem',
+      color: '#495057',
+      transition: 'background-color 0.15s ease',
+      opacity: disabled || loading ? 0.6 : 1,
+      ...style
+    }}
+    onMouseEnter={(e) => {
+      if (!disabled && !loading) {
+        e.currentTarget.style.backgroundColor = '#e9ecef'
+      }
+    }}
+    onMouseLeave={(e) => {
+      if (!disabled && !loading) {
+        e.currentTarget.style.backgroundColor = '#f8f9fa'
+      }
+    }}
+  >
+    {loading ? '载入中...' : children}
+  </button>
+)
+
+interface MainLoadButtonProps {
+  onClick: () => void
+  disabled?: boolean
+  loading?: boolean
+  children: React.ReactNode
+}
+
+const MainLoadButton = ({ onClick, disabled = false, loading = false, children }: MainLoadButtonProps) => (
+  <button
+    onClick={onClick}
+    disabled={disabled || loading}
+    style={{
+      width: '100%',
+      padding: '6px 12px',
+      background: '#f8f9fa',
+      border: '1px solid #dee2e6',
+      borderRadius: '4px',
+      cursor: disabled || loading ? 'default' : 'pointer',
+      fontSize: '0.8rem',
+      color: '#495057',
+      transition: 'background-color 0.15s ease',
+      opacity: disabled || loading ? 0.6 : 1
+    }}
+    onMouseEnter={(e) => {
+      if (!disabled && !loading) {
+        e.currentTarget.style.backgroundColor = '#e9ecef'
+      }
+    }}
+    onMouseLeave={(e) => {
+      if (!disabled && !loading) {
+        e.currentTarget.style.backgroundColor = '#f8f9fa'
+      }
+    }}
+  >
+    {loading ? '载入中...' : children}
+  </button>
+)
 
 interface CitationPopupProps {
   title: string
-  content: string
+  content?: string
+  chunks?: CitationResponse[]
+  fileId?: string
+  currentChunkIndex?: string
   isSticky?: boolean
   onClose?: () => void
+  onLoadChunk?: (citationId: string) => void
+  loadingCitations?: Set<string>
   style?: React.CSSProperties
 }
 
 const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
-  ({ title, content, isSticky = false, onClose, style }, ref) => {
+  ({
+    title,
+    content,
+    chunks,
+    fileId,
+    currentChunkIndex,
+    isSticky = false,
+    onClose,
+    onLoadChunk,
+    loadingCitations,
+    style
+  }, ref) => {
     return (
       <div
         ref={ref}
@@ -76,22 +170,194 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
             </button>
           )}
         </div>
-        <div
-          style={{
-            padding: '16px',
-            maxHeight: '300px',
-            overflowY: 'auto',
-            fontSize: '0.9rem',
-            lineHeight: 1.6,
-            color: '#333',
-            whiteSpace: 'pre-wrap',
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#3498db transparent'
-          }}
-          className="citation-popup-content"
-        >
-          {content}
-        </div>
+        {isSticky && chunks && fileId && currentChunkIndex ? (
+          // Sticky mode with multiple chunks and load buttons
+          <div>
+            {/* Load previous button */}
+            {onLoadChunk && chunks && chunks.length > 0 && (
+              <div style={{ padding: '8px 16px', borderBottom: '1px solid #eee' }}>
+                <MainLoadButton
+                  onClick={() => {
+                    const firstChunk = chunks[0]
+                    const prevChunkIndex = firstChunk.metadata.chunk_index - 1
+                    const prevCitationId = `${fileId}:ck${prevChunkIndex}`
+                    onLoadChunk(prevCitationId)
+                  }}
+                  loading={loadingCitations?.has(`${fileId}:ck${chunks[0]?.metadata.chunk_index - 1}`)}
+                >
+                  ↑ 载入上一段
+                </MainLoadButton>
+              </div>
+            )}
+
+            {/* Chunks content */}
+            <div
+              style={{
+                padding: '16px',
+                maxHeight: '300px',
+                overflowY: 'auto',
+                fontSize: '0.9rem',
+                lineHeight: 1.6,
+                color: '#333',
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#3498db transparent'
+              }}
+              className="citation-popup-content"
+            >
+              {chunks.map((chunk, index) => {
+                const currentChunkNum = chunk.metadata.chunk_index
+                const nextChunk = chunks[index + 1]
+                const nextChunkNum = nextChunk ? nextChunk.metadata.chunk_index : null
+                const hasGap = nextChunkNum !== null && nextChunkNum !== currentChunkNum + 1
+
+                return (
+                  <div key={chunk.metadata.chunk_index}>
+                    <div style={{ marginBottom: index < chunks.length - 1 || hasGap ? '16px' : '0' }}>
+                      <div style={{
+                        fontSize: '0.75rem',
+                        color: '#666',
+                        marginBottom: '4px',
+                        fontWeight: chunk.metadata.chunk_index === currentChunkIndex ? 'bold' : 'normal',
+                        background: chunk.metadata.chunk_index === currentChunkIndex ? '#e3f2fd' : 'transparent',
+                        padding: '2px 6px',
+                        borderRadius: '3px'
+                      }}>
+                        {chunk.metadata.chunk_index}
+                      </div>
+                      <div style={{ whiteSpace: 'pre-wrap' }}>{chunk.content}</div>
+                    </div>
+
+                    {/* Show ellipsis and load button(s) if there's a gap to the next chunk */}
+                    {hasGap && onLoadChunk && (
+                      <div style={{
+                        margin: '16px 0',
+                        color: '#999'
+                      }}>
+                        {(() => {
+                          const gapSize = nextChunkNum! - currentChunkNum - 1
+                          const firstMissingIndex = currentChunkNum + 1
+                          const lastMissingIndex = nextChunkNum! - 1
+
+                          if (gapSize === 1) {
+                            return (
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px'
+                              }}>
+                                <div style={{
+                                  fontSize: '1.2rem',
+                                  fontWeight: 'bold',
+                                  textAlign: 'center',
+                                  flex: 1
+                                }}>
+                                  ⋯
+                                </div>
+                                <div style={{ padding: '0 8px' }}>
+                                  <MainLoadButton
+                                    onClick={() => {
+                                      const missingCitationId = `${fileId}:ck${firstMissingIndex}`
+                                      onLoadChunk(missingCitationId)
+                                    }}
+                                    loading={loadingCitations?.has(`${fileId}:ck${firstMissingIndex}`)}
+                                  >
+                                    载入段落 {firstMissingIndex}
+                                  </MainLoadButton>
+                                </div>
+                                <div style={{
+                                  fontSize: '1.2rem',
+                                  fontWeight: 'bold',
+                                  textAlign: 'center',
+                                  flex: 1
+                                }}>
+                                  ⋯
+                                </div>
+                              </div>
+                            )
+                          } else {
+                            return (
+                              <div style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '12px'
+                              }}>
+                                <div style={{ padding: '0 8px' }}>
+                                  <MainLoadButton
+                                    onClick={() => {
+                                      const missingCitationId = `${fileId}:ck${firstMissingIndex}`
+                                      onLoadChunk(missingCitationId)
+                                    }}
+                                    loading={loadingCitations?.has(`${fileId}:ck${firstMissingIndex}`)}
+                                  >
+                                    ↑ 载入段落 {firstMissingIndex}
+                                  </MainLoadButton>
+                                </div>
+                                <div style={{
+                                  fontSize: '1.2rem',
+                                  fontWeight: 'bold',
+                                  textAlign: 'center',
+                                  flex: 1
+                                }}>
+                                  ⋯
+                                </div>
+                                <div style={{ padding: '0 8px' }}>
+                                  <MainLoadButton
+                                    onClick={() => {
+                                      const missingCitationId = `${fileId}:ck${lastMissingIndex}`
+                                      onLoadChunk(missingCitationId)
+                                    }}
+                                    loading={loadingCitations?.has(`${fileId}:ck${lastMissingIndex}`)}
+                                  >
+                                    ↓ 载入段落 {lastMissingIndex}
+                                  </MainLoadButton>
+                                </div>
+                              </div>
+                            )
+                          }
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Load next button */}
+            {onLoadChunk && chunks && chunks.length > 0 && (
+              <div style={{ padding: '8px 16px', borderTop: '1px solid #eee' }}>
+                <MainLoadButton
+                  onClick={() => {
+                    const lastChunk = chunks[chunks.length - 1]
+                    const nextChunkIndex = lastChunk.metadata.chunk_index + 1
+                    const nextCitationId = `${fileId}:ck${nextChunkIndex}`
+                    onLoadChunk(nextCitationId)
+                  }}
+                  loading={loadingCitations?.has(`${fileId}:ck${chunks[chunks.length - 1]?.metadata.chunk_index + 1}`)}
+                >
+                  ↓ 载入下一段
+                </MainLoadButton>
+              </div>
+            )}
+          </div>
+        ) : (
+          // Non-sticky mode with single content
+          <div
+            style={{
+              padding: '16px',
+              maxHeight: '300px',
+              overflowY: 'auto',
+              fontSize: '0.9rem',
+              lineHeight: 1.6,
+              color: '#333',
+              whiteSpace: 'pre-wrap',
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#3498db transparent'
+            }}
+            className="citation-popup-content"
+          >
+            {content}
+          </div>
+        )}
       </div>
     )
   }

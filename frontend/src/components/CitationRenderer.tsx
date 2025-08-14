@@ -11,6 +11,15 @@ interface CitationRendererProps {
 
 type CachedCitation = CitationResponse | { error: string }
 
+interface CitationContentData {
+  title: string
+  chunks: CitationResponse[]
+  content: string
+  fileId: string
+  chunkIndexWithPrefix?: string
+  currentChunkIndexWithPrefix?: string
+}
+
 function CitationRenderer({ content }: CitationRendererProps) {
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
   const [stickyCitation, setStickyCitation] = useState<string | null>(null)
@@ -54,7 +63,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
     setHoveredCitation(citationId)
 
     // Fetch citation content if not already cached
-    fetchCitationContent(citationId)
+    fetchCitation(citationId)
 
     // Calculate position relative to viewport (for fixed positioning)
     const viewportTop = citationRect.bottom + 5
@@ -66,11 +75,30 @@ function CitationRenderer({ content }: CitationRendererProps) {
     })
   }
 
-  const handleCitationLeave = () => {
-    // Don't clear hover if any citation is sticky
-    if (stickyCitation) return
-    setHoveredCitation(null)
-  }
+  // Global mouse move handler to check if mouse has left all instances of the hovered citation
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      // Don't clear hover if any citation is sticky or no citation is hovered
+      if (stickyCitation || !hoveredCitation) return
+
+      // Find all elements with the same citation ID (there might be multiple instances)
+      const hoveredElements = document.querySelectorAll(`[data-citation-id="${hoveredCitation}"]`)
+      if (hoveredElements.length === 0) return
+
+      // Check if mouse is still over any of the hovered citation elements
+      const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY)
+      const isOverAnyCitation = Array.from(hoveredElements).some(element =>
+        element.contains(elementUnderMouse) || element === elementUnderMouse
+      )
+
+      if (!isOverAnyCitation) {
+        setHoveredCitation(null)
+      }
+    }
+
+    document.addEventListener('mousemove', handleGlobalMouseMove)
+    return () => document.removeEventListener('mousemove', handleGlobalMouseMove)
+  }, [stickyCitation, hoveredCitation])
 
   const handleCitationClick = (e: React.MouseEvent<HTMLElement>, citationId: string) => {
     e.preventDefault()
@@ -79,7 +107,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
     const citationRect = e.currentTarget.getBoundingClientRect()
 
     // Fetch citation content if not already cached
-    fetchCitationContent(citationId)
+    fetchCitation(citationId)
 
     // Calculate position relative to viewport (for fixed positioning)
     const viewportTop = citationRect.bottom + 5
@@ -136,13 +164,14 @@ function CitationRenderer({ content }: CitationRendererProps) {
     }
   }, [hoveredCitation, popupPosition])
 
-  // Fetch citation content from backend
-  const fetchCitationContent = async (citationId: string) => {
+  // Generic function to fetch citation content
+  const fetchCitation = async (citationId: string) => {
     if (citationCache[citationId] || loadingCitations.has(citationId)) {
       return
     }
 
-    const [fileId, chunkIndex] = citationId.split(':')
+    const [fileId, chunkIndexWithPrefix] = citationId.split(':')
+    const chunkIndex = chunkIndexWithPrefix.replace('ck', '')
 
     setLoadingCitations(prev => new Set(prev).add(citationId))
 
@@ -172,8 +201,10 @@ function CitationRenderer({ content }: CitationRendererProps) {
     }
   }
 
-  const getSourceContent = (citationId: string) => {
-    const [fileId, chunkIndex] = citationId.split(':')
+
+
+  const getSourceContent = (citationId: string): CitationContentData => {
+    const [fileId, chunkIndexWithPrefix] = citationId.split(':')
     const cached = citationCache[citationId]
     const loading = loadingCitations.has(citationId)
 
@@ -182,26 +213,60 @@ function CitationRenderer({ content }: CitationRendererProps) {
         // This is a cached error
         return {
           title: `${t('citation.source')}: ${fileId}`,
-          content: `${t('citation.error')}: ${cached.error}`
+          chunks: [],
+          content: `${t('citation.error')}: ${cached.error}`,
+          fileId,
+          chunkIndexWithPrefix
         }
       } else {
         // This is a successful response
         return {
           title: `${t('citation.source')}: ${cached.metadata.filename || fileId}`,
-          content: cached.content
+          chunks: [],
+          content: cached.content,
+          fileId,
+          chunkIndexWithPrefix
         }
       }
     } else if (loading) {
       return {
         title: `${t('citation.source')}: ${fileId}`,
-        content: t('citation.loading')
+        chunks: [],
+        content: t('citation.loading'),
+        fileId,
+        chunkIndexWithPrefix
       }
     } else {
       return {
         title: `${t('citation.source')}: ${fileId}`,
-        content: `${t('citation.notLoaded')} ${chunkIndex}.`
+        chunks: [],
+        content: `${t('citation.notLoaded')} ${chunkIndexWithPrefix}.`,
+        fileId,
+        chunkIndexWithPrefix
       }
     }
+  }
+
+  const getStickyContent = (citationId: string): CitationContentData => {
+    const [fileId, chunkIndexWithPrefix] = citationId.split(':')
+
+    // Get all chunks for this file from the citation cache
+    const fileChunks = Object.entries(citationCache)
+      .filter(([key, value]) => key.startsWith(`${fileId}:`) && !('error' in value))
+      .map(([_, value]) => value as CitationResponse)
+      .sort((a, b) => a.metadata.chunk_index - b.metadata.chunk_index)
+
+    if (fileChunks.length > 0) {
+      return {
+        title: `${t('citation.source')}: ${fileChunks[0].metadata.filename || fileId}`,
+        chunks: fileChunks,
+        content: '',
+        fileId,
+        currentChunkIndexWithPrefix: chunkIndexWithPrefix
+      }
+    }
+
+    return getSourceContent(citationId)
   }
 
   // Custom components for ReactMarkdown
@@ -219,7 +284,6 @@ function CitationRenderer({ content }: CitationRendererProps) {
             <sup
               data-citation-id={citationId}
               onMouseEnter={(e) => handleCitationHover(e, citationId)}
-              onMouseLeave={handleCitationLeave}
               onClick={(e) => handleCitationClick(e, citationId)}
               style={{
                 color: stickyCitation === citationId ? '#2c7cd6' : '#5594d9',
@@ -253,10 +317,15 @@ function CitationRenderer({ content }: CitationRendererProps) {
       {displayedCitation && (
         <CitationPopup
           ref={popupRef}
-          title={getSourceContent(displayedCitation).title}
-          content={getSourceContent(displayedCitation).content}
+          title={isSticky ? getStickyContent(displayedCitation).title : getSourceContent(displayedCitation).title}
+          content={isSticky ? undefined : getSourceContent(displayedCitation).content}
+          chunks={isSticky ? getStickyContent(displayedCitation).chunks : undefined}
+          fileId={isSticky ? getStickyContent(displayedCitation).fileId : undefined}
+          currentChunkIndex={isSticky ? getStickyContent(displayedCitation).currentChunkIndexWithPrefix : undefined}
           isSticky={isSticky}
           onClose={handleCloseSticky}
+          onLoadChunk={isSticky ? fetchCitation : undefined}
+          loadingCitations={loadingCitations}
           style={{
             top: `${popupPosition.top}px`,
             left: `${popupPosition.left}px`
