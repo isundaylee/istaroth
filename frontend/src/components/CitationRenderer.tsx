@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
 import { useTranslation, useT } from '../contexts/LanguageContext'
@@ -55,80 +55,8 @@ function CitationRenderer({ content }: CitationRendererProps) {
     })
   }
 
-  const handleCitationHover = (e: React.MouseEvent<HTMLElement>, citationId: string) => {
-    // Don't show hover popup if any citation is sticky
-    if (stickyCitation) return
-
-    const citationRect = e.currentTarget.getBoundingClientRect()
-
-    setHoveredCitation(citationId)
-
-    // Fetch citation content if not already cached
-    fetchCitation(citationId)
-
-    // Calculate optimal position to avoid going off-screen
-    const position = calculatePopupPosition(citationRect)
-    setPopupPosition(position)
-  }
-
-  // Global mouse move handler to check if mouse has left all instances of the hovered citation
-  useEffect(() => {
-    const handleGlobalMouseMove = (e: MouseEvent) => {
-      // Don't clear hover if any citation is sticky or no citation is hovered
-      if (stickyCitation || !hoveredCitation) return
-
-      // Find all elements with the same citation ID (there might be multiple instances)
-      const hoveredElements = document.querySelectorAll(`[data-citation-id="${hoveredCitation}"]`)
-      if (hoveredElements.length === 0) return
-
-      // Check if mouse is still over any of the hovered citation elements
-      const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY)
-      const isOverAnyCitation = Array.from(hoveredElements).some(element =>
-        element.contains(elementUnderMouse) || element === elementUnderMouse
-      )
-
-      if (!isOverAnyCitation) {
-        setHoveredCitation(null)
-      }
-    }
-
-    document.addEventListener('mousemove', handleGlobalMouseMove)
-    return () => document.removeEventListener('mousemove', handleGlobalMouseMove)
-  }, [stickyCitation, hoveredCitation])
-
-  const handleCitationClick = (e: React.MouseEvent<HTMLElement>, citationId: string) => {
-    e.preventDefault()
-    e.stopPropagation()
-
-    const citationRect = e.currentTarget.getBoundingClientRect()
-
-    // Fetch citation content if not already cached
-    fetchCitation(citationId)
-
-    // Calculate optimal position to avoid going off-screen
-    const position = calculatePopupPosition(citationRect)
-    setPopupPosition(position)
-
-    // Toggle sticky state
-    if (stickyCitation === citationId) {
-      setStickyCitation(null)
-    } else {
-      setStickyCitation(citationId)
-      setHoveredCitation(null) // Clear hover when making sticky
-    }
-  }
-
-  const handleCloseSticky = () => {
-    setStickyCitation(null)
-    setIsFullscreen(false)
-  }
-
-  const handleToggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen)
-  }
-
   // Calculate optimal popup position and size to avoid going off-screen
-  const calculatePopupPosition = (citationRect: DOMRect) => {
+  const calculatePopupPosition = useCallback((citationRect: DOMRect) => {
     // Default popup dimensions
     const defaultWidth = 500
     const defaultHeight = 300
@@ -189,11 +117,10 @@ function CitationRenderer({ content }: CitationRendererProps) {
       width: popupWidth,
       height
     }
-  }
-
+  }, []) // No dependencies since it only uses parameters and constants
 
   // Generic function to fetch citation content
-  const fetchCitation = async (citationId: string) => {
+  const fetchCitation = useCallback(async (citationId: string) => {
     if (citationCache[citationId] || loadingCitations.has(citationId)) {
       return
     }
@@ -227,9 +154,79 @@ function CitationRenderer({ content }: CitationRendererProps) {
         return newSet
       })
     }
-  }
+  }, [citationCache, loadingCitations, language, t])
 
+  const handleCitationHover = useCallback((e: React.MouseEvent<HTMLElement>, citationId: string) => {
+    // Don't show hover popup if any citation is sticky
+    if (stickyCitation) return
 
+    const citationRect = e.currentTarget.getBoundingClientRect()
+
+    setHoveredCitation(citationId)
+
+    // Fetch citation content if not already cached
+    fetchCitation(citationId)
+
+    // Calculate optimal position to avoid going off-screen
+    const position = calculatePopupPosition(citationRect)
+    setPopupPosition(position)
+  }, [stickyCitation, fetchCitation, calculatePopupPosition])
+
+  // Global mouse move handler to check if mouse has left all instances of the hovered citation
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      // Don't clear hover if any citation is sticky or no citation is hovered
+      if (stickyCitation || !hoveredCitation) return
+
+      // Find all elements with the same citation ID (there might be multiple instances)
+      const hoveredElements = document.querySelectorAll(`[data-citation-id="${hoveredCitation}"]`)
+      if (hoveredElements.length === 0) return
+
+      // Check if mouse is still over any of the hovered citation elements
+      const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY)
+      const isOverAnyCitation = Array.from(hoveredElements).some(element =>
+        element.contains(elementUnderMouse) || element === elementUnderMouse
+      )
+
+      if (!isOverAnyCitation) {
+        setHoveredCitation(null)
+      }
+    }
+
+    document.addEventListener('mousemove', handleGlobalMouseMove)
+    return () => document.removeEventListener('mousemove', handleGlobalMouseMove)
+  }, [stickyCitation, hoveredCitation])
+
+  const handleCitationClick = useCallback((e: React.MouseEvent<HTMLElement>, citationId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const citationRect = e.currentTarget.getBoundingClientRect()
+
+    // Fetch citation content if not already cached
+    fetchCitation(citationId)
+
+    // Calculate optimal position to avoid going off-screen
+    const position = calculatePopupPosition(citationRect)
+    setPopupPosition(position)
+
+    // Toggle sticky state
+    if (stickyCitation === citationId) {
+      setStickyCitation(null)
+    } else {
+      setStickyCitation(citationId)
+      setHoveredCitation(null) // Clear hover when making sticky
+    }
+  }, [stickyCitation, fetchCitation, calculatePopupPosition])
+
+  const handleCloseSticky = useCallback(() => {
+    setStickyCitation(null)
+    setIsFullscreen(false)
+  }, [])
+
+  const handleToggleFullscreen = useCallback(() => {
+    setIsFullscreen(!isFullscreen)
+  }, [isFullscreen])
 
   const getSourceContent = (citationId: string): CitationContentData => {
     const [fileId, chunkIndexWithPrefix] = citationId.split(':')
@@ -297,8 +294,8 @@ function CitationRenderer({ content }: CitationRendererProps) {
     return getSourceContent(citationId)
   }
 
-  // Custom components for ReactMarkdown
-  const components: Components = {
+  // Custom components for ReactMarkdown - memoized to prevent recreation on every render
+  const components: Components = useMemo(() => ({
     a: ({ href, children }) => {
       // Check if this is a citation link
       if (href?.includes('istaroth.markdown/citation/')) {
@@ -333,7 +330,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
       // Regular link - render normally
       return <a href={href}>{children}</a>
     }
-  }
+  }), [hoveredCitation, stickyCitation, handleCitationHover, handleCitationClick])
 
   const processedContent = preprocessContent(content)
 
