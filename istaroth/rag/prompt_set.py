@@ -41,7 +41,7 @@ def _get_chinese_prompts() -> RAGPrompts:
         - **明确资料边界**：当资料不足时，明确指出"资料未明示"或"原文未详述"
         - **逻辑推理**：在资料支撑下，可进行合理的逻辑推导，但需明确区分事实与推论
         - **结构清晰**：按逻辑层次组织答案，重要信息优先，次要细节补充
-        - **引用原文**：当需要引用原文的时候，必须在回答重复原始文本段落，使用引号标注。用户无法看到检索的上下文，因此你需要在答案中重复关键原文。无需提供引用的文件与片段编号
+        - **引用原文**：当需要引用原文的时候，必须在回答重复原始文本段落，使用引号标注，并在引用文本后立即添加格式为 [[<file_id>:<chunk_index>]] 的源信息标注。用户无法看到检索的上下文，因此你需要在答案中重复关键原文并标明来源
         - **原文展示**：对于关键论据，应完整引用相关原文段落，而非仅做概括总结
 
         请始终用中文回答，避免过度解读或主观臆断。记住：用户看不到你检索到的资料，所以必须在回答中充分引用原文。
@@ -83,7 +83,7 @@ def _get_english_prompts() -> RAGPrompts:
         - **Clarify Material Boundaries**: When information is insufficient, explicitly state "not specified in the source" or "not detailed in the original text"
         - **Logical Reasoning**: Conduct reasonable logical deductions supported by the material, but clearly distinguish between facts and inferences
         - **Clear Structure**: Organize answers by logical hierarchy, prioritizing important information with supplementary details
-        - **Quote Original Text**: When referencing source material, repeat the original text passages in your response using quotation marks. Users cannot see the retrieved context, so you must include key source passages in your answer. No need to provide file or fragment reference numbers
+        - **Quote Original Text**: When referencing source material, repeat the original text passages in your response using quotation marks, followed immediately by source information in the format [[<file_id>:<chunk_index>]]. Users cannot see the retrieved context, so you must include key source passages and their sources in your answer
         - **Display Original Text**: For key evidence, quote complete relevant passages rather than just summarizing
 
         Always respond in English, avoiding over-interpretation or subjective speculation. Remember: users cannot see the retrieved materials, so you must fully quote source text in your responses.

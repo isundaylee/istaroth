@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import ReactMarkdown from 'react-markdown'
 import html2canvas from 'html2canvas'
 import { useT } from './contexts/LanguageContext'
 import QueryForm from './QueryForm'
 import Card from './components/Card'
 import LanguageSwitcher from './components/LanguageSwitcher'
+import CitationRenderer from './components/CitationRenderer'
 
 interface ConversationResponse {
   uuid: string
@@ -239,7 +239,7 @@ function ConversationPage() {
             )}
 
             <div className="answer">
-              <ReactMarkdown>{conversation!.answer}</ReactMarkdown>
+              <CitationRenderer content={conversation!.answer} />
             </div>
           </Card>
 
