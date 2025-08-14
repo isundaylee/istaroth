@@ -89,6 +89,12 @@ class BackendApp:
             self._get_example_question,
             methods=["GET"],
         )
+        self.app.add_url_rule(
+            "/api/citations/<string:file_id>/<int:chunk_index>",
+            "get_citation",
+            self._get_citation,
+            methods=["GET"],
+        )
 
     @_handle_unexpected_exception
     def _query(self) -> tuple[dict, int]:
@@ -245,6 +251,42 @@ class BackendApp:
             return attrs.asdict(response), 200
         except (ValueError, KeyError) as e:
             return attrs.asdict(models.ErrorResponse(error=repr(e))), 400
+
+    @_handle_unexpected_exception
+    def _get_citation(self, file_id: str, chunk_index: int) -> tuple[dict, int]:
+        """Get citation content by file ID and chunk index."""
+        # Get language from query parameter (required)
+
+        try:
+            language_str = flask.request.args["language"]
+            language = localization.Language(language_str.upper())
+        except (KeyError, ValueError):
+            return {
+                "error": f"Invalid language: {language_str}. Available: CHS, ENG"
+            }, 400
+
+        # Get the document store for the specified language
+        try:
+            store = self.document_store_set.get_store(language)
+        except KeyError as e:
+            return {"error": str(e)}, 400
+
+        # Get the chunk
+        chunk = store.get_chunk(file_id, chunk_index)
+
+        if chunk is None:
+            return {
+                "error": f"Citation not found: file_id={file_id}, chunk_index={chunk_index}"
+            }, 404
+
+        # Return the chunk content and metadata
+        response = models.CitationResponse(
+            file_id=file_id,
+            chunk_index=chunk_index,
+            content=chunk.page_content,
+            metadata=chunk.metadata,
+        )
+        return attrs.asdict(response), 200
 
 
 def create_app() -> flask.Flask:

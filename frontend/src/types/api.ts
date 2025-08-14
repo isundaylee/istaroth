@@ -39,3 +39,10 @@ export interface ExampleQuestionResponse {
   question: string
   language: string
 }
+
+export interface CitationResponse {
+  file_id: string
+  chunk_index: number
+  content: string
+  metadata: Record<string, any>
+}

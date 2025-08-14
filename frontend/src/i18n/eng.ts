@@ -67,5 +67,14 @@ export const eng = {
     heading: 'Page Not Found',
     message: 'Sorry, the page you are looking for does not exist.',
     backButton: 'Back to Home'
+  },
+
+  citation: {
+    source: 'Source',
+    loading: 'Loading...',
+    notLoaded: 'Content not loaded',
+    error: 'Error',
+    networkError: 'Network error fetching citation',
+    fetchFailed: 'Failed to fetch citation'
   }
 }

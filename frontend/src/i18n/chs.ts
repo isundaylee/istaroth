@@ -67,5 +67,14 @@ export const chs = {
     heading: '页面未找到',
     message: '抱歉，您访问的页面不存在。',
     backButton: '返回首页'
+  },
+
+  citation: {
+    source: '来源',
+    loading: '加载中...',
+    notLoaded: '内容未加载',
+    error: '错误',
+    networkError: '网络错误获取引用',
+    fetchFailed: '获取引用失败'
   }
 }

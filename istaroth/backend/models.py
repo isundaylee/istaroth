@@ -84,3 +84,13 @@ class ExampleQuestionResponse:
 
     question: str
     language: str
+
+
+@attrs.define
+class CitationResponse:
+    """Response model for citation content endpoint."""
+
+    file_id: str
+    chunk_index: int
+    content: str
+    metadata: dict

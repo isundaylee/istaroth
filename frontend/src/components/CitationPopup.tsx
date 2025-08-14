@@ -43,7 +43,8 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
             overflowY: 'auto',
             fontSize: '0.9rem',
             lineHeight: 1.6,
-            color: '#333'
+            color: '#333',
+            whiteSpace: 'pre-wrap'
           }}
         >
           {content}

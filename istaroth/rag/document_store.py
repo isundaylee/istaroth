@@ -490,6 +490,14 @@ class DocumentStore:
         store_path.mkdir(parents=True, exist_ok=True)
         self.save(store_path)
 
+    def get_chunk(self, file_id: str, chunk_index: int) -> Document | None:
+        """Get a specific chunk from a file."""
+        if file_id not in self._documents:
+            return None
+
+        file_docs = self._documents[file_id]
+        return file_docs.get(chunk_index)
+
     def get_file_chunks(self, file_id: str) -> list[Document] | None:
         """Get all chunks from a specific file.
 

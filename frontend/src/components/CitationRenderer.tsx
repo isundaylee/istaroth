@@ -1,15 +1,23 @@
 import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
+import { useTranslation, useT } from '../contexts/LanguageContext'
+import type { CitationResponse } from '../types/api'
 import CitationPopup from './CitationPopup'
 
 interface CitationRendererProps {
   content: string
 }
 
+type CachedCitation = CitationResponse | { error: string }
+
 function CitationRenderer({ content }: CitationRendererProps) {
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 })
+  const [citationCache, setCitationCache] = useState<Record<string, CachedCitation>>({})
+  const [loadingCitations, setLoadingCitations] = useState<Set<string>>(new Set())
+  const { language } = useTranslation()
+  const t = useT()
   const popupRef = useRef<HTMLDivElement>(null)
 
   // Preprocess content to convert [[file_id:chunk_index]] to markdown links
@@ -26,6 +34,9 @@ function CitationRenderer({ content }: CitationRendererProps) {
     if (!containerRect) return
 
     setHoveredCitation(citationId)
+
+    // Fetch citation content if not already cached
+    fetchCitationContent(citationId)
 
     // Calculate position relative to the container
     const relativeTop = citationRect.bottom - containerRect.top + 5
@@ -78,16 +89,71 @@ function CitationRenderer({ content }: CitationRendererProps) {
     }
   }, [hoveredCitation, popupPosition])
 
-  // Placeholder text for demonstration
+  // Fetch citation content from backend
+  const fetchCitationContent = async (citationId: string) => {
+    if (citationCache[citationId] || loadingCitations.has(citationId)) {
+      return
+    }
+
+    const [fileId, chunkIndex] = citationId.split(':')
+
+    setLoadingCitations(prev => new Set(prev).add(citationId))
+
+    try {
+      const response = await fetch(`/api/citations/${fileId}/${chunkIndex}?language=${language.toUpperCase()}`)
+
+      if (response.ok) {
+        const data: CitationResponse = await response.json()
+        setCitationCache(prev => ({ ...prev, [citationId]: data }))
+      } else {
+        // Cache the error to prevent repeated requests
+        const errorMessage = `${t('citation.fetchFailed')} (${response.status}): ${response.statusText}`
+        console.error(errorMessage)
+        setCitationCache(prev => ({ ...prev, [citationId]: { error: errorMessage } }))
+      }
+    } catch (error) {
+      // Cache network errors as well
+      const errorMessage = `${t('citation.networkError')}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      console.error(errorMessage)
+      setCitationCache(prev => ({ ...prev, [citationId]: { error: errorMessage } }))
+    } finally {
+      setLoadingCitations(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(citationId)
+        return newSet
+      })
+    }
+  }
+
   const getSourceContent = (citationId: string) => {
     const [fileId, chunkIndex] = citationId.split(':')
-    return {
-      title: `Source: ${fileId}`,
-      content: `This is placeholder text for the source content from file "${fileId}" at chunk index ${chunkIndex}. In the actual implementation, this would show the original text content that was retrieved from the RAG system.
+    const cached = citationCache[citationId]
+    const loading = loadingCitations.has(citationId)
 
-The content would include the full context around the quoted passage, helping users understand where the information came from and verify its accuracy.
-
-This popup provides transparency about the AI's sources and allows users to trace information back to its origin.`
+    if (cached) {
+      if ('error' in cached) {
+        // This is a cached error
+        return {
+          title: `${t('citation.source')}: ${fileId}`,
+          content: `${t('citation.error')}: ${cached.error}`
+        }
+      } else {
+        // This is a successful response
+        return {
+          title: `${t('citation.source')}: ${cached.metadata.filename || fileId}`,
+          content: cached.content
+        }
+      }
+    } else if (loading) {
+      return {
+        title: `${t('citation.source')}: ${fileId}`,
+        content: t('citation.loading')
+      }
+    } else {
+      return {
+        title: `${t('citation.source')}: ${fileId}`,
+        content: `${t('citation.notLoaded')} ${chunkIndex}.`
+      }
     }
   }
 
