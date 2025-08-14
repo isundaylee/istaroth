@@ -23,6 +23,7 @@ interface CitationContentData {
 function CitationRenderer({ content }: CitationRendererProps) {
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
   const [stickyCitation, setStickyCitation] = useState<string | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false)
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 })
   const [citationCache, setCitationCache] = useState<Record<string, CachedCitation>>({})
   const [loadingCitations, setLoadingCitations] = useState<Set<string>>(new Set())
@@ -129,6 +130,11 @@ function CitationRenderer({ content }: CitationRendererProps) {
 
   const handleCloseSticky = () => {
     setStickyCitation(null)
+    setIsFullscreen(false)
+  }
+
+  const handleToggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen)
   }
 
   // Adjust popup position if it goes off-screen
@@ -323,8 +329,10 @@ function CitationRenderer({ content }: CitationRendererProps) {
           fileId={isSticky ? getStickyContent(displayedCitation).fileId : undefined}
           currentChunkIndex={isSticky ? getStickyContent(displayedCitation).currentChunkIndexWithPrefix : undefined}
           isSticky={isSticky}
+          isFullscreen={isFullscreen}
           onClose={handleCloseSticky}
           onLoadChunk={isSticky ? fetchCitation : undefined}
+          onToggleFullscreen={isSticky ? handleToggleFullscreen : undefined}
           loadingCitations={loadingCitations}
           style={{
             top: `${popupPosition.top}px`,

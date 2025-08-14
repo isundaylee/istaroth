@@ -85,8 +85,10 @@ interface CitationPopupProps {
   fileId?: string
   currentChunkIndex?: string
   isSticky?: boolean
+  isFullscreen?: boolean
   onClose?: () => void
   onLoadChunk?: (citationId: string) => void
+  onToggleFullscreen?: () => void
   loadingCitations?: Set<string>
   style?: React.CSSProperties
 }
@@ -99,8 +101,10 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
     fileId,
     currentChunkIndex,
     isSticky = false,
+    isFullscreen = false,
     onClose,
     onLoadChunk,
+    onToggleFullscreen,
     loadingCitations,
     style
   }, ref) => {
@@ -143,14 +147,20 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
           position: 'fixed',
           background: 'white',
           border: '1px solid #ddd',
-          borderRadius: '8px',
+          borderRadius: isFullscreen ? '0' : '8px',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          maxWidth: '500px',
-          minWidth: '300px',
-          zIndex: 1000,
+          maxWidth: isFullscreen ? 'none' : '500px',
+          minWidth: isFullscreen ? 'none' : '300px',
+          width: isFullscreen ? '100vw' : 'auto',
+          height: isFullscreen ? '100vh' : 'auto',
+          top: isFullscreen ? 0 : undefined,
+          left: isFullscreen ? 0 : undefined,
+          right: isFullscreen ? 0 : undefined,
+          bottom: isFullscreen ? 0 : undefined,
+          zIndex: isFullscreen ? 1001 : 1000,
           animation: 'fadeIn 0.2s ease',
           pointerEvents: 'auto',
-          ...style
+          ...(isFullscreen ? {} : style)
         }}
       >
         <div
@@ -168,43 +178,84 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
           }}
         >
           <span>{title}</span>
-          {isSticky && onClose && (
-            <button
-              onClick={onClose}
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
-                color: 'white',
-                borderRadius: '25%',
-                width: '22px',
-                height: '22px',
-                lineHeight: '22px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                transition: 'background-color 0.15s ease',
-                marginLeft: '8px',
-                paddingBottom: '1px',
-                flexShrink: 0
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
-              }}
-              title="Close"
-            >
-              ×
-            </button>
+          {isSticky && (
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {/* Fullscreen toggle button */}
+              {onToggleFullscreen && (
+                <button
+                  onClick={onToggleFullscreen}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: 'none',
+                    color: 'white',
+                    borderRadius: '25%',
+                    width: '22px',
+                    height: '22px',
+                    lineHeight: '22px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    transition: 'background-color 0.15s ease',
+                    flexShrink: 0
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
+                  }}
+                  title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                >
+                  {isFullscreen ? '⧉' : '⛶'}
+                </button>
+              )}
+
+              {/* Close button */}
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: 'none',
+                    color: 'white',
+                    borderRadius: '25%',
+                    width: '22px',
+                    height: '22px',
+                    lineHeight: '22px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    transition: 'background-color 0.15s ease',
+                    paddingBottom: '1px',
+                    flexShrink: 0
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
+                  }}
+                  title="Close"
+                >
+                  ×
+                </button>
+              )}
+            </div>
           )}
         </div>
         {isSticky && chunks && fileId && currentChunkIndex ? (
           // Sticky mode with multiple chunks and load buttons
-          <div>
+          <div style={{
+            display: isFullscreen ? 'flex' : 'block',
+            flexDirection: isFullscreen ? 'column' : undefined,
+            height: isFullscreen ? 'calc(100vh - 60px)' : 'auto'
+          }}>
             {/* Load previous button */}
             {onLoadChunk && chunks && chunks.length > 0 && chunks[0].metadata.chunk_index > 0 && (
               <div style={{ padding: '8px 16px', borderBottom: '1px solid #eee' }}>
@@ -227,13 +278,14 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
               ref={contentRef}
               style={{
                 padding: '16px',
-                maxHeight: '300px',
+                maxHeight: isFullscreen ? 'calc(100vh - 120px)' : '300px',
                 overflowY: 'auto',
                 fontSize: '0.9rem',
                 lineHeight: 1.6,
                 color: '#333',
                 scrollbarWidth: 'thin',
-                scrollbarColor: '#3498db transparent'
+                scrollbarColor: '#3498db transparent',
+                flex: isFullscreen ? 1 : 'none'
               }}
               className="citation-popup-content"
             >
