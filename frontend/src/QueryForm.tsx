@@ -3,7 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import type { QueryResponse, ErrorResponse, ModelsResponse, ExampleQuestionResponse } from './types/api'
 
-function QueryForm() {
+interface QueryFormProps {
+  currentQuestion?: string
+}
+
+function QueryForm({ currentQuestion }: QueryFormProps = {}) {
   const navigate = useNavigate()
   const t = useT()
   const { language } = useTranslation()
@@ -36,6 +40,13 @@ function QueryForm() {
   }, [])
 
   useEffect(() => {
+    // Use current question if provided, otherwise fetch example question
+    if (currentQuestion) {
+      setExampleQuestion(currentQuestion)
+      setExampleLoading(false)
+      return
+    }
+
     // Fetch example question when component mounts or language changes
     const fetchExampleQuestion = async () => {
       try {
@@ -57,7 +68,7 @@ function QueryForm() {
     }
 
     fetchExampleQuestion()
-  }, [language])
+  }, [language, currentQuestion])
 
   useEffect(() => {
     // Fetch available models from backend

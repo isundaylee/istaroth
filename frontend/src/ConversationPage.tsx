@@ -159,7 +159,7 @@ function ConversationPage() {
           <LanguageSwitcher />
         </div>
 
-        <QueryForm />
+        <QueryForm currentQuestion={conversation?.question} />
 
         <div className="conversation-content">
           <Card borderColor="green">
