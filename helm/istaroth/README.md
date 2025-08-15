@@ -28,59 +28,7 @@ helm install istaroth ./helm/istaroth -f custom-values.yaml
 
 ## Configuration
 
-The following table lists the configurable parameters and their default values.
-
-### Global Settings
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `replicaCount` | Number of replicas | `1` |
-
-### Backend Configuration
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `backend.image.repository` | Backend image repository | `isundaylee/istaroth` |
-| `backend.image.tag` | Backend image tag | `latest` |
-| `backend.image.pullPolicy` | Image pull policy | `Always` |
-| `backend.service.type` | Service type | `ClusterIP` |
-| `backend.service.port` | Service port | `5000` |
-| `backend.resources.limits.cpu` | CPU limit | `2000m` |
-| `backend.resources.limits.memory` | Memory limit | `4Gi` |
-| `backend.resources.requests.cpu` | CPU request | `500m` |
-| `backend.resources.requests.memory` | Memory request | `1Gi` |
-
-### Frontend Configuration
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `frontend.image.repository` | Frontend image repository | `isundaylee/istaroth-frontend` |
-| `frontend.image.tag` | Frontend image tag | `latest` |
-| `frontend.image.pullPolicy` | Image pull policy | `Always` |
-| `frontend.service.type` | Service type | `ClusterIP` |
-| `frontend.service.port` | Service port | `80` |
-| `frontend.resources.limits.cpu` | CPU limit | `500m` |
-| `frontend.resources.limits.memory` | Memory limit | `512Mi` |
-| `frontend.resources.requests.cpu` | CPU request | `100m` |
-| `frontend.resources.requests.memory` | Memory request | `128Mi` |
-
-### Persistence
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `persistence.enabled` | Enable persistent storage | `true` |
-| `persistence.storageClass` | Storage class name | `""` (default) |
-| `persistence.accessMode` | Access mode | `ReadWriteOnce` |
-| `persistence.size` | Storage size | `10Gi` |
-
-### Ingress
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `ingress.enabled` | Enable ingress | `false` |
-| `ingress.className` | Ingress class name | `nginx` |
-| `ingress.hosts[0].host` | Hostname | `istaroth.example.com` |
-| `ingress.tls` | TLS configuration | `[]` |
+See `values.yaml` for all configurable parameters and their default values.
 
 ## Persistence
 
@@ -89,27 +37,6 @@ The chart mounts a persistent volume to store:
 - Checkpoint data at `/data/checkpoint`
 - HuggingFace models at `/data/models/hf`
 
-## Environment Variables
-
-### Backend Environment Variables
-
-Set these in `backend.env`:
-```yaml
-backend:
-  env:
-    LANGSMITH_API_KEY: "your-api-key"
-    LANGCHAIN_PROJECT: "istaroth-rag"
-    LANGCHAIN_TRACING_V2: "true"
-```
-
-### Frontend Environment Variables
-
-Set these in `frontend.env`:
-```yaml
-frontend:
-  env:
-    VITE_API_BASE_URL: "http://backend:5000"
-```
 
 ## Examples
 

@@ -1,10 +1,8 @@
 # Default values for istaroth.
 
-# Global settings
-replicaCount: 1
-
 # Backend configuration
 backend:
+  replicaCount: 1
   image:
     repository: isundaylee/istaroth
     tag: latest
@@ -26,14 +24,30 @@ backend:
     ISTAROTH_DOCUMENT_STORE: /data/checkpoint
     ISTAROTH_TRAINING_DEVICE: cpu
     HF_HOME: /data/models/hf
+    DATABASE_PATH: /data/database/web.sqlite
     # Add additional environment variables here
     # Example:
     # LANGSMITH_API_KEY: ""
     # LANGCHAIN_PROJECT: "istaroth-rag"
     # LANGCHAIN_TRACING_V2: "true"
 
+  probes:
+    liveness:
+      httpGet:
+        path: /health
+        port: 5000
+      initialDelaySeconds: 30
+      periodSeconds: 10
+    readiness:
+      httpGet:
+        path: /health
+        port: 5000
+      initialDelaySeconds: 5
+      periodSeconds: 5
+
 # Frontend configuration
 frontend:
+  replicaCount: 1
   image:
     repository: isundaylee/istaroth-frontend
     tag: latest
@@ -52,19 +66,27 @@ frontend:
       memory: 128Mi
 
   env:
+    # This will be templated to use the actual backend service name
+
+  probes:
+    liveness:
+      httpGet:
+        path: /
+        port: 80
+      initialDelaySeconds: 10
+      periodSeconds: 10
+    readiness:
+      httpGet:
+        path: /
+        port: 80
+      initialDelaySeconds: 5
+      periodSeconds: 5
 
 # Persistent storage configuration
 persistence:
-  enabled: true
   storageClass: ""  # Leave empty to use default storage class
   accessMode: ReadWriteOnce
   size: 10Gi
-  # Paths for different data types
-  mountPath: /data
-  subPaths:
-    checkpoint: checkpoint
-    database: database
-    models: models/hf
 
 # Service configuration
 service:
@@ -74,32 +96,10 @@ service:
 # Ingress configuration
 ingress:
   enabled: false
-  className: nginx
+  className: traefik
   annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
     - host: istaroth.example.com
-      paths:
-        - path: /
-          pathType: Prefix
-          backend: frontend
-        - path: /api
-          pathType: Prefix
-          backend: backend
-  tls: []
-  #  - secretName: istaroth-tls
-  #    hosts:
-  #      - istaroth.example.com
-
-# Node selector
-nodeSelector: {}
-
-# Tolerations
-tolerations: []
-
-# Affinity
-affinity: {}
 
 # Pod security context
 podSecurityContext:
@@ -117,35 +117,6 @@ securityContext:
   readOnlyRootFilesystem: false
   runAsNonRoot: true
   runAsUser: 1000
-
-# Liveness and readiness probes
-probes:
-  backend:
-    liveness:
-      httpGet:
-        path: /health
-        port: 5000
-      initialDelaySeconds: 30
-      periodSeconds: 10
-    readiness:
-      httpGet:
-        path: /health
-        port: 5000
-      initialDelaySeconds: 5
-      periodSeconds: 5
-  frontend:
-    liveness:
-      httpGet:
-        path: /
-        port: 80
-      initialDelaySeconds: 10
-      periodSeconds: 10
-    readiness:
-      httpGet:
-        path: /
-        port: 80
-      initialDelaySeconds: 5
-      periodSeconds: 5
 
 # Additional labels
 labels: {}

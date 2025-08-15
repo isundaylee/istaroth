@@ -2,9 +2,9 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "istaroth.fullname" . }}
+  name: {{ .Release.Name }}
   labels:
-    app.kubernetes.io/name: {{ include "istaroth.name" . }}
+    app.kubernetes.io/name: {{ .Release.Name }}
     app.kubernetes.io/instance: {{ .Release.Name }}
     {{- with .Values.labels }}
     {{- toYaml . | nindent 4 }}
@@ -14,38 +14,27 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if .Values.ingress.className }}
   ingressClassName: {{ .Values.ingress.className }}
-  {{- end }}
-  {{- if .Values.ingress.tls }}
-  tls:
-    {{- range .Values.ingress.tls }}
-    - hosts:
-        {{- range .hosts }}
-        - {{ . | quote }}
-        {{- end }}
-      secretName: {{ .secretName }}
-    {{- end }}
-  {{- end }}
   rules:
     {{- range .Values.ingress.hosts }}
     - host: {{ .host | quote }}
       http:
         paths:
-          {{- range .paths }}
-          - path: {{ .path }}
-            pathType: {{ .pathType }}
+          # API routes to backend
+          - path: /api
+            pathType: Prefix
             backend:
               service:
-                {{- if eq .backend "frontend" }}
-                name: {{ include "istaroth.fullname" $ }}-frontend
-                port:
-                  number: {{ $.Values.frontend.service.port }}
-                {{- else if eq .backend "backend" }}
-                name: {{ include "istaroth.fullname" $ }}-backend
+                name: {{ $.Release.Name }}-backend
                 port:
                   number: {{ $.Values.backend.service.port }}
-                {{- end }}
-          {{- end }}
+          # Everything else to frontend
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $.Release.Name }}-frontend
+                port:
+                  number: {{ $.Values.frontend.service.port }}
     {{- end }}
 {{- end }}
