@@ -50,6 +50,7 @@ def run_migrations() -> None:
 
     # Create Alembic configuration
     alembic_cfg = alembic.config.Config(str(alembic_cfg_path))
+    alembic_cfg.attributes["configure_logger"] = False
 
     # Run migrations to head
     alembic.command.upgrade(alembic_cfg, "head")
