@@ -111,3 +111,22 @@ labels: {}
 
 # Additional annotations
 annotations: {}
+
+# Extra manifests (e.g., for SealedSecrets)
+extraManifests: []
+  # Example: To inject a SealedSecret, add it to extraManifests like this:
+  # - |
+  #   apiVersion: bitnami.com/v1alpha1
+  #   kind: SealedSecret
+  #   metadata:
+  #     name: {{ .Release.Name }}-secret
+  #     namespace: {{ .Release.Namespace }}
+  #   spec:
+  #     secretName: {{ .Release.Name }}-secret
+  #     encryptedData:
+  #       LANGSMITH_API_KEY: AgBy3RTqp8sQKJ+QKZw...
+  #       LANGSMITH_PROJECT: AgBxY8mQK+QKZw...
+  #       LANGSMITH_TRACING: AgCdXRTqp8sQKJ...
+  #       GOOGLE_API_KEY: AgD9Y8mQK+QKZw...
+  #       CO_API_KEY: AgE1RTqp8sQKJ...
+  #       OPENAI_API_KEY: AgF5Y8mQK+QKZw...

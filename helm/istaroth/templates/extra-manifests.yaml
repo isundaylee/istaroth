@@ -1,0 +1,6 @@
+{{- if .Values.extraManifests }}
+{{- range .Values.extraManifests }}
+---
+{{ tpl . $ }}
+{{- end }}
+{{- end }}
