@@ -2,33 +2,55 @@
 
 This Helm chart deploys the Istaroth web application on a Kubernetes cluster.
 
-## Prerequisites
-
-- Kubernetes 1.19+
-- Helm 3.0+
-- PV provisioner support in the underlying infrastructure (for persistent storage)
-
-## Installation
-
-### Add the repository (if hosted)
-```bash
-helm repo add istaroth https://your-helm-repo-url
-helm repo update
-```
-
-### Install from local directory
-```bash
-helm install istaroth ./helm/istaroth
-```
-
-### Install with custom values
-```bash
-helm install istaroth ./helm/istaroth -f custom-values.yaml
-```
-
 ## Configuration
 
 See `values.yaml` for all configurable parameters and their default values.
+
+### Secrets Management
+
+This chart requires SealedSecrets for managing sensitive data. You must create a SealedSecret before installing the chart.
+
+**Prerequisites:**
+- SealedSecrets controller installed in your cluster
+- `kubeseal` CLI tool for creating sealed secrets
+
+**Steps:**
+1. Create a SealedSecret with your sensitive data:
+   ```bash
+   kubectl create secret generic myapp-secret \
+     --from-literal=LANGSMITH_API_KEY="..." \
+     --from-literal=LANGSMITH_PROJECT="..." \
+     --from-literal=LANGSMITH_TRACING="true" \
+     --from-literal=GOOGLE_API_KEY="..." \
+     --from-literal=CO_API_KEY="..." \
+     --from-literal=OPENAI_API_KEY="..." \
+     --dry-run=client -o yaml | \
+   kubeseal -o yaml > myapp-secret-sealed.yaml
+   ```
+
+2. Edit the SealedSecret to use the correct secret name:
+   ```yaml
+   apiVersion: bitnami.com/v1alpha1
+   kind: SealedSecret
+   metadata:
+     name: myapp-sealed-secret
+     namespace: target-namespace
+   spec:
+     encryptedData:
+      ...
+     template:
+       metadata:
+         name: myapp-secret  # Must match {release-name}-secret
+         labels:
+           app.kubernetes.io/name: myapp
+           app.kubernetes.io/instance: myapp
+   ```
+
+3. Apply the SealedSecret before installing the chart:
+   ```bash
+   kubectl apply -f myapp-sealed-secret.yaml
+   helm install myapp . -n target-namespace
+   ```
 
 ## Persistence
 
@@ -36,79 +58,3 @@ The chart mounts a persistent volume to store:
 - SQLite database at `/data/database/web.sqlite`
 - Checkpoint data at `/data/checkpoint`
 - HuggingFace models at `/data/models/hf`
-
-
-## Examples
-
-### Deploy with external database
-```yaml
-# custom-values.yaml
-persistence:
-  enabled: true
-  size: 20Gi
-  storageClass: fast-ssd
-
-backend:
-  env:
-    DATABASE_PATH: "/data/database/production.sqlite"
-```
-
-### Deploy with ingress
-```yaml
-# custom-values.yaml
-ingress:
-  enabled: true
-  className: nginx
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-  hosts:
-    - host: istaroth.yourdomain.com
-      paths:
-        - path: /
-          pathType: Prefix
-          backend: frontend
-        - path: /api
-          pathType: Prefix
-          backend: backend
-  tls:
-    - secretName: istaroth-tls
-      hosts:
-        - istaroth.yourdomain.com
-```
-
-## Uninstallation
-
-```bash
-helm uninstall istaroth
-```
-
-## Upgrading
-
-```bash
-helm upgrade istaroth ./helm/istaroth
-```
-
-## Troubleshooting
-
-### Check pod status
-```bash
-kubectl get pods -l app.kubernetes.io/instance=istaroth
-```
-
-### View logs
-```bash
-# Backend logs
-kubectl logs -l app.kubernetes.io/name=istaroth-backend
-
-# Frontend logs
-kubectl logs -l app.kubernetes.io/name=istaroth-frontend
-```
-
-### Access the application locally
-```bash
-# Port-forward the frontend
-kubectl port-forward svc/istaroth-frontend 8080:80
-
-# Port-forward the backend
-kubectl port-forward svc/istaroth-backend 5000:5000
-```
