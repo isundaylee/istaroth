@@ -215,3 +215,7 @@ istaroth.code-workspace
 /tmp
 /claude-prompts
 scripts/mcp_wrapper.sh
+
+# Helm local values files
+helm/*/values-local.yaml
+**/values-local.yaml
