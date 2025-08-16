@@ -1,5 +1,6 @@
 """RAG pipeline for end-to-end question answering."""
 
+import logging
 import os
 import typing
 
@@ -13,6 +14,8 @@ from langchain_openai import chat_models as openai_llms
 from istaroth import langsmith_utils
 from istaroth.agd import localization
 from istaroth.rag import document_store, output_rendering, prompt_set, tracing
+
+logger = logging.getLogger(__name__)
 
 # All technically supported models in order of decreasing speed
 _ALL_SUPPORTED_MODELS: list[str] = [
@@ -133,6 +136,16 @@ class LLMManager:
         return self._llm_cache[model_name]
 
 
+def _extract_text_from_response(response: typing.Any) -> str:
+    """Extract text content from various LLM response types."""
+    if isinstance(response, messages.AIMessage):
+        return str(response.content)
+    elif isinstance(response, str):
+        return response
+    else:
+        return str(response)
+
+
 class RAGPipeline:
     """RAG pipeline for Genshin Impact lore questions."""
 
@@ -148,13 +161,28 @@ class RAGPipeline:
         # Get language-specific prompts
         self._prompt_set = prompt_set.get_rag_prompts(language)
 
-        # Create the prompt template (chain will be created per-query)
-        self._prompt = prompts.ChatPromptTemplate.from_messages(
+        # Create the generation prompt template
+        self._generation_prompt = prompts.ChatPromptTemplate.from_messages(
             [
                 ("system", self._prompt_set.generation_system_prompt),
                 ("user", self._prompt_set.generation_user_prompt_template),
             ]
         )
+
+        # Create the preprocessing prompt template
+        self._preprocess_prompt = prompts.ChatPromptTemplate.from_messages(
+            [("user", self._prompt_set.question_preprocess_prompt)]
+        )
+
+    @langsmith_utils.traceable(name="preprocess_question")
+    def _preprocess_question(
+        self, question: str, *, llm: language_models.BaseLanguageModel
+    ) -> str:
+        """Optimize question for retrieval."""
+        chain = self._preprocess_prompt | llm
+        response = chain.invoke({"question": question})
+        preprocessed = _extract_text_from_response(response).strip()
+        return preprocessed if preprocessed else question
 
     @langsmith_utils.traceable(name="pipeline_query")
     def answer(
@@ -162,11 +190,20 @@ class RAGPipeline:
     ) -> str:
         """Answer question with source documents using the specified LLM."""
 
-        # Retrieve relevant documents
-        retrieve_output = self._document_store.retrieve(question, k=k)
+        # Preprocess the question for better retrieval
+        retrieval_query = self._preprocess_question(question, llm=llm)
+
+        # Log if the query was modified
+        if retrieval_query != question:
+            logger.info(
+                f"Preprocessed question from '{question}' to '{retrieval_query}'"
+            )
+
+        # Retrieve relevant documents using the preprocessed query
+        retrieve_output = self._document_store.retrieve(retrieval_query, k=k)
 
         # Create the chain with the provided LLM
-        chain = self._prompt | llm
+        chain = self._generation_prompt | llm
 
         # Generate answer with tracing context
         config: RunnableConfig = {
@@ -190,11 +227,4 @@ class RAGPipeline:
         )
 
         # Extract answer text
-        if isinstance(response, messages.AIMessage):
-            answer = str(response.content)
-        elif isinstance(response, str):
-            answer = response
-        else:
-            answer = str(response)
-
-        return answer
+        return _extract_text_from_response(response)

@@ -13,6 +13,7 @@ class RAGPrompts:
 
     generation_system_prompt: str = attrs.field()
     generation_user_prompt_template: str = attrs.field()
+    question_preprocess_prompt: str = attrs.field()
 
 
 def get_rag_prompts(language: localization.Language) -> RAGPrompts:
@@ -27,6 +28,21 @@ def get_rag_prompts(language: localization.Language) -> RAGPrompts:
 
 def _get_chinese_prompts() -> RAGPrompts:
     """Get Chinese language prompts."""
+    question_preprocess_prompt = textwrap.dedent(
+        """\
+        将用户的问题转换为适合检索系统的查询。输出应该是以下两种形式之一：
+        1. 一个完整的句子（可以是陈述句或疑问句，包含主语、谓语，描述一个完整的概念或关系）
+        2. 一个单独的关键词（人物名、地点名、物品名等）
+
+        避免混合多个不同的概念。如果问题涉及多个方面，选择最核心的一个。
+        移除口语化表达和不必要的修饰词。
+
+        用户问题：{question}
+
+        直接输出优化后的检索查询，不要解释：
+        """
+    )
+
     system_prompt = textwrap.dedent(
         """\
         你是一位专精《原神》世界观与剧情的学者，对提瓦特大陆拥有深厚的研究基础。你的专业领域包括：
@@ -66,11 +82,28 @@ def _get_chinese_prompts() -> RAGPrompts:
     return RAGPrompts(
         generation_system_prompt=system_prompt,
         generation_user_prompt_template=user_prompt_template,
+        question_preprocess_prompt=question_preprocess_prompt,
     )
 
 
 def _get_english_prompts() -> RAGPrompts:
     """Get English language prompts."""
+    question_preprocess_prompt = textwrap.dedent(
+        """\
+        Convert the user's question into a query optimized for a retrieval system.
+        The output should be in one of these two forms:
+        1. A single complete sentence (can be a statement or question, with subject and predicate, describing a complete concept or relationship)
+        2. A single keyword (character name, location name, item name, etc.)
+
+        Avoid mixing multiple different concepts. If the question involves multiple aspects, choose the most central one.
+        Remove colloquial expressions and unnecessary modifiers.
+
+        User question: {question}
+
+        Output the optimized retrieval query directly without explanation:
+        """
+    )
+
     system_prompt = textwrap.dedent(
         """\
         You are a scholar specializing in the worldview and lore of Genshin Impact, with deep expertise in the continent of Teyvat. Your areas of specialization include:
@@ -110,4 +143,5 @@ def _get_english_prompts() -> RAGPrompts:
     return RAGPrompts(
         generation_system_prompt=system_prompt,
         generation_user_prompt_template=user_prompt_template,
+        question_preprocess_prompt=question_preprocess_prompt,
     )
