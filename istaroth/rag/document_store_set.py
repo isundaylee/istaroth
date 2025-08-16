@@ -12,6 +12,7 @@ import attrs
 
 from istaroth import utils
 from istaroth.agd import localization
+from istaroth.rag import query_transform, rerank
 from istaroth.rag.document_store import DocumentStore
 
 logger = logging.getLogger(__name__)
@@ -146,7 +147,11 @@ class DocumentStoreSet:
                     language.name,
                     store_path,
                 )
-                stores[language] = DocumentStore.load(store_path)
+                stores[language] = DocumentStore.load(
+                    store_path,
+                    query_transformer=query_transform.QueryTransformer.from_env(),
+                    reranker=rerank.Reranker.from_env(),
+                )
 
             if not stores:
                 raise ValueError(

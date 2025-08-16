@@ -411,8 +411,8 @@ class DocumentStore:
         cls,
         path: pathlib.Path,
         *,
-        query_transformer: query_transform.QueryTransformer | None = None,
-        reranker: rerank.Reranker | None = None,
+        query_transformer: query_transform.QueryTransformer | None,
+        reranker: rerank.Reranker | None,
     ) -> "DocumentStore":
         """Load document store from a directory."""
         with utils.timer(f"loading document store from {path}"):
