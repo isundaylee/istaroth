@@ -151,8 +151,8 @@ class RAGPipeline:
         # Create the prompt template (chain will be created per-query)
         self._prompt = prompts.ChatPromptTemplate.from_messages(
             [
-                ("system", self._prompt_set.system_prompt),
-                ("user", self._prompt_set.user_prompt_template),
+                ("system", self._prompt_set.generation_system_prompt),
+                ("user", self._prompt_set.generation_user_prompt_template),
             ]
         )
 

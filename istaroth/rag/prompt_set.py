@@ -11,8 +11,8 @@ from istaroth.agd import localization
 class RAGPrompts:
     """Container for language-specific RAG pipeline prompts."""
 
-    system_prompt: str = attrs.field()
-    user_prompt_template: str = attrs.field()
+    generation_system_prompt: str = attrs.field()
+    generation_user_prompt_template: str = attrs.field()
 
 
 def get_rag_prompts(language: localization.Language) -> RAGPrompts:
@@ -64,8 +64,8 @@ def _get_chinese_prompts() -> RAGPrompts:
     )
 
     return RAGPrompts(
-        system_prompt=system_prompt,
-        user_prompt_template=user_prompt_template,
+        generation_system_prompt=system_prompt,
+        generation_user_prompt_template=user_prompt_template,
     )
 
 
@@ -108,6 +108,6 @@ def _get_english_prompts() -> RAGPrompts:
     )
 
     return RAGPrompts(
-        system_prompt=system_prompt,
-        user_prompt_template=user_prompt_template,
+        generation_system_prompt=system_prompt,
+        generation_user_prompt_template=user_prompt_template,
     )
