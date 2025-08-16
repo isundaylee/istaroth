@@ -97,12 +97,6 @@ def create_llm(model_name: str) -> language_models.BaseLanguageModel:
         raise ValueError(f"Unknown model provider for '{model_name}'.")
 
 
-def create_llm_from_env() -> language_models.BaseLanguageModel:
-    """Create LLM instance using ISTAROTH_PIPELINE_MODEL environment variable."""
-    model_name = os.environ.get("ISTAROTH_PIPELINE_MODEL", "gemini-2.5-flash-lite")
-    return create_llm(model_name)
-
-
 class LLMManager:
     """Manager for multiple LLM instances with lazy loading and caching."""
 
@@ -113,23 +107,12 @@ class LLMManager:
             "ISTAROTH_PIPELINE_MODEL", "gemini-2.5-flash-lite"
         )
 
-    def get_llm(
-        self, model_name: str | None = None
-    ) -> language_models.BaseLanguageModel:
-        """Get LLM instance for the specified model, with caching.
+    def get_default_llm(self) -> language_models.BaseLanguageModel:
+        """Get default LLM instance based on environment variable."""
+        return self.get_llm(self._default_model)
 
-        Args:
-            model_name: Name of the model. If None, uses default from environment.
-
-        Returns:
-            Cached or newly created LLM instance.
-
-        Raises:
-            ValueError: If model name is not recognized.
-        """
-        if model_name is None:
-            model_name = self._default_model
-
+    def get_llm(self, model_name: str) -> language_models.BaseLanguageModel:
+        """Get LLM instance for the specified model, with caching."""
         if model_name not in self._llm_cache:
             self._llm_cache[model_name] = create_llm(model_name)
 

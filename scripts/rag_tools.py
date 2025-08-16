@@ -188,13 +188,15 @@ def query(question: str, k: int) -> None:
     print("=" * 50)
 
     # Create RAG pipeline and LLM
-    llm = pipeline.create_llm_from_env()
-    preprocessing_llm = pipeline.create_llm("gemini-2.5-flash-lite")
+    llm_manager = pipeline.LLMManager()
+
     rag = pipeline.RAGPipeline(
-        store, language=localization.Language.CHS, preprocessing_llm=preprocessing_llm
+        store,
+        language=localization.Language.CHS,
+        preprocessing_llm=pipeline.create_llm("gemini-2.5-flash-lite"),
     )
 
-    answer = rag.answer(question, k=k, llm=llm)
+    answer = rag.answer(question, k=k, llm=llm_manager.get_default_llm())
     print(f"回答: {answer}")
 
 
