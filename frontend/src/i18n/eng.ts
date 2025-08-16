@@ -13,7 +13,8 @@ export const eng = {
 
   meta: {
     title: 'Istaroth - Genshin Impact Knowledge Assistant',
-    description: 'Explore the mysterious legends and profound lore of Teyvat. An intelligent knowledge base built from Genshin Impact game texts, ready to answer all your questions about characters, history, culture, and worldview.'
+    description: 'Explore the mysterious legends and profound lore of Teyvat. An intelligent knowledge base built from Genshin Impact game texts, ready to answer all your questions about characters, history, culture, and worldview.',
+    githubLink: 'GitHub'
   },
 
   query: {
