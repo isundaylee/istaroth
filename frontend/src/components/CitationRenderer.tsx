@@ -4,6 +4,7 @@ import type { Components } from 'react-markdown'
 import { useTranslation, useT } from '../contexts/LanguageContext'
 import type { CitationResponse } from '../types/api'
 import CitationPopup from './CitationPopup'
+import { preprocessCitationsForDisplay, formatCitationId } from '../utils/citations'
 
 interface CitationRendererProps {
   content: string
@@ -31,28 +32,9 @@ function CitationRenderer({ content }: CitationRendererProps) {
   const t = useT()
   const popupRef = useRef<HTMLDivElement>(null)
 
-  // Preprocess content to convert [[file_id:chunk_index]] to markdown links with document:chunk numbering
+  // Preprocess content to convert XML citations to markdown links with document:chunk numbering
   const preprocessContent = (text: string): string => {
-    const citationPattern = /\[\[([^:]+):ck(\d+)\]\]/g
-    const fileIdToDocIndex = new Map<string, number>()
-    let match
-    let documentCounter = 0
-
-    // First pass: assign document indices to unique file IDs in order of appearance
-    citationPattern.lastIndex = 0  // Reset regex state
-    while ((match = citationPattern.exec(text)) !== null) {
-      const fileId = match[1]
-      if (!fileIdToDocIndex.has(fileId)) {
-        documentCounter++
-        fileIdToDocIndex.set(fileId, documentCounter)
-      }
-    }
-
-    // Second pass: replace citations with document_index:chunk_index format
-    return text.replace(citationPattern, (_, fileId, chunkIndex) => {
-      const docIndex = fileIdToDocIndex.get(fileId)!
-      return `[${docIndex}:${chunkIndex}](http://istaroth.markdown/citation/${fileId}/${chunkIndex})`
-    })
+    return preprocessCitationsForDisplay(text)
   }
 
   // Calculate optimal popup position and size to avoid going off-screen
@@ -302,7 +284,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
         // Extract file_id and chunk_index from URL
         const match = href.match(/citation\/([^\/]+)\/(\d+)/)
         if (match) {
-          const citationId = `${match[1]}:${match[2]}`
+          const citationId = formatCitationId(match[1], parseInt(match[2], 10))
           const isHovered = hoveredCitation === citationId
 
           return (
