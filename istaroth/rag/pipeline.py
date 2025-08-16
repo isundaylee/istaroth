@@ -153,10 +153,13 @@ class RAGPipeline:
         self,
         document_store: document_store.DocumentStore,
         language: localization.Language,
+        *,
+        preprocessing_llm: language_models.BaseLanguageModel,
     ):
-        """Initialize RAG pipeline with language-specific prompts."""
+        """Initialize RAG pipeline with language-specific prompts and preprocessing LLM."""
         self._document_store = document_store
         self._language = language
+        self._preprocessing_llm = preprocessing_llm
 
         # Get language-specific prompts
         self._prompt_set = prompt_set.get_rag_prompts(language)
@@ -175,11 +178,9 @@ class RAGPipeline:
         )
 
     @langsmith_utils.traceable(name="preprocess_question")
-    def _preprocess_question(
-        self, question: str, *, llm: language_models.BaseLanguageModel
-    ) -> list[str]:
+    def _preprocess_question(self, question: str) -> list[str]:
         """Convert question into 1-3 optimized retrieval queries."""
-        chain = self._preprocess_prompt | llm
+        chain = self._preprocess_prompt | self._preprocessing_llm
         response = chain.invoke({"question": question})
         preprocessed = _extract_text_from_response(response).strip()
 
@@ -198,7 +199,7 @@ class RAGPipeline:
         """Answer question with source documents using the specified LLM."""
 
         # Preprocess the question into multiple retrieval queries
-        retrieval_queries = self._preprocess_question(question, llm=llm)
+        retrieval_queries = self._preprocess_question(question)
         logger.info(
             "Preprocessed question into %d queries: %s",
             len(retrieval_queries),

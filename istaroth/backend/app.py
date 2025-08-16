@@ -2,6 +2,7 @@
 
 import functools
 import logging
+import os
 import time
 import traceback
 from typing import Callable, ParamSpec, TypeVar
@@ -134,7 +135,14 @@ class BackendApp:
         language_enum = localization.Language(request.language)
 
         # Create RAG pipeline for the selected language
-        rag_pipeline = pipeline.RAGPipeline(selected_store, language_enum)
+        # Use configurable model for preprocessing
+        preprocessing_model = os.environ.get(
+            "ISTAROTH_PREPROCESSING_MODEL", "gemini-2.5-flash-lite"
+        )
+        preprocessing_llm = self.llm_manager.get_llm(preprocessing_model)
+        rag_pipeline = pipeline.RAGPipeline(
+            selected_store, language_enum, preprocessing_llm=preprocessing_llm
+        )
 
         # Get answer and track timing
         logger.info(
