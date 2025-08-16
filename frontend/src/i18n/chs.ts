@@ -75,6 +75,15 @@ export const chs = {
     notLoaded: '内容未加载',
     error: '错误',
     networkError: '网络错误获取引用',
-    fetchFailed: '获取引用失败'
+    fetchFailed: '获取引用失败',
+    loadingButton: '载入中...',
+    loadPrevious: '↑ 载入上一段',
+    loadNext: '↓ 载入下一段',
+    loadChunk: '载入段落',
+    loadChunkUp: '↑ 载入段落',
+    loadChunkDown: '↓ 载入段落',
+    enterFullscreen: '进入全屏',
+    exitFullscreen: '退出全屏',
+    close: '关闭'
   }
 }

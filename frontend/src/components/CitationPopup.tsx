@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useRef } from 'react'
 import type { CitationResponse } from '../types/api'
+import { useTranslation } from '../contexts/LanguageContext'
 
 interface MainLoadButtonProps {
   onClick: () => void
@@ -8,7 +9,10 @@ interface MainLoadButtonProps {
   children: React.ReactNode
 }
 
-const MainLoadButton = ({ onClick, disabled = false, loading = false, children }: MainLoadButtonProps) => (
+const MainLoadButton = ({ onClick, disabled = false, loading = false, children }: MainLoadButtonProps) => {
+  const { t } = useTranslation()
+
+  return (
   <button
     onClick={onClick}
     disabled={disabled || loading}
@@ -35,9 +39,10 @@ const MainLoadButton = ({ onClick, disabled = false, loading = false, children }
       }
     }}
   >
-    {loading ? '载入中...' : children}
+    {loading ? t.citation.loadingButton : children}
   </button>
-)
+  )
+}
 
 interface CitationPopupProps {
   title: string
@@ -69,6 +74,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
     loadingCitations,
     style
   }, ref) => {
+    const { t } = useTranslation()
     const contentRef = useRef<HTMLDivElement>(null)
     const previousChunkIdsRef = useRef<Set<string>>(new Set())
 
@@ -166,7 +172,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
                   }}
-                  title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                  title={isFullscreen ? t.citation.exitFullscreen : t.citation.enterFullscreen}
                 >
                   {isFullscreen ? '⧉' : '⛶'}
                 </button>
@@ -200,7 +206,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
                   }}
-                  title="Close"
+                  title={t.citation.close}
                 >
                   ×
                 </button>
@@ -228,7 +234,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
                   }}
                   loading={loadingCitations?.has(`${fileId}:ck${chunks[0]?.metadata.chunk_index - 1}`)}
                 >
-                  ↑ 载入上一段
+                  {t.citation.loadPrevious}
                 </MainLoadButton>
               </div>
             )}
@@ -307,7 +313,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
                                     }}
                                     loading={loadingCitations?.has(`${fileId}:ck${firstMissingIndex}`)}
                                   >
-                                    载入段落 {firstMissingIndex}
+                                    {t.citation.loadChunk} {firstMissingIndex}
                                   </MainLoadButton>
                                 </div>
                                 <div style={{
@@ -335,7 +341,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
                                     }}
                                     loading={loadingCitations?.has(`${fileId}:ck${firstMissingIndex}`)}
                                   >
-                                    ↑ 载入段落 {firstMissingIndex}
+                                    {t.citation.loadChunkUp} {firstMissingIndex}
                                   </MainLoadButton>
                                 </div>
                                 <div style={{
@@ -354,7 +360,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
                                     }}
                                     loading={loadingCitations?.has(`${fileId}:ck${lastMissingIndex}`)}
                                   >
-                                    ↓ 载入段落 {lastMissingIndex}
+                                    {t.citation.loadChunkDown} {lastMissingIndex}
                                   </MainLoadButton>
                                 </div>
                               </div>
@@ -380,7 +386,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
                   }}
                   loading={loadingCitations?.has(`${fileId}:ck${chunks[chunks.length - 1]?.metadata.chunk_index + 1}`)}
                 >
-                  ↓ 载入下一段
+                  {t.citation.loadNext}
                 </MainLoadButton>
               </div>
             )}

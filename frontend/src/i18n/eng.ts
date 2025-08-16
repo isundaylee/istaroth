@@ -75,6 +75,15 @@ export const eng = {
     notLoaded: 'Content not loaded',
     error: 'Error',
     networkError: 'Network error fetching citation',
-    fetchFailed: 'Failed to fetch citation'
+    fetchFailed: 'Failed to fetch citation',
+    loadingButton: 'Loading...',
+    loadPrevious: '↑ Load Previous',
+    loadNext: '↓ Load Next',
+    loadChunk: 'Load Chunk',
+    loadChunkUp: '↑ Load Chunk',
+    loadChunkDown: '↓ Load Chunk',
+    enterFullscreen: 'Enter fullscreen',
+    exitFullscreen: 'Exit fullscreen',
+    close: 'Close'
   }
 }
