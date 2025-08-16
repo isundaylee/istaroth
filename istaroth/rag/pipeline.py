@@ -13,7 +13,7 @@ from langchain_openai import chat_models as openai_llms
 
 from istaroth import langsmith_utils
 from istaroth.agd import localization
-from istaroth.rag import document_store, output_rendering, prompt_set, tracing
+from istaroth.rag import document_store, output_rendering, prompt_set, tracing, types
 
 logger = logging.getLogger(__name__)
 
@@ -177,12 +177,19 @@ class RAGPipeline:
     @langsmith_utils.traceable(name="preprocess_question")
     def _preprocess_question(
         self, question: str, *, llm: language_models.BaseLanguageModel
-    ) -> str:
-        """Optimize question for retrieval."""
+    ) -> list[str]:
+        """Convert question into 1-3 optimized retrieval queries."""
         chain = self._preprocess_prompt | llm
         response = chain.invoke({"question": question})
         preprocessed = _extract_text_from_response(response).strip()
-        return preprocessed if preprocessed else question
+
+        # Split into individual queries (one per line)
+        queries = [q.strip() for q in preprocessed.splitlines() if q.strip()]
+
+        # Limit to 3 queries and ensure at least one
+        if not queries:
+            return [question]
+        return queries[:3]
 
     @langsmith_utils.traceable(name="pipeline_query")
     def answer(
@@ -190,17 +197,39 @@ class RAGPipeline:
     ) -> str:
         """Answer question with source documents using the specified LLM."""
 
-        # Preprocess the question for better retrieval
-        retrieval_query = self._preprocess_question(question, llm=llm)
+        # Preprocess the question into multiple retrieval queries
+        retrieval_queries = self._preprocess_question(question, llm=llm)
+        logger.info(
+            "Preprocessed question into %d queries: %s",
+            len(retrieval_queries),
+            retrieval_queries,
+        )
 
-        # Log if the query was modified
-        if retrieval_query != question:
+        # Retrieve documents for each query
+        retrieve_outputs = []
+        total_documents = 0
+        for i, query in enumerate(retrieval_queries):
+            retrieve_output = self._document_store.retrieve(query, k=k)
+            retrieve_outputs.append(retrieve_output)
+            total_documents += retrieve_output.total_documents
             logger.info(
-                f"Preprocessed question from '{question}' to '{retrieval_query}'"
+                "Query %d ('%s') retrieved %d documents",
+                i,
+                query,
+                retrieve_output.total_documents,
             )
 
-        # Retrieve relevant documents using the preprocessed query
-        retrieve_output = self._document_store.retrieve(retrieval_query, k=k)
+        # Combine all retrieval outputs with deduplication
+        combined_retrieve_output = types.CombinedRetrieveOutput.from_multiple_outputs(
+            retrieve_outputs
+        )
+
+        # Log retrieval statistics
+        logger.info(
+            "Retrieved %d total documents across all queries, merged to %d unique documents",
+            total_documents,
+            combined_retrieve_output.total_documents,
+        )
 
         # Create the chain with the provided LLM
         chain = self._generation_prompt | llm
@@ -209,18 +238,21 @@ class RAGPipeline:
         config: RunnableConfig = {
             "metadata": {
                 "question": question,
+                "retrieval_queries": retrieval_queries,
                 "k": k,
                 "model": getattr(llm, "model", getattr(llm, "model_name", "unknown")),
                 "num_documents": self._document_store.num_documents,
-                "num_retrieved": len(retrieve_output.results),
-                "retrieval_scores": [score for score, _ in retrieve_output.results],
+                "num_retrieved": len(combined_retrieve_output.results),
+                "retrieval_scores": [
+                    score for score, _ in combined_retrieve_output.results
+                ],
             }
         }
         response = chain.invoke(
             {
                 "user_question": question,
                 "retrieved_context": output_rendering.render_retrieve_output(
-                    retrieve_output.results
+                    combined_retrieve_output.results
                 ),
             },
             config=config,

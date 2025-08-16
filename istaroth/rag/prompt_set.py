@@ -30,16 +30,21 @@ def _get_chinese_prompts() -> RAGPrompts:
     """Get Chinese language prompts."""
     question_preprocess_prompt = textwrap.dedent(
         """\
-        将用户的问题转换为适合检索系统的查询。输出应该是以下两种形式之一：
-        1. 一个完整的句子（可以是陈述句或疑问句，包含主语、谓语，描述一个完整的概念或关系）
-        2. 一个单独的关键词（人物名、地点名、物品名等）
+        将用户的问题转换为1-3个适合检索系统的查询。
 
-        避免混合多个不同的概念。如果问题涉及多个方面，选择最核心的一个。
-        移除口语化表达和不必要的修饰词。
+        每个查询应该是：
+        - 一个完整的句子（可以是陈述句或疑问句）
+        - 或一个单独的关键词（人物名、地点名、物品名等）
+
+        规则：
+        - 如果一个查询就能覆盖问题，只输出一个
+        - 如果问题涉及多个独立概念，可以分解为多个查询（最多3个）
+        - 每个查询聚焦于一个特定概念或关系
+        - 移除口语化表达和不必要的修饰词
 
         用户问题：{question}
 
-        直接输出优化后的检索查询，不要解释：
+        每行输出一个查询，不要编号或解释：
         """
     )
 
@@ -90,17 +95,21 @@ def _get_english_prompts() -> RAGPrompts:
     """Get English language prompts."""
     question_preprocess_prompt = textwrap.dedent(
         """\
-        Convert the user's question into a query optimized for a retrieval system.
-        The output should be in one of these two forms:
-        1. A single complete sentence (can be a statement or question, with subject and predicate, describing a complete concept or relationship)
-        2. A single keyword (character name, location name, item name, etc.)
+        Convert the user's question into 1-3 queries optimized for a retrieval system.
 
-        Avoid mixing multiple different concepts. If the question involves multiple aspects, choose the most central one.
-        Remove colloquial expressions and unnecessary modifiers.
+        Each query should be:
+        - A complete sentence (can be a statement or question)
+        - Or a single keyword (character name, location name, item name, etc.)
+
+        Rules:
+        - If one query can cover the question, output only one
+        - If the question involves multiple independent concepts, decompose into multiple queries (max 3)
+        - Each query should focus on a specific concept or relationship
+        - Remove colloquial expressions and unnecessary modifiers
 
         User question: {question}
 
-        Output the optimized retrieval query directly without explanation:
+        Output one query per line, without numbering or explanation:
         """
     )
 

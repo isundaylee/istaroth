@@ -114,3 +114,67 @@ class RetrieveOutput:
             results.append((score, documents))
 
         return cls(query=query, results=results)
+
+
+@attrs.define
+class CombinedRetrieveOutput:
+    """Combined output from multiple retrieval queries with deduplication."""
+
+    queries: list[RetrieveQuery]
+    results: list[tuple[float, list[Document]]]
+
+    @classmethod
+    def from_multiple_outputs(
+        cls, outputs: list[RetrieveOutput]
+    ) -> "CombinedRetrieveOutput":
+        """Combine multiple RetrieveOutputs, deduplicating results."""
+        if not outputs:
+            raise ValueError("At least one RetrieveOutput is required")
+
+        # Group results by file_id, collecting all unique chunks
+        # file_id -> (max_score, dict of chunk_index -> Document)
+        file_groups = dict[str, tuple[float, dict[int, Document]]]()
+
+        for output in outputs:
+            for score, docs in output.results:
+                if not docs:
+                    continue
+
+                file_id = docs[0].metadata["file_id"]
+
+                if file_id not in file_groups:
+                    file_groups[file_id] = (score, {})
+
+                # Update max score for this file
+                file_groups[file_id] = (
+                    max(file_groups[file_id][0], score),
+                    file_groups[file_id][1],
+                )
+
+                # Add all unique chunks from this result
+                for doc in docs:
+                    chunk_index = doc.metadata["chunk_index"]
+                    # Only add if we haven't seen this chunk yet
+                    if chunk_index not in file_groups[file_id][1]:
+                        file_groups[file_id][1][chunk_index] = doc
+
+        # Convert to final results format
+        all_results = []
+        for file_id, (max_score, chunk_dict) in file_groups.items():
+            # Sort chunks by chunk_index for consistent ordering
+            sorted_chunks = sorted(chunk_dict.items(), key=lambda x: x[0])
+            docs = [doc for _, doc in sorted_chunks]
+            all_results.append((max_score, docs))
+
+        # Sort by score (descending)
+        all_results.sort(key=lambda x: x[0], reverse=True)
+
+        # Collect all queries
+        queries = [output.query for output in outputs]
+
+        return cls(queries=queries, results=all_results)
+
+    @property
+    def total_documents(self) -> int:
+        """Total number of documents in the results."""
+        return sum(len(docs) for _, docs in self.results)
