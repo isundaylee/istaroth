@@ -36,7 +36,7 @@ def _save_conversation(
         db_session.add(conversation)
         db_session.commit()
         logger.info("Conversation saved to database with UUID: %s", conversation.uuid)
-        return str(conversation.uuid)
+        return conversation.uuid
     except Exception as e:
         logger.error("Failed to save conversation to database: %s", e)
         return ""

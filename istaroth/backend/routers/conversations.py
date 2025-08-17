@@ -31,12 +31,13 @@ async def get_conversation(
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     return models.ConversationResponse(
-        uuid=str(conversation.uuid),
-        question=str(conversation.question),
-        answer=str(conversation.answer),
-        model=str(conversation.model),
-        k=int(conversation.k),
+        uuid=conversation.uuid,
+        question=conversation.question,
+        answer=conversation.answer,
+        model=conversation.model or "",  # Handle Optional[str]
+        k=conversation.k,
         created_at=conversation.created_at.timestamp(),
-        generation_time_seconds=float(conversation.generation_time_seconds),
-        language=str(conversation.language),
+        generation_time_seconds=conversation.generation_time_seconds
+        or 0.0,  # Handle Optional[float]
+        language=conversation.language,
     )

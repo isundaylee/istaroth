@@ -2,13 +2,16 @@
 
 import datetime
 import uuid
-from typing import Any
+from typing import Optional
 
-import sqlalchemy
-import sqlalchemy.orm
+from sqlalchemy import DateTime, Float, Integer, String, Text
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-# SQLAlchemy ORM models
-Base: Any = sqlalchemy.orm.declarative_base()
+
+class Base(DeclarativeBase):
+    """Base class for all SQLAlchemy models."""
+
+    pass
 
 
 class Conversation(Base):
@@ -16,19 +19,24 @@ class Conversation(Base):
 
     __tablename__ = "conversations"
 
-    id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, autoincrement=True)
-    uuid = sqlalchemy.Column(
-        sqlalchemy.String(36),
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    uuid: Mapped[str] = mapped_column(
+        String(36),
         unique=True,
         nullable=False,
         default=lambda: str(uuid.uuid4()),
     )
-    question = sqlalchemy.Column(sqlalchemy.Text, nullable=False)
-    answer = sqlalchemy.Column(sqlalchemy.Text, nullable=False)
-    model = sqlalchemy.Column(sqlalchemy.String(100), nullable=True)
-    k = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
-    language = sqlalchemy.Column(sqlalchemy.String(10), nullable=False)
-    created_at = sqlalchemy.Column(
-        sqlalchemy.DateTime, default=datetime.datetime.utcnow
+
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    answer: Mapped[str] = mapped_column(Text, nullable=False)
+
+    model: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    k: Mapped[int] = mapped_column(Integer, nullable=False)
+    language: Mapped[str] = mapped_column(String(10), nullable=False)
+
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc)
     )
-    generation_time_seconds = sqlalchemy.Column(sqlalchemy.Float, nullable=True)
+    generation_time_seconds: Mapped[Optional[float]] = mapped_column(
+        Float, nullable=True
+    )
