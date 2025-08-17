@@ -15,9 +15,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel pip-tools
 
 # Copy requirements files
-COPY requirements.txt requirements-ml.in requirements-app.in /tmp/
 
 # Install heavy ML dependencies first (cached layer)
+COPY requirements.txt requirements-ml.in /tmp/
 RUN pip-compile --resolver=backtracking --strip-extras \
     --constraint /tmp/requirements.txt \
     --output-file /tmp/requirements-ml.txt /tmp/requirements-ml.in && \
@@ -26,6 +26,7 @@ RUN pip-compile --resolver=backtracking --strip-extras \
     -r /tmp/requirements-ml.txt
 
 # Then install remaining app dependencies (separate cached layer)
+COPY requirements-app.in /tmp/
 RUN pip-compile --resolver=backtracking --strip-extras \
     --constraint /tmp/requirements.txt \
     --output-file /tmp/requirements-app.txt /tmp/requirements-app.in && \
