@@ -9,6 +9,6 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
 data:
-  # Add any non-sensitive configuration data here
-  # Example:
-  # LOG_LEVEL: "INFO"
+  {{- with .Values.configmap.data }}
+  {{- toYaml . | nindent 2 }}
+  {{- end }}

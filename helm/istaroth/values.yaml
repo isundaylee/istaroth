@@ -21,18 +21,9 @@ backend:
       memory: 1Gi
 
   # Environment variables - supports both direct values and valueFrom references
-  env:
-    - name: ISTAROTH_DOCUMENT_STORE_SET
-      value: "CHS:/data/checkpoint_web/chs,ENG:/data/checkpoint_web/eng"
-    - name: ISTAROTH_DOWNLOAD_CHECKPOINT_RELEASE
-      value: "1"
-    - name: ISTAROTH_AVAILABLE_MODELS
-      value: "all"
-    - name: ISTAROTH_QUERY_TRANSFORMER
-      value: "rewrite"
-    - name: ISTAROTH_RERANKER
-      value: "cohere"
-    # Example: Database URI from secret
+  # Add deployment-specific environment variables here
+  env: []
+    # Example: Database URI from secret (REQUIRED)
     # - name: ISTAROTH_DATABASE_URI
     #   valueFrom:
     #     secretKeyRef:
@@ -92,6 +83,15 @@ frontend:
         port: 80
       initialDelaySeconds: 5
       periodSeconds: 5
+
+# ConfigMap for application configuration
+configmap:
+  data:
+    ISTAROTH_DOCUMENT_STORE_SET: "CHS:/data/checkpoint_web/chs,ENG:/data/checkpoint_web/eng"
+    ISTAROTH_DOWNLOAD_CHECKPOINT_RELEASE: "1"
+    ISTAROTH_AVAILABLE_MODELS: "all"
+    ISTAROTH_QUERY_TRANSFORMER: "rewrite"
+    ISTAROTH_RERANKER: "cohere"
 
 # Persistent storage configuration for backend application data
 persistence:
