@@ -73,6 +73,7 @@ frontend:
         port: 80
       initialDelaySeconds: 10
       periodSeconds: 10
+      failureThreshold: 20
     readiness:
       httpGet:
         path: /
