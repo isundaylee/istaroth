@@ -123,3 +123,8 @@ def extract_text_from_response(response: typing.Any) -> str:
         return response
     else:
         return str(response)
+
+
+def get_model_name(llm: language_models.BaseLanguageModel) -> str:
+    """Extract model name from LLM instance."""
+    return getattr(llm, "model_name", str(type(llm).__name__))

@@ -29,7 +29,6 @@ class ReasoningRequest:
     question: str
     max_steps: int
     k: int  # Documents to retrieve
-    model: str
 
 
 @attrs.define

@@ -9,6 +9,7 @@ import click
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
+from istaroth import llm_manager
 from istaroth.agd import localization
 from istaroth.rag import document_store
 from istaroth.reasoning import pipeline, tools, types
@@ -43,11 +44,15 @@ def main(
 
     print(f"✓ Loaded document store with {len(doc_store._documents)} documents")
 
+    # Create LLM
+    llm = llm_manager.create_llm(model, max_tokens=5000)
+    print(f"✓ Created LLM: {model}")
+
     # Create reasoning pipeline
     reasoning_pipeline = pipeline.ReasoningPipeline(
+        llm=llm,
         document_store=doc_store,
         language=language,
-        model=model,
     )
 
     # Register default tools
@@ -65,7 +70,6 @@ def main(
         question=question,
         max_steps=max_steps,
         k=10,
-        model=model,
     )
 
     print(f"🤔 Question: {question}")

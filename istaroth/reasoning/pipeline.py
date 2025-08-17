@@ -22,18 +22,14 @@ class ReasoningPipeline:
 
     def __init__(
         self,
-        document_store: document_store.DocumentStore | None = None,
+        llm: language_models.BaseLanguageModel,
+        document_store: document_store.DocumentStore,
         language: localization.Language = localization.Language.ENG,
-        *,
-        model: str,
     ):
-        """Initialize pipeline with optional document store and language."""
+        """Initialize pipeline with LLM, document store and language."""
+        self._llm = llm
         self._document_store = document_store
         self._language = language
-        self._model = model
-
-        # Initialize LLM
-        self._llm = self._create_llm(model)
 
         # Tool registry - stores LangChain tools
         self._tools: list[tools.BaseTool] = []
@@ -48,10 +44,6 @@ class ReasoningPipeline:
         self._agent_executor = self._create_agent_executor(
             llm=self._llm, tools=self._tools, prompt_set=self._prompt_set
         )
-
-    def _create_llm(self, model: str) -> language_models.BaseLanguageModel:
-        """Create LLM instance."""
-        return llm_manager.create_llm(model, max_tokens=5000)
 
     def register_tool(self, tool: tools.BaseTool) -> None:
         """Register a tool for reasoning."""
@@ -143,5 +135,5 @@ class ReasoningPipeline:
             question=request.question,
             answer=final_answer,
             reasoning_steps=reasoning_steps,
-            model=self._model,
+            model=llm_manager.get_model_name(self._llm),
         )
