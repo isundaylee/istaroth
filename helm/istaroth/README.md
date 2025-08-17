@@ -42,7 +42,7 @@ helm install <release-name> . -n <your-namespace>
 
 ## Database
 
-The application requires a PostgreSQL database connection configured via the `ISTAROTH_DATABASE_URI` environment variable.
+**REQUIRED**: The application requires a database connection configured via the `ISTAROTH_DATABASE_URI` environment variable. The Helm chart will fail if this is not provided.
 
 ### Database Configuration
 

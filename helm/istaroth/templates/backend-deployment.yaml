@@ -42,8 +42,19 @@ spec:
           name: http
           protocol: TCP
         env:
-        {{- with .Values.backend.env }}
-        {{- toYaml . | nindent 8 }}
+        {{- if .Values.backend.env }}
+        {{- $hasDbUri := false }}
+        {{- range .Values.backend.env }}
+          {{- if eq .name "ISTAROTH_DATABASE_URI" }}
+            {{- $hasDbUri = true }}
+          {{- end }}
+        {{- end }}
+        {{- if not $hasDbUri }}
+        {{- fail "backend.env must include ISTAROTH_DATABASE_URI configuration" }}
+        {{- end }}
+        {{- toYaml .Values.backend.env | nindent 8 }}
+        {{- else }}
+        {{- fail "backend.env must be configured with at least ISTAROTH_DATABASE_URI" }}
         {{- end }}
         envFrom:
         - configMapRef:
