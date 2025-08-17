@@ -63,15 +63,27 @@ The chart uses PostgreSQL as the database backend:
 - Health checks with `pg_isready`
 - PostgreSQL 15 by default
 
-### Database Configuration
-```yaml
-postgres:
-  database: istaroth
-  username: istaroth
-  password: changeme  # IMPORTANT: Change in production!
-  persistence:
-    size: 5Gi
-    storageClass: ""  # Uses default storage class
+### Database Secret
+
+**IMPORTANT**: You must create a SealedSecret for PostgreSQL credentials.
+
+The chart expects a secret named `<release-name>-postgres-secret` containing:
+- `POSTGRES_DB`: Database name
+- `POSTGRES_USER`: Database username
+- `POSTGRES_PASSWORD`: Database password
+
+#### Creating PostgreSQL SealedSecret
+
+```bash
+# Create the secret (replace values as needed)
+kubectl create secret generic temp-postgres-secret \
+  --from-literal=POSTGRES_DB="istaroth" \
+  --from-literal=POSTGRES_USER="istaroth" \
+  --from-literal=POSTGRES_PASSWORD="your-secure-password" \
+  --dry-run=client -o yaml | \
+kubeseal -o yaml > postgres-sealed-secret.yaml
+
+# Edit the sealed secret to use the correct name: <release-name>-postgres-secret
 ```
 
 ## Persistence
@@ -128,3 +140,5 @@ postgres:
   persistence:
     existingClaim: "istaroth-postgres-data"
 ```
+
+**Note**: Database credentials are managed via SealedSecret, not values.yaml.

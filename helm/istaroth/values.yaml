@@ -94,14 +94,12 @@ postgres:
     tag: "15"
     pullPolicy: IfNotPresent
 
-  # Database configuration
-  database: istaroth
-  username: istaroth
-  password: changeme  # IMPORTANT: Change this in production!
-
   service:
     type: ClusterIP
     port: 5432
+
+  # Expected secret name: {{ .Release.Name }}-postgres-secret
+  # Must contain: POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
 
   persistence:
     # Name of existing PVC for PostgreSQL data

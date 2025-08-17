@@ -49,14 +49,20 @@ spec:
           {{- end }}
           env:
             - name: POSTGRES_DB
-              value: {{ .Values.postgres.database | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-postgres-secret
+                  key: POSTGRES_DB
             - name: POSTGRES_USER
-              value: {{ .Values.postgres.username | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Release.Name }}-postgres-secret
+                  key: POSTGRES_USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Release.Name }}-postgres-secret
-                  key: password
+                  key: POSTGRES_PASSWORD
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
           ports:
@@ -69,11 +75,9 @@ spec:
           readinessProbe:
             exec:
               command:
-                - pg_isready
-                - -U
-                - {{ .Values.postgres.username | quote }}
-                - -d
-                - {{ .Values.postgres.database | quote }}
+                - sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
