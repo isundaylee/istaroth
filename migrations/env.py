@@ -1,8 +1,9 @@
-import os
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+
+from istaroth.backend.database import get_sync_database_uri
 
 # Import our models to ensure they're registered with Base
 from istaroth.backend.db_models import Base
@@ -40,10 +41,8 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    # Get database URL from environment variable
-    url = os.environ.get("ISTAROTH_DATABASE_URI")
-    if not url:
-        raise ValueError("ISTAROTH_DATABASE_URI environment variable is required")
+    # Get sync database URL (automatically converts async URIs)
+    url = get_sync_database_uri()
 
     # Override the config URL
     config.set_main_option("sqlalchemy.url", url)

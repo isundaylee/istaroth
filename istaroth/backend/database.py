@@ -7,6 +7,7 @@ from pathlib import Path
 import alembic.command
 import alembic.config
 import sqlalchemy
+import sqlalchemy.ext.asyncio
 import sqlalchemy.orm
 
 from istaroth.backend import db_models
@@ -25,15 +26,33 @@ def get_database_uri() -> str:
     return uri
 
 
-def create_engine() -> sqlalchemy.Engine:
-    """Create SQLAlchemy engine."""
+def get_sync_database_uri() -> str:
+    """Get synchronous database URI, converting async URIs if necessary."""
     uri = get_database_uri()
-    logger.info("Creating database engine")
-    return sqlalchemy.create_engine(uri, echo=False)
+    # Convert async URI to sync for migrations and sync operations
+    if uri.startswith("postgresql+asyncpg://"):
+        uri = uri.replace("postgresql+asyncpg://", "postgresql://")
+    elif uri.startswith("sqlite+aiosqlite://"):
+        uri = uri.replace("sqlite+aiosqlite://", "sqlite://")
+    return uri
+
+
+def create_async_engine() -> sqlalchemy.ext.asyncio.AsyncEngine:
+    """Create async SQLAlchemy engine."""
+    uri = get_database_uri()
+    logger.info("Creating async database engine")
+    return sqlalchemy.ext.asyncio.create_async_engine(uri, echo=False)
+
+
+def get_async_session_factory(
+    async_engine: sqlalchemy.ext.asyncio.AsyncEngine,
+) -> sqlalchemy.ext.asyncio.async_sessionmaker:
+    """Create async session factory."""
+    return sqlalchemy.ext.asyncio.async_sessionmaker(bind=async_engine)
 
 
 def get_session_factory(engine: sqlalchemy.Engine) -> sqlalchemy.orm.sessionmaker:
-    """Create session factory."""
+    """Create sync session factory for migrations."""
     return sqlalchemy.orm.sessionmaker(bind=engine)
 
 
@@ -58,7 +77,7 @@ def run_migrations() -> None:
     logger.info("Database migrations completed successfully")
 
 
-def init_database(engine: sqlalchemy.Engine) -> None:
+def init_database() -> None:
     """Initialize database using migrations."""
     logger.info("Initializing database...")
 

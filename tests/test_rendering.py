@@ -51,7 +51,10 @@ def test_render_talk_basic() -> None:
     talk_info = types.TalkInfo(text=talk_texts)
 
     rendered = rendering.render_talk(
-        talk_info, talk_id="12345", language=localization.Language.CHS, talk_file_path="BinOutput/Talk/Quest/12345.json"
+        talk_info,
+        talk_id="12345",
+        language=localization.Language.CHS,
+        talk_file_path="BinOutput/Talk/Quest/12345.json",
     )
 
     assert rendered.filename == "talk_quest_这里看起来很神秘呢_12345.txt"
@@ -68,7 +71,10 @@ def test_render_talk_long_message() -> None:
     talk_info = types.TalkInfo(text=talk_texts)
 
     rendered = rendering.render_talk(
-        talk_info, talk_id="67890", language=localization.Language.CHS, talk_file_path="BinOutput/Talk/NPC/67890.json"
+        talk_info,
+        talk_id="67890",
+        language=localization.Language.CHS,
+        talk_file_path="BinOutput/Talk/NPC/67890.json",
     )
 
     # Should be truncated to 50 characters
@@ -81,7 +87,10 @@ def test_render_talk_empty() -> None:
     talk_info = types.TalkInfo(text=[])
 
     rendered = rendering.render_talk(
-        talk_info, talk_id="99999", language=localization.Language.CHS, talk_file_path="BinOutput/Talk/99999.json"
+        talk_info,
+        talk_id="99999",
+        language=localization.Language.CHS,
+        talk_file_path="BinOutput/Talk/99999.json",
     )
 
     assert rendered.filename == "talk_root_empty_99999.txt"
@@ -94,7 +103,10 @@ def test_render_talk_special_characters() -> None:
     talk_info = types.TalkInfo(text=talk_texts)
 
     rendered = rendering.render_talk(
-        talk_info, talk_id="11111", language=localization.Language.CHS, talk_file_path="BinOutput/Talk/Dialogue/11111.json"
+        talk_info,
+        talk_id="11111",
+        language=localization.Language.CHS,
+        talk_file_path="BinOutput/Talk/Dialogue/11111.json",
     )
 
     assert rendered.filename == "talk_dialogue_这是引号还有破折号_11111.txt"

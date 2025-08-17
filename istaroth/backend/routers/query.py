@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _save_conversation(
+async def _save_conversation(
     db_session: DBSession,
     request: models.QueryRequest,
     answer: str,
@@ -34,7 +34,7 @@ def _save_conversation(
             generation_time_seconds=generation_time,
         )
         db_session.add(conversation)
-        db_session.commit()
+        await db_session.commit()
         logger.info("Conversation saved to database with UUID: %s", conversation.uuid)
         return conversation.uuid
     except Exception as e:
@@ -89,7 +89,9 @@ async def query(
     logger.info("Query completed in %.2f seconds", generation_time)
 
     # Save conversation to database
-    conversation_uuid = _save_conversation(db_session, request, answer, generation_time)
+    conversation_uuid = await _save_conversation(
+        db_session, request, answer, generation_time
+    )
 
     # Return response
     return models.QueryResponse(

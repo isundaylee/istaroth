@@ -3,6 +3,7 @@
 import logging
 
 from fastapi import APIRouter, HTTPException
+from sqlalchemy import select
 
 from istaroth.backend import db_models, models
 from istaroth.backend.dependencies import DBSession
@@ -21,11 +22,11 @@ async def get_conversation(
     conversation_uuid: str, db_session: DBSession
 ) -> models.ConversationResponse:
     """Get a specific conversation by ID."""
-    conversation = (
-        db_session.query(db_models.Conversation)
-        .filter_by(uuid=conversation_uuid)
-        .first()
+    stmt = select(db_models.Conversation).where(
+        db_models.Conversation.uuid == conversation_uuid
     )
+    result = await db_session.execute(stmt)
+    conversation = result.scalar_one_or_none()
 
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")

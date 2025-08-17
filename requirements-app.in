@@ -16,6 +16,8 @@ openai
 fastapi
 uvicorn[standard]
 pydantic
-sqlalchemy
+sqlalchemy[asyncio]
 alembic
-psycopg2-binary
+asyncpg
+aiosqlite
+greenlet

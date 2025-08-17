@@ -1,10 +1,10 @@
 """FastAPI dependency injection for shared resources."""
 
 import logging
-from typing import Annotated, Generator
+from typing import Annotated, AsyncGenerator
 
 from fastapi import Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from istaroth import llm_manager
 from istaroth.backend import database
@@ -13,22 +13,24 @@ from istaroth.rag import document_store_set
 logger = logging.getLogger(__name__)
 
 # Global resources (initialized in init_resources)
-_db_session_factory = None
+_async_db_session_factory = None
 _document_store_set = None
 _llm_manager = None
 
 
 def init_resources() -> None:
     """Initialize global resources. Called at application startup."""
-    global _db_session_factory, _document_store_set, _llm_manager
+    global _async_db_session_factory, _document_store_set, _llm_manager
 
     logger.info("Initializing backend resources...")
 
     # Initialize database
     logger.info("Initializing database connection")
-    db_engine = database.create_engine()
-    database.init_database(db_engine)
-    _db_session_factory = database.get_session_factory(db_engine)
+    # Run migrations (uses sync engine internally)
+    database.init_database()
+    # Create async engine and session factory for application use
+    async_db_engine = database.create_async_engine()
+    _async_db_session_factory = database.get_async_session_factory(async_db_engine)
     logger.info("Database initialized successfully")
 
     # Load document store set from environment
@@ -47,12 +49,12 @@ def init_resources() -> None:
     logger.info("Backend initialization completed successfully")
 
 
-def get_db_session() -> Generator[Session, None, None]:
-    """Dependency to get database session."""
-    if _db_session_factory is None:
+async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+    """Dependency to get async database session."""
+    if _async_db_session_factory is None:
         raise RuntimeError("Database not initialized. Call init_resources() first.")
 
-    with _db_session_factory() as session:
+    async with _async_db_session_factory() as session:
         yield session
 
 
@@ -73,7 +75,7 @@ def get_llm_manager() -> llm_manager.LLMManager:
 
 
 # Type aliases for dependency injection
-DBSession = Annotated[Session, Depends(get_db_session)]
+DBSession = Annotated[AsyncSession, Depends(get_db_session)]
 DocumentStoreSet = Annotated[
     document_store_set.DocumentStoreSet, Depends(get_document_store_set)
 ]
