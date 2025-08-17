@@ -318,7 +318,7 @@ class DocumentStore:
 
     @traceable(name="hybrid_search")
     def retrieve(
-        self, query: str, *, k: int, chunk_context: int = 5
+        self, query: str, *, k: int, chunk_context: int
     ) -> types.RetrieveOutput:
         """Search using hybrid vector + BM25 retrieval with reciprocal rank fusion."""
         # Transform the query into multiple queries

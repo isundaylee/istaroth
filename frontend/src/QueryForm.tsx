@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useT, useTranslation } from './contexts/LanguageContext'
-import type { QueryResponse, ErrorResponse, ModelsResponse, ExampleQuestionResponse } from './types/api'
+import type { QueryRequest, QueryResponse, ErrorResponse, ModelsResponse, ExampleQuestionResponse } from './types/api'
 
 interface QueryFormProps {
   currentQuestion?: string
@@ -108,17 +108,19 @@ function QueryForm({ currentQuestion }: QueryFormProps = {}) {
     setError(null)
 
     try {
+      const req_body: QueryRequest = {
+        language: language.toUpperCase(),
+        question: questionToSubmit,
+        model: selectedModel,
+        k: 10,
+        chunk_context: 5,
+      }
       const res = await fetch('/api/query', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          question: questionToSubmit,
-          k: 10,
-          model: selectedModel,
-          language: language.toUpperCase(),
-        }),
+        body: JSON.stringify(req_body),
       })
 
       const data = await res.json()

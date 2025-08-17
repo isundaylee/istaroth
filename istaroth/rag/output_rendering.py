@@ -2,6 +2,9 @@ from istaroth.rag.document_store import Document
 
 
 def render_retrieve_output(r: list[tuple[float, list[Document]]]) -> str:
+    if not r:
+        return "未找到相关文档。"
+
     parts = list[str]()
 
     for i, (score, file_docs) in enumerate(r):

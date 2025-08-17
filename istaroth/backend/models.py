@@ -17,15 +17,20 @@ class QueryRequest:
 
     language: str
     question: str
+
     model: str
     k: int = attrs.field()
+    chunk_context: int = attrs.field()
 
     @k.validator
     def _validate_k(self, attribute: attrs.Attribute, value: int) -> None:
-        if value <= 0:
-            raise ValueError("k must be positive")
-        if value > 100:
-            raise ValueError("k must not exceed 100")
+        if not (0 < value <= 15):
+            raise ValueError("Invalid k value: must be between 1 and 15")
+
+    @chunk_context.validator
+    def _validate_chunk_context(self, attribute: attrs.Attribute, value: int) -> None:
+        if not (0 < value <= 10):
+            raise ValueError("Invalid chunk_context value: must be between 1 and 10")
 
 
 @attrs.define

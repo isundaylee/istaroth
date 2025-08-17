@@ -165,8 +165,9 @@ def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
 
 @cli.command()
 @click.argument("question", type=str)
-@click.option("--k", default=10, help="Number of documents to retrieve")
-def query(question: str, k: int) -> None:
+@click.option("--k", default=10)
+@click.option("--chunk-context", default=10)
+def query(question: str, *, k: int, chunk_context: int) -> None:
     """Answer a question using RAG pipeline."""
     store = _load_or_create_store()
 
@@ -183,10 +184,11 @@ def query(question: str, k: int) -> None:
     rag = pipeline.RAGPipeline(
         store,
         language=localization.Language.CHS,
-        preprocessing_llm=llm_manager.create_llm("gemini-2.5-flash-lite"),
+        llm=lm.get_default_llm(),
+        preprocessing_llm=lm.get_llm("gemini-2.5-flash-lite"),
     )
 
-    answer = rag.answer(question, k=k, llm=lm.get_default_llm())
+    answer = rag.answer(question, k=k, chunk_context=chunk_context)
     print(f"回答: {answer}")
 
 

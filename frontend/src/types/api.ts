@@ -5,6 +5,14 @@
  * Any changes to request/response structures should be reflected in both files.
  */
 
+export interface QueryRequest {
+  language: string
+  question: string
+  model: string
+  k: number
+  chunk_context: number
+}
+
 export interface QueryResponse {
   question: string
   answer: string

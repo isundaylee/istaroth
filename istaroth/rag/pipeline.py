@@ -23,11 +23,13 @@ class RAGPipeline:
         document_store: document_store.DocumentStore,
         language: localization.Language,
         *,
+        llm: language_models.BaseLanguageModel,
         preprocessing_llm: language_models.BaseLanguageModel,
     ):
         """Initialize RAG pipeline with language-specific prompts and preprocessing LLM."""
         self._document_store = document_store
         self._language = language
+        self._llm = llm
         self._preprocessing_llm = preprocessing_llm
 
         # Get language-specific prompts
@@ -62,9 +64,7 @@ class RAGPipeline:
         return queries[:3]
 
     @langsmith_utils.traceable(name="pipeline_query")
-    def answer(
-        self, question: str, *, k: int, llm: language_models.BaseLanguageModel
-    ) -> str:
+    def answer(self, question: str, *, k: int, chunk_context: int) -> str:
         """Answer question with source documents using the specified LLM."""
 
         # Preprocess the question into multiple retrieval queries
@@ -79,7 +79,9 @@ class RAGPipeline:
         retrieve_outputs = []
         total_documents = 0
         for i, query in enumerate(retrieval_queries):
-            retrieve_output = self._document_store.retrieve(query, k=k)
+            retrieve_output = self._document_store.retrieve(
+                query, k=k, chunk_context=chunk_context
+            )
             retrieve_outputs.append(retrieve_output)
             total_documents += retrieve_output.total_documents
             logger.info(
@@ -102,7 +104,7 @@ class RAGPipeline:
         )
 
         # Create the chain with the provided LLM
-        chain = self._generation_prompt | llm
+        chain = self._generation_prompt | self._llm
 
         # Generate answer with tracing context
         config: RunnableConfig = {
@@ -110,7 +112,7 @@ class RAGPipeline:
                 "question": question,
                 "retrieval_queries": retrieval_queries,
                 "k": k,
-                "model": getattr(llm, "model", getattr(llm, "model_name", "unknown")),
+                "model": llm_manager.get_model_name(self._llm),
                 "num_documents": self._document_store.num_documents,
                 "num_retrieved": len(combined_retrieve_output.results),
                 "retrieval_scores": [

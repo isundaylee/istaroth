@@ -49,7 +49,7 @@ def main(
     print(f"✓ Created LLM: {model}")
 
     # Create reasoning pipeline
-    default_tools = tools.get_default_tools(doc_store)
+    default_tools = tools.get_default_tools(doc_store, language=language)
     reasoning_pipeline = pipeline.ReasoningPipeline(
         llm,
         default_tools,

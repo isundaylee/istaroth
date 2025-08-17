@@ -4,8 +4,7 @@ import functools
 import logging
 import os
 import time
-import traceback
-from typing import Callable, ParamSpec, TypeVar
+from typing import Callable, ParamSpec
 
 import attrs
 import flask
@@ -109,41 +108,37 @@ class BackendApp:
         # Validate request
         try:
             request = models.QueryRequest(
-                question=data["question"],
-                k=data.get("k", 10),
-                model=data.get("model"),
                 language=data["language"],
+                question=data["question"],
+                model=data["model"],
+                k=data["k"],
+                chunk_context=data["chunk_context"],
             )
         except (TypeError, ValueError, KeyError) as e:
             return attrs.asdict(models.ErrorResponse(error=repr(e))), 400
 
         # Get document store for requested language
         try:
-            selected_store = self.document_store_set.get_store(
-                localization.Language(request.language)
-            )
+            language_enum = localization.Language(request.language)
+            selected_store = self.document_store_set.get_store(language_enum)
             language_name = request.language.upper()
         except (ValueError, KeyError) as e:
             return attrs.asdict(models.ErrorResponse(error=repr(e))), 400
 
         # Get LLM for the requested model
         try:
-            llm = self.llm_manager.get_llm(request.model)
+            rag_pipeline = pipeline.RAGPipeline(
+                selected_store,
+                language_enum,
+                llm=self.llm_manager.get_llm(request.model),
+                preprocessing_llm=self.llm_manager.get_llm(
+                    os.environ.get(
+                        "ISTAROTH_PREPROCESSING_MODEL", "gemini-2.5-flash-lite"
+                    )
+                ),
+            )
         except ValueError as e:
             return attrs.asdict(models.ErrorResponse(error=repr(e))), 400
-
-        # Get the language enum for the RAG pipeline
-        language_enum = localization.Language(request.language)
-
-        # Create RAG pipeline for the selected language
-        # Use configurable model for preprocessing
-        preprocessing_model = os.environ.get(
-            "ISTAROTH_PREPROCESSING_MODEL", "gemini-2.5-flash-lite"
-        )
-        preprocessing_llm = self.llm_manager.get_llm(preprocessing_model)
-        rag_pipeline = pipeline.RAGPipeline(
-            selected_store, language_enum, preprocessing_llm=preprocessing_llm
-        )
 
         # Get answer and track timing
         logger.info(
@@ -154,7 +149,9 @@ class BackendApp:
             language_name,
         )
         start_time = time.perf_counter()
-        answer = rag_pipeline.answer(request.question, k=request.k, llm=llm)
+        answer = rag_pipeline.answer(
+            request.question, k=request.k, chunk_context=request.chunk_context
+        )
         generation_time = time.perf_counter() - start_time
 
         logger.info("Query completed in %.2f seconds", generation_time)
