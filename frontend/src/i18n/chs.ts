@@ -85,6 +85,8 @@ export const chs = {
     loadChunkDown: '↓ 载入段落',
     enterFullscreen: '进入全屏',
     exitFullscreen: '退出全屏',
-    close: '关闭'
+    close: '关闭',
+    chunk: '片段',
+    current: '当前'
   }
 }

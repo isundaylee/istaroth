@@ -270,11 +270,29 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
                         color: '#666',
                         marginBottom: '4px',
                         fontWeight: chunk.chunk_index === currentChunkIndex ? 'bold' : 'normal',
-                        background: chunk.chunk_index === currentChunkIndex ? '#e3f2fd' : 'transparent',
-                        padding: '2px 6px',
-                        borderRadius: '3px'
+                        background: '#e3f2fd',
+                        padding: '4px 8px',
+                        borderRadius: '3px',
+                        textAlign: 'right',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center'
                       }}>
-                        {chunk.chunk_index}
+                        <span>
+                          {chunk.chunk_index === currentChunkIndex && (
+                            <span style={{
+                              color: '#1976d2',
+                              fontSize: '0.7rem',
+                              fontWeight: 'normal',
+                              marginRight: '8px'
+                            }}>
+                              {t.citation.current}
+                            </span>
+                          )}
+                        </span>
+                        <span>
+                          {t.citation.chunk} {chunk.chunk_index}
+                        </span>
                       </div>
                       <div style={{ whiteSpace: 'pre-wrap' }}>{chunk.content}</div>
                     </div>

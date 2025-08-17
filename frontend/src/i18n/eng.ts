@@ -85,6 +85,8 @@ export const eng = {
     loadChunkDown: '↓ Load Chunk',
     enterFullscreen: 'Enter fullscreen',
     exitFullscreen: 'Exit fullscreen',
-    close: 'Close'
+    close: 'Close',
+    chunk: 'Chunk',
+    current: 'current'
   }
 }
