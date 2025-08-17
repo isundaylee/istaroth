@@ -32,8 +32,8 @@ The backend automatically generates OpenAPI specifications that are consumed by 
 
 ### OpenAPI Spec Generation
 - **Static Generation**: Use `scripts/generate_openapi.py` to generate `openapi.json` without running the server
-- **Command**: `PYTHONPATH=. python scripts/generate_openapi.py`
-- **Output**: `openapi.json` in project root
+- **Command**: `python scripts/generate_openapi.py`
+- **Output**: `frontend/openapi.json`
 - **CI/CD Friendly**: No server dependencies for type generation
 
 ### Type Safety Workflow

@@ -22,5 +22,5 @@ npm run build
 ## Usage
 
 - The frontend runs on `http://localhost:5173`
-- It automatically proxies API requests to the backend at `http://localhost:5000`
+- It automatically proxies API requests to the backend at `http://localhost:8000`
 - Make sure the backend is running before using the frontend
