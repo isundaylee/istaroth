@@ -11,6 +11,7 @@ metadata:
     {{- end }}
 spec:
   replicas: {{ .Values.backend.replicaCount }}
+  revisionHistoryLimit: 2
   selector:
     matchLabels:
       app.kubernetes.io/name: {{ .Release.Name }}-backend
