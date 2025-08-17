@@ -42,27 +42,9 @@ spec:
           name: http
           protocol: TCP
         env:
-        {{- range $key, $value := .Values.backend.env }}
-        - name: {{ $key }}
-          value: {{ $value | quote }}
+        {{- with .Values.backend.env }}
+        {{- toYaml . | nindent 8 }}
         {{- end }}
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Release.Name }}-postgres-secret
-              key: POSTGRES_USER
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Release.Name }}-postgres-secret
-              key: POSTGRES_PASSWORD
-        - name: POSTGRES_DB
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Release.Name }}-postgres-secret
-              key: POSTGRES_DB
-        - name: ISTAROTH_DATABASE_URI
-          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@{{ .Release.Name }}-postgres:{{ .Values.postgres.service.port }}/$(POSTGRES_DB)"
         envFrom:
         - configMapRef:
             name: {{ .Release.Name }}-config

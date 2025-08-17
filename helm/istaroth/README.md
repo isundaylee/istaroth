@@ -31,45 +31,77 @@ kubectl create secret generic <release-name>-secret \
 kubeseal -o yaml > app-secret-sealed.yaml
 ```
 
-### PostgreSQL Secrets
-
-Create a SealedSecret named `<release-name>-postgres-secret` containing database credentials:
-
-```bash
-kubectl create secret generic <release-name>-postgres-secret \
-  --from-literal=POSTGRES_DB="istaroth" \
-  --from-literal=POSTGRES_USER="istaroth" \
-  --from-literal=POSTGRES_PASSWORD="your-secure-password" \
-  --namespace=<your-namespace> \
-  --dry-run=client -o yaml | \
-kubeseal -o yaml > postgres-secret-sealed.yaml
-```
-
 ### Applying Secrets
 
-Apply both SealedSecrets before installing the chart:
+Apply the SealedSecret before installing the chart:
 
 ```bash
 kubectl apply -f app-secret-sealed.yaml
-kubectl apply -f postgres-secret-sealed.yaml
 helm install <release-name> . -n <your-namespace>
 ```
 
 ## Database
 
-The chart uses PostgreSQL as the database backend:
+The application requires a PostgreSQL database connection configured via the `ISTAROTH_DATABASE_URI` environment variable.
 
-### PostgreSQL Configuration
-- Uses a separate persistent volume for database storage
-- Configurable database name, username, and password
-- Automatic database initialization
-- Health checks with `pg_isready`
-- PostgreSQL 15 by default
+### Database Configuration
+
+Configure the database URI in values.yaml using one of these approaches:
+
+#### Option 1: Direct Value (Not Recommended for Production)
+```yaml
+backend:
+  env:
+    - name: ISTAROTH_DATABASE_URI
+      value: "postgresql://user:password@host:5432/database"
+```
+
+#### Option 2: From Secret (Recommended)
+```yaml
+backend:
+  env:
+    - name: ISTAROTH_DATABASE_URI
+      valueFrom:
+        secretKeyRef:
+          name: db-credentials
+          key: database-uri
+```
+
+Create the secret:
+```bash
+kubectl create secret generic db-credentials \
+  --from-literal=database-uri="postgresql://user:password@host:5432/database" \
+  --namespace=<your-namespace>
+```
+
+### Environment Variables
+
+The backend supports flexible environment variable configuration. You can use:
+- Direct values: `value: "some-value"`
+- Secret references: `valueFrom.secretKeyRef`
+- ConfigMap references: `valueFrom.configMapKeyRef`
+- Field references: `valueFrom.fieldRef`
+
+Example configuration:
+```yaml
+backend:
+  env:
+    - name: ISTAROTH_DATABASE_URI
+      valueFrom:
+        secretKeyRef:
+          name: db-credentials
+          key: database-uri
+    - name: ISTAROTH_AVAILABLE_MODELS
+      value: "all"
+    - name: API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: api-keys
+          key: openai-key
+```
 
 
 ## Persistence
-
-The chart handles persistence with a hybrid approach:
 
 ### Backend Application Data (Helm-Managed)
 - **Created by:** Helm chart automatically
@@ -83,43 +115,3 @@ persistence:
   accessMode: ReadWriteOnce
   size: 10Gi
 ```
-
-### PostgreSQL Database (User-Managed)
-
-**IMPORTANT**: You must create the PostgreSQL PVC before installing this chart.
-
-- **Created by:** User (pre-existing PVC required)
-- **Purpose:** Stores PostgreSQL database files
-- **Mount path:** `/var/lib/postgresql/data`
-- **Why user-managed:** Database data should survive Helm release deletion
-
-#### Creating PostgreSQL PVC
-
-```bash
-kubectl create -f - <<EOF
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: istaroth-postgres-data
-  namespace: your-namespace
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
-  # storageClassName: your-storage-class  # Optional
-EOF
-```
-
-#### Configuration
-
-Reference the PostgreSQL PVC in your values.yaml:
-
-```yaml
-postgres:
-  persistence:
-    existingClaim: "istaroth-postgres-data"
-```
-
-**Note**: Database credentials are managed via SealedSecret, not values.yaml.

@@ -20,12 +20,24 @@ backend:
       cpu: 500m
       memory: 1Gi
 
+  # Environment variables - supports both direct values and valueFrom references
   env:
-    ISTAROTH_DOCUMENT_STORE_SET: "CHS:/data/checkpoint_web/chs,ENG:/data/checkpoint_web/eng"
-    ISTAROTH_DOWNLOAD_CHECKPOINT_RELEASE: "1"
-    ISTAROTH_AVAILABLE_MODELS: "all"
-    ISTAROTH_QUERY_TRANSFORMER: "rewrite"
-    ISTAROTH_RERANKER: "cohere"
+    - name: ISTAROTH_DOCUMENT_STORE_SET
+      value: "CHS:/data/checkpoint_web/chs,ENG:/data/checkpoint_web/eng"
+    - name: ISTAROTH_DOWNLOAD_CHECKPOINT_RELEASE
+      value: "1"
+    - name: ISTAROTH_AVAILABLE_MODELS
+      value: "all"
+    - name: ISTAROTH_QUERY_TRANSFORMER
+      value: "rewrite"
+    - name: ISTAROTH_RERANKER
+      value: "cohere"
+    # Example: Database URI from secret
+    # - name: ISTAROTH_DATABASE_URI
+    #   valueFrom:
+    #     secretKeyRef:
+    #       name: db-credentials
+    #       key: database-uri
 
     # Secrets are managed via SealedSecrets
     # Create a SealedSecret that generates a Secret named: {release-name}-secret
@@ -87,32 +99,6 @@ persistence:
   accessMode: ReadWriteOnce
   size: 10Gi
 
-# PostgreSQL database configuration
-postgres:
-  image:
-    repository: postgres
-    tag: "15"
-    pullPolicy: IfNotPresent
-
-  service:
-    type: ClusterIP
-    port: 5432
-
-  # Expected secret name: {{ .Release.Name }}-postgres-secret
-  # Must contain: POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
-
-  persistence:
-    # Name of existing PVC for PostgreSQL data
-    # This value is REQUIRED - Helm will fail if not provided
-    existingClaim: ""
-
-  resources:
-    limits:
-      cpu: 1000m
-      memory: 1Gi
-    requests:
-      cpu: 100m
-      memory: 256Mi
 
 # Service configuration
 service:
