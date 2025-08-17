@@ -380,6 +380,12 @@ class DocumentStore:
             if total_chunks >= max_total_chunks:
                 break
 
+        logger.info(
+            "Selected %d total chunks between %d files",
+            total_chunks,
+            len(final_file_ids),
+        )
+
         return types.RetrieveOutput(
             query=types.RetrieveQuery(
                 query=query,
