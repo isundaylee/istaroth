@@ -85,4 +85,4 @@ spec:
       volumes:
         - name: postgres-data
           persistentVolumeClaim:
-            claimName: {{ .Values.postgres.persistence.existingClaim }}
+            claimName: {{ required "postgres.persistence.existingClaim is required" .Values.postgres.persistence.existingClaim }}

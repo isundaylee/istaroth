@@ -105,7 +105,8 @@ postgres:
 
   persistence:
     # Name of existing PVC for PostgreSQL data
-    existingClaim: ""  # REQUIRED: Must be set by user
+    # This value is REQUIRED - Helm will fail if not provided
+    existingClaim: ""
 
   resources:
     limits:
