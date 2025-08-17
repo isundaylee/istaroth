@@ -46,8 +46,6 @@ spec:
         - name: {{ $key }}
           value: {{ $value | quote }}
         {{- end }}
-        - name: ISTAROTH_DATABASE_URI
-          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@{{ .Release.Name }}-postgres:{{ .Values.postgres.service.port }}/$(POSTGRES_DB)"
         - name: POSTGRES_USER
           valueFrom:
             secretKeyRef:
@@ -63,6 +61,8 @@ spec:
             secretKeyRef:
               name: {{ .Release.Name }}-postgres-secret
               key: POSTGRES_DB
+        - name: ISTAROTH_DATABASE_URI
+          value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@{{ .Release.Name }}-postgres:{{ .Values.postgres.service.port }}/$(POSTGRES_DB)"
         envFrom:
         - configMapRef:
             name: {{ .Release.Name }}-config
