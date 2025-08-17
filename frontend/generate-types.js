@@ -12,8 +12,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Path to the OpenAPI spec file (relative to project root)
-const OPENAPI_SPEC_PATH = join(__dirname, '..', 'openapi.json');
+// Path to the OpenAPI spec file (in frontend directory)
+const OPENAPI_SPEC_PATH = join(__dirname, 'openapi.json');
 const OUTPUT_PATH = join(__dirname, 'src', 'types', 'api-generated.ts');
 
 function generateTypes() {

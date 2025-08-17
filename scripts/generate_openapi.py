@@ -17,7 +17,7 @@ def generate_openapi_spec() -> None:
     app = create_app()
     openapi_spec = app.openapi()
 
-    output_path = Path(__file__).parent.parent / "openapi.json"
+    output_path = Path(__file__).parent.parent / "frontend" / "openapi.json"
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(openapi_spec, f, indent=2, ensure_ascii=False)
 
