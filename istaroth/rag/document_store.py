@@ -345,6 +345,9 @@ class DocumentStore:
 
         final_file_ids = list[tuple[float, str]]()
         final_chunk_indices = dict[str, set[int]]()
+        max_total_chunks = k * (2 * chunk_context + 1)
+        total_chunks = 0
+
         for scored_doc in sorted(fused_results, key=lambda x: x.score, reverse=True):
             doc = scored_doc.document
             metadata = cast(types.DocumentMetadata, doc.metadata)
@@ -360,11 +363,22 @@ class DocumentStore:
                 final_file_ids.append((scored_doc.score, file_id))
                 final_chunk_indices[file_id] = set()
 
+            # Calculate how many new chunks would be added
+            new_chunk_indices = set()
             for chunk_index in range(
                 max(metadata["chunk_index"] - chunk_context, 0),
                 min(metadata["chunk_index"] + chunk_context + 1, len(file_docs)),
             ):
-                final_chunk_indices[file_id].add(chunk_index)
+                if chunk_index not in final_chunk_indices[file_id]:
+                    new_chunk_indices.add(chunk_index)
+
+            # Add the new chunks
+            final_chunk_indices[file_id].update(new_chunk_indices)
+            total_chunks += len(new_chunk_indices)
+
+            # Check if we've exceeded the limit after adding - if so, stop processing more
+            if total_chunks >= max_total_chunks:
+                break
 
         return types.RetrieveOutput(
             query=types.RetrieveQuery(
