@@ -10,7 +10,7 @@ backend:
 
   service:
     type: ClusterIP
-    port: 5000
+    port: 8000
 
   resources:
     limits:
@@ -35,13 +35,13 @@ backend:
     liveness:
       httpGet:
         path: /api/models
-        port: 5000
+        port: 8000
       initialDelaySeconds: 30
       periodSeconds: 10
     readiness:
       httpGet:
         path: /api/models
-        port: 5000
+        port: 8000
       initialDelaySeconds: 5
       periodSeconds: 5
 
