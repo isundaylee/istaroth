@@ -3,6 +3,9 @@
 # Backend configuration
 backend:
   replicaCount: 1
+  # Number of uvicorn worker processes (for handling concurrent requests)
+  workers: 3
+
   image:
     repository: isundaylee/istaroth
     tag: latest

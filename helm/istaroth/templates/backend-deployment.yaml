@@ -36,7 +36,7 @@ spec:
       - name: backend
         image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
         imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
-        command: ["python", "scripts/run_backend.py"]
+        command: ["uvicorn", "istaroth.backend.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--workers", "{{ .Values.backend.workers }}"]
         ports:
         - containerPort: 8000
           name: http
