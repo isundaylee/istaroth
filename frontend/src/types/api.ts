@@ -1,57 +1,29 @@
 /**
  * API request and response types for the frontend.
  *
- * IMPORTANT: Keep these types in sync with istaroth/backend/models.py
- * Any changes to request/response structures should be reflected in both files.
+ * These types are automatically generated from the OpenAPI specification.
+ * DO NOT manually edit these types - they are kept in sync with the backend.
+ *
+ * To update types:
+ * 1. Run: PYTHONPATH=. env/bin/python scripts/generate_openapi.py
+ * 2. Run: npm run generate-types
  */
 
-export interface QueryRequest {
-  language: string
-  question: string
-  model: string
-  k: number
-  chunk_context: number
-}
+import type { components } from './api-generated'
 
-export interface QueryResponse {
-  question: string
-  answer: string
-  conversation_id: string
-  language: string
-}
+// Export the schema types directly from the generated OpenAPI types
+export type QueryRequest = components['schemas']['QueryRequest']
+export type QueryResponse = components['schemas']['QueryResponse']
+export type ModelsResponse = components['schemas']['ModelsResponse']
+export type ConversationResponse = components['schemas']['ConversationResponse']
+export type ExampleQuestionResponse = components['schemas']['ExampleQuestionResponse']
+export type CitationResponse = components['schemas']['CitationResponse']
 
+// Additional types that may not be in the OpenAPI spec but are used by the frontend
 export interface ErrorResponse {
   error: string
 }
 
-export interface ModelsResponse {
-  models: string[]
-}
-
-export interface ConversationResponse {
-  uuid: string
-  language: string
-  question: string
-  answer: string
-  model: string
-  k: number
-  created_at: number
-  generation_time_seconds: number
-}
-
 export interface ExampleQuestionRequest {
   language: string
-}
-
-export interface ExampleQuestionResponse {
-  question: string
-  language: string
-}
-
-export interface CitationResponse {
-  file_id: string
-  chunk_index: number
-  content: string
-  metadata: Record<string, any>
-  total_chunks: number
 }
