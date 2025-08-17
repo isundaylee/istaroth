@@ -6,51 +6,54 @@ This Helm chart deploys the Istaroth web application on a Kubernetes cluster.
 
 See `values.yaml` for all configurable parameters and their default values.
 
-### Secrets Management
+## Secrets Management
 
-This chart requires SealedSecrets for managing sensitive data. You must create a SealedSecret before installing the chart.
+This chart requires SealedSecrets for managing sensitive data. You must create SealedSecrets before installing the chart.
 
 **Prerequisites:**
 - SealedSecrets controller installed in your cluster
 - `kubeseal` CLI tool for creating sealed secrets
 
-**Steps:**
-1. Create a SealedSecret with your sensitive data:
-   ```bash
-   kubectl create secret generic myapp-secret \
-     --from-literal=LANGSMITH_API_KEY="..." \
-     --from-literal=LANGSMITH_PROJECT="..." \
-     --from-literal=LANGSMITH_TRACING="true" \
-     --from-literal=GOOGLE_API_KEY="..." \
-     --from-literal=CO_API_KEY="..." \
-     --from-literal=OPENAI_API_KEY="..." \
-     --dry-run=client -o yaml | \
-   kubeseal -o yaml > myapp-secret-sealed.yaml
-   ```
+### Application Secrets
 
-2. Edit the SealedSecret to use the correct secret name:
-   ```yaml
-   apiVersion: bitnami.com/v1alpha1
-   kind: SealedSecret
-   metadata:
-     name: myapp-sealed-secret
-     namespace: target-namespace
-   spec:
-     encryptedData:
-      ...
-     template:
-       metadata:
-         name: myapp-secret  # Must match {release-name}-secret
-         labels:
-           app.kubernetes.io/name: myapp
-           app.kubernetes.io/instance: myapp
-   ```
+Create a SealedSecret named `<release-name>-secret` containing API keys:
 
-3. Apply the SealedSecret before installing the chart:
-   ```bash
-   kubectl apply -f myapp-sealed-secret.yaml
-   helm install myapp . -n target-namespace
-   ```
+```bash
+kubectl create secret generic <release-name>-secret \
+  --from-literal=LANGSMITH_API_KEY="..." \
+  --from-literal=LANGSMITH_PROJECT="..." \
+  --from-literal=LANGSMITH_TRACING="true" \
+  --from-literal=GOOGLE_API_KEY="..." \
+  --from-literal=CO_API_KEY="..." \
+  --from-literal=OPENAI_API_KEY="..." \
+  --namespace=<your-namespace> \
+  --dry-run=client -o yaml | \
+kubeseal -o yaml > app-secret-sealed.yaml
+```
+
+### PostgreSQL Secrets
+
+Create a SealedSecret named `<release-name>-postgres-secret` containing database credentials:
+
+```bash
+kubectl create secret generic <release-name>-postgres-secret \
+  --from-literal=POSTGRES_DB="istaroth" \
+  --from-literal=POSTGRES_USER="istaroth" \
+  --from-literal=POSTGRES_PASSWORD="your-secure-password" \
+  --namespace=<your-namespace> \
+  --dry-run=client -o yaml | \
+kubeseal -o yaml > postgres-secret-sealed.yaml
+```
+
+### Applying Secrets
+
+Apply both SealedSecrets before installing the chart:
+
+```bash
+kubectl apply -f app-secret-sealed.yaml
+kubectl apply -f postgres-secret-sealed.yaml
+helm install <release-name> . -n <your-namespace>
+```
 
 ## Database
 
@@ -63,28 +66,6 @@ The chart uses PostgreSQL as the database backend:
 - Health checks with `pg_isready`
 - PostgreSQL 15 by default
 
-### Database Secret
-
-**IMPORTANT**: You must create a SealedSecret for PostgreSQL credentials.
-
-The chart expects a secret named `<release-name>-postgres-secret` containing:
-- `POSTGRES_DB`: Database name
-- `POSTGRES_USER`: Database username
-- `POSTGRES_PASSWORD`: Database password
-
-#### Creating PostgreSQL SealedSecret
-
-```bash
-# Create the secret (replace values as needed)
-kubectl create secret generic temp-postgres-secret \
-  --from-literal=POSTGRES_DB="istaroth" \
-  --from-literal=POSTGRES_USER="istaroth" \
-  --from-literal=POSTGRES_PASSWORD="your-secure-password" \
-  --dry-run=client -o yaml | \
-kubeseal -o yaml > postgres-sealed-secret.yaml
-
-# Edit the sealed secret to use the correct name: <release-name>-postgres-secret
-```
 
 ## Persistence
 
