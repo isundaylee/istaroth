@@ -7,9 +7,8 @@ from langchain import agents, prompts
 from langchain.agents import AgentExecutor
 from langchain_core import language_models, tools
 from langchain_core.prompts import MessagesPlaceholder
-from langchain_openai import chat_models as openai_llms
 
-from istaroth import langsmith_utils
+from istaroth import langsmith_utils, llm_manager
 from istaroth.agd import localization
 from istaroth.rag import document_store
 from istaroth.reasoning import prompts as reasoning_prompts
@@ -52,7 +51,7 @@ class ReasoningPipeline:
 
     def _create_llm(self, model: str) -> language_models.BaseLanguageModel:
         """Create LLM instance."""
-        return openai_llms.ChatOpenAI(model=model, max_tokens=5000)
+        return llm_manager.create_llm(model, max_tokens=5000)
 
     def register_tool(self, tool: tools.BaseTool) -> None:
         """Register a tool for reasoning."""
@@ -72,7 +71,7 @@ class ReasoningPipeline:
     ) -> AgentExecutor:
         """Create agent executor with provided tools."""
         # Create agent with tools
-        agent = agents.create_openai_tools_agent(
+        agent = agents.create_tool_calling_agent(
             llm=llm,
             tools=tools,
             prompt=prompts.ChatPromptTemplate.from_messages(
