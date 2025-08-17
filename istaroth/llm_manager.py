@@ -13,7 +13,6 @@ _ALL_SUPPORTED_MODELS: list[str] = [
     "gemini-2.5-flash",
     "gpt-5-nano",
     "gpt-5-mini",
-    "gpt-5",
     "gemini-2.5-pro",  # Slowest
 ]
 
