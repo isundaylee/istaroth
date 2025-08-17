@@ -17,7 +17,7 @@ spec:
   type: {{ .Values.backend.service.type }}
   ports:
   - port: {{ .Values.backend.service.port }}
-    targetPort: 5000
+    targetPort: 8000
     protocol: TCP
     name: backend
   selector:

@@ -37,7 +37,7 @@ spec:
         imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
         command: ["python", "scripts/run_backend.py"]
         ports:
-        - containerPort: 5000
+        - containerPort: 8000
           name: http
           protocol: TCP
         env:

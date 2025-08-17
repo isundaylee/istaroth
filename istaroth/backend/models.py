@@ -4,37 +4,38 @@ IMPORTANT: Keep these models in sync with frontend/src/types/api.ts
 Any changes to request/response structures should be reflected in both files.
 """
 
-import datetime
+from typing import Any
 
-import attrs
+from pydantic import BaseModel, field_validator
 
 from istaroth.agd import localization
 
 
-@attrs.define
-class QueryRequest:
+class QueryRequest(BaseModel):
     """Request model for query endpoint."""
 
     language: str
     question: str
-
     model: str
-    k: int = attrs.field()
-    chunk_context: int = attrs.field()
+    k: int
+    chunk_context: int
 
-    @k.validator
-    def _validate_k(self, attribute: attrs.Attribute, value: int) -> None:
+    @field_validator("k")
+    @classmethod
+    def _validate_k(cls, value: int) -> int:
         if not (0 < value <= 15):
             raise ValueError("Invalid k value: must be between 1 and 15")
+        return value
 
-    @chunk_context.validator
-    def _validate_chunk_context(self, attribute: attrs.Attribute, value: int) -> None:
+    @field_validator("chunk_context")
+    @classmethod
+    def _validate_chunk_context(cls, value: int) -> int:
         if not (0 < value <= 10):
             raise ValueError("Invalid chunk_context value: must be between 1 and 10")
+        return value
 
 
-@attrs.define
-class QueryResponse:
+class QueryResponse(BaseModel):
     """Response model for query endpoint."""
 
     language: str
@@ -43,8 +44,7 @@ class QueryResponse:
     conversation_id: str
 
 
-@attrs.define
-class ConversationResponse:
+class ConversationResponse(BaseModel):
     """Response model for conversation retrieval."""
 
     uuid: str
@@ -57,46 +57,43 @@ class ConversationResponse:
     generation_time_seconds: float
 
 
-@attrs.define
-class ErrorResponse:
+class ErrorResponse(BaseModel):
     """Error response model for API errors."""
 
     error: str
 
 
-@attrs.define
-class ModelsResponse:
+class ModelsResponse(BaseModel):
     """Response model for available models endpoint."""
 
     models: list[str]
 
 
-@attrs.define
-class ExampleQuestionRequest:
+class ExampleQuestionRequest(BaseModel):
     """Request model for example question endpoint."""
 
-    language: str = attrs.field()
+    language: str
 
-    @language.validator
-    def _validate_language(self, attribute: attrs.Attribute, value: str) -> None:
+    @field_validator("language")
+    @classmethod
+    def _validate_language(cls, value: str) -> str:
         if value not in {l.value for l in localization.Language}:
             raise ValueError(f"Invalid language: {value}")
+        return value
 
 
-@attrs.define
-class ExampleQuestionResponse:
+class ExampleQuestionResponse(BaseModel):
     """Response model for example question endpoint."""
 
     question: str
     language: str
 
 
-@attrs.define
-class CitationResponse:
+class CitationResponse(BaseModel):
     """Response model for citation content endpoint."""
 
     file_id: str
     chunk_index: int
     content: str
-    metadata: dict
+    metadata: dict[str, Any]
     total_chunks: int

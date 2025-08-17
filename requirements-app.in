@@ -13,6 +13,8 @@ fastmcp
 jieba
 tabulate
 openai
-flask
+fastapi
+uvicorn[standard]
+pydantic
 sqlalchemy
 alembic
