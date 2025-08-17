@@ -18,7 +18,6 @@ interface CitationContentData {
   content: string
   fileId: string
   chunkIndexWithPrefix?: string
-  currentChunkIndexWithPrefix?: string
 }
 
 function CitationRenderer({ content }: CitationRendererProps) {
@@ -261,7 +260,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
     const fileChunks = Object.entries(citationCache)
       .filter(([key, value]) => key.startsWith(`${fileId}:`) && !('error' in value))
       .map(([_, value]) => value as CitationResponse)
-      .sort((a, b) => a.metadata.chunk_index - b.metadata.chunk_index)
+      .sort((a, b) => a.chunk_index - b.chunk_index)
 
     if (fileChunks.length > 0) {
       return {
@@ -269,7 +268,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
         chunks: fileChunks,
         content: '',
         fileId,
-        currentChunkIndexWithPrefix: chunkIndexWithPrefix
+        chunkIndexWithPrefix
       }
     }
 
@@ -328,7 +327,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
           content={isSticky ? undefined : getSourceContent(displayedCitation).content}
           chunks={isSticky ? getStickyContent(displayedCitation).chunks : undefined}
           fileId={isSticky ? getStickyContent(displayedCitation).fileId : undefined}
-          currentChunkIndex={isSticky ? getStickyContent(displayedCitation).currentChunkIndexWithPrefix : undefined}
+          currentChunkIndex={isSticky ? parseInt(displayedCitation.split(':')[1]?.replace('ck', '') || '0') : 0}
           isSticky={isSticky}
           isFullscreen={isFullscreen}
           onClose={handleCloseSticky}

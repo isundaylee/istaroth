@@ -2,7 +2,12 @@
 """Generate OpenAPI specification from FastAPI app without running the server."""
 
 import json
+import pathlib
+import sys
 from pathlib import Path
+
+# Add the parent directory to Python path to find istaroth module
+sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from istaroth.backend.app import create_app
 

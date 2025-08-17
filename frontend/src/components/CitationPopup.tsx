@@ -49,7 +49,7 @@ interface CitationPopupProps {
   content?: string
   chunks?: CitationResponse[]
   fileId?: string
-  currentChunkIndex?: string
+  currentChunkIndex: number
   isSticky?: boolean
   isFullscreen?: boolean
   onClose?: () => void
@@ -81,7 +81,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
     // Scroll to newly loaded chunk when chunks array changes
     useEffect(() => {
       if (chunks && chunks.length > 0 && contentRef.current) {
-        const currentChunkIds = new Set(chunks.map(c => c.metadata.chunk_index.toString()))
+        const currentChunkIds = new Set(chunks.map(c => c.chunk_index.toString()))
 
         // Find chunks that are new (not in previous set)
         const newChunkIds = [...currentChunkIds].filter(id => !previousChunkIdsRef.current.has(id))
@@ -214,7 +214,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
             </div>
           )}
         </div>
-        {isSticky && chunks && fileId && currentChunkIndex ? (
+        {isSticky && chunks && fileId ? (
           // Sticky mode with multiple chunks and load buttons
           <div style={{
             display: 'flex',
@@ -223,16 +223,16 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
             overflow: 'hidden'
           }}>
             {/* Load previous button */}
-            {onLoadChunk && chunks && chunks.length > 0 && chunks[0].metadata.chunk_index > 0 && (
+            {onLoadChunk && chunks && chunks.length > 0 && chunks[0].chunk_index > 0 && (
               <div style={{ padding: '8px 16px', borderBottom: '1px solid #eee', flexShrink: 0 }}>
                 <MainLoadButton
                   onClick={() => {
                     const firstChunk = chunks[0]
-                    const prevChunkIndex = firstChunk.metadata.chunk_index - 1
+                    const prevChunkIndex = firstChunk.chunk_index - 1
                     const prevCitationId = `${fileId}:ck${prevChunkIndex}`
                     onLoadChunk(prevCitationId)
                   }}
-                  loading={loadingCitations?.has(`${fileId}:ck${chunks[0]?.metadata.chunk_index - 1}`)}
+                  loading={loadingCitations?.has(`${fileId}:ck${chunks[0]?.chunk_index - 1}`)}
                 >
                   {t.citation.loadPrevious}
                 </MainLoadButton>
@@ -257,24 +257,24 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
               className="citation-popup-content"
             >
               {chunks.map((chunk, index) => {
-                const currentChunkNum = chunk.metadata.chunk_index
+                const currentChunkNum = chunk.chunk_index
                 const nextChunk = chunks[index + 1]
-                const nextChunkNum = nextChunk ? nextChunk.metadata.chunk_index : null
+                const nextChunkNum = nextChunk ? nextChunk.chunk_index : null
                 const hasGap = nextChunkNum !== null && nextChunkNum !== currentChunkNum + 1
 
                 return (
-                  <div key={chunk.metadata.chunk_index} data-chunk-id={`chunk-${chunk.metadata.chunk_index}`}>
+                  <div key={chunk.chunk_index} data-chunk-id={`chunk-${chunk.chunk_index}`}>
                     <div style={{ marginBottom: index < chunks.length - 1 || hasGap ? '16px' : '0' }}>
                       <div style={{
                         fontSize: '0.75rem',
                         color: '#666',
                         marginBottom: '4px',
-                        fontWeight: chunk.metadata.chunk_index === currentChunkIndex ? 'bold' : 'normal',
-                        background: chunk.metadata.chunk_index === currentChunkIndex ? '#e3f2fd' : 'transparent',
+                        fontWeight: chunk.chunk_index === currentChunkIndex ? 'bold' : 'normal',
+                        background: chunk.chunk_index === currentChunkIndex ? '#e3f2fd' : 'transparent',
                         padding: '2px 6px',
                         borderRadius: '3px'
                       }}>
-                        {chunk.metadata.chunk_index}
+                        {chunk.chunk_index}
                       </div>
                       <div style={{ whiteSpace: 'pre-wrap' }}>{chunk.content}</div>
                     </div>
@@ -375,16 +375,16 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
             </div>
 
             {/* Load next button */}
-            {onLoadChunk && chunks && chunks.length > 0 && chunks[chunks.length - 1].metadata.chunk_index < chunks[chunks.length - 1].total_chunks - 1 && (
+            {onLoadChunk && chunks && chunks.length > 0 && chunks[chunks.length - 1].chunk_index < chunks[chunks.length - 1].total_chunks - 1 && (
               <div style={{ padding: '8px 16px', borderTop: '1px solid #eee', flexShrink: 0 }}>
                 <MainLoadButton
                   onClick={() => {
                     const lastChunk = chunks[chunks.length - 1]
-                    const nextChunkIndex = lastChunk.metadata.chunk_index + 1
+                    const nextChunkIndex = lastChunk.chunk_index + 1
                     const nextCitationId = `${fileId}:ck${nextChunkIndex}`
                     onLoadChunk(nextCitationId)
                   }}
-                  loading={loadingCitations?.has(`${fileId}:ck${chunks[chunks.length - 1]?.metadata.chunk_index + 1}`)}
+                  loading={loadingCitations?.has(`${fileId}:ck${chunks[chunks.length - 1]?.chunk_index + 1}`)}
                 >
                   {t.citation.loadNext}
                 </MainLoadButton>
