@@ -26,8 +26,11 @@ class DocumentRetrievalTool(BaseTool):
     name: str = "document_retrieval"
     description: str = (
         "Search for relevant documents about Genshin Impact lore. "
-        "Use this when you need to find information about characters, "
-        "locations, events, or game mechanics."
+        "IMPORTANT: Each query must focus on a SINGLE concept only. "
+        "Query format: Either a single keyword (character name, location, item) "
+        "OR a single complete sentence/question about one specific topic. "
+        "Examples: 'Zhongli', 'What is the Cataclysm?', 'Scaramouche origins'. "
+        "Do NOT combine multiple concepts in one query."
     )
 
     def __init__(self, doc_store: document_store.DocumentStore):
@@ -49,25 +52,6 @@ class DocumentRetrievalTool(BaseTool):
     async def _arun(self, query: str, k: int = 5) -> str:
         """Async version."""
         return self._run(query, k)
-
-
-@tools.tool
-def web_search(query: str) -> str:
-    """Search the web for information (placeholder)."""
-    # Placeholder implementation
-    return f"Web search results for '{query}' would appear here. (Not yet implemented)"
-
-
-def create_python_repl_tool() -> Tool:
-    """Create Python REPL tool for code execution."""
-    from langchain_experimental.tools import PythonREPLTool
-
-    python_repl = PythonREPLTool()
-    return Tool(
-        name="python_repl",
-        description="Execute Python code for calculations, data processing, or analysis",
-        func=python_repl.run,
-    )
 
 
 def get_default_tools(
