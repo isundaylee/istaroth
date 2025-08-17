@@ -49,28 +49,21 @@ def main(
     print(f"✓ Created LLM: {model}")
 
     # Create reasoning pipeline
+    default_tools = tools.get_default_tools(doc_store)
     reasoning_pipeline = pipeline.ReasoningPipeline(
-        llm=llm,
-        document_store=doc_store,
+        llm,
+        default_tools,
         language=language,
+        max_steps=max_steps,
     )
 
-    # Register default tools
-    default_tools = tools.get_default_tools(doc_store)
-    for tool in default_tools:
-        reasoning_pipeline.register_tool(tool)
-
-    print(f"✓ Registered {len(default_tools)} tools")
+    print(f"✓ Have {len(default_tools)} tools")
     print(f"✓ Using model: {model}")
     print(f"✓ Language: {language.value}")
     print()
 
     # Create reasoning request
-    request = types.ReasoningRequest(
-        question=question,
-        max_steps=max_steps,
-        k=10,
-    )
+    request = types.ReasoningRequest(question=question, k=10)
 
     print(f"🤔 Question: {question}")
     print("=" * 60)

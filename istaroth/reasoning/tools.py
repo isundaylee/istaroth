@@ -54,8 +54,6 @@ class DocumentRetrievalTool(BaseTool):
         return self._run(query, k)
 
 
-def get_default_tools(
-    doc_store: document_store.DocumentStore,
-) -> list[BaseTool]:
+def get_default_tools(doc_store: document_store.DocumentStore) -> list[BaseTool]:
     """Get default tools for reasoning."""
     return [DocumentRetrievalTool(doc_store)]

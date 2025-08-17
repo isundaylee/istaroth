@@ -5,9 +5,7 @@ import datetime
 import hashlib
 import json
 import logging
-import os
 import pathlib
-import re
 import shutil
 import sys
 
@@ -17,18 +15,10 @@ import click
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 import langsmith as ls
-from langchain_core import language_models
-from langchain_google_genai import llms as google_llms
 
-from istaroth import utils
+from istaroth import llm_manager, utils
 from istaroth.agd import localization
-from istaroth.rag import (
-    document_store,
-    output_rendering,
-    pipeline,
-    retrieval_diff,
-    tracing,
-)
+from istaroth.rag import document_store, output_rendering, pipeline, retrieval_diff
 from istaroth.rag.eval import dataset
 
 
@@ -188,15 +178,15 @@ def query(question: str, k: int) -> None:
     print("=" * 50)
 
     # Create RAG pipeline and LLM
-    llm_manager = pipeline.LLMManager()
+    lm = llm_manager.LLMManager()
 
     rag = pipeline.RAGPipeline(
         store,
         language=localization.Language.CHS,
-        preprocessing_llm=pipeline.create_llm("gemini-2.5-flash-lite"),
+        preprocessing_llm=llm_manager.create_llm("gemini-2.5-flash-lite"),
     )
 
-    answer = rag.answer(question, k=k, llm=llm_manager.get_default_llm())
+    answer = rag.answer(question, k=k, llm=lm.get_default_llm())
     print(f"回答: {answer}")
 
 

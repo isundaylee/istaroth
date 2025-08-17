@@ -10,6 +10,7 @@ from typing import Callable, ParamSpec, TypeVar
 import attrs
 import flask
 
+from istaroth import llm_manager
 from istaroth.agd import localization
 from istaroth.backend import database, db_models, example_questions, models
 from istaroth.rag import document_store_set, pipeline
@@ -64,7 +65,7 @@ class BackendApp:
 
         # Initialize LLM manager
         logger.info("Initializing LLM manager")
-        self.llm_manager = pipeline.LLMManager()
+        self.llm_manager = llm_manager.LLMManager()
 
         # RAG pipeline will be created per-query with language-specific document store
         logger.info("Backend initialization completed successfully")
@@ -231,7 +232,9 @@ class BackendApp:
     def _get_models(self) -> tuple[dict, int]:
         """Get list of available models."""
         return (
-            attrs.asdict(models.ModelsResponse(models=pipeline.get_available_models())),
+            attrs.asdict(
+                models.ModelsResponse(models=llm_manager.get_available_models())
+            ),
             200,
         )
 

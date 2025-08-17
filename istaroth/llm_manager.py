@@ -4,7 +4,7 @@ import os
 import typing
 
 from langchain_core import language_models, messages
-from langchain_google_genai import llms as google_llms
+from langchain_google_genai import chat_models as google_chat_models
 from langchain_openai import chat_models as openai_llms
 
 # All technically supported models in order of decreasing speed
@@ -80,7 +80,7 @@ def create_llm(model_name: str, **kwargs) -> language_models.BaseLanguageModel:
 
     # Google models
     if model_name.startswith("gemini-"):
-        return google_llms.GoogleGenerativeAI(model=model_name, **kwargs)
+        return google_chat_models.ChatGoogleGenerativeAI(model=model_name, **kwargs)
     # OpenAI models
     elif model_name.startswith("gpt-"):
         return openai_llms.ChatOpenAI(model=model_name, **kwargs)

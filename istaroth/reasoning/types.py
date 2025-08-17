@@ -27,8 +27,9 @@ class ReasoningRequest:
     """Reasoning request parameters."""
 
     question: str
-    max_steps: int
-    k: int  # Documents to retrieve
+
+    # Retrieval parameters
+    k: int
 
 
 @attrs.define

@@ -23,36 +23,24 @@ class ReasoningPipeline:
     def __init__(
         self,
         llm: language_models.BaseLanguageModel,
-        document_store: document_store.DocumentStore,
+        tools: list[tools.BaseTool],
+        *,
         language: localization.Language = localization.Language.ENG,
+        max_steps: int,
     ):
         """Initialize pipeline with LLM, document store and language."""
         self._llm = llm
-        self._document_store = document_store
         self._language = language
-
-        # Tool registry - stores LangChain tools
-        self._tools: list[tools.BaseTool] = []
-
-        # Agent executor (will be created when tools are registered)
-        self._agent_executor: AgentExecutor
 
         # Get language-specific prompts
         self._prompt_set = reasoning_prompts.get_reasoning_prompts(language)
 
-        # Initialize with empty agent executor (will be created when tools are registered)
+        # Agent executor
         self._agent_executor = self._create_agent_executor(
-            llm=self._llm, tools=self._tools, prompt_set=self._prompt_set
-        )
-
-    def register_tool(self, tool: tools.BaseTool) -> None:
-        """Register a tool for reasoning."""
-        self._tools.append(tool)
-        logger.info("Registered tool: %s", tool.name)
-
-        # Recreate agent executor with updated tools
-        self._agent_executor = self._create_agent_executor(
-            llm=self._llm, tools=self._tools, prompt_set=self._prompt_set
+            llm=self._llm,
+            tools=tools,
+            prompt_set=self._prompt_set,
+            max_steps=max_steps,
         )
 
     @staticmethod
@@ -60,6 +48,8 @@ class ReasoningPipeline:
         llm: language_models.BaseLanguageModel,
         tools: list[tools.BaseTool],
         prompt_set: reasoning_prompts.ReasoningPrompts,
+        *,
+        max_steps: int,
     ) -> AgentExecutor:
         """Create agent executor with provided tools."""
         # Create agent with tools
@@ -80,7 +70,7 @@ class ReasoningPipeline:
             agent=agent,
             tools=tools,
             verbose=True,
-            max_iterations=5,
+            max_iterations=max_steps,
             return_intermediate_steps=True,
         )
 
@@ -96,9 +86,7 @@ class ReasoningPipeline:
         input_text = request.question
 
         # Execute with agent
-        result = self._agent_executor.invoke(
-            {"input": input_text}, config={"max_iterations": request.max_steps}
-        )
+        result = self._agent_executor.invoke({"input": input_text})
 
         # Process intermediate steps into reasoning steps
         for action, observation in result.get("intermediate_steps", []):
