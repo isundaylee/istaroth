@@ -28,7 +28,7 @@ def get_database_uri() -> str:
 def create_engine() -> sqlalchemy.Engine:
     """Create SQLAlchemy engine."""
     uri = get_database_uri()
-    logger.info("Creating database engine with URI: %s", uri)
+    logger.info("Creating database engine")
     return sqlalchemy.create_engine(uri, echo=False)
 
 
