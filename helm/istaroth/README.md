@@ -52,9 +52,79 @@ This chart requires SealedSecrets for managing sensitive data. You must create a
    helm install myapp . -n target-namespace
    ```
 
+## Database
+
+The chart uses PostgreSQL as the database backend:
+
+### PostgreSQL Configuration
+- Uses a separate persistent volume for database storage
+- Configurable database name, username, and password
+- Automatic database initialization
+- Health checks with `pg_isready`
+- PostgreSQL 15 by default
+
+### Database Configuration
+```yaml
+postgres:
+  database: istaroth
+  username: istaroth
+  password: changeme  # IMPORTANT: Change in production!
+  persistence:
+    size: 5Gi
+    storageClass: ""  # Uses default storage class
+```
+
 ## Persistence
 
-The chart mounts a persistent volume to store:
-- SQLite database at `/data/database/web.sqlite`
-- Checkpoint data at `/data/checkpoint`
-- HuggingFace models at `/data/models/hf`
+The chart handles persistence with a hybrid approach:
+
+### Backend Application Data (Helm-Managed)
+- **Created by:** Helm chart automatically
+- **Purpose:** Stores checkpoint data, HuggingFace models, and other application data
+- **Mount path:** `/data`
+- **Configuration:** Set via `persistence.*` values
+
+```yaml
+persistence:
+  storageClass: ""  # Uses default storage class
+  accessMode: ReadWriteOnce
+  size: 10Gi
+```
+
+### PostgreSQL Database (User-Managed)
+
+**IMPORTANT**: You must create the PostgreSQL PVC before installing this chart.
+
+- **Created by:** User (pre-existing PVC required)
+- **Purpose:** Stores PostgreSQL database files
+- **Mount path:** `/var/lib/postgresql/data`
+- **Why user-managed:** Database data should survive Helm release deletion
+
+#### Creating PostgreSQL PVC
+
+```bash
+kubectl create -f - <<EOF
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: istaroth-postgres-data
+  namespace: your-namespace
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  # storageClassName: your-storage-class  # Optional
+EOF
+```
+
+#### Configuration
+
+Reference the PostgreSQL PVC in your values.yaml:
+
+```yaml
+postgres:
+  persistence:
+    existingClaim: "istaroth-postgres-data"
+```

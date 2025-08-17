@@ -46,6 +46,8 @@ spec:
         - name: {{ $key }}
           value: {{ $value | quote }}
         {{- end }}
+        - name: ISTAROTH_DATABASE_URI
+          value: "postgresql://{{ .Values.postgres.username }}:{{ .Values.postgres.password }}@{{ .Release.Name }}-postgres:{{ .Values.postgres.service.port }}/{{ .Values.postgres.database }}"
         envFrom:
         - configMapRef:
             name: {{ .Release.Name }}-config
@@ -73,4 +75,4 @@ spec:
       volumes:
       - name: data
         persistentVolumeClaim:
-          claimName: {{ .Release.Name }}-data
+          claimName: {{ .Release.Name }}-scratch

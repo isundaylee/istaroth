@@ -21,7 +21,6 @@ backend:
       memory: 1Gi
 
   env:
-    ISTAROTH_DATABASE_URI: sqlite:////data/web.sqlite
     ISTAROTH_DOCUMENT_STORE_SET: "CHS:/data/checkpoint_web/chs,ENG:/data/checkpoint_web/eng"
     ISTAROTH_DOWNLOAD_CHECKPOINT_RELEASE: "1"
     ISTAROTH_AVAILABLE_MODELS: "all"
@@ -81,11 +80,39 @@ frontend:
       initialDelaySeconds: 5
       periodSeconds: 5
 
-# Persistent storage configuration
+# Persistent storage configuration for backend application data
 persistence:
   storageClass: ""  # Leave empty to use default storage class
   accessMode: ReadWriteOnce
   size: 10Gi
+
+# PostgreSQL database configuration
+postgres:
+  image:
+    repository: postgres
+    tag: "15"
+    pullPolicy: IfNotPresent
+
+  # Database configuration
+  database: istaroth
+  username: istaroth
+  password: changeme  # IMPORTANT: Change this in production!
+
+  service:
+    type: ClusterIP
+    port: 5432
+
+  persistence:
+    # Name of existing PVC for PostgreSQL data
+    existingClaim: ""  # REQUIRED: Must be set by user
+
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
 
 # Service configuration
 service:
