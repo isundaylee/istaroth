@@ -307,6 +307,8 @@ protobuf==6.31.1
     #   googleapis-common-protos
     #   grpcio-status
     #   proto-plus
+psycopg2-binary==2.9.10
+    # via -r requirements-app.in
 pyasn1==0.6.1
     # via
     #   pyasn1-modules
