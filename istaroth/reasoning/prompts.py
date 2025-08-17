@@ -4,6 +4,7 @@ import textwrap
 
 import attrs
 
+from istaroth import shared_prompts
 from istaroth.agd import localization
 
 
@@ -27,31 +28,51 @@ def get_reasoning_prompts(language: localization.Language) -> ReasoningPrompts:
 
 def _get_chinese_prompts() -> ReasoningPrompts:
     """Get Chinese reasoning prompts."""
+    genshin_expertise = shared_prompts.get_genshin_expertise_description(
+        localization.Language.CHS
+    )
+    citation_guidelines = shared_prompts.get_citation_guidelines(
+        localization.Language.CHS
+    )
+    response_principles = shared_prompts.get_response_principles(
+        localization.Language.CHS
+    )
+
     system_prompt = textwrap.dedent(
-        """\
-        你是一个专门研究《原神》世界观的推理助手。你具备以下能力：
+        f"""\
+        {genshin_expertise}
+
+        你具备以下推理能力：
 
         1. **多步推理**：能够将复杂问题分解为多个步骤，逐步分析和解决
-        2. **工具使用**：可以调用各种工具来辅助推理，包括文档检索、计算器等
+        2. **工具使用**：可以调用各种工具来辅助推理，包括文档检索等
         3. **知识整合**：能够结合检索到的资料和已有知识进行综合分析
 
-        推理原则：
+        {response_principles}
+
+        推理工作流原则：
         - 基于事实和证据进行推理
         - 清晰展示推理过程的每一步
         - 必要时使用工具获取额外信息
         - 承认不确定性，不编造信息
 
-        当你需要使用工具时，请明确说明使用哪个工具以及为什么需要使用它。
+        {citation_guidelines}
+
+        当你需要使用工具时，请明确说明使用哪个工具以及为什么需要使用它。在最终答案中，确保引用相关文档时使用正确的XML引用格式。
         """
     )
 
+    citation_reminder = shared_prompts.get_citation_reminder(localization.Language.CHS)
+
     user_prompt_template = textwrap.dedent(
-        """\
-        {context}
+        f"""\
+        {{context}}
 
         请回答以下问题，展示你的推理过程：
 
-        {input}
+        {citation_reminder}
+
+        {{input}}
         """
     )
 
@@ -63,31 +84,51 @@ def _get_chinese_prompts() -> ReasoningPrompts:
 
 def _get_english_prompts() -> ReasoningPrompts:
     """Get English reasoning prompts."""
+    genshin_expertise = shared_prompts.get_genshin_expertise_description(
+        localization.Language.ENG
+    )
+    citation_guidelines = shared_prompts.get_citation_guidelines(
+        localization.Language.ENG
+    )
+    response_principles = shared_prompts.get_response_principles(
+        localization.Language.ENG
+    )
+
     system_prompt = textwrap.dedent(
-        """\
-        You are a reasoning assistant specializing in Genshin Impact lore. You have the following capabilities:
+        f"""\
+        {genshin_expertise}
+
+        You have the following reasoning capabilities:
 
         1. **Multi-step Reasoning**: Break down complex questions into steps and analyze them systematically
-        2. **Tool Usage**: Call various tools to assist reasoning, including document retrieval, calculator, etc.
+        2. **Tool Usage**: Call various tools to assist reasoning, including document retrieval
         3. **Knowledge Integration**: Combine retrieved information with existing knowledge for comprehensive analysis
 
-        Reasoning Principles:
+        {response_principles}
+
+        Reasoning Workflow Principles:
         - Base reasoning on facts and evidence
         - Clearly show each step of the reasoning process
         - Use tools when necessary to obtain additional information
         - Acknowledge uncertainty and do not fabricate information
 
-        When you need to use a tool, clearly state which tool and why you need it.
+        {citation_guidelines}
+
+        When you need to use a tool, clearly state which tool and why you need it. In your final answer, ensure you use proper XML citation format when referencing documents.
         """
     )
 
+    citation_reminder = shared_prompts.get_citation_reminder(localization.Language.ENG)
+
     user_prompt_template = textwrap.dedent(
-        """\
-        {context}
+        f"""\
+        {{context}}
 
         Please answer the following question, showing your reasoning process:
 
-        {input}
+        {citation_reminder}
+
+        {{input}}
         """
     )
 
