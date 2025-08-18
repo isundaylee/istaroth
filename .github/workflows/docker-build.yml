@@ -8,7 +8,25 @@ on:
   workflow_dispatch:
 
 jobs:
+  generate-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      timestamp_tag: ${{ steps.tag.outputs.timestamp_tag }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Generate timestamp tag
+      id: tag
+      run: |
+        TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
+        SHORT_SHA=$(git rev-parse --short HEAD)
+        TIMESTAMP_TAG="${TIMESTAMP}-${SHORT_SHA}"
+        echo "timestamp_tag=${TIMESTAMP_TAG}" >> $GITHUB_OUTPUT
+        echo "Generated tag: ${TIMESTAMP_TAG}"
+
   build-backend:
+    needs: generate-tag
     runs-on: ubuntu-latest
     environment: build-push-docker-image
 
@@ -31,14 +49,6 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Generate timestamp tag
-      id: timestamp
-      run: |
-        TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-        SHORT_SHA=$(git rev-parse --short HEAD)
-        TIMESTAMP_TAG="${TIMESTAMP}-${SHORT_SHA}"
-        echo "timestamp_tag=${TIMESTAMP_TAG}" >> $GITHUB_OUTPUT
-
     - name: Extract metadata for backend
       id: meta-backend
       uses: docker/metadata-action@v5
@@ -49,7 +59,7 @@ jobs:
           type=ref,event=pr
           type=sha,prefix={{branch}}-
           type=raw,value=latest,enable={{is_default_branch}}
-          type=raw,value=${{ steps.timestamp.outputs.timestamp_tag }}
+          type=raw,value=${{ needs.generate-tag.outputs.timestamp_tag }}
 
     - name: Build and push backend Docker image
       uses: docker/build-push-action@v5
@@ -64,6 +74,7 @@ jobs:
         platforms: linux/amd64,linux/arm64
 
   build-frontend:
+    needs: generate-tag
     runs-on: ubuntu-latest
     environment: build-push-docker-image
 
@@ -81,14 +92,6 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Generate timestamp tag
-      id: timestamp
-      run: |
-        TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-        SHORT_SHA=$(git rev-parse --short HEAD)
-        TIMESTAMP_TAG="${TIMESTAMP}-${SHORT_SHA}"
-        echo "timestamp_tag=${TIMESTAMP_TAG}" >> $GITHUB_OUTPUT
-
     - name: Extract metadata for frontend
       id: meta-frontend
       uses: docker/metadata-action@v5
@@ -99,7 +102,7 @@ jobs:
           type=ref,event=pr
           type=sha,prefix={{branch}}-
           type=raw,value=latest,enable={{is_default_branch}}
-          type=raw,value=${{ steps.timestamp.outputs.timestamp_tag }}
+          type=raw,value=${{ needs.generate-tag.outputs.timestamp_tag }}
 
     - name: Build and push frontend Docker image
       uses: docker/build-push-action@v5
