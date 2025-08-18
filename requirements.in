@@ -28,6 +28,7 @@ langchain-huggingface
 langchain-openai
 mcp
 openai
+psycopg2-binary
 pydantic
 rank-bm25
 sqlalchemy[asyncio]
