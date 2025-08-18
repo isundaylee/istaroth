@@ -102,6 +102,6 @@ async def query(
     return models.QueryResponse(
         question=request.question,
         answer=answer,
-        conversation_id=conversation_uuid,
+        conversation_uuid=conversation_uuid,
         language=language_name,
     )

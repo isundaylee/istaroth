@@ -402,9 +402,9 @@
             "type": "string",
             "title": "Answer"
           },
-          "conversation_id": {
+          "conversation_uuid": {
             "type": "string",
-            "title": "Conversation Id"
+            "title": "Conversation Uuid"
           }
         },
         "type": "object",
@@ -412,7 +412,7 @@
           "language",
           "question",
           "answer",
-          "conversation_id"
+          "conversation_uuid"
         ],
         "title": "QueryResponse",
         "description": "Response model for query endpoint."

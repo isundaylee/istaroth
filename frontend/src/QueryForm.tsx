@@ -129,7 +129,7 @@ function QueryForm({ currentQuestion }: QueryFormProps = {}) {
         const response = data as QueryResponse
         // Clear the form and redirect to conversation page
         setQuestion('')
-        navigate(`/conversation/${response.conversation_id}`)
+        navigate(`/conversation/${response.conversation_uuid}`)
       } else {
         const errorData = data as ErrorResponse
         setError(errorData.error || t('query.errors.unknown'))

@@ -41,7 +41,7 @@ class QueryResponse(BaseModel):
     language: str
     question: str
     answer: str
-    conversation_id: str
+    conversation_uuid: str
 
 
 class ConversationResponse(BaseModel):

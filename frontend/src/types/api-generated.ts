@@ -198,8 +198,8 @@ export interface components {
             question: string;
             /** Answer */
             answer: string;
-            /** Conversation Id */
-            conversation_id: string;
+            /** Conversation Uuid */
+            conversation_uuid: string;
         };
         /** ValidationError */
         ValidationError: {
