@@ -36,6 +36,8 @@ async def _save_conversation(
         )
         db_session.add(conversation)
         await db_session.commit()
+        # Refresh to get the generated UUID after commit
+        await db_session.refresh(conversation)
         logger.info("Conversation saved to database with UUID: %s", conversation.uuid)
         return conversation.uuid
     except Exception as e:
