@@ -25,24 +25,21 @@ async def _save_conversation(
     generation_time: float,
 ) -> str:
     """Save conversation to database and return the conversation ID."""
-    try:
-        conversation = db_models.Conversation(
-            question=request.question,
-            answer=answer,
-            model=request.model,
-            k=request.k,
-            language=request.language,
-            generation_time_seconds=generation_time,
-        )
-        db_session.add(conversation)
-        await db_session.commit()
-        # Refresh to get the generated UUID after commit
-        await db_session.refresh(conversation)
-        logger.info("Conversation saved to database with UUID: %s", conversation.uuid)
-        return conversation.uuid
-    except Exception as e:
-        logger.error("Failed to save conversation to database: %s", e)
-        return ""
+    conversation = db_models.Conversation(
+        question=request.question,
+        answer=answer,
+        model=request.model,
+        k=request.k,
+        language=request.language,
+        generation_time_seconds=generation_time,
+    )
+    db_session.add(conversation)
+    await db_session.commit()
+
+    # Refresh to get the generated UUID after commit
+    await db_session.refresh(conversation)
+    logger.info("Conversation saved to database with UUID: %s", conversation.uuid)
+    return conversation.uuid
 
 
 @router.post("/api/query", response_model=models.QueryResponse)

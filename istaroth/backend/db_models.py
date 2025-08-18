@@ -35,7 +35,10 @@ class Conversation(Base):
     language: Mapped[str] = mapped_column(String(10), nullable=False)
 
     created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc)
+        DateTime,
+        default=lambda: datetime.datetime.now(datetime.timezone.utc).replace(
+            tzinfo=None
+        ),
     )
     generation_time_seconds: Mapped[Optional[float]] = mapped_column(
         Float, nullable=True
