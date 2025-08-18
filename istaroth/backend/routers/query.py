@@ -1,5 +1,6 @@
 """Query endpoints for the RAG pipeline."""
 
+import asyncio
 import logging
 import os
 import time
@@ -72,7 +73,7 @@ async def query(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=repr(e))
 
-    # Get answer and track timing
+    # Get answer and track timing - run in worker thread to avoid blocking
     logger.info(
         "Processing query: %s with k=%d using model: %s, language: %s",
         request.question,
@@ -81,8 +82,10 @@ async def query(
         language_name,
     )
     start_time = time.perf_counter()
-    answer = rag_pipeline.answer(
-        request.question, k=request.k, chunk_context=request.chunk_context
+    answer = await asyncio.to_thread(
+        lambda: rag_pipeline.answer(
+            request.question, k=request.k, chunk_context=request.chunk_context
+        ),
     )
     generation_time = time.perf_counter() - start_time
 
