@@ -16,17 +16,17 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Production stage with nginx
-FROM nginx:alpine
+# Production stage with unprivileged nginx
+FROM nginxinc/nginx-unprivileged:alpine
 
 # Copy built assets from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --chown=nginx:nginx nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80
-EXPOSE 80
+# Expose port 8080 (default for unprivileged nginx)
+EXPOSE 8080
 
-# Start nginx
+# Start nginx (runs as nginx user by default)
 CMD ["nginx", "-g", "daemon off;"]
