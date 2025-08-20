@@ -35,6 +35,10 @@ attrs==25.3.0
     #   referencing
 authlib==1.6.1
     # via fastmcp
+backoff==2.2.1
+    # via posthog
+bcrypt==4.3.0
+    # via chromadb
 boto3==1.40.4
     # via cohere
 botocore==1.40.4
@@ -42,13 +46,16 @@ botocore==1.40.4
     #   boto3
     #   s3transfer
 build==1.2.2.post1
-    # via pip-tools
+    # via
+    #   chromadb
+    #   pip-tools
 cachetools==5.5.2
     # via google-auth
 certifi==2025.7.14
     # via
     #   httpcore
     #   httpx
+    #   kubernetes
     #   requests
 cffi==1.17.1
     # via cryptography
@@ -56,13 +63,18 @@ cfgv==3.4.0
     # via pre-commit
 charset-normalizer==3.4.2
     # via requests
+chromadb==1.0.20
+    # via -r requirements.in
 click==8.1.8
     # via
     #   -r requirements.in
     #   pip-tools
+    #   typer
     #   uvicorn
 cohere==5.6.2
     # via langchain-cohere
+coloredlogs==15.0.1
+    # via onnxruntime
 cryptography==45.0.5
     # via authlib
 cyclopts==3.22.3
@@ -72,13 +84,17 @@ dataclasses-json==0.6.7
 distlib==0.4.0
     # via virtualenv
 distro==1.9.0
-    # via openai
+    # via
+    #   openai
+    #   posthog
 dnspython==2.7.0
     # via email-validator
 docstring-parser==0.17.0
     # via cyclopts
 docutils==0.21.2
     # via rich-rst
+durationpy==0.10
+    # via kubernetes
 email-validator==2.2.0
     # via pydantic
 exceptiongroup==1.3.0
@@ -99,6 +115,8 @@ filelock==3.18.0
     #   virtualenv
 filetype==1.2.0
     # via langchain-google-genai
+flatbuffers==25.2.10
+    # via onnxruntime
 frozenlist==1.7.0
     # via
     #   aiohttp
@@ -115,18 +133,22 @@ google-auth==2.40.3
     # via
     #   google-ai-generativelanguage
     #   google-api-core
+    #   kubernetes
 googleapis-common-protos==1.70.0
     # via
     #   google-api-core
     #   grpcio-status
+    #   opentelemetry-exporter-otlp-proto-grpc
 greenlet==3.2.4
     # via
     #   -r requirements.in
     #   sqlalchemy
 grpcio==1.74.0
     # via
+    #   chromadb
     #   google-api-core
     #   grpcio-status
+    #   opentelemetry-exporter-otlp-proto-grpc
 grpcio-status==1.74.0
     # via google-api-core
 h11==0.16.0
@@ -141,6 +163,7 @@ httptools==0.6.4
     # via uvicorn
 httpx==0.28.1
     # via
+    #   chromadb
     #   cohere
     #   fastmcp
     #   langsmith
@@ -158,6 +181,8 @@ huggingface-hub==0.34.1
     #   sentence-transformers
     #   tokenizers
     #   transformers
+humanfriendly==10.0
+    # via coloredlogs
 identify==2.6.12
     # via pre-commit
 idna==3.10
@@ -167,6 +192,10 @@ idna==3.10
     #   httpx
     #   requests
     #   yarl
+importlib-metadata==8.7.0
+    # via opentelemetry-api
+importlib-resources==6.5.2
+    # via chromadb
 iniconfig==2.1.0
     # via pytest
 jieba==0.42.1
@@ -186,9 +215,13 @@ jsonpatch==1.33
 jsonpointer==3.0.0
     # via jsonpatch
 jsonschema==4.25.0
-    # via mcp
+    # via
+    #   chromadb
+    #   mcp
 jsonschema-specifications==2025.4.1
     # via jsonschema
+kubernetes==33.1.0
+    # via chromadb
 langchain==0.3.27
     # via
     #   -r requirements.in
@@ -240,6 +273,8 @@ mcp==1.12.2
     #   fastmcp
 mdurl==0.1.2
     # via markdown-it-py
+mmh3==5.2.0
+    # via chromadb
 mpmath==1.3.0
     # via sympy
 multidict==6.6.3
@@ -259,21 +294,53 @@ nodeenv==1.9.1
 numpy==2.3.2
     # via
     #   -r requirements.in
+    #   chromadb
     #   faiss-cpu
     #   langchain-community
+    #   onnxruntime
     #   pandas
     #   rank-bm25
     #   scikit-learn
     #   scipy
     #   transformers
+oauthlib==3.3.1
+    # via
+    #   kubernetes
+    #   requests-oauthlib
+onnxruntime==1.22.1
+    # via chromadb
 openai==1.99.3
     # via
     #   -r requirements.in
     #   langchain-openai
 openapi-pydantic==0.5.1
     # via fastmcp
+opentelemetry-api==1.36.0
+    # via
+    #   chromadb
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
+opentelemetry-exporter-otlp-proto-common==1.36.0
+    # via opentelemetry-exporter-otlp-proto-grpc
+opentelemetry-exporter-otlp-proto-grpc==1.36.0
+    # via chromadb
+opentelemetry-proto==1.36.0
+    # via
+    #   opentelemetry-exporter-otlp-proto-common
+    #   opentelemetry-exporter-otlp-proto-grpc
+opentelemetry-sdk==1.36.0
+    # via
+    #   chromadb
+    #   opentelemetry-exporter-otlp-proto-grpc
+opentelemetry-semantic-conventions==0.57b0
+    # via opentelemetry-sdk
 orjson==3.11.1
-    # via langsmith
+    # via
+    #   chromadb
+    #   langsmith
+overrides==7.7.0
+    # via chromadb
 packaging==25.0
     # via
     #   build
@@ -282,6 +349,7 @@ packaging==25.0
     #   langchain-core
     #   langsmith
     #   marshmallow
+    #   onnxruntime
     #   pytest
     #   transformers
 pandas==2.3.1
@@ -298,6 +366,8 @@ platformdirs==4.3.8
     # via virtualenv
 pluggy==1.6.0
     # via pytest
+posthog==5.4.0
+    # via chromadb
 pre-commit==4.2.0
     # via -r requirements.in
 propcache==0.3.2
@@ -314,6 +384,8 @@ protobuf==6.31.1
     #   google-api-core
     #   googleapis-common-protos
     #   grpcio-status
+    #   onnxruntime
+    #   opentelemetry-proto
     #   proto-plus
 psycopg2-binary==2.9.10
     # via -r requirements.in
@@ -323,11 +395,14 @@ pyasn1==0.6.1
     #   rsa
 pyasn1-modules==0.4.2
     # via google-auth
+pybase64==1.4.2
+    # via chromadb
 pycparser==2.22
     # via cffi
 pydantic[email]==2.11.7
     # via
     #   -r requirements.in
+    #   chromadb
     #   cohere
     #   fastapi
     #   fastmcp
@@ -352,6 +427,8 @@ pygments==2.19.2
     #   rich
 pyperclip==1.9.0
     # via fastmcp
+pypika==0.48.9
+    # via chromadb
 pyproject-hooks==1.2.0
     # via
     #   build
@@ -361,7 +438,9 @@ pytest==8.4.1
 python-dateutil==2.9.0.post0
     # via
     #   botocore
+    #   kubernetes
     #   pandas
+    #   posthog
 python-dotenv==1.1.1
     # via
     #   fastmcp
@@ -373,7 +452,9 @@ pytz==2025.2
     # via pandas
 pyyaml==6.0.2
     # via
+    #   chromadb
     #   huggingface-hub
+    #   kubernetes
     #   langchain
     #   langchain-community
     #   langchain-core
@@ -395,19 +476,26 @@ requests==2.32.4
     #   cohere
     #   google-api-core
     #   huggingface-hub
+    #   kubernetes
     #   langchain
     #   langchain-community
     #   langsmith
+    #   posthog
+    #   requests-oauthlib
     #   requests-toolbelt
     #   tiktoken
     #   transformers
+requests-oauthlib==2.0.0
+    # via kubernetes
 requests-toolbelt==1.0.0
     # via langsmith
 rich==14.1.0
     # via
+    #   chromadb
     #   cyclopts
     #   fastmcp
     #   rich-rst
+    #   typer
 rich-rst==1.3.1
     # via cyclopts
 rpds-py==0.26.0
@@ -433,8 +521,13 @@ scipy==1.16.0
     #   sentence-transformers
 sentence-transformers==5.0.0
     # via -r requirements.in
+shellingham==1.5.4
+    # via typer
 six==1.17.0
-    # via python-dateutil
+    # via
+    #   kubernetes
+    #   posthog
+    #   python-dateutil
 sniffio==1.3.1
     # via
     #   anyio
@@ -452,13 +545,16 @@ starlette==0.47.2
     #   fastapi
     #   mcp
 sympy==1.14.0
-    # via torch
+    # via
+    #   onnxruntime
+    #   torch
 tabulate==0.9.0
     # via
     #   -r requirements.in
     #   langchain-cohere
 tenacity==9.1.2
     # via
+    #   chromadb
     #   langchain-community
     #   langchain-core
 threadpoolctl==3.6.0
@@ -468,6 +564,7 @@ tiktoken==0.11.0
 tokenizers==0.21.2
     # via
     #   -r requirements.in
+    #   chromadb
     #   cohere
     #   langchain-huggingface
     #   transformers
@@ -478,6 +575,7 @@ torch==2.7.1
 tqdm==4.67.1
     # via
     #   -r requirements.in
+    #   chromadb
     #   huggingface-hub
     #   openai
     #   sentence-transformers
@@ -486,6 +584,8 @@ transformers==4.54.0
     # via
     #   -r requirements.in
     #   sentence-transformers
+typer==0.16.1
+    # via chromadb
 types-requests==2.32.4.20250611
     # via
     #   cohere
@@ -500,6 +600,7 @@ typing-extensions==4.14.1
     #   aiosqlite
     #   alembic
     #   anyio
+    #   chromadb
     #   cohere
     #   exceptiongroup
     #   fastapi
@@ -507,6 +608,10 @@ typing-extensions==4.14.1
     #   langchain-core
     #   mypy
     #   openai
+    #   opentelemetry-api
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-sdk
+    #   opentelemetry-semantic-conventions
     #   pydantic
     #   pydantic-core
     #   referencing
@@ -514,6 +619,7 @@ typing-extensions==4.14.1
     #   sqlalchemy
     #   starlette
     #   torch
+    #   typer
     #   typing-inspect
     #   typing-inspection
 typing-inspect==0.9.0
@@ -527,11 +633,13 @@ tzdata==2025.2
 urllib3==2.5.0
     # via
     #   botocore
+    #   kubernetes
     #   requests
     #   types-requests
 uvicorn[standard]==0.35.0
     # via
     #   -r requirements.in
+    #   chromadb
     #   mcp
 uvloop==0.21.0
     # via uvicorn
@@ -539,12 +647,16 @@ virtualenv==20.32.0
     # via pre-commit
 watchfiles==1.1.0
     # via uvicorn
+websocket-client==1.8.0
+    # via kubernetes
 websockets==15.0.1
     # via uvicorn
 wheel==0.45.1
     # via pip-tools
 yarl==1.20.1
     # via aiohttp
+zipp==3.23.0
+    # via importlib-metadata
 zstandard==0.23.0
     # via langsmith
 

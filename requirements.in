@@ -15,6 +15,7 @@ aiosqlite
 alembic
 asyncpg
 attrs
+chromadb
 click
 fastapi
 fastmcp
