@@ -1,13 +1,13 @@
 """Document store and embedding utilities for RAG pipeline."""
 
+import abc
 import hashlib
 import json
 import logging
 import os
 import pathlib
 import pickle
-import time
-from typing import cast
+from typing import Self, cast
 
 import attrs
 import jieba
@@ -50,8 +50,34 @@ def _merge_small_chunks(chunks: list[str], min_size: float) -> list[str]:
     return merged_chunks
 
 
+class _VectorStore(abc.ABC):
+    """Abstract base class for vector stores."""
+
+    @abc.abstractmethod
+    def search(self, query: str, k: int) -> list[types.ScoredDocument]:
+        """Vector similarity search."""
+        ...
+
+    @abc.abstractmethod
+    def save(self, path: pathlib.Path) -> None:
+        """Save vector store."""
+        ...
+
+    @classmethod
+    @abc.abstractmethod
+    def load(cls, path: pathlib.Path) -> Self:
+        """Load vector store."""
+        ...
+
+    @classmethod
+    @abc.abstractmethod
+    def build(cls, documents: list[tuple[str, types.DocumentMetadata]]) -> Self:
+        """Build vector store from document tuples."""
+        ...
+
+
 @attrs.define
-class _VectorStore:
+class _FAISSVectorStore(_VectorStore):
     """Vector similarity search using FAISS."""
 
     _embeddings: HuggingFaceEmbeddings = attrs.field()
@@ -60,9 +86,11 @@ class _VectorStore:
     @classmethod
     def build(
         cls, documents: list[tuple[str, types.DocumentMetadata]]
-    ) -> "_VectorStore":
+    ) -> "_FAISSVectorStore":
         """Build vector store from document tuples."""
-        with utils.timer(f"building vector store with {len(documents)} documents"):
+        with utils.timer(
+            f"building FAISS vector store with {len(documents)} documents"
+        ):
             with utils.timer("loading vector embeddings model"):
                 embeddings = HuggingFaceEmbeddings(
                     model_name="BAAI/bge-m3",
@@ -103,9 +131,9 @@ class _VectorStore:
         self._vector_store.save_local(str(path / "faiss_index"))
 
     @classmethod
-    def load(cls, path: pathlib.Path) -> "_VectorStore":
+    def load(cls, path: pathlib.Path) -> "_FAISSVectorStore":
         """Load vector store."""
-        with utils.timer(f"loading vector store from {path}"):
+        with utils.timer(f"loading FAISS vector store from {path}"):
             # Create embeddings instance
             with utils.timer("loading vector embeddings model"):
                 embeddings = HuggingFaceEmbeddings(
@@ -305,7 +333,7 @@ class DocumentStore:
             for doc in flattened_documents
         ]
 
-        vector_store = _VectorStore.build(document_tuples)
+        vector_store = _FAISSVectorStore.build(document_tuples)
         bm25_store = _BM25Store.build(flattened_documents)
 
         return cls(
@@ -453,7 +481,7 @@ class DocumentStore:
                 }
 
             # Load stores
-            vector_store = _VectorStore.load(path)
+            vector_store = _FAISSVectorStore.load(path)
             bm25_store = _BM25Store.load(path)
 
             instance = cls(
@@ -495,7 +523,7 @@ class DocumentStore:
                 logger.info("Creating empty document store (no existing store found)")
                 # Create empty store
                 result = cls(
-                    _VectorStore.build([]),
+                    _FAISSVectorStore.build([]),
                     _BM25Store.build([]),
                     query_transformer,
                     reranker,
