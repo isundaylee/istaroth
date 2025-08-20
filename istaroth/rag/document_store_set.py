@@ -13,9 +13,35 @@ import attrs
 from istaroth import utils
 from istaroth.agd import localization
 from istaroth.rag import query_transform, rerank
-from istaroth.rag.document_store import DocumentStore
+from istaroth.rag.document_store import DocumentStore, _ChromaExternalVectorStore
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_external_chroma_servers() -> dict[localization.Language, tuple[str, int]]:
+    """Parse ISTAROTH_EXTERNAL_CHROMA_SERVERS environment variable."""
+    external_chroma_servers: dict[localization.Language, tuple[str, int]] = {}
+    external_servers_str = os.getenv("ISTAROTH_EXTERNAL_CHROMA_SERVERS")
+
+    if not external_servers_str:
+        return external_chroma_servers
+
+    for server_pair in external_servers_str.split(","):
+        parts = server_pair.split(":", 2)
+        if len(parts) != 3:
+            raise ValueError(
+                f"Invalid format in ISTAROTH_EXTERNAL_CHROMA_SERVERS: '{server_pair}'. "
+                "Expected format: LANG:host:port"
+            )
+
+        language_str, host, port_str = parts
+        language = localization.Language(language_str.strip().upper())
+        host = host.strip()
+        port = int(port_str.strip())
+
+        external_chroma_servers[language] = (host, port)
+
+    return external_chroma_servers
 
 
 def _download_and_extract_checkpoint(
@@ -105,6 +131,9 @@ class DocumentStoreSet:
                     "Expected format: LANG1:path1,LANG2:path2"
                 )
 
+            # Parse external Chroma servers configuration
+            external_chroma_servers = _parse_external_chroma_servers()
+
             stores = {}
             pairs = store_set_str.split(",")
 
@@ -134,6 +163,23 @@ class DocumentStoreSet:
 
                 store_path = pathlib.Path(path_str)
 
+                # Check if this language should use external Chroma server
+                if language in external_chroma_servers:
+                    host, port = external_chroma_servers[language]
+                    logger.info(
+                        "Loading document store for language '%s' from external Chroma server %s:%d",
+                        language.name,
+                        host,
+                        port,
+                    )
+
+                    # Create external vector store
+                    external_vector_store = _ChromaExternalVectorStore.create(
+                        host, port
+                    )
+                else:
+                    external_vector_store = None
+
                 # Ensure checkpoint directory exists (download if needed)
                 _maybe_download_checkpoint(language, store_path)
 
@@ -151,6 +197,7 @@ class DocumentStoreSet:
                     store_path,
                     query_transformer=query_transform.QueryTransformer.from_env(),
                     reranker=rerank.Reranker.from_env(),
+                    vector_store=external_vector_store,
                 )
 
             if not stores:
