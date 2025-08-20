@@ -39,7 +39,7 @@ class VectorStoreType(enum.Enum):
 
 def _get_vector_store_type_from_env() -> VectorStoreType:
     """Parse ISTAROTH_VECTOR_STORE environment variable into VectorStoreType."""
-    store_type = os.getenv("ISTAROTH_VECTOR_STORE", "faiss").lower()
+    store_type = os.getenv("ISTAROTH_VECTOR_STORE", "chroma").lower()
     try:
         return VectorStoreType(store_type)
     except ValueError:
