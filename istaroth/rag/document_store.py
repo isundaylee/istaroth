@@ -35,6 +35,7 @@ class VectorStoreType(enum.Enum):
 
     FAISS = "faiss"
     CHROMA = "chroma"
+    CHROMA_EXTERNAL = "chroma_external"
 
 
 def _get_vector_store_type_from_env() -> VectorStoreType:
@@ -103,6 +104,15 @@ class _VectorStore(abc.ABC):
         """Build vector store from document tuples."""
         ...
 
+    @classmethod
+    def _create_embeddings(cls) -> HuggingFaceEmbeddings:
+        """Create HuggingFace embeddings instance."""
+        return HuggingFaceEmbeddings(
+            model_name="BAAI/bge-m3",
+            model_kwargs={"device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")},
+            encode_kwargs={"normalize_embeddings": True},
+        )
+
 
 @attrs.define
 class _FAISSVectorStore(_VectorStore):
@@ -120,13 +130,7 @@ class _FAISSVectorStore(_VectorStore):
             f"building FAISS vector store with {len(documents)} documents"
         ):
             with utils.timer("loading vector embeddings model"):
-                embeddings = HuggingFaceEmbeddings(
-                    model_name="BAAI/bge-m3",
-                    model_kwargs={
-                        "device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")
-                    },
-                    encode_kwargs={"normalize_embeddings": True},
-                )
+                embeddings = cls._create_embeddings()
 
             with utils.timer("document vectorization"):
                 vector_store = FAISS.from_texts(
@@ -168,13 +172,7 @@ class _FAISSVectorStore(_VectorStore):
         with utils.timer(f"loading FAISS vector store from {path}"):
             # Create embeddings instance
             with utils.timer("loading vector embeddings model"):
-                embeddings = HuggingFaceEmbeddings(
-                    model_name="BAAI/bge-m3",
-                    model_kwargs={
-                        "device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")
-                    },
-                    encode_kwargs={"normalize_embeddings": True},
-                )
+                embeddings = cls._create_embeddings()
 
             with utils.timer("loading FAISS index"):
                 vector_store = FAISS.load_local(
@@ -187,14 +185,50 @@ class _FAISSVectorStore(_VectorStore):
 
 
 @attrs.define
-class _ChromaVectorStore(_VectorStore):
-    """Vector similarity search using ChromaDB."""
+class _ChromaBaseVectorStore(_VectorStore):
+    """Base class for ChromaDB-based vector stores."""
 
     COLLECTION_NAME: ClassVar[str] = "istaroth_documents"
 
     _embeddings: HuggingFaceEmbeddings = attrs.field()
     _client: chromadb.ClientAPI = attrs.field()
     _collection: chromadb.Collection = attrs.field()
+
+    def search(self, query: str, k: int) -> list[types.ScoredDocument]:
+        """Vector similarity search using ChromaDB."""
+        with ls.trace(
+            "vector_search",
+            "retriever",
+            inputs={"query": query, "k": k},
+        ) as rt:
+            # Compute query embedding
+            query_embedding = self._embeddings.embed_query(query)
+
+            # Search in Chroma
+            results = self._collection.query(
+                query_embeddings=[query_embedding], n_results=k
+            )
+
+            # Convert results to ScoredDocument format
+            scored_docs = []
+            documents = results["documents"][0]
+            metadatas = results["metadatas"][0]
+            distances = results["distances"][0]
+            for i in range(len(documents)):
+                doc = Document(page_content=documents[i], metadata=metadatas[i])
+                score = distances[i]
+                scored_docs.append(types.ScoredDocument(document=doc, score=score))
+
+            rt.end(
+                outputs={"documents": [sd.to_langsmith_output() for sd in scored_docs]}
+            )
+            return scored_docs
+
+
+@attrs.define
+class _ChromaVectorStore(_ChromaBaseVectorStore):
+    """Vector similarity search using ChromaDB."""
+
     _chroma_data_dir: str = attrs.field()
 
     @classmethod
@@ -206,13 +240,7 @@ class _ChromaVectorStore(_VectorStore):
             f"building Chroma vector store with {len(documents)} documents"
         ):
             with utils.timer("loading vector embeddings model"):
-                embeddings = HuggingFaceEmbeddings(
-                    model_name="BAAI/bge-m3",
-                    model_kwargs={
-                        "device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")
-                    },
-                    encode_kwargs={"normalize_embeddings": True},
-                )
+                embeddings = cls._create_embeddings()
 
             # Create persistent client in temporary directory
             chroma_data_dir = tempfile.mkdtemp(prefix="chroma_", dir="/tmp")
@@ -243,36 +271,6 @@ class _ChromaVectorStore(_VectorStore):
 
             return cls(embeddings, client, collection, chroma_data_dir)
 
-    def search(self, query: str, k: int) -> list[types.ScoredDocument]:
-        """Vector similarity search."""
-        with ls.trace(
-            "vector_search",
-            "retriever",
-            inputs={"query": query, "k": k},
-        ) as rt:
-            # Compute query embedding
-            query_embedding = self._embeddings.embed_query(query)
-
-            # Search in Chroma
-            results = self._collection.query(
-                query_embeddings=[query_embedding], n_results=k
-            )
-
-            # Convert results to ScoredDocument format
-            scored_docs = []
-            documents = results["documents"][0]
-            metadatas = results["metadatas"][0]
-            distances = results["distances"][0]
-            for i in range(len(documents)):
-                doc = Document(page_content=documents[i], metadata=metadatas[i])
-                score = distances[i]
-                scored_docs.append(types.ScoredDocument(document=doc, score=score))
-
-            rt.end(
-                outputs={"documents": [sd.to_langsmith_output() for sd in scored_docs]}
-            )
-            return scored_docs
-
     def save(self, path: pathlib.Path) -> None:
         """Save vector store."""
         shutil.copytree(
@@ -289,13 +287,7 @@ class _ChromaVectorStore(_VectorStore):
         with utils.timer(f"loading Chroma vector store from {path}"):
             # Create embeddings instance
             with utils.timer("loading vector embeddings model"):
-                embeddings = HuggingFaceEmbeddings(
-                    model_name="BAAI/bge-m3",
-                    model_kwargs={
-                        "device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")
-                    },
-                    encode_kwargs={"normalize_embeddings": True},
-                )
+                embeddings = cls._create_embeddings()
 
             with utils.timer("loading Chroma index"):
                 chroma_data_dir = str(path / "chroma_index")
@@ -303,6 +295,56 @@ class _ChromaVectorStore(_VectorStore):
                 collection = client.get_collection(cls.COLLECTION_NAME)
 
             return cls(embeddings, client, collection, chroma_data_dir)
+
+
+@attrs.define
+class _ChromaExternalVectorStore(_ChromaBaseVectorStore):
+    """Vector similarity search using external ChromaDB server."""
+
+    @classmethod
+    def create(cls, api_address: str) -> "_ChromaExternalVectorStore":
+        """Create external vector store connecting to Chroma server."""
+        with utils.timer("connecting to external Chroma server"):
+            with utils.timer("loading vector embeddings model"):
+                embeddings = cls._create_embeddings()
+
+            # Connect to external Chroma server
+            client = chromadb.HttpClient(host=api_address)
+
+            # Get existing collection (assume it exists)
+            collection = client.get_collection(name=cls.COLLECTION_NAME)
+
+            return cls(embeddings, client, collection)
+
+    @classmethod
+    def build(cls, documents: list[tuple[str, types.DocumentMetadata]]) -> Self:
+        """Not supported for external vector store."""
+        del documents  # Unused parameter
+        raise NotImplementedError(
+            "build() is not supported for external Chroma store. "
+            "Use create() with an API address instead."
+        )
+
+    def save(self, path: pathlib.Path) -> None:
+        """Not supported for external vector store."""
+        del path  # Unused parameter
+        raise NotImplementedError(
+            "save() is not supported for external Chroma store. "
+            "Data is stored on the external server."
+        )
+
+    def get_type(self) -> VectorStoreType:
+        """Get the type of this vector store."""
+        return VectorStoreType.CHROMA_EXTERNAL
+
+    @classmethod
+    def load(cls, path: pathlib.Path) -> "_ChromaExternalVectorStore":
+        """Not supported for external vector store."""
+        del path  # Unused parameter
+        raise NotImplementedError(
+            "load() is not supported for external Chroma store. "
+            "Use create() with an API address instead."
+        )
 
 
 @attrs.define
@@ -491,6 +533,17 @@ class DocumentStore:
             vector_store = _FAISSVectorStore.build(document_tuples)
         elif store_type == VectorStoreType.CHROMA:
             vector_store = _ChromaVectorStore.build(document_tuples)
+        elif store_type == VectorStoreType.CHROMA_EXTERNAL:
+            # For external Chroma, get the API address from environment
+            api_address = os.getenv("ISTAROTH_CHROMA_HOST")
+            if not api_address:
+                raise ValueError(
+                    "ISTAROTH_CHROMA_HOST environment variable is required for external Chroma"
+                )
+            vector_store = _ChromaExternalVectorStore.create(api_address)
+            logger.warning(
+                "Using external Chroma server - documents will not be indexed locally"
+            )
         else:
             raise ValueError(f"Unknown vector store type: {store_type}")
 
@@ -594,6 +647,13 @@ class DocumentStore:
 
     def save(self, path: pathlib.Path) -> None:
         """Save the document store to a directory."""
+        # Check if vector store supports saving
+        if self._vector_store.get_type() == VectorStoreType.CHROMA_EXTERNAL:
+            raise NotImplementedError(
+                "Cannot save DocumentStore with external Chroma vector store. "
+                "External stores do not support persistence."
+            )
+
         # Save stores
         self._vector_store.save(path)
         self._bm25_store.save(path)
@@ -655,6 +715,8 @@ class DocumentStore:
                 vector_store = _FAISSVectorStore.load(path)
             elif store_type == VectorStoreType.CHROMA:
                 vector_store = _ChromaVectorStore.load(path)
+            elif store_type == VectorStoreType.CHROMA_EXTERNAL:
+                vector_store = _ChromaExternalVectorStore.load(path)
             else:
                 raise ValueError(f"Unknown vector store type: {store_type}")
 
@@ -705,6 +767,13 @@ class DocumentStore:
                         vector_store = _FAISSVectorStore.build([])
                     case VectorStoreType.CHROMA:
                         vector_store = _ChromaVectorStore.build([])
+                    case VectorStoreType.CHROMA_EXTERNAL:
+                        api_address = os.getenv("ISTAROTH_CHROMA_HOST")
+                        if not api_address:
+                            raise ValueError(
+                                "ISTAROTH_CHROMA_HOST environment variable is required for external Chroma"
+                            )
+                        vector_store = _ChromaExternalVectorStore.create(api_address)
                     case _:
                         # TODO figure out why assert_never did not work here
                         assert False, f"Unknown vector store type: {vst}"
