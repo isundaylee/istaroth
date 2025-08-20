@@ -115,7 +115,9 @@ def test_english_language_support(english_data_repo: repo.DataRepo) -> None:
         roles = [text.role for text in talk_info.text]
 
         # Player roles should be "Traveler" in English, not "旅行者"
-        player_roles = [role for role in roles if "Traveler" in role or "旅行者" in role]
+        player_roles = [
+            role for role in roles if "Traveler" in role or "旅行者" in role
+        ]
         assert any(
             "Traveler" in role for role in player_roles
         ), "Expected 'Traveler' for player role in English"

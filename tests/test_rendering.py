@@ -59,14 +59,19 @@ def test_render_talk_basic() -> None:
 
     assert rendered.filename == "talk_quest_这里看起来很神秘呢_12345.txt"
     expected_content = (
-        "# Talk Dialog\n\n" "派蒙: 这里看起来很神秘呢！\n" "旅行者: 我们小心一点。\n" "神秘声音: 欢迎来到这里..."
+        "# Talk Dialog\n\n"
+        "派蒙: 这里看起来很神秘呢！\n"
+        "旅行者: 我们小心一点。\n"
+        "神秘声音: 欢迎来到这里..."
     )
     assert rendered.content == expected_content
 
 
 def test_render_talk_long_message() -> None:
     """Test talk rendering with long first message."""
-    long_message = "这是一个非常长的消息，超过了五十个字符的限制，应该被截断以创建合适的文件名。"
+    long_message = (
+        "这是一个非常长的消息，超过了五十个字符的限制，应该被截断以创建合适的文件名。"
+    )
     talk_texts = [types.TalkText(role="NPC", message=long_message)]
     talk_info = types.TalkInfo(text=talk_texts)
 
@@ -78,8 +83,14 @@ def test_render_talk_long_message() -> None:
     )
 
     # Should be truncated to 50 characters
-    assert rendered.filename == "talk_npc_这是一个非常长的消息超过了五十个字符的限制应该被截断以创建合适的文件名_67890.txt"
-    assert "这是一个非常长的消息，超过了五十个字符的限制，应该被截断以创建合适的文件名。" in rendered.content
+    assert (
+        rendered.filename
+        == "talk_npc_这是一个非常长的消息超过了五十个字符的限制应该被截断以创建合适的文件名_67890.txt"
+    )
+    assert (
+        "这是一个非常长的消息，超过了五十个字符的限制，应该被截断以创建合适的文件名。"
+        in rendered.content
+    )
 
 
 def test_render_talk_empty() -> None:

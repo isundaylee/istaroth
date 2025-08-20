@@ -29,7 +29,9 @@ def render_retrieve_output(r: list[tuple[float, list[Document]]]) -> str:
                 )
             last_chunk_index = chunk_index
 
-            parts.append(f"------------------- 文件ID {file_id} 片段 ck{chunk_index}:\n")
+            parts.append(
+                f"------------------- 文件ID {file_id} 片段 ck{chunk_index}:\n"
+            )
             parts.append(doc.page_content)
             parts.append("\n")
 

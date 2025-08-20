@@ -18,7 +18,7 @@ router = APIRouter()
 @router.get("/api/example-question", response_model=models.ExampleQuestionResponse)
 @handle_unexpected_exception
 async def get_example_question(
-    language: Annotated[str, Query()] = "eng"
+    language: Annotated[str, Query()] = "eng",
 ) -> models.ExampleQuestionResponse:
     """Get a random example question for the specified language."""
     # Validate request
