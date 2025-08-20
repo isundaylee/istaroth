@@ -316,14 +316,14 @@ class _ChromaExternalVectorStore(_ChromaBaseVectorStore):
     """Vector similarity search using external ChromaDB server."""
 
     @classmethod
-    def create(cls, api_address: str) -> "_ChromaExternalVectorStore":
+    def create(cls, host: str, port: int) -> "_ChromaExternalVectorStore":
         """Create external vector store connecting to Chroma server."""
         with utils.timer("connecting to external Chroma server"):
             with utils.timer("loading vector embeddings model"):
                 embeddings = cls._create_embeddings()
 
             # Connect to external Chroma server
-            client = chromadb.HttpClient(host=api_address)
+            client = chromadb.HttpClient(host=host, port=port)
 
             # Get existing collection (assume it exists)
             collection = client.get_collection(name=cls.COLLECTION_NAME)
@@ -548,16 +548,7 @@ class DocumentStore:
         elif store_type == VectorStoreType.CHROMA:
             vector_store = _ChromaVectorStore.build(document_tuples)
         elif store_type == VectorStoreType.CHROMA_EXTERNAL:
-            # For external Chroma, get the API address from environment
-            api_address = os.getenv("ISTAROTH_CHROMA_HOST")
-            if not api_address:
-                raise ValueError(
-                    "ISTAROTH_CHROMA_HOST environment variable is required for external Chroma"
-                )
-            vector_store = _ChromaExternalVectorStore.create(api_address)
-            logger.warning(
-                "Using external Chroma server - documents will not be indexed locally"
-            )
+            raise RuntimeError("Cannot use external Chroma store when building.")
         else:
             raise ValueError(f"Unknown vector store type: {store_type}")
 
@@ -700,6 +691,7 @@ class DocumentStore:
         *,
         query_transformer: query_transform.QueryTransformer | None,
         reranker: rerank.Reranker | None,
+        vector_store: _VectorStore | None = None,
     ) -> "DocumentStore":
         """Load document store from a directory."""
         with utils.timer(f"loading document store from {path}"):
@@ -719,20 +711,21 @@ class DocumentStore:
                     ).items()
                 }
 
-            # Load configuration to determine vector store type
-            config = json.loads((path / "config.json").read_text())
-            store_type = VectorStoreType(config["vector_store_type"])
+            # Use explicit vector store if provided, otherwise load from config
+            if vector_store is None:
+                # Load configuration to determine vector store type
+                config = json.loads((path / "config.json").read_text())
+                store_type = VectorStoreType(config["vector_store_type"])
 
-            # Load the appropriate vector store
-            vector_store: _VectorStore
-            if store_type == VectorStoreType.FAISS:
-                vector_store = _FAISSVectorStore.load(path)
-            elif store_type == VectorStoreType.CHROMA:
-                vector_store = _ChromaVectorStore.load(path)
-            elif store_type == VectorStoreType.CHROMA_EXTERNAL:
-                vector_store = _ChromaExternalVectorStore.load(path)
-            else:
-                raise ValueError(f"Unknown vector store type: {store_type}")
+                # Load the appropriate vector store
+                if store_type == VectorStoreType.FAISS:
+                    vector_store = _FAISSVectorStore.load(path)
+                elif store_type == VectorStoreType.CHROMA:
+                    vector_store = _ChromaVectorStore.load(path)
+                elif store_type == VectorStoreType.CHROMA_EXTERNAL:
+                    raise ValueError("Cannot load external Chroma store.")
+                else:
+                    raise ValueError(f"Unknown vector store type: {store_type}")
 
             bm25_store = _BM25Store.load(path)
 
@@ -782,12 +775,9 @@ class DocumentStore:
                     case VectorStoreType.CHROMA:
                         vector_store = _ChromaVectorStore.build([])
                     case VectorStoreType.CHROMA_EXTERNAL:
-                        api_address = os.getenv("ISTAROTH_CHROMA_HOST")
-                        if not api_address:
-                            raise ValueError(
-                                "ISTAROTH_CHROMA_HOST environment variable is required for external Chroma"
-                            )
-                        vector_store = _ChromaExternalVectorStore.create(api_address)
+                        raise ValueError(
+                            "Cannot create external Chroma store from env."
+                        )
                     case _:
                         # TODO figure out why assert_never did not work here
                         assert False, f"Unknown vector store type: {vst}"
