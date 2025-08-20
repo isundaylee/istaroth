@@ -220,7 +220,7 @@ class _ChromaVectorStore(_VectorStore):
 
             # Create or get collection
             collection = client.create_collection(
-                name=cls.COLLECTION_NAME, metadata={"hnsw:space": "cosine"}
+                name=cls.COLLECTION_NAME, metadata={"hnsw:space": "l2"}
             )
 
             with utils.timer("document vectorization"):
@@ -265,8 +265,7 @@ class _ChromaVectorStore(_VectorStore):
             distances = results["distances"][0]
             for i in range(len(documents)):
                 doc = Document(page_content=documents[i], metadata=metadatas[i])
-                # Chroma returns distances, convert to similarity score (1 - distance for cosine)
-                score = 1.0 - distances[i]
+                score = distances[i]
                 scored_docs.append(types.ScoredDocument(document=doc, score=score))
 
             rt.end(
