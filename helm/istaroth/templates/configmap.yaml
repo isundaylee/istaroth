@@ -12,3 +12,12 @@ data:
   {{- with .Values.configmap.data }}
   {{- toYaml . | nindent 2 }}
   {{- end }}
+  {{- if .Values.chroma.servers }}
+  {{- $chromaServers := list }}
+  {{- range $language, $config := .Values.chroma.servers }}
+    {{- $serverHost := printf "%s-chroma-%s" $.Release.Name $language }}
+    {{- $serverEntry := printf "%s:%s:8000" (upper $language) $serverHost }}
+    {{- $chromaServers = append $chromaServers $serverEntry }}
+  {{- end }}
+  ISTAROTH_EXTERNAL_CHROMA_SERVERS: {{ join "," $chromaServers | quote }}
+  {{- end }}

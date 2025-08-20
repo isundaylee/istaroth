@@ -1,0 +1,24 @@
+{{- range $language, $config := .Values.chroma.servers }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Release.Name }}-chroma-{{ $language }}
+  labels:
+    app.kubernetes.io/name: {{ $.Release.Name }}-chroma-{{ $language }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/component: chroma-{{ $language }}
+    {{- with $.Values.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  type: {{ $.Values.chroma.service.type }}
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: {{ $.Release.Name }}-chroma-{{ $language }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+{{- end }}
