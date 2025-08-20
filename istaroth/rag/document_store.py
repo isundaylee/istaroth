@@ -258,16 +258,30 @@ class _ChromaVectorStore(_ChromaBaseVectorStore):
                 # Compute embeddings
                 embeddings_list = embeddings.embed_documents(texts)
 
-                # Generate IDs for documents
-                ids = [f"doc_{i}" for i in range(len(documents))]
+                # Add documents in batches to avoid ChromaDB batch size limits
+                batch_size = 5000
+                total_docs = len(documents)
 
-                # Add to collection with pre-computed embeddings
-                collection.add(
-                    ids=ids,
-                    documents=texts,
-                    embeddings=embeddings_list,
-                    metadatas=metadatas,
-                )
+                for i in range(0, total_docs, batch_size):
+                    end_idx = min(i + batch_size, total_docs)
+                    batch_texts = texts[i:end_idx]
+                    batch_embeddings = embeddings_list[i:end_idx]
+                    batch_metadatas = metadatas[i:end_idx]
+                    batch_ids = [f"doc_{j}" for j in range(i, end_idx)]
+
+                    logger.info(
+                        "Adding batch %s/%s (%s documents)",
+                        i // batch_size + 1,
+                        (total_docs + batch_size - 1) // batch_size,
+                        len(batch_texts),
+                    )
+
+                    collection.add(
+                        ids=batch_ids,
+                        documents=batch_texts,
+                        embeddings=batch_embeddings,
+                        metadatas=batch_metadatas,
+                    )
 
             return cls(embeddings, client, collection, chroma_data_dir)
 
