@@ -6,6 +6,7 @@ import pathlib
 import shutil
 import subprocess
 import tempfile
+import time
 from urllib.request import urlopen
 
 import attrs
@@ -67,7 +68,8 @@ def _download_and_extract_checkpoint(
     )
 
     # Create target directory if it doesn't exist
-    target_dir.mkdir(parents=True, exist_ok=True)
+    tmp_dir = target_dir.parent / f"{target_dir.name}.tmp{time.time()}"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
 
     # Download to temporary file
     with tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False) as temp_file:
@@ -82,13 +84,13 @@ def _download_and_extract_checkpoint(
 
     # Extract tar.gz to target directory using command line tar
     try:
-        subprocess.run(
-            ["tar", "-xzf", str(temp_path), "-C", str(target_dir)], check=True
-        )
-        logger.info("Successfully extracted checkpoint to %s", target_dir)
+        subprocess.run(["tar", "-xzf", str(temp_path), "-C", str(tmp_dir)], check=True)
     finally:
         # Clean up temporary file
         temp_path.unlink(missing_ok=True)
+
+    tmp_dir.rename(target_dir)
+    logger.info("Successfully extracted checkpoint to %s", target_dir)
 
 
 def _maybe_download_checkpoint(
