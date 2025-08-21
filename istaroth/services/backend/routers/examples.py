@@ -7,8 +7,8 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import ValidationError
 
 from istaroth.agd import localization
-from istaroth.backend import example_questions, models
-from istaroth.backend.utils import handle_unexpected_exception
+from istaroth.services.backend import example_questions, models
+from istaroth.services.backend.utils import handle_unexpected_exception
 
 logger = logging.getLogger(__name__)
 

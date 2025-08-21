@@ -49,7 +49,7 @@ The backend automatically generates OpenAPI specifications that are consumed by 
 - **Test API changes**: Ensure frontend builds successfully after model changes
 
 ## Development Commands
-- Run backend: `python scripts/run_backend.py`
+- Run backend: `python -m istaroth.services.backend`
 - Generate migration: `alembic revision -m "description"`
 - Apply migrations: `alembic upgrade head`
 - Generate OpenAPI spec: `python scripts/generate_openapi.py`

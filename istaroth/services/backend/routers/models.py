@@ -5,8 +5,8 @@ import logging
 from fastapi import APIRouter
 
 from istaroth import llm_manager
-from istaroth.backend import models
-from istaroth.backend.utils import handle_unexpected_exception
+from istaroth.services.backend import models
+from istaroth.services.backend.utils import handle_unexpected_exception
 
 logger = logging.getLogger(__name__)
 

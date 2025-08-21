@@ -2,7 +2,13 @@
 
 from fastapi import FastAPI
 
-from istaroth.backend.routers import citations, conversations, examples, models, query
+from istaroth.services.backend.routers import (
+    citations,
+    conversations,
+    examples,
+    models,
+    query,
+)
 
 
 def create_app() -> FastAPI:

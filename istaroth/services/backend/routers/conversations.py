@@ -6,9 +6,9 @@ import logging
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
-from istaroth.backend import db_models, models
-from istaroth.backend.dependencies import DBSession
-from istaroth.backend.utils import handle_unexpected_exception
+from istaroth.services.backend import db_models, models
+from istaroth.services.backend.dependencies import DBSession
+from istaroth.services.backend.utils import handle_unexpected_exception
 
 logger = logging.getLogger(__name__)
 

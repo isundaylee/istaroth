@@ -3,10 +3,10 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from istaroth.backend.database import get_sync_database_uri
+from istaroth.services.backend.database import get_sync_database_uri
 
 # Import our models to ensure they're registered with Base
-from istaroth.backend.db_models import Base
+from istaroth.services.backend.db_models import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

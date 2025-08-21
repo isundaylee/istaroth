@@ -7,8 +7,8 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from istaroth import llm_manager
-from istaroth.backend import database
 from istaroth.rag import document_store_set
+from istaroth.services.backend import database
 
 logger = logging.getLogger(__name__)
 

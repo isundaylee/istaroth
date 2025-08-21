@@ -6,9 +6,9 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Query
 
 from istaroth.agd import localization
-from istaroth.backend import models
-from istaroth.backend.dependencies import DocumentStoreSet
-from istaroth.backend.utils import handle_unexpected_exception
+from istaroth.services.backend import models
+from istaroth.services.backend.dependencies import DocumentStoreSet
+from istaroth.services.backend.utils import handle_unexpected_exception
 
 logger = logging.getLogger(__name__)
 

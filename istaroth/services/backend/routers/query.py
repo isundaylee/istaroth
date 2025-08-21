@@ -8,10 +8,14 @@ import time
 from fastapi import APIRouter, HTTPException
 
 from istaroth.agd import localization
-from istaroth.backend import db_models, models
-from istaroth.backend.dependencies import DBSession, DocumentStoreSet, LLMManager
-from istaroth.backend.utils import handle_unexpected_exception
 from istaroth.rag import pipeline
+from istaroth.services.backend import db_models, models
+from istaroth.services.backend.dependencies import (
+    DBSession,
+    DocumentStoreSet,
+    LLMManager,
+)
+from istaroth.services.backend.utils import handle_unexpected_exception
 
 logger = logging.getLogger(__name__)
 

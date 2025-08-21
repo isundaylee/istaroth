@@ -1,18 +1,12 @@
-#!/usr/bin/env python3
-"""Entry point script for running the Istaroth backend server."""
+"""Entry point for running the Istaroth backend server."""
 
 import logging
-import pathlib
-import sys
 
 import click
 import uvicorn
 
-# Add the parent directory to Python path to find istaroth module
-sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
-
-from istaroth.backend.app import create_app
-from istaroth.backend.dependencies import init_resources
+from istaroth.services.backend.app import create_app
+from istaroth.services.backend.dependencies import init_resources
 
 
 @click.command()

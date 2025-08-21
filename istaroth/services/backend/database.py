@@ -10,7 +10,7 @@ import sqlalchemy
 import sqlalchemy.ext.asyncio
 import sqlalchemy.orm
 
-from istaroth.backend import db_models
+from istaroth.services.backend import db_models
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ def run_migrations() -> None:
     logger.info("Running database migrations...")
 
     # Get the project root directory
-    project_root = Path(__file__).parent.parent.parent
+    project_root = Path(__file__).parents[3]
     alembic_cfg_path = project_root / "alembic.ini"
 
     if not alembic_cfg_path.exists():

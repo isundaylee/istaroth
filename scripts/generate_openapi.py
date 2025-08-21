@@ -9,7 +9,7 @@ from pathlib import Path
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from istaroth.backend.app import create_app
+from istaroth.services.backend.app import create_app
 
 
 def generate_openapi_spec() -> None:
