@@ -2,6 +2,7 @@
 
 import abc
 import enum
+import functools
 import logging
 import os
 import pathlib
@@ -40,6 +41,16 @@ def get_vector_store_type_from_env() -> VectorStoreType:
         )
 
 
+@functools.cache
+def _create_embeddings() -> HuggingFaceEmbeddings:
+    """Create HuggingFace embeddings instance."""
+    return HuggingFaceEmbeddings(
+        model_name="BAAI/bge-m3",
+        model_kwargs={"device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")},
+        encode_kwargs={"normalize_embeddings": True},
+    )
+
+
 class VectorStore(abc.ABC):
     """Abstract base class for vector stores."""
 
@@ -69,15 +80,6 @@ class VectorStore(abc.ABC):
     def build(cls, documents: list[tuple[str, types.DocumentMetadata]]) -> Self:
         """Build vector store from document tuples."""
         ...
-
-    @classmethod
-    def _create_embeddings(cls) -> HuggingFaceEmbeddings:
-        """Create HuggingFace embeddings instance."""
-        return HuggingFaceEmbeddings(
-            model_name="BAAI/bge-m3",
-            model_kwargs={"device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")},
-            encode_kwargs={"normalize_embeddings": True},
-        )
 
 
 @attrs.define
@@ -136,7 +138,7 @@ class ChromaVectorStore(ChromaBaseVectorStore):
             f"building Chroma vector store with {len(documents)} documents"
         ):
             with utils.timer("loading vector embeddings model"):
-                embeddings = cls._create_embeddings()
+                embeddings = _create_embeddings()
 
             # Create persistent client in temporary directory
             chroma_data_dir = tempfile.mkdtemp(prefix="chroma_", dir="/tmp")
@@ -197,7 +199,7 @@ class ChromaVectorStore(ChromaBaseVectorStore):
         with utils.timer(f"loading Chroma vector store from {path}"):
             # Create embeddings instance
             with utils.timer("loading vector embeddings model"):
-                embeddings = cls._create_embeddings()
+                embeddings = _create_embeddings()
 
             with utils.timer("loading Chroma index"):
                 chroma_data_dir = str(path / "chroma_index")
@@ -216,7 +218,7 @@ class ChromaExternalVectorStore(ChromaBaseVectorStore):
         """Create external vector store connecting to Chroma server."""
         with utils.timer("connecting to external Chroma server"):
             with utils.timer("loading vector embeddings model"):
-                embeddings = cls._create_embeddings()
+                embeddings = _create_embeddings()
 
             # Connect to external Chroma server
             client = chromadb.HttpClient(host=host, port=port)
