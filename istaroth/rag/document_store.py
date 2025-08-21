@@ -16,7 +16,6 @@ import attrs
 import chromadb
 import jieba
 import langsmith as ls
-from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -33,7 +32,6 @@ logger = logging.getLogger(__name__)
 class VectorStoreType(enum.Enum):
     """Supported vector store types."""
 
-    FAISS = "faiss"
     CHROMA = "chroma"
     CHROMA_EXTERNAL = "chroma_external"
 
@@ -112,76 +110,6 @@ class _VectorStore(abc.ABC):
             model_kwargs={"device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")},
             encode_kwargs={"normalize_embeddings": True},
         )
-
-
-@attrs.define
-class _FAISSVectorStore(_VectorStore):
-    """Vector similarity search using FAISS."""
-
-    _embeddings: HuggingFaceEmbeddings = attrs.field()
-    _vector_store: FAISS = attrs.field()
-
-    @classmethod
-    def build(
-        cls, documents: list[tuple[str, types.DocumentMetadata]]
-    ) -> "_FAISSVectorStore":
-        """Build vector store from document tuples."""
-        with utils.timer(
-            f"building FAISS vector store with {len(documents)} documents"
-        ):
-            with utils.timer("loading vector embeddings model"):
-                embeddings = cls._create_embeddings()
-
-            with utils.timer("document vectorization"):
-                vector_store = FAISS.from_texts(
-                    texts=[text for text, _ in documents],
-                    embedding=embeddings,
-                    metadatas=cast(list[dict], [metadata for _, metadata in documents]),
-                )
-
-            return cls(embeddings, vector_store)
-
-    def search(self, query: str, k: int) -> list[types.ScoredDocument]:
-        """Vector similarity search."""
-        with ls.trace(
-            "vector_search",
-            "retriever",
-            inputs={"query": query, "k": k},
-        ) as rt:
-            results = self._vector_store.similarity_search_with_score(query, k=k)
-            scored_docs = [
-                types.ScoredDocument(document=doc, score=score)
-                for doc, score in results
-            ]
-            rt.end(
-                outputs={"documents": [sd.to_langsmith_output() for sd in scored_docs]}
-            )
-            return scored_docs
-
-    def save(self, path: pathlib.Path) -> None:
-        """Save vector store."""
-        self._vector_store.save_local(str(path / "faiss_index"))
-
-    def get_type(self) -> VectorStoreType:
-        """Get the type of this vector store."""
-        return VectorStoreType.FAISS
-
-    @classmethod
-    def load(cls, path: pathlib.Path) -> "_FAISSVectorStore":
-        """Load vector store."""
-        with utils.timer(f"loading FAISS vector store from {path}"):
-            # Create embeddings instance
-            with utils.timer("loading vector embeddings model"):
-                embeddings = cls._create_embeddings()
-
-            with utils.timer("loading FAISS index"):
-                vector_store = FAISS.load_local(
-                    str(path / "faiss_index"),
-                    embeddings=embeddings,
-                    allow_dangerous_deserialization=True,
-                )
-
-            return cls(embeddings, vector_store)
 
 
 @attrs.define
@@ -504,7 +432,7 @@ def chunk_documents(
 
 @attrs.define
 class DocumentStore:
-    """A document store using FAISS for vector similarity search."""
+    """A document store using ChromaDB for vector similarity search."""
 
     _vector_store: _VectorStore
     _bm25_store: _BM25Store
@@ -543,9 +471,7 @@ class DocumentStore:
         # Create vector store based on environment variable
         store_type = _get_vector_store_type_from_env()
         vector_store: _VectorStore
-        if store_type == VectorStoreType.FAISS:
-            vector_store = _FAISSVectorStore.build(document_tuples)
-        elif store_type == VectorStoreType.CHROMA:
+        if store_type == VectorStoreType.CHROMA:
             vector_store = _ChromaVectorStore.build(document_tuples)
         elif store_type == VectorStoreType.CHROMA_EXTERNAL:
             raise RuntimeError("Cannot use external Chroma store when building.")
@@ -718,9 +644,7 @@ class DocumentStore:
                 store_type = VectorStoreType(config["vector_store_type"])
 
                 # Load the appropriate vector store
-                if store_type == VectorStoreType.FAISS:
-                    vector_store = _FAISSVectorStore.load(path)
-                elif store_type == VectorStoreType.CHROMA:
+                if store_type == VectorStoreType.CHROMA:
                     vector_store = _ChromaVectorStore.load(path)
                 elif store_type == VectorStoreType.CHROMA_EXTERNAL:
                     raise ValueError("Cannot load external Chroma store.")
@@ -770,8 +694,6 @@ class DocumentStore:
                 # Create empty store based on environment variable
                 vector_store: _VectorStore
                 match (vst := _get_vector_store_type_from_env()):
-                    case VectorStoreType.FAISS:
-                        vector_store = _FAISSVectorStore.build([])
                     case VectorStoreType.CHROMA:
                         vector_store = _ChromaVectorStore.build([])
                     case VectorStoreType.CHROMA_EXTERNAL:
