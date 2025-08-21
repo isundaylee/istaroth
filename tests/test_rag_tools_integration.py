@@ -13,7 +13,7 @@ import pytest
 
 from istaroth.agd import localization
 from istaroth.rag import document_store, query_transform, rerank
-from istaroth.rag.document_store import _ChromaExternalVectorStore
+from istaroth.rag.vector_store import ChromaExternalVectorStore
 
 
 def _find_free_port() -> int:
@@ -184,14 +184,14 @@ def test_retrieve_relevant_content_with_k1(
     if chroma_index_path.exists():
         with _chroma_server(str(chroma_index_path)) as port:
             # Create external vector store instance using existing data
-            external_vector_store = _ChromaExternalVectorStore.create("localhost", port)
+            external_vector_store = ChromaExternalVectorStore.create("localhost", port)
 
             # Load DocumentStore with explicit external vector store
             ds_external = document_store.DocumentStore.load(
                 checkpoint_dir,
                 query_transformer=query_transform.IdentityTransformer(),
                 reranker=rerank.RRFReranker(),
-                vector_store=external_vector_store,
+                external_vector_store=external_vector_store,
             )
 
             # Test the same queries with external Chroma

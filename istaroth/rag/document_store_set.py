@@ -12,8 +12,7 @@ import attrs
 
 from istaroth import utils
 from istaroth.agd import localization
-from istaroth.rag import query_transform, rerank
-from istaroth.rag.document_store import DocumentStore, _ChromaExternalVectorStore
+from istaroth.rag import document_store, query_transform, rerank, vector_store
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +117,7 @@ def _maybe_download_checkpoint(
 class DocumentStoreSet:
     """Set of document stores for different languages."""
 
-    _stores: dict[localization.Language, DocumentStore] = attrs.field()
+    _stores: dict[localization.Language, document_store.DocumentStore] = attrs.field()
 
     @classmethod
     def from_env(cls) -> "DocumentStoreSet":
@@ -174,11 +173,11 @@ class DocumentStoreSet:
                     )
 
                     # Create external vector store
-                    external_vector_store = _ChromaExternalVectorStore.create(
+                    external_vs = vector_store.ChromaExternalVectorStore.create(
                         host, port
                     )
                 else:
-                    external_vector_store = None
+                    external_vs = None
 
                 # Ensure checkpoint directory exists (download if needed)
                 _maybe_download_checkpoint(language, store_path)
@@ -193,11 +192,11 @@ class DocumentStoreSet:
                     language.name,
                     store_path,
                 )
-                stores[language] = DocumentStore.load(
+                stores[language] = document_store.DocumentStore.load(
                     store_path,
                     query_transformer=query_transform.QueryTransformer.from_env(),
                     reranker=rerank.Reranker.from_env(),
-                    vector_store=external_vector_store,
+                    external_vector_store=external_vs,
                 )
 
             if not stores:
@@ -211,7 +210,9 @@ class DocumentStoreSet:
             )
             return cls(stores)
 
-    def get_store(self, language: localization.Language) -> DocumentStore:
+    def get_store(
+        self, language: localization.Language
+    ) -> document_store.DocumentStore:
         """Get document store for language."""
         if language not in self._stores:
             available = ", ".join(lang.name for lang in self._stores.keys())

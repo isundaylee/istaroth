@@ -1,51 +1,26 @@
 """Document store and embedding utilities for RAG pipeline."""
 
-import abc
-import enum
 import hashlib
 import json
 import logging
 import os
 import pathlib
 import pickle
-import shutil
-import tempfile
-from typing import ClassVar, Self, cast
+from typing import cast
 
 import attrs
-import chromadb
 import jieba
 import langsmith as ls
 from langchain_core.documents import Document
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
 from istaroth import langsmith_utils, utils
 from istaroth.langsmith_utils import traceable
-from istaroth.rag import query_transform, rerank, types
+from istaroth.rag import query_transform, rerank, types, vector_store
 
 logger = logging.getLogger(__name__)
-
-
-class VectorStoreType(enum.Enum):
-    """Supported vector store types."""
-
-    CHROMA = "chroma"
-    CHROMA_EXTERNAL = "chroma_external"
-
-
-def _get_vector_store_type_from_env() -> VectorStoreType:
-    """Parse ISTAROTH_VECTOR_STORE environment variable into VectorStoreType."""
-    store_type = os.getenv("ISTAROTH_VECTOR_STORE", "chroma").lower()
-    try:
-        return VectorStoreType(store_type)
-    except ValueError:
-        raise ValueError(
-            f"Unknown vector store type: {store_type}. "
-            f"Supported: {', '.join(t.value for t in VectorStoreType)}"
-        )
 
 
 def _chinese_tokenizer(text: str) -> list[str]:
@@ -70,223 +45,6 @@ def _merge_small_chunks(chunks: list[str], min_size: float) -> list[str]:
         i += 1
 
     return merged_chunks
-
-
-class _VectorStore(abc.ABC):
-    """Abstract base class for vector stores."""
-
-    @abc.abstractmethod
-    def search(self, query: str, k: int) -> list[types.ScoredDocument]:
-        """Vector similarity search."""
-        ...
-
-    @abc.abstractmethod
-    def save(self, path: pathlib.Path) -> None:
-        """Save vector store."""
-        ...
-
-    @abc.abstractmethod
-    def get_type(self) -> VectorStoreType:
-        """Get the type of this vector store."""
-        ...
-
-    @classmethod
-    @abc.abstractmethod
-    def load(cls, path: pathlib.Path) -> Self:
-        """Load vector store."""
-        ...
-
-    @classmethod
-    @abc.abstractmethod
-    def build(cls, documents: list[tuple[str, types.DocumentMetadata]]) -> Self:
-        """Build vector store from document tuples."""
-        ...
-
-    @classmethod
-    def _create_embeddings(cls) -> HuggingFaceEmbeddings:
-        """Create HuggingFace embeddings instance."""
-        return HuggingFaceEmbeddings(
-            model_name="BAAI/bge-m3",
-            model_kwargs={"device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")},
-            encode_kwargs={"normalize_embeddings": True},
-        )
-
-
-@attrs.define
-class _ChromaBaseVectorStore(_VectorStore):
-    """Base class for ChromaDB-based vector stores."""
-
-    COLLECTION_NAME: ClassVar[str] = "istaroth_documents"
-
-    _embeddings: HuggingFaceEmbeddings = attrs.field()
-    _client: chromadb.ClientAPI = attrs.field()
-    _collection: chromadb.Collection = attrs.field()
-
-    def search(self, query: str, k: int) -> list[types.ScoredDocument]:
-        """Vector similarity search using ChromaDB."""
-        with ls.trace(
-            "vector_search",
-            "retriever",
-            inputs={"query": query, "k": k},
-        ) as rt:
-            # Compute query embedding
-            query_embedding = self._embeddings.embed_query(query)
-
-            # Search in Chroma
-            results = self._collection.query(
-                query_embeddings=[query_embedding], n_results=k
-            )
-
-            # Convert results to ScoredDocument format
-            scored_docs = []
-            documents = results["documents"][0]
-            metadatas = results["metadatas"][0]
-            distances = results["distances"][0]
-            for i in range(len(documents)):
-                doc = Document(page_content=documents[i], metadata=metadatas[i])
-                score = distances[i]
-                scored_docs.append(types.ScoredDocument(document=doc, score=score))
-
-            rt.end(
-                outputs={"documents": [sd.to_langsmith_output() for sd in scored_docs]}
-            )
-            return scored_docs
-
-
-@attrs.define
-class _ChromaVectorStore(_ChromaBaseVectorStore):
-    """Vector similarity search using ChromaDB."""
-
-    _chroma_data_dir: str = attrs.field()
-
-    @classmethod
-    def build(
-        cls, documents: list[tuple[str, types.DocumentMetadata]]
-    ) -> "_ChromaVectorStore":
-        """Build vector store from document tuples."""
-        with utils.timer(
-            f"building Chroma vector store with {len(documents)} documents"
-        ):
-            with utils.timer("loading vector embeddings model"):
-                embeddings = cls._create_embeddings()
-
-            # Create persistent client in temporary directory
-            chroma_data_dir = tempfile.mkdtemp(prefix="chroma_", dir="/tmp")
-            client = chromadb.PersistentClient(path=chroma_data_dir)
-
-            # Create or get collection
-            collection = client.create_collection(
-                name=cls.COLLECTION_NAME, metadata={"hnsw:space": "l2"}
-            )
-
-            with utils.timer("document vectorization"):
-                texts = [text for text, _ in documents]
-                metadatas = [metadata for _, metadata in documents]
-
-                # Compute embeddings
-                embeddings_list = embeddings.embed_documents(texts)
-
-                # Add documents in batches to avoid ChromaDB batch size limits
-                batch_size = 5000
-                total_docs = len(documents)
-
-                for i in range(0, total_docs, batch_size):
-                    end_idx = min(i + batch_size, total_docs)
-                    batch_texts = texts[i:end_idx]
-                    batch_embeddings = embeddings_list[i:end_idx]
-                    batch_metadatas = metadatas[i:end_idx]
-                    batch_ids = [f"doc_{j}" for j in range(i, end_idx)]
-
-                    logger.info(
-                        "Adding batch %s/%s (%s documents)",
-                        i // batch_size + 1,
-                        (total_docs + batch_size - 1) // batch_size,
-                        len(batch_texts),
-                    )
-
-                    collection.add(
-                        ids=batch_ids,
-                        documents=batch_texts,
-                        embeddings=batch_embeddings,
-                        metadatas=batch_metadatas,
-                    )
-
-            return cls(embeddings, client, collection, chroma_data_dir)
-
-    def save(self, path: pathlib.Path) -> None:
-        """Save vector store."""
-        shutil.copytree(
-            self._chroma_data_dir, path / "chroma_index", dirs_exist_ok=True
-        )
-
-    def get_type(self) -> VectorStoreType:
-        """Get the type of this vector store."""
-        return VectorStoreType.CHROMA
-
-    @classmethod
-    def load(cls, path: pathlib.Path) -> "_ChromaVectorStore":
-        """Load vector store."""
-        with utils.timer(f"loading Chroma vector store from {path}"):
-            # Create embeddings instance
-            with utils.timer("loading vector embeddings model"):
-                embeddings = cls._create_embeddings()
-
-            with utils.timer("loading Chroma index"):
-                chroma_data_dir = str(path / "chroma_index")
-                client = chromadb.PersistentClient(path=chroma_data_dir)
-                collection = client.get_collection(cls.COLLECTION_NAME)
-
-            return cls(embeddings, client, collection, chroma_data_dir)
-
-
-@attrs.define
-class _ChromaExternalVectorStore(_ChromaBaseVectorStore):
-    """Vector similarity search using external ChromaDB server."""
-
-    @classmethod
-    def create(cls, host: str, port: int) -> "_ChromaExternalVectorStore":
-        """Create external vector store connecting to Chroma server."""
-        with utils.timer("connecting to external Chroma server"):
-            with utils.timer("loading vector embeddings model"):
-                embeddings = cls._create_embeddings()
-
-            # Connect to external Chroma server
-            client = chromadb.HttpClient(host=host, port=port)
-
-            # Get existing collection (assume it exists)
-            collection = client.get_collection(name=cls.COLLECTION_NAME)
-
-            return cls(embeddings, client, collection)
-
-    @classmethod
-    def build(cls, documents: list[tuple[str, types.DocumentMetadata]]) -> Self:
-        """Not supported for external vector store."""
-        del documents  # Unused parameter
-        raise NotImplementedError(
-            "build() is not supported for external Chroma store. "
-            "Use create() with an API address instead."
-        )
-
-    def save(self, path: pathlib.Path) -> None:
-        """Not supported for external vector store."""
-        del path  # Unused parameter
-        raise NotImplementedError(
-            "save() is not supported for external Chroma store. "
-            "Data is stored on the external server."
-        )
-
-    def get_type(self) -> VectorStoreType:
-        """Get the type of this vector store."""
-        return VectorStoreType.CHROMA_EXTERNAL
-
-    @classmethod
-    def load(cls, path: pathlib.Path) -> "_ChromaExternalVectorStore":
-        """Not supported for external vector store."""
-        del path  # Unused parameter
-        raise NotImplementedError(
-            "load() is not supported for external Chroma store. "
-            "Use create() with an API address instead."
-        )
 
 
 @attrs.define
@@ -434,7 +192,7 @@ def chunk_documents(
 class DocumentStore:
     """A document store using ChromaDB for vector similarity search."""
 
-    _vector_store: _VectorStore
+    _vector_store: vector_store.VectorStore
     _bm25_store: _BM25Store
 
     _query_transformer: query_transform.QueryTransformer
@@ -469,11 +227,11 @@ class DocumentStore:
         ]
 
         # Create vector store based on environment variable
-        store_type = _get_vector_store_type_from_env()
-        vector_store: _VectorStore
-        if store_type == VectorStoreType.CHROMA:
-            vector_store = _ChromaVectorStore.build(document_tuples)
-        elif store_type == VectorStoreType.CHROMA_EXTERNAL:
+        store_type = vector_store.get_vector_store_type_from_env()
+        vs: vector_store.VectorStore
+        if store_type == vector_store.VectorStoreType.CHROMA:
+            vs = vector_store.ChromaVectorStore.build(document_tuples)
+        elif store_type == vector_store.VectorStoreType.CHROMA_EXTERNAL:
             raise RuntimeError("Cannot use external Chroma store when building.")
         else:
             raise ValueError(f"Unknown vector store type: {store_type}")
@@ -481,7 +239,7 @@ class DocumentStore:
         bm25_store = _BM25Store.build(flattened_documents)
 
         return cls(
-            vector_store,
+            vs,
             bm25_store,
             query_transformer or query_transform.IdentityTransformer(),
             reranker or rerank.RRFReranker(),
@@ -579,7 +337,10 @@ class DocumentStore:
     def save(self, path: pathlib.Path) -> None:
         """Save the document store to a directory."""
         # Check if vector store supports saving
-        if self._vector_store.get_type() == VectorStoreType.CHROMA_EXTERNAL:
+        if (
+            self._vector_store.get_type()
+            == vector_store.VectorStoreType.CHROMA_EXTERNAL
+        ):
             raise NotImplementedError(
                 "Cannot save DocumentStore with external Chroma vector store. "
                 "External stores do not support persistence."
@@ -617,7 +378,7 @@ class DocumentStore:
         *,
         query_transformer: query_transform.QueryTransformer | None,
         reranker: rerank.Reranker | None,
-        vector_store: _VectorStore | None = None,
+        external_vector_store: vector_store.VectorStore | None = None,
     ) -> "DocumentStore":
         """Load document store from a directory."""
         with utils.timer(f"loading document store from {path}"):
@@ -638,23 +399,26 @@ class DocumentStore:
                 }
 
             # Use explicit vector store if provided, otherwise load from config
-            if vector_store is None:
+            vs: vector_store.VectorStore
+            if external_vector_store is None:
                 # Load configuration to determine vector store type
                 config = json.loads((path / "config.json").read_text())
-                store_type = VectorStoreType(config["vector_store_type"])
+                store_type = vector_store.VectorStoreType(config["vector_store_type"])
 
                 # Load the appropriate vector store
-                if store_type == VectorStoreType.CHROMA:
-                    vector_store = _ChromaVectorStore.load(path)
-                elif store_type == VectorStoreType.CHROMA_EXTERNAL:
+                if store_type == vector_store.VectorStoreType.CHROMA:
+                    vs = vector_store.ChromaVectorStore.load(path)
+                elif store_type == vector_store.VectorStoreType.CHROMA_EXTERNAL:
                     raise ValueError("Cannot load external Chroma store.")
                 else:
                     raise ValueError(f"Unknown vector store type: {store_type}")
+            else:
+                vs = external_vector_store
 
             bm25_store = _BM25Store.load(path)
 
             instance = cls(
-                vector_store,
+                vs,
                 bm25_store,
                 query_transformer or query_transform.IdentityTransformer(),
                 reranker or rerank.RRFReranker(),
@@ -692,11 +456,11 @@ class DocumentStore:
                 logger.info("Creating empty document store (no existing store found)")
 
                 # Create empty store based on environment variable
-                vector_store: _VectorStore
-                match (vst := _get_vector_store_type_from_env()):
-                    case VectorStoreType.CHROMA:
-                        vector_store = _ChromaVectorStore.build([])
-                    case VectorStoreType.CHROMA_EXTERNAL:
+                vs: vector_store.VectorStore
+                match (vst := vector_store.get_vector_store_type_from_env()):
+                    case vector_store.VectorStoreType.CHROMA:
+                        vs = vector_store.ChromaVectorStore.build([])
+                    case vector_store.VectorStoreType.CHROMA_EXTERNAL:
                         raise ValueError(
                             "Cannot create external Chroma store from env."
                         )
@@ -705,7 +469,7 @@ class DocumentStore:
                         assert False, f"Unknown vector store type: {vst}"
 
                 result = cls(
-                    vector_store,
+                    vs,
                     _BM25Store.build([]),
                     query_transformer,
                     reranker,
