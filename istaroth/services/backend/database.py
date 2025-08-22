@@ -54,34 +54,3 @@ def get_async_session_factory(
 def get_session_factory(engine: sqlalchemy.Engine) -> sqlalchemy.orm.sessionmaker:
     """Create sync session factory for migrations."""
     return sqlalchemy.orm.sessionmaker(bind=engine)
-
-
-def run_migrations() -> None:
-    """Run database migrations using Alembic."""
-    logger.info("Running database migrations...")
-
-    # Get the project root directory
-    project_root = Path(__file__).parents[3]
-    alembic_cfg_path = project_root / "alembic.ini"
-
-    if not alembic_cfg_path.exists():
-        raise FileNotFoundError(f"Alembic config file not found at {alembic_cfg_path}")
-
-    # Create Alembic configuration
-    alembic_cfg = alembic.config.Config(str(alembic_cfg_path))
-    alembic_cfg.attributes["configure_logger"] = False
-
-    # Run migrations to head
-    alembic.command.upgrade(alembic_cfg, "head")
-
-    logger.info("Database migrations completed successfully")
-
-
-def init_database() -> None:
-    """Initialize database using migrations."""
-    logger.info("Initializing database...")
-
-    # Run migrations instead of create_all
-    run_migrations()
-
-    logger.info("Database initialization completed")

@@ -32,6 +32,22 @@ spec:
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      initContainers:
+      - name: migration
+        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+        imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+        command: ["alembic", "upgrade", "head"]
+        env:
+        {{- toYaml .Values.backend.env | nindent 8 }}
+        envFrom:
+        - configMapRef:
+            name: {{ .Release.Name }}-config
+        - secretRef:
+            name: {{ .Release.Name }}-secret
+        {{- with .Values.containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
       containers:
       - name: backend
         image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
@@ -42,20 +58,7 @@ spec:
           name: http
           protocol: TCP
         env:
-        {{- if .Values.backend.env }}
-        {{- $hasDbUri := false }}
-        {{- range .Values.backend.env }}
-          {{- if eq .name "ISTAROTH_DATABASE_URI" }}
-            {{- $hasDbUri = true }}
-          {{- end }}
-        {{- end }}
-        {{- if not $hasDbUri }}
-        {{- fail "backend.env must include ISTAROTH_DATABASE_URI configuration" }}
-        {{- end }}
         {{- toYaml .Values.backend.env | nindent 8 }}
-        {{- else }}
-        {{- fail "backend.env must be configured with at least ISTAROTH_DATABASE_URI" }}
-        {{- end }}
         envFrom:
         - configMapRef:
             name: {{ .Release.Name }}-config

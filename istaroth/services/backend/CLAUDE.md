@@ -12,7 +12,8 @@
 1. Modify SQLAlchemy models in `db_models.py`
 2. Generate migration: `alembic revision -m "description"`
 3. Edit migration file to define upgrade/downgrade logic
-4. Apply migration: `alembic upgrade head`
+4. **Development**: Apply migration: `alembic upgrade head`
+5. **Production**: Migrations are automatically applied by Kubernetes initContainer during deployment
 
 ## API Structure
 - FastAPI application in `app.py`

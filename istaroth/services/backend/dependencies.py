@@ -24,14 +24,13 @@ def init_resources() -> None:
 
     logger.info("Initializing backend resources...")
 
-    # Initialize database
+    # Initialize database connection (migrations are now handled by initContainer)
     logger.info("Initializing database connection")
-    # Run migrations (uses sync engine internally)
-    database.init_database()
     # Create async engine and session factory for application use
-    async_db_engine = database.create_async_engine()
-    _async_db_session_factory = database.get_async_session_factory(async_db_engine)
-    logger.info("Database initialized successfully")
+    _async_db_session_factory = database.get_async_session_factory(
+        database.create_async_engine()
+    )
+    logger.info("Database connection initialized successfully")
 
     # Load document store set from environment
     logger.info("Loading document store set from environment")
