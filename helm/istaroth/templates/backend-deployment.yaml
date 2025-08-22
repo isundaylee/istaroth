@@ -48,6 +48,26 @@ spec:
         securityContext:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+      {{- if .Values.backend.downloadCheckpoints }}
+      {{- range $lang, $config := .Values.languages }}
+      - name: checkpoint-download-{{ $lang }}
+        image: "{{ $.Values.backend.image.repository }}:{{ $.Values.backend.image.tag }}"
+        imagePullPolicy: {{ $.Values.backend.image.pullPolicy }}
+        command:
+        - python
+        - scripts/checkpoint_tools.py
+        - download
+        - {{ $lang }}
+        - /data/checkpoint_web/{{ $lang }}
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        {{- with $.Values.containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- end }}
+      {{- end }}
       containers:
       - name: backend
         image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"

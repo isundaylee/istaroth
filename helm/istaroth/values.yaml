@@ -6,11 +6,14 @@ backend:
   image:
     repository: isundaylee/istaroth
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
 
   service:
     type: ClusterIP
     port: 8000
+
+  # Download checkpoints for all configured languages on startup
+  downloadCheckpoints: true
 
   resources:
     limits:
@@ -53,7 +56,7 @@ frontend:
   image:
     repository: isundaylee/istaroth-frontend
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
 
   service:
     type: ClusterIP
@@ -139,7 +142,7 @@ chroma:
   image:
     repository: chromadb/chroma
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
 
   # Service configuration for Chroma instances
   service:
