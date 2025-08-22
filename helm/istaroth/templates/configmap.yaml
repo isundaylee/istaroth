@@ -12,12 +12,27 @@ data:
   {{- with .Values.configmap.data }}
   {{- toYaml . | nindent 2 }}
   {{- end }}
-  {{- if .Values.chroma.servers }}
-  {{- $chromaServers := list }}
-  {{- range $language, $config := .Values.chroma.servers }}
-    {{- $serverHost := printf "%s-chroma-%s" $.Release.Name $language }}
-    {{- $serverEntry := printf "%s:%s:8000" (upper $language) $serverHost }}
-    {{- $chromaServers = append $chromaServers $serverEntry }}
+
+  {{- /* Generate ISTAROTH_DOCUMENT_STORE_SET from languages config */ -}}
+  {{- if .Values.languages }}
+  {{- $stores := list }}
+  {{- range $lang, $config := .Values.languages }}
+    {{- $path := printf "/data/checkpoint_web/%s" $lang }}
+    {{- $storeEntry := printf "%s:%s" (upper $lang) $path }}
+    {{- $stores = append $stores $storeEntry }}
   {{- end }}
+  ISTAROTH_DOCUMENT_STORE_SET: {{ join "," $stores | quote }}
+  {{- end }}
+
+  {{- /* Generate ISTAROTH_EXTERNAL_CHROMA_SERVERS from languages config */ -}}
+  {{- $chromaServers := list }}
+  {{- range $lang, $config := .Values.languages }}
+    {{- if $config.useChroma }}
+      {{- $serverHost := printf "%s-chroma-%s" $.Release.Name $lang }}
+      {{- $serverEntry := printf "%s:%s:8000" (upper $lang) $serverHost }}
+      {{- $chromaServers = append $chromaServers $serverEntry }}
+    {{- end }}
+  {{- end }}
+  {{- if $chromaServers }}
   ISTAROTH_EXTERNAL_CHROMA_SERVERS: {{ join "," $chromaServers | quote }}
   {{- end }}

@@ -84,11 +84,15 @@ frontend:
       initialDelaySeconds: 5
       periodSeconds: 5
 
+# Language configurations
+languages:
+  eng:
+    useChroma: false  # Set to true to use a separate Chroma server pod
+
 # ConfigMap for application configuration
 configmap:
   data:
-    ISTAROTH_DOCUMENT_STORE_SET: "CHS:/data/checkpoint_web/chs,ENG:/data/checkpoint_web/eng"
-    ISTAROTH_DOWNLOAD_CHECKPOINT_RELEASE: "1"
+    # ISTAROTH_DOCUMENT_STORE_SET and ISTAROTH_EXTERNAL_CHROMA_SERVERS are generated from languages config
     ISTAROTH_AVAILABLE_MODELS: "all"
     ISTAROTH_QUERY_TRANSFORMER: "rewrite"
     ISTAROTH_RERANKER: "cohere"
@@ -129,7 +133,7 @@ labels: {}
 # Additional annotations
 annotations: {}
 
-# External Chroma services configuration
+# Chroma services configuration (when using separate Chroma server pod)
 chroma:
   # Chroma container image
   image:
@@ -149,13 +153,6 @@ chroma:
     requests:
       cpu: 200m
       memory: 512Mi
-
-  # Chroma servers configuration
-  # Map of language (lowercase) to configuration
-  servers: {}
-    # Example configuration:
-    # chs:
-    #   checkpointPath: "checkpoint_web/chs"
 
 # Extra manifests (e.g., for SealedSecrets)
 extraManifests: []

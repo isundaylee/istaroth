@@ -1,4 +1,5 @@
-{{- range $language, $config := .Values.chroma.servers }}
+{{- range $language, $config := .Values.languages }}
+{{- if $config.useChroma }}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -40,13 +41,13 @@ spec:
         - sh
         - -c
         - |
-          echo "Waiting for subpath '{{ $config.checkpointPath }}/chroma_index' to be available..."
-          while [ ! -d "/data/{{ $config.checkpointPath }}" ]; do
-            echo "Directory /data/{{ $config.checkpointPath }} not found, waiting..."
+          echo "Waiting for subpath 'checkpoint_web/{{ $language }}/chroma_index' to be available..."
+          while [ ! -d "/data/checkpoint_web/{{ $language }}" ]; do
+            echo "Directory /data/checkpoint_web/{{ $language }} not found, waiting..."
             sleep 5
           done
           echo "Creating chroma_index directory if it doesn't exist..."
-          mkdir -p "/data/{{ $config.checkpointPath }}/chroma_index"
+          mkdir -p "/data/checkpoint_web/{{ $language }}/chroma_index"
           echo "Subpath is ready!"
         volumeMounts:
         - name: data
@@ -71,7 +72,7 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /data
-          subPath: "{{ $config.checkpointPath }}/chroma_index"
+          subPath: "checkpoint_web/{{ $language }}/chroma_index"
         {{- with $.Values.chroma.resources }}
         resources:
           {{- toYaml . | nindent 10 }}
@@ -96,4 +97,5 @@ spec:
       - name: data
         persistentVolumeClaim:
           claimName: {{ $.Release.Name }}-scratch
+{{- end }}
 {{- end }}
