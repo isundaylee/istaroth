@@ -3,11 +3,6 @@
 import logging
 import os
 import pathlib
-import shutil
-import subprocess
-import tempfile
-import time
-from urllib.request import urlopen
 
 import attrs
 
@@ -42,77 +37,6 @@ def _parse_external_chroma_servers() -> dict[localization.Language, tuple[str, i
         external_chroma_servers[language] = (host, port)
 
     return external_chroma_servers
-
-
-def _download_and_extract_checkpoint(
-    language: localization.Language, target_dir: pathlib.Path
-) -> None:
-    """Download and extract checkpoint for a specific language.
-
-    Args:
-        language: Language code (e.g., 'chs', 'eng')
-        target_dir: Directory where checkpoint should be extracted
-
-    Raises:
-        urllib.error.URLError: If download fails
-        subprocess.CalledProcessError: If extraction fails
-    """
-    # Create URL for the checkpoint
-    base_url = "https://github.com/isundaylee/istaroth/releases/latest/download"
-    checkpoint_url = f"{base_url}/{language.value.lower()}.tar.gz"
-
-    logger.info(
-        "Downloading checkpoint for language '%s' from %s",
-        language.name,
-        checkpoint_url,
-    )
-
-    # Create target directory if it doesn't exist
-    tmp_dir = target_dir.parent / f"{target_dir.name}.tmp{time.time()}"
-    tmp_dir.mkdir(parents=True, exist_ok=True)
-
-    # Download to temporary file
-    with tempfile.NamedTemporaryFile(suffix=".tar.gz", delete=False) as temp_file:
-        temp_path = pathlib.Path(temp_file.name)
-        try:
-            with urlopen(checkpoint_url) as response:
-                shutil.copyfileobj(response, temp_file)
-            logger.info("Downloaded checkpoint to temporary file: %s", temp_path)
-        except:
-            temp_path.unlink(missing_ok=True)
-            raise
-
-    # Extract tar.gz to target directory using command line tar
-    try:
-        subprocess.run(["tar", "-xzf", str(temp_path), "-C", str(tmp_dir)], check=True)
-    finally:
-        # Clean up temporary file
-        temp_path.unlink(missing_ok=True)
-
-    tmp_dir.rename(target_dir)
-    logger.info("Successfully extracted checkpoint to %s", target_dir)
-
-
-def _maybe_download_checkpoint(
-    language: localization.Language, store_path: pathlib.Path
-) -> None:
-    """Download checkpoint if ISTAROTH_DOWNLOAD_CHECKPOINT_RELEASE is set and
-    directory doesn't exist."""
-    if os.getenv("ISTAROTH_DOWNLOAD_CHECKPOINT_RELEASE") != "1":
-        return
-
-    # Check if directory exists and is non-empty
-    if store_path.exists():
-        logger.debug("Document store directory already exists: %s", store_path)
-        return
-
-    # Directory doesn't exist or is empty, download checkpoint
-    logger.info(
-        "Document store directory %s doesn't exist, downloading checkpoint", store_path
-    )
-
-    _download_and_extract_checkpoint(language, store_path)
-    logger.info("Successfully downloaded and extracted checkpoint to %s", store_path)
 
 
 @attrs.define
@@ -181,12 +105,11 @@ class DocumentStoreSet:
                 else:
                     external_vs = None
 
-                # Ensure checkpoint directory exists (download if needed)
-                _maybe_download_checkpoint(language, store_path)
-
+                # Ensure checkpoint directory exists
                 if not store_path.exists():
                     raise ValueError(
-                        f"Document store path does not exist for language '{language.name}': {store_path}"
+                        f"Document store path does not exist for language '{language.name}': {store_path}. "
+                        f"Please run 'scripts/checkpoint_tools.py download' to download checkpoints."
                     )
 
                 logger.info(
