@@ -34,7 +34,7 @@ def _load_or_create_store() -> document_store.DocumentStore:
     """Load existing document store or create new one."""
     store = document_store.DocumentStore.from_env()
     if store.num_documents > 0:
-        print(f"Loaded store with {store.num_documents} existing documents")
+        logger.info("Loaded store with %d existing documents", store.num_documents)
     return store
 
 
@@ -57,18 +57,18 @@ def build(text_path: pathlib.Path, checkpoint_path: pathlib.Path, force: bool) -
     # Check if target exists
     if checkpoint_path.exists():
         if not force:
-            print(
-                f"Error: Target {checkpoint_path} already exists. Use -f to overwrite."
+            logger.error(
+                "Target %s already exists. Use -f to overwrite.", checkpoint_path
             )
             sys.exit(1)
         else:
-            print(f"Removing existing target: {checkpoint_path}")
+            logger.info("Removing existing target: %s", checkpoint_path)
             shutil.rmtree(checkpoint_path)
 
     files_to_process = _get_files_to_process(text_path)
 
     if not files_to_process:
-        print("Error: No .txt files found to process.")
+        logger.error("No .txt files found to process.")
         sys.exit(1)
 
     metadata = json.loads((text_path / "metadata.json").read_text())
@@ -81,14 +81,16 @@ def build(text_path: pathlib.Path, checkpoint_path: pathlib.Path, force: bool) -
         case _:
             raise RuntimeError(f"Unsupported language: {metadata['language']}.")
 
-    print(f"Building document store from {len(files_to_process)} files in: {text_path}")
+    logger.info(
+        "Building document store from %d files in: %s", len(files_to_process), text_path
+    )
     store = document_store.DocumentStore.build(
         files_to_process,
         chunk_size_multiplier=chunk_size_multiplier,
         show_progress=True,
     )
 
-    print(f"\nTotal documents in store: {store.num_documents}")
+    logger.info("Total documents in store: %d", store.num_documents)
     store.save(checkpoint_path)
 
 
@@ -110,14 +112,14 @@ def retrieve(
         store = _load_or_create_store()
 
         if store.num_documents == 0:
-            print("Error: No documents in store. Use 'add-documents' command first.")
+            logger.error("No documents in store. Use 'add-documents' command first.")
             sys.exit(1)
 
-        print(f"Searching for: '{query}'\n")
+        logger.info("Searching for: '%s'", query)
         retrieve_output = store.retrieve(query, k=k, chunk_context=chunk_context)
 
         if not retrieve_output.results:
-            print("No results found.")
+            logger.info("No results found.")
             return
 
         formatted_output = output_rendering.render_retrieve_output(
@@ -170,7 +172,7 @@ def query(question: str, *, k: int, chunk_context: int) -> None:
     store = _load_or_create_store()
 
     if store.num_documents == 0:
-        print("Error: No documents in store.")
+        logger.error("No documents in store.")
         sys.exit(1)
 
     print(f"问题: {question}")
@@ -200,10 +202,10 @@ def chunk_stats(path: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     files_to_process = _get_files_to_process(path)
 
     if not files_to_process:
-        print("Error: No .txt files found to process.")
+        logger.error("No .txt files found to process.")
         sys.exit(1)
 
-    print(f"Analyzing chunks from {len(files_to_process)} files...")
+    logger.info("Analyzing chunks from %d files...", len(files_to_process))
 
     # Chunk the documents
     all_documents = document_store.chunk_documents(
@@ -298,10 +300,10 @@ def chunk_stats(path: pathlib.Path, *, chunk_size_multiplier: float) -> None:
 def chunk_file(file: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     """Chunk a single text file and print individual chunks."""
     if not file.is_file() or file.suffix != ".txt":
-        print(f"Error: {file} must be a .txt file")
+        logger.error("%s must be a .txt file", file)
         sys.exit(1)
 
-    print(f"Chunking file: {file}")
+    logger.info("Chunking file: %s", file)
     print("=" * 60)
 
     # Use the existing chunk_documents function from document_store
@@ -356,10 +358,4 @@ def diff_retrieval(file1: pathlib.Path, file2: pathlib.Path) -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s.%(msecs)03d %(levelname)s %(name)-35s %(message)s",
-        datefmt="%Y%m%d %H:%M:%S",
-    )
-
     cli()
