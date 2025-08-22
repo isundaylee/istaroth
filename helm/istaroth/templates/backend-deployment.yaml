@@ -48,8 +48,8 @@ spec:
         securityContext:
           {{- toYaml . | nindent 10 }}
         {{- end }}
-      {{- if .Values.backend.downloadCheckpoints }}
       {{- range $lang, $config := .Values.languages }}
+      {{- if $.Values.backend.downloadCheckpoints }}
       - name: checkpoint-download-{{ $lang }}
         image: "{{ $.Values.backend.image.repository }}:{{ $.Values.backend.image.tag }}"
         imagePullPolicy: {{ $.Values.backend.image.pullPolicy }}
@@ -62,6 +62,24 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /data
+        {{- with $.Values.containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- end }}
+      {{- if $config.useChroma }}
+      - name: wait-chroma-{{ $lang }}
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for Chroma server {{ $lang }} to be ready..."
+          until nc -z {{ $.Release.Name }}-chroma-{{ $lang }} 8000; do
+            echo "Chroma server {{ $lang }} not ready, waiting..."
+            sleep 5
+          done
+          echo "Chroma server {{ $lang }} is ready!"
         {{- with $.Values.containerSecurityContext }}
         securityContext:
           {{- toYaml . | nindent 10 }}
