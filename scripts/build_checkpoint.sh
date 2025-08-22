@@ -27,7 +27,7 @@ ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd text && tar -xzf text.tar.gz && rm tex
 # Build the checkpoint
 ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd istaroth && \
     rm -rf ../checkpoint && \
-    ISTAROTH_DOCUMENT_STORE=../checkpoint env/bin/python3 scripts/rag_tools.py build ../text"
+    env/bin/python3 scripts/rag_tools.py build ../text ../checkpoint"
 
 rm -rf $CHECKPOINT_PATH
 scp -P $REMOTE_PORT -r root@$REMOTE_HOST:checkpoint/ $CHECKPOINT_PATH
