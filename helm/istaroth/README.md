@@ -6,7 +6,9 @@ This Helm chart deploys the Istaroth web application on a Kubernetes cluster.
 
 See `values.yaml` for all configurable parameters and their default values.
 
-**REQUIRED**: The application requires a database connection configured via the `ISTAROTH_DATABASE_URI` environment variable in the `backend.env` section of values. The Helm chart will fail if this is not provided.
+Required keys:
+
+- `backend.env.ISTAROTH_DATABASE_URI`
 
 ## Secrets Management
 
@@ -32,19 +34,4 @@ Apply the SealedSecret before installing the chart:
 ```bash
 kubectl apply -f app-secret-sealed.yaml
 helm install <release-name> . -n <your-namespace>
-```
-
-## Persistence
-
-### Backend Application Data (Helm-Managed)
-- **Created by:** Helm chart automatically
-- **Purpose:** Stores checkpoint data, HuggingFace models, and other application data
-- **Mount path:** `/data`
-- **Configuration:** Set via `persistence.*` values
-
-```yaml
-persistence:
-  storageClass: ""  # Uses default storage class
-  accessMode: ReadWriteOnce
-  size: 10Gi
 ```
