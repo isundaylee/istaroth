@@ -48,9 +48,6 @@ COPY --chown=app:app scripts/ ./scripts/
 COPY --chown=app:app migrations/ ./migrations/
 COPY --chown=app:app alembic.ini ./alembic.ini
 
-# Copy and set up entrypoint script
-COPY --chown=app:app scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set environment variables
 ENV ISTAROTH_DOCUMENT_STORE=/data/checkpoint
@@ -61,9 +58,6 @@ USER app
 
 # Expose port for HTTP transport
 EXPOSE 8000
-
-# Set entrypoint to handle checkpoint downloading
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
 # Default command runs the MCP server with streamable-http transport
 CMD ["fastmcp", "run", "scripts/mcp_server.py", "--transport=streamable-http", "--host=0.0.0.0", "--port=8000"]
