@@ -49,8 +49,8 @@ def cli() -> None:
 
 
 @cli.command()
-@click.argument("text_path", type=click.Path(exists=True, path_type=pathlib.Path))
-@click.argument("checkpoint_path", type=click.Path(exists=True, path_type=pathlib.Path))
+@click.argument("text_path", type=pathlib.Path)
+@click.argument("checkpoint_path", type=pathlib.Path)
 @click.option("-f", "--force", is_flag=True, help="Delete target if it exists")
 def build(text_path: pathlib.Path, checkpoint_path: pathlib.Path, force: bool) -> None:
     """Build document store from a file or folder."""
@@ -91,6 +91,8 @@ def build(text_path: pathlib.Path, checkpoint_path: pathlib.Path, force: bool) -
     )
 
     logger.info("Total documents in store: %d", store.num_documents)
+
+    checkpoint_path.mkdir(parents=True, exist_ok=True)
     store.save(checkpoint_path)
 
 
