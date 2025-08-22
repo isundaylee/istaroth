@@ -478,12 +478,6 @@ class DocumentStore:
 
             return result
 
-    def save_to_env(self) -> None:
-        """Save DocumentStore to path specified by ISTAROTH_DOCUMENT_STORE env var."""
-        store_path = get_document_store_path()
-        store_path.mkdir(parents=True, exist_ok=True)
-        self.save(store_path)
-
     def get_chunk(self, file_id: str, chunk_index: int) -> Document | None:
         """Get a specific chunk from a file."""
         if file_id not in self._documents:

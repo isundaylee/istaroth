@@ -21,19 +21,13 @@ from istaroth.agd import localization
 from istaroth.rag import document_store, output_rendering, pipeline, retrieval_diff
 from istaroth.rag.eval import dataset
 
+logger = logging.getLogger(__name__)
 
-def _get_files_to_process(path: pathlib.Path) -> list[pathlib.Path]:
+
+def _get_files_to_process(text_path: pathlib.Path) -> list[pathlib.Path]:
     """Get a list of .txt files to process from the given path."""
-    if path.is_file():
-        if path.suffix != ".txt":
-            print(f"Error: File {path} is not a .txt file.")
-            sys.exit(1)
-        return [path]
-    elif path.is_dir():
-        return list(path.glob("**/*.txt"))
-    else:
-        print(f"Error: Path {path} is neither a file nor a directory.")
-        sys.exit(1)
+    assert text_path.is_dir(), f"Path {text_path} must be a directory"
+    return list(text_path.glob("**/*.txt"))
 
 
 def _load_or_create_store() -> document_store.DocumentStore:
@@ -47,33 +41,37 @@ def _load_or_create_store() -> document_store.DocumentStore:
 @click.group()
 def cli() -> None:
     """RAG tools for document management and querying."""
-    pass
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s.%(msecs)03d %(levelname)s %(name)-35s %(message)s",
+        datefmt="%Y%m%d %H:%M:%S",
+    )
 
 
 @cli.command()
-@click.argument("path", type=click.Path(exists=True, path_type=pathlib.Path))
+@click.argument("text_path", type=click.Path(exists=True, path_type=pathlib.Path))
+@click.argument("checkpoint_path", type=click.Path(exists=True, path_type=pathlib.Path))
 @click.option("-f", "--force", is_flag=True, help="Delete target if it exists")
-def build(path: pathlib.Path, force: bool) -> None:
+def build(text_path: pathlib.Path, checkpoint_path: pathlib.Path, force: bool) -> None:
     """Build document store from a file or folder."""
-    # Get target path from environment
-    target_path = document_store.get_document_store_path()
-
     # Check if target exists
-    if target_path.exists():
+    if checkpoint_path.exists():
         if not force:
-            print(f"Error: Target {target_path} already exists. Use -f to overwrite.")
+            print(
+                f"Error: Target {checkpoint_path} already exists. Use -f to overwrite."
+            )
             sys.exit(1)
         else:
-            print(f"Removing existing target: {target_path}")
-            shutil.rmtree(target_path)
+            print(f"Removing existing target: {checkpoint_path}")
+            shutil.rmtree(checkpoint_path)
 
-    files_to_process = _get_files_to_process(path)
+    files_to_process = _get_files_to_process(text_path)
 
     if not files_to_process:
         print("Error: No .txt files found to process.")
         sys.exit(1)
 
-    metadata = json.loads((path / "metadata.json").read_text())
+    metadata = json.loads((text_path / "metadata.json").read_text())
 
     match localization.Language(metadata["language"]):
         case localization.Language.CHS:
@@ -83,7 +81,7 @@ def build(path: pathlib.Path, force: bool) -> None:
         case _:
             raise RuntimeError(f"Unsupported language: {metadata['language']}.")
 
-    print(f"Building document store from {len(files_to_process)} files in: {path}")
+    print(f"Building document store from {len(files_to_process)} files in: {text_path}")
     store = document_store.DocumentStore.build(
         files_to_process,
         chunk_size_multiplier=chunk_size_multiplier,
@@ -91,7 +89,7 @@ def build(path: pathlib.Path, force: bool) -> None:
     )
 
     print(f"\nTotal documents in store: {store.num_documents}")
-    store.save_to_env()
+    store.save(checkpoint_path)
 
 
 @cli.command()
