@@ -1,0 +1,51 @@
+services:
+  checkpoint-download:
+    pull_policy: always
+    image: isundaylee/istaroth:latest
+    command: ["python", "scripts/checkpoint_tools.py", "download", "chs", "/data/checkpoint_web/chs"]
+    volumes:
+      - ./data:/data
+    env_file:
+      - env.docker-compose
+
+  db-migrate:
+    pull_policy: always
+    image: isundaylee/istaroth:latest
+    command: ["alembic", "upgrade", "head"]
+    volumes:
+      - ./data:/data
+    env_file:
+      - env.docker-compose
+
+  istaroth:
+    pull_policy: always
+    image: isundaylee/istaroth:latest
+    command: ["python", "-m", "istaroth.services.backend"]
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+      checkpoint-download:
+        condition: service_completed_successfully
+    volumes:
+      - ./data:/data
+    env_file:
+      - env.docker-compose
+
+  frontend:
+    pull_policy: always
+    image: isundaylee/istaroth-frontend:latest
+    depends_on:
+      - istaroth
+
+  nginx:
+    image: nginx:alpine
+    depends_on:
+      - istaroth
+      - frontend
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+volumes:
+  istaroth-models:
