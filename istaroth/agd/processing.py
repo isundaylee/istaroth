@@ -53,7 +53,8 @@ def get_readable_metadata(
     for doc_item in document_data:
         if localization_id in list(
             itertools.chain(
-                doc_item["ICGFBCENKJD"],
+                doc_item.get("ICGFBCENKJD", []),
+                doc_item.get("GCABNOAOIFL", []),
                 doc_item["questContentLocalizedId"],
                 doc_item["questIDList"],
             )
