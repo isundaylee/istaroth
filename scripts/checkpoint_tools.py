@@ -66,8 +66,16 @@ def download_checkpoint(
                 tag_file.unlink()
 
     # Create URL for the checkpoint
-    base_url = f"https://github.com/isundaylee/istaroth/releases/{release}/download"
-    checkpoint_url = f"{base_url}/{language.value.lower()}.tar.gz"
+    if release == "latest":
+        checkpoint_url = (
+            f"https://github.com/isundaylee/istaroth/releases/latest/download/"
+            f"{language.value.lower()}.tar.gz"
+        )
+    else:
+        checkpoint_url = (
+            f"https://github.com/isundaylee/istaroth/releases/download/"
+            f"{release}/{language.value.lower()}.tar.gz"
+        )
 
     logger.info(
         "Downloading checkpoint for language '%s' from %s",
