@@ -30,6 +30,17 @@ export function formatCitationId(fileId: string, chunkIndex: number): string {
 }
 
 /**
+ * Parse citation ID to extract file ID and chunk index.
+ * Inverse of formatCitationId.
+ * Format: fileId:ck##
+ */
+export function parseCitationId(citationId: string): CitationReference {
+  const [fileId, chunkIndexWithPrefix] = citationId.split(':')
+  const chunkIndex = parseInt(chunkIndexWithPrefix.replace('ck', ''), 10)
+  return { fileId, chunkIndex }
+}
+
+/**
  * Result of preprocessing citations for display.
  */
 export interface PreprocessCitationsResult {

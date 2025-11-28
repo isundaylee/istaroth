@@ -4,7 +4,7 @@ import type { Components } from 'react-markdown'
 import { useTranslation, useT } from '../contexts/LanguageContext'
 import type { CitationResponse } from '../types/api'
 import CitationPopup from './CitationPopup'
-import { preprocessCitationsForDisplay, formatCitationId } from '../utils/citations'
+import { preprocessCitationsForDisplay, formatCitationId, parseCitationId } from '../utils/citations'
 
 interface CitationRendererProps {
   content: string
@@ -114,8 +114,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
 
     // Parse citation IDs into (file_id, chunk_index) pairs
     const citations = citationsToFetch.map(citationId => {
-      const [fileId, chunkIndexWithPrefix] = citationId.split(':')
-      const chunkIndex = parseInt(chunkIndexWithPrefix.replace('ck', ''), 10)
+      const { fileId, chunkIndex } = parseCitationId(citationId)
       return [fileId, chunkIndex] as [string, number]
     })
 
@@ -272,7 +271,8 @@ function CitationRenderer({ content }: CitationRendererProps) {
   }, [isFullscreen])
 
   const getSourceContent = (citationId: string): CitationContentData => {
-    const [fileId, chunkIndexWithPrefix] = citationId.split(':')
+    const { fileId, chunkIndex } = parseCitationId(citationId)
+    const chunkIndexWithPrefix = `ck${chunkIndex}`
     const cached = citationCache[citationId]
     const loading = loadingCitations.has(citationId)
 
@@ -316,7 +316,8 @@ function CitationRenderer({ content }: CitationRendererProps) {
   }
 
   const getStickyContent = (citationId: string): CitationContentData => {
-    const [fileId, chunkIndexWithPrefix] = citationId.split(':')
+    const { fileId, chunkIndex } = parseCitationId(citationId)
+    const chunkIndexWithPrefix = `ck${chunkIndex}`
 
     // Get all chunks for this file from the citation cache
     const fileChunks = Object.entries(citationCache)
@@ -403,7 +404,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
           content={isSticky ? undefined : getSourceContent(displayedCitation).content}
           chunks={isSticky ? getStickyContent(displayedCitation).chunks : undefined}
           fileId={isSticky ? getStickyContent(displayedCitation).fileId : undefined}
-          currentChunkIndex={isSticky ? parseInt(displayedCitation.split(':')[1]?.replace('ck', '') || '0') : 0}
+          currentChunkIndex={isSticky ? parseCitationId(displayedCitation).chunkIndex : 0}
           isSticky={isSticky}
           isFullscreen={isFullscreen}
           onClose={handleCloseSticky}
