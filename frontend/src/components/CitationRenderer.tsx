@@ -101,38 +101,93 @@ function CitationRenderer({ content }: CitationRendererProps) {
     }
   }, []) // No dependencies since it only uses parameters and constants
 
-  // Generic function to fetch citation content
-  const fetchCitation = useCallback(async (citationId: string) => {
-    if (citationCache[citationId] || loadingCitations.has(citationId)) {
+  // Batch function to fetch multiple citations in a single request
+  const fetchCitationsBatch = useCallback(async (citationIds: string[]) => {
+    // Filter out already cached or loading citations
+    const citationsToFetch = citationIds.filter(
+      id => !citationCache[id] && !loadingCitations.has(id)
+    )
+
+    if (citationsToFetch.length === 0) {
       return
     }
 
-    const [fileId, chunkIndexWithPrefix] = citationId.split(':')
-    const chunkIndex = chunkIndexWithPrefix.replace('ck', '')
+    // Parse citation IDs into (file_id, chunk_index) pairs
+    const citations = citationsToFetch.map(citationId => {
+      const [fileId, chunkIndexWithPrefix] = citationId.split(':')
+      const chunkIndex = parseInt(chunkIndexWithPrefix.replace('ck', ''), 10)
+      return [fileId, chunkIndex] as [string, number]
+    })
 
-    setLoadingCitations(prev => new Set(prev).add(citationId))
+    // Mark all as loading
+    setLoadingCitations(prev => {
+      const newSet = new Set(prev)
+      citationsToFetch.forEach(id => newSet.add(id))
+      return newSet
+    })
 
     try {
-      const response = await fetch(`/api/citations/${fileId}/${chunkIndex}?language=${language.toUpperCase()}`)
+      const response = await fetch('/api/citations/batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          language: language.toUpperCase(),
+          citations,
+        }),
+      })
 
       if (response.ok) {
-        const data: CitationResponse = await response.json()
-        setCitationCache(prev => ({ ...prev, [citationId]: data }))
+        const data: { successes: CitationResponse[], errors: Array<{file_id: string, chunk_index: number, error: string}> } = await response.json()
+
+        // Update cache with successes
+        setCitationCache(prev => {
+          const newCache = { ...prev }
+          data.successes.forEach(citation => {
+            const citationId = formatCitationId(citation.file_id, citation.chunk_index)
+            newCache[citationId] = citation
+          })
+          return newCache
+        })
+
+        // Update cache with errors
+        setCitationCache(prev => {
+          const newCache = { ...prev }
+          data.errors.forEach(error => {
+            const citationId = formatCitationId(error.file_id, error.chunk_index)
+            newCache[citationId] = { error: error.error }
+          })
+          return newCache
+        })
       } else {
-        // Cache the error to prevent repeated requests
+        // HTTP error - mark all as failed
         const errorMessage = `${t('citation.fetchFailed')} (${response.status}): ${response.statusText}`
         console.error(errorMessage)
-        setCitationCache(prev => ({ ...prev, [citationId]: { error: errorMessage } }))
+        setCitationCache(prev => {
+          const newCache = { ...prev }
+          citationsToFetch.forEach(citationId => {
+            newCache[citationId] = { error: errorMessage }
+          })
+          return newCache
+        })
       }
     } catch (error) {
-      // Cache network errors as well
+      // Network error - mark all as failed
       const errorMessage = `${t('citation.networkError')}: ${error instanceof Error ? error.message : 'Unknown error'}`
       console.error(errorMessage)
-      setCitationCache(prev => ({ ...prev, [citationId]: { error: errorMessage } }))
+      setCitationCache(prev => {
+        const newCache = { ...prev }
+        citationsToFetch.forEach(citationId => {
+          newCache[citationId] = { error: errorMessage }
+        })
+        return newCache
+      })
     } finally {
+      // Clear loading state for all
       setLoadingCitations(prev => {
         const newSet = new Set(prev)
-        newSet.delete(citationId)
+        citationsToFetch.forEach(id => newSet.delete(id))
         return newSet
       })
     }
@@ -140,12 +195,9 @@ function CitationRenderer({ content }: CitationRendererProps) {
 
   // Prefetch citations for all unique file IDs to get titles immediately
   useEffect(() => {
-    for (const fileId of uniqueCitedWorks) {
-      const citationId = formatCitationId(fileId, 0)
-      // fetchCitation already checks if it's cached or loading
-      fetchCitation(citationId)
-    }
-  }, [uniqueCitedWorks, fetchCitation])
+    const citationIds = uniqueCitedWorks.map(fileId => formatCitationId(fileId, 0))
+    fetchCitationsBatch(citationIds)
+  }, [uniqueCitedWorks, fetchCitationsBatch])
 
   const handleCitationHover = useCallback((e: React.MouseEvent<HTMLElement>, citationId: string) => {
     // Don't show hover popup if any citation is sticky
@@ -156,12 +208,12 @@ function CitationRenderer({ content }: CitationRendererProps) {
     setHoveredCitation(citationId)
 
     // Fetch citation content if not already cached
-    fetchCitation(citationId)
+    fetchCitationsBatch([citationId])
 
     // Calculate optimal position to avoid going off-screen
     const position = calculatePopupPosition(citationRect)
     setPopupPosition(position)
-  }, [stickyCitation, fetchCitation, calculatePopupPosition])
+  }, [stickyCitation, fetchCitationsBatch, calculatePopupPosition])
 
   // Global mouse move handler to check if mouse has left all instances of the hovered citation
   useEffect(() => {
@@ -195,7 +247,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
     const citationRect = e.currentTarget.getBoundingClientRect()
 
     // Fetch citation content if not already cached
-    fetchCitation(citationId)
+    fetchCitationsBatch([citationId])
 
     // Calculate optimal position to avoid going off-screen
     const position = calculatePopupPosition(citationRect)
@@ -208,7 +260,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
       setStickyCitation(citationId)
       setHoveredCitation(null) // Clear hover when making sticky
     }
-  }, [stickyCitation, fetchCitation, calculatePopupPosition])
+  }, [stickyCitation, fetchCitationsBatch, calculatePopupPosition])
 
   const handleCloseSticky = useCallback(() => {
     setStickyCitation(null)
@@ -355,7 +407,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
           isSticky={isSticky}
           isFullscreen={isFullscreen}
           onClose={handleCloseSticky}
-          onLoadChunk={isSticky ? fetchCitation : undefined}
+          onLoadChunk={isSticky ? (citationId) => fetchCitationsBatch([citationId]) : undefined}
           onToggleFullscreen={isSticky ? handleToggleFullscreen : undefined}
           loadingCitations={loadingCitations}
           style={{

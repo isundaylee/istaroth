@@ -97,3 +97,32 @@ class CitationResponse(BaseModel):
     content: str
     metadata: dict[str, Any]
     total_chunks: int
+
+
+class CitationBatchRequest(BaseModel):
+    """Request model for batch citation endpoint."""
+
+    language: str
+    citations: list[tuple[str, int]]  # List of (file_id, chunk_index) pairs
+
+    @field_validator("language")
+    @classmethod
+    def _validate_language(cls, value: str) -> str:
+        if value.upper() not in {l.value for l in localization.Language}:
+            raise ValueError(f"Invalid language: {value}")
+        return value.upper()
+
+
+class CitationError(BaseModel):
+    """Error details for a failed citation fetch."""
+
+    file_id: str
+    chunk_index: int
+    error: str
+
+
+class CitationBatchResponse(BaseModel):
+    """Response model for batch citation endpoint."""
+
+    successes: list[CitationResponse]
+    errors: list[CitationError]

@@ -84,20 +84,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/citations/{file_id}/{chunk_index}": {
+    "/api/citations/batch": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /**
-         * Get Citation
-         * @description Get citation content by file ID and chunk index.
-         */
-        get: operations["get_citation_api_citations__file_id___chunk_index__get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /**
+         * Get Citations Batch
+         * @description Get multiple citations in a single request.
+         *
+         *     Supports fetching different chunks from different files.
+         *     Returns partial results with successes and errors separated.
+         */
+        post: operations["get_citations_batch_api_citations_batch_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -108,6 +111,41 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * CitationBatchRequest
+         * @description Request model for batch citation endpoint.
+         */
+        CitationBatchRequest: {
+            /** Language */
+            language: string;
+            /** Citations */
+            citations: [
+                string,
+                number
+            ][];
+        };
+        /**
+         * CitationBatchResponse
+         * @description Response model for batch citation endpoint.
+         */
+        CitationBatchResponse: {
+            /** Successes */
+            successes: components["schemas"]["CitationResponse"][];
+            /** Errors */
+            errors: components["schemas"]["CitationError"][];
+        };
+        /**
+         * CitationError
+         * @description Error details for a failed citation fetch.
+         */
+        CitationError: {
+            /** File Id */
+            file_id: string;
+            /** Chunk Index */
+            chunk_index: number;
+            /** Error */
+            error: string;
+        };
         /**
          * CitationResponse
          * @description Response model for citation content endpoint.
@@ -334,19 +372,18 @@ export interface operations {
             };
         };
     };
-    get_citation_api_citations__file_id___chunk_index__get: {
+    get_citations_batch_api_citations_batch_post: {
         parameters: {
-            query: {
-                language: string;
-            };
+            query?: never;
             header?: never;
-            path: {
-                file_id: string;
-                chunk_index: number;
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CitationBatchRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -354,7 +391,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CitationResponse"];
+                    "application/json": components["schemas"]["CitationBatchResponse"];
                 };
             };
             /** @description Validation Error */

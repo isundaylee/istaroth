@@ -157,50 +157,31 @@
         }
       }
     },
-    "/api/citations/{file_id}/{chunk_index}": {
-      "get": {
+    "/api/citations/batch": {
+      "post": {
         "tags": [
           "citations"
         ],
-        "summary": "Get Citation",
-        "description": "Get citation content by file ID and chunk index.",
-        "operationId": "get_citation_api_citations__file_id___chunk_index__get",
-        "parameters": [
-          {
-            "name": "file_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "File Id"
+        "summary": "Get Citations Batch",
+        "description": "Get multiple citations in a single request.\n\nSupports fetching different chunks from different files.\nReturns partial results with successes and errors separated.",
+        "operationId": "get_citations_batch_api_citations_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CitationBatchRequest"
+              }
             }
           },
-          {
-            "name": "chunk_index",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "title": "Chunk Index"
-            }
-          },
-          {
-            "name": "language",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Language"
-            }
-          }
-        ],
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CitationResponse"
+                  "$ref": "#/components/schemas/CitationBatchResponse"
                 }
               }
             }
@@ -221,6 +202,87 @@
   },
   "components": {
     "schemas": {
+      "CitationBatchRequest": {
+        "properties": {
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "citations": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "title": "Citations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "language",
+          "citations"
+        ],
+        "title": "CitationBatchRequest",
+        "description": "Request model for batch citation endpoint."
+      },
+      "CitationBatchResponse": {
+        "properties": {
+          "successes": {
+            "items": {
+              "$ref": "#/components/schemas/CitationResponse"
+            },
+            "type": "array",
+            "title": "Successes"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/CitationError"
+            },
+            "type": "array",
+            "title": "Errors"
+          }
+        },
+        "type": "object",
+        "required": [
+          "successes",
+          "errors"
+        ],
+        "title": "CitationBatchResponse",
+        "description": "Response model for batch citation endpoint."
+      },
+      "CitationError": {
+        "properties": {
+          "file_id": {
+            "type": "string",
+            "title": "File Id"
+          },
+          "chunk_index": {
+            "type": "integer",
+            "title": "Chunk Index"
+          },
+          "error": {
+            "type": "string",
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_id",
+          "chunk_index",
+          "error"
+        ],
+        "title": "CitationError",
+        "description": "Error details for a failed citation fetch."
+      },
       "CitationResponse": {
         "properties": {
           "file_id": {

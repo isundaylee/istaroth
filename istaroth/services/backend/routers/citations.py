@@ -1,9 +1,8 @@
 """Citation endpoints."""
 
 import logging
-from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 
 from istaroth.agd import localization
 from istaroth.services.backend import models
@@ -15,24 +14,24 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.get(
-    "/api/citations/{file_id}/{chunk_index}", response_model=models.CitationResponse
-)
+@router.post("/api/citations/batch", response_model=models.CitationBatchResponse)
 @handle_unexpected_exception
-async def get_citation(
-    file_id: str,
-    chunk_index: int,
-    language: Annotated[str, Query()],
+async def get_citations_batch(
+    request: models.CitationBatchRequest,
     document_store_set: DocumentStoreSet,
-) -> models.CitationResponse:
-    """Get citation content by file ID and chunk index."""
-    # Validate language parameter
+) -> models.CitationBatchResponse:
+    """Get multiple citations in a single request.
+
+    Supports fetching different chunks from different files.
+    Returns partial results with successes and errors separated.
+    """
+    # Validate and get language
     try:
-        language_enum = localization.Language(language.upper())
+        language_enum = localization.Language(request.language)
     except ValueError:
         raise HTTPException(
             status_code=400,
-            detail=f"Invalid language: {language}. Available: CHS, ENG",
+            detail=f"Invalid language: {request.language}. Available: CHS, ENG",
         )
 
     # Get the document store for the specified language
@@ -41,27 +40,64 @@ async def get_citation(
     except KeyError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    # Get the chunk
-    chunk = store.get_chunk(file_id, chunk_index)
+    successes = []
+    errors = []
 
-    if chunk is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Citation not found: file_id={file_id}, chunk_index={chunk_index}",
-        )
+    # Process each citation request
+    for file_id, chunk_index in request.citations:
+        try:
+            # Get the chunk
+            chunk = store.get_chunk(file_id, chunk_index)
 
-    # Get the total number of chunks for this file
-    total_chunks = store.get_file_chunk_count(file_id)
-    if total_chunks is None:
-        raise HTTPException(
-            status_code=404, detail=f"File not found: file_id={file_id}"
-        )
+            if chunk is None:
+                # Determine if it's the file or chunk that's missing
+                total_chunks = store.get_file_chunk_count(file_id)
+                if total_chunks is None:
+                    errors.append(
+                        models.CitationError(
+                            file_id=file_id,
+                            chunk_index=chunk_index,
+                            error=f"File not found: {file_id}",
+                        )
+                    )
+                else:
+                    errors.append(
+                        models.CitationError(
+                            file_id=file_id,
+                            chunk_index=chunk_index,
+                            error=f"Chunk index {chunk_index} out of range (0-{total_chunks-1})",
+                        )
+                    )
+                continue
 
-    # Return the chunk content and metadata
-    return models.CitationResponse(
-        file_id=file_id,
-        chunk_index=chunk_index,
-        content=chunk.page_content,
-        metadata=chunk.metadata,
-        total_chunks=total_chunks,
-    )
+            # Get total chunks for this file
+            total_chunks = store.get_file_chunk_count(file_id)
+            assert (
+                total_chunks is not None
+            ), f"Chunk exists but file metadata missing for {file_id}"
+
+            # Success - add to results
+            successes.append(
+                models.CitationResponse(
+                    file_id=file_id,
+                    chunk_index=chunk_index,
+                    content=chunk.page_content,
+                    metadata=chunk.metadata,
+                    total_chunks=total_chunks,
+                )
+            )
+
+        except Exception as e:
+            # Catch any unexpected errors for this specific citation
+            logger.exception(
+                "Unexpected error fetching citation %s:%d", file_id, chunk_index
+            )
+            errors.append(
+                models.CitationError(
+                    file_id=file_id,
+                    chunk_index=chunk_index,
+                    error=f"Internal error: {str(e)}",
+                )
+            )
+
+    return models.CitationBatchResponse(successes=successes, errors=errors)
