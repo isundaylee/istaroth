@@ -59,6 +59,8 @@ spec:
         - download
         - {{ $lang }}
         - /data/checkpoint_web/{{ $lang }}
+        - --release
+        - {{ $.Values.backend.checkpointRelease | quote }}
         volumeMounts:
         - name: data
           mountPath: /data

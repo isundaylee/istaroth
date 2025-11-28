@@ -111,13 +111,18 @@ def cli():
     ),
 )
 @click.argument("target_path", type=pathlib.Path)
-def download(language: str, target_path: pathlib.Path):
+@click.option(
+    "--release",
+    default="latest",
+    help="Release version or tag to download (default: latest)",
+)
+def download(language: str, target_path: pathlib.Path, release: str):
     """Download checkpoint for a specific language."""
     if target_path.exists():
         logger.info("Target path %s already exists, skipping download.", target_path)
         return
 
-    download_checkpoint(localization.Language(language.upper()), target_path, "latest")
+    download_checkpoint(localization.Language(language.upper()), target_path, release)
 
 
 if __name__ == "__main__":
