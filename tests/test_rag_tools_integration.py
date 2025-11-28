@@ -152,9 +152,9 @@ def test_retrieve_relevant_content_with_k1(
     checkpoint_dir = rag_env
 
     # Build document store
-    build_result = run_rag_tools("build", str(test_text_dir))
+    build_result = run_rag_tools("build", str(test_text_dir), str(checkpoint_dir))
     assert build_result.returncode == 0, f"Build failed: {build_result.stderr}"
-    assert "Building document store" in build_result.stdout
+    assert "Building document store" in build_result.stderr
 
     # Test cases: each query should retrieve the most relevant document
     test_queries = [
