@@ -83,6 +83,7 @@ export const eng = {
     loadChunk: 'Load Chunk',
     loadChunkUp: '↑ Load Chunk',
     loadChunkDown: '↓ Load Chunk',
+    loadAllChunks: 'Load All Chunks',
     enterFullscreen: 'Enter fullscreen',
     exitFullscreen: 'Exit fullscreen',
     close: 'Close',

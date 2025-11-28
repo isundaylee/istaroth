@@ -83,6 +83,7 @@ export const chs = {
     loadChunk: '载入段落',
     loadChunkUp: '↑ 载入段落',
     loadChunkDown: '↓ 载入段落',
+    loadAllChunks: '载入全部段落',
     enterFullscreen: '进入全屏',
     exitFullscreen: '退出全屏',
     close: '关闭',

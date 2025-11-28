@@ -54,6 +54,7 @@ interface CitationPopupProps {
   isFullscreen?: boolean
   onClose?: () => void
   onLoadChunk?: (citationId: string) => void
+  onLoadAllChunks?: (fileId: string) => void
   onToggleFullscreen?: () => void
   loadingCitations?: Set<string>
   style?: React.CSSProperties
@@ -70,6 +71,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
     isFullscreen = false,
     onClose,
     onLoadChunk,
+    onLoadAllChunks,
     onToggleFullscreen,
     loadingCitations,
     style
@@ -77,6 +79,11 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
     const { t } = useTranslation()
     const contentRef = useRef<HTMLDivElement>(null)
     const previousChunkIdsRef = useRef<Set<string>>(new Set())
+
+    // Check if any chunks for this file are currently loading
+    const isLoadingAllChunks = fileId && loadingCitations
+      ? Array.from(loadingCitations).some(id => id.startsWith(`${fileId}:`))
+      : false
 
     // Handle Escape key to close popup
     useEffect(() => {
@@ -158,7 +165,39 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
         >
           <span>{title}</span>
           {isSticky && (
-            <div style={{ display: 'flex', gap: '4px' }}>
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+              {/* Load All Chunks button */}
+              {onLoadAllChunks && fileId && chunks && chunks.length > 0 && (
+                <button
+                  onClick={() => onLoadAllChunks(fileId)}
+                  disabled={isLoadingAllChunks}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: 'none',
+                    color: 'white',
+                    borderRadius: '4px',
+                    padding: '4px 8px',
+                    cursor: isLoadingAllChunks ? 'default' : 'pointer',
+                    fontSize: '0.75rem',
+                    fontWeight: 'normal',
+                    transition: 'background-color 0.15s ease',
+                    flexShrink: 0,
+                    opacity: isLoadingAllChunks ? 0.6 : 1
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isLoadingAllChunks) {
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
+                  }}
+                  title={t.citation.loadAllChunks}
+                >
+                  {isLoadingAllChunks ? t.citation.loadingButton : t.citation.loadAllChunks}
+                </button>
+              )}
+
               {/* Fullscreen toggle button */}
               {onToggleFullscreen && (
                 <button

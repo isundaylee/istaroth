@@ -352,6 +352,26 @@ function CitationRenderer({ content }: CitationRendererProps) {
     return getSourceContent(citationId)
   }
 
+  const handleLoadAllChunks = useCallback((fileId: string) => {
+    // Get total_chunks from any cached chunk for this file
+    // The button only appears when chunks are already loaded, so we should always have at least one
+    const cachedChunk = Object.entries(citationCache)
+      .find(([key, value]) => key.startsWith(`${fileId}:`) && !('error' in value))
+
+    if (cachedChunk && !('error' in cachedChunk[1])) {
+      const citation = cachedChunk[1] as CitationResponse
+      const totalChunks = citation.total_chunks
+
+      // Generate citation IDs for all chunks (0 to total_chunks - 1)
+      const allCitationIds = Array.from({ length: totalChunks }, (_, i) =>
+        formatCitationId(fileId, i)
+      )
+
+      // Fetch all chunks (fetchCitationsBatch will skip already cached ones)
+      fetchCitationsBatch(allCitationIds)
+    }
+  }, [citationCache, fetchCitationsBatch])
+
   // Custom components for ReactMarkdown - memoized to prevent recreation on every render
   const components: Components = useMemo(() => ({
     a: ({ href, children }) => {
@@ -423,6 +443,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
           isFullscreen={isFullscreen}
           onClose={handleCloseSticky}
           onLoadChunk={isSticky ? (citationId) => fetchCitationsBatch([citationId]) : undefined}
+          onLoadAllChunks={isSticky ? handleLoadAllChunks : undefined}
           onToggleFullscreen={isSticky ? handleToggleFullscreen : undefined}
           loadingCitations={loadingCitations}
           style={{
