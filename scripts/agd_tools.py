@@ -211,10 +211,11 @@ def _generate_content(
 
             # Collect accessed text map IDs regardless of success/failure
             tracker_stats.update(result.tracker_stats)
+            renderable_type_name = renderable_type.__class__.__name__
 
             if result.error_message is not None:
                 log_message(
-                    f"✗ {result.renderable_key} -> ERROR: {result.error_message}"
+                    f"✗ {renderable_type_name}: {result.renderable_key} -> ERROR: {result.error_message}"
                 )
                 error_count += 1
 
@@ -228,7 +229,7 @@ def _generate_content(
                     error_msg = f"Error limit exceeded ({error_count} > {effective_error_limit}), stopping generation"
                     log_message(error_msg)
                     raise _ErrorLimitError(
-                        renderable_type.__class__.__name__,
+                        renderable_type_name,
                         error_count,
                         effective_error_limit,
                         result.error_message,
@@ -238,7 +239,9 @@ def _generate_content(
 
             # Skip if rendered is None (filtered out)
             if result.rendered_item is None:
-                log_message(f"⚠ {result.renderable_key} -> SKIPPED (filtered)")
+                log_message(
+                    f"⚠ {renderable_type_name}: {result.renderable_key} -> SKIPPED (filtered)"
+                )
                 skipped_count += 1
                 continue
 
@@ -249,7 +252,7 @@ def _generate_content(
             # Log warning if there was a collision
             if filename != original_filename:
                 log_message(
-                    f"Warning: Filename collision for {result.renderable_key}, renamed to {filename}"
+                    f"⚠ {renderable_type_name}: {result.renderable_key} -> WARNING: Filename collision, renamed to {filename}"
                 )
 
             used_filenames.add(filename)
