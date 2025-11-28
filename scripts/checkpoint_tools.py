@@ -64,6 +64,12 @@ def download_checkpoint(
             tag_file = _get_release_tag_file(target_dir)
             if tag_file.exists():
                 tag_file.unlink()
+        else:
+            logger.info(
+                "Checkpoint already exists with release '%s', skipping download.",
+                release,
+            )
+            return
 
     # Create URL for the checkpoint
     if release == "latest":
