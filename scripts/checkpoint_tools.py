@@ -20,12 +20,51 @@ from istaroth.agd import localization
 logger = logging.getLogger(__name__)
 
 
+def _get_release_tag_file(target_dir: pathlib.Path) -> pathlib.Path:
+    """Get the path to the release tag file for a checkpoint directory."""
+    return target_dir.parent / f"{target_dir.name}.release"
+
+
+def _read_release_tag(target_dir: pathlib.Path) -> str | None:
+    """Read the release version from the tag file, if it exists."""
+    tag_file = _get_release_tag_file(target_dir)
+    if tag_file.exists():
+        return tag_file.read_text().strip()
+    return None
+
+
+def _write_release_tag(target_dir: pathlib.Path, release: str) -> None:
+    """Write the release version to the tag file."""
+    tag_file = _get_release_tag_file(target_dir)
+    tag_file.write_text(release)
+    logger.info("Recorded release version '%s' in tag file %s", release, tag_file)
+
+
 def download_checkpoint(
     language: localization.Language,
     target_dir: pathlib.Path,
     release: str = "latest",
 ) -> None:
     """Download and extract checkpoint for a specific language."""
+    # Check if checkpoint exists and if release version differs
+    if target_dir.exists():
+        existing_release = _read_release_tag(target_dir)
+        if (
+            existing_release is not None
+            and existing_release != release
+            and release != "latest"
+        ):
+            logger.info(
+                "Checkpoint exists with release '%s', but requested release is '%s'. "
+                "Deleting existing checkpoint to force re-download.",
+                existing_release,
+                release,
+            )
+            shutil.rmtree(target_dir)
+            tag_file = _get_release_tag_file(target_dir)
+            if tag_file.exists():
+                tag_file.unlink()
+
     # Create URL for the checkpoint
     base_url = f"https://github.com/isundaylee/istaroth/releases/{release}/download"
     checkpoint_url = f"{base_url}/{language.value.lower()}.tar.gz"
@@ -92,6 +131,7 @@ def download_checkpoint(
         target_dir.rename(backup_dir)
 
     tmp_dir.rename(target_dir)
+    _write_release_tag(target_dir, release)
     logger.info("Successfully extracted checkpoint to %s", target_dir)
 
 
@@ -118,10 +158,6 @@ def cli():
 )
 def download(language: str, target_path: pathlib.Path, release: str):
     """Download checkpoint for a specific language."""
-    if target_path.exists():
-        logger.info("Target path %s already exists, skipping download.", target_path)
-        return
-
     download_checkpoint(localization.Language(language.upper()), target_path, release)
 
 
