@@ -78,6 +78,18 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
     const contentRef = useRef<HTMLDivElement>(null)
     const previousChunkIdsRef = useRef<Set<string>>(new Set())
 
+    // Handle Escape key to close popup
+    useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && onClose) {
+          onClose()
+        }
+      }
+
+      document.addEventListener('keydown', handleKeyDown)
+      return () => document.removeEventListener('keydown', handleKeyDown)
+    }, [onClose])
+
     // Scroll to newly loaded chunk when chunks array changes
     useEffect(() => {
       if (chunks && chunks.length > 0 && contentRef.current) {
