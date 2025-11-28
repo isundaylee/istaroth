@@ -32,9 +32,10 @@ function CitationRenderer({ content }: CitationRendererProps) {
   const popupRef = useRef<HTMLDivElement>(null)
 
   // Preprocess content to convert XML citations to markdown links with document:chunk numbering
-  const preprocessContent = (text: string): string => {
-    return preprocessCitationsForDisplay(text)
-  }
+  // Also extract unique cited works in the same pass
+  const preprocessResult = useMemo(() => preprocessCitationsForDisplay(content), [content])
+  const processedContent = preprocessResult.processedText
+  const uniqueCitedWorks = preprocessResult.uniqueFileIds
 
   // Calculate optimal popup position and size to avoid going off-screen
   const calculatePopupPosition = useCallback((citationRect: DOMRect) => {
@@ -313,7 +314,21 @@ function CitationRenderer({ content }: CitationRendererProps) {
     }
   }), [hoveredCitation, stickyCitation, handleCitationHover, handleCitationClick])
 
-  const processedContent = preprocessContent(content)
+
+  // Get title for a cited work (from cache if available, otherwise use fileId)
+  const getCitedWorkTitle = useCallback((fileId: string): string => {
+    // Try to find any cached chunk for this file to get the title
+    const cachedChunk = Object.entries(citationCache)
+      .find(([key]) => key.startsWith(`${fileId}:`))
+
+    if (cachedChunk && !('error' in cachedChunk[1])) {
+      const citation = cachedChunk[1] as CitationResponse
+      const filename = citation.metadata.filename
+      return typeof filename === 'string' ? filename : fileId
+    }
+
+    return fileId
+  }, [citationCache])
 
   const displayedCitation = stickyCitation || hoveredCitation
   const isSticky = stickyCitation !== null
@@ -344,6 +359,63 @@ function CitationRenderer({ content }: CitationRendererProps) {
       )}
 
       <ReactMarkdown components={components}>{processedContent}</ReactMarkdown>
+
+      {/* Citation list at the end */}
+      {uniqueCitedWorks.length > 0 && (
+        <div style={{
+          marginTop: '1rem',
+          paddingTop: '0.75rem',
+          borderTop: '1px solid #e0e0e0'
+        }}>
+          <h4 style={{
+            fontSize: '1rem',
+            fontWeight: 600,
+            marginBottom: '1rem',
+            color: '#333'
+          }}>
+            {t('citation.list.title')}
+          </h4>
+          <ul style={{
+            listStyle: 'none',
+            padding: 0,
+            margin: 0
+          }}>
+            {uniqueCitedWorks.map((fileId, index) => {
+              const title = getCitedWorkTitle(fileId)
+              const isLoading = loadingCitations.has(formatCitationId(fileId, 0))
+
+              return (
+                <li
+                  key={fileId}
+                  style={{
+                    marginBottom: '0.25rem',
+                    padding: '0',
+                    borderRadius: '4px',
+                    transition: 'background-color 0.15s ease',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f5f5f5'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent'
+                  }}
+                  onClick={(e) => handleCitationClick(e, formatCitationId(fileId, 0))}
+                >
+                  <span style={{
+                    color: '#5594d9',
+                    textDecoration: 'none',
+                    fontSize: '0.9rem',
+                    fontWeight: 500
+                  }}>
+                    {isLoading ? t('citation.loading') : `${index + 1}. ${title}`}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }

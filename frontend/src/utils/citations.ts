@@ -30,12 +30,22 @@ export function formatCitationId(fileId: string, chunkIndex: number): string {
 }
 
 /**
+ * Result of preprocessing citations for display.
+ */
+export interface PreprocessCitationsResult {
+  processedText: string
+  uniqueFileIds: string[]
+}
+
+/**
  * Convert XML citations to markdown links for display.
  * Maps file IDs to document indices in order of appearance.
+ * Also returns the list of unique file IDs in order of appearance.
  */
-export function preprocessCitationsForDisplay(text: string): string {
+export function preprocessCitationsForDisplay(text: string): PreprocessCitationsResult {
   const regex = /<citation\s+file_id="([^"]+)"\s+chunk_index="ck(\d+)"\s*\/>/g
   const fileIdToDocIndex = new Map<string, number>()
+  const uniqueFileIds: string[] = []
   let match: RegExpExecArray | null
   let documentCounter = 0
 
@@ -47,12 +57,18 @@ export function preprocessCitationsForDisplay(text: string): string {
     if (!fileIdToDocIndex.has(fileId)) {
       documentCounter++
       fileIdToDocIndex.set(fileId, documentCounter)
+      uniqueFileIds.push(fileId)
     }
   }
 
   // Second pass: replace citations with document_index:chunk_index format
-  return text.replace(regex, (_, fileId, chunkIndex) => {
+  const processedText = text.replace(regex, (_, fileId, chunkIndex) => {
     const docIndex = fileIdToDocIndex.get(fileId)!
     return `[${docIndex}:${chunkIndex}](http://istaroth.markdown/citation/${fileId}/${chunkIndex})`
   })
+
+  return {
+    processedText,
+    uniqueFileIds
+  }
 }

@@ -87,6 +87,9 @@ export const eng = {
     exitFullscreen: 'Exit fullscreen',
     close: 'Close',
     chunk: 'Chunk',
-    current: 'current'
+    current: 'current',
+    list: {
+      title: 'Cited Works'
+    }
   }
 }

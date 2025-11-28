@@ -87,6 +87,9 @@ export const chs = {
     exitFullscreen: '退出全屏',
     close: '关闭',
     chunk: '片段',
-    current: '当前'
+    current: '当前',
+    list: {
+      title: '引用文献'
+    }
   }
 }
