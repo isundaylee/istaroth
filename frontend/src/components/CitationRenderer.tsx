@@ -261,6 +261,20 @@ function CitationRenderer({ content }: CitationRendererProps) {
     }
   }, [stickyCitation, fetchCitationsBatch, calculatePopupPosition])
 
+  const handleCitationListClick = useCallback((e: React.MouseEvent<HTMLElement>, citationId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    // Fetch citation content if not already cached
+    fetchCitationsBatch([citationId])
+
+    // Always open fullscreen when clicking from citation list
+    // Position doesn't matter for fullscreen popups
+    setStickyCitation(citationId)
+    setIsFullscreen(true)
+    setHoveredCitation(null) // Clear hover when making sticky
+  }, [fetchCitationsBatch])
+
   const handleCloseSticky = useCallback(() => {
     setStickyCitation(null)
     setIsFullscreen(false)
@@ -462,7 +476,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent'
                   }}
-                  onClick={(e) => handleCitationClick(e, formatCitationId(fileId, 0))}
+                  onClick={(e) => handleCitationListClick(e, formatCitationId(fileId, 0))}
                 >
                   <span style={{
                     color: '#5594d9',
