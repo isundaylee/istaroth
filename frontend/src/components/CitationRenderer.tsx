@@ -138,6 +138,15 @@ function CitationRenderer({ content }: CitationRendererProps) {
     }
   }, [citationCache, loadingCitations, language, t])
 
+  // Prefetch citations for all unique file IDs to get titles immediately
+  useEffect(() => {
+    for (const fileId of uniqueCitedWorks) {
+      const citationId = formatCitationId(fileId, 0)
+      // fetchCitation already checks if it's cached or loading
+      fetchCitation(citationId)
+    }
+  }, [uniqueCitedWorks, fetchCitation])
+
   const handleCitationHover = useCallback((e: React.MouseEvent<HTMLElement>, citationId: string) => {
     // Don't show hover popup if any citation is sticky
     if (stickyCitation) return
