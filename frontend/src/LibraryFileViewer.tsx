@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
+import remarkBreaks from 'remark-breaks'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import Card from './components/Card'
@@ -85,7 +86,7 @@ function LibraryFileViewer() {
 
           {!loading && fileContent && (
             <div className="answer">
-              <ReactMarkdown>{fileContent}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkBreaks]}>{fileContent}</ReactMarkdown>
             </div>
           )}
 

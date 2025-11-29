@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
+import remarkBreaks from 'remark-breaks'
 import { useTranslation, useT } from '../contexts/LanguageContext'
 import type { CitationResponse } from '../types/api'
 import CitationPopup from './CitationPopup'
@@ -478,7 +479,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
         />
       )}
 
-      <ReactMarkdown components={components}>{processedContent}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>{processedContent}</ReactMarkdown>
 
       {/* Citation list at the end */}
       {uniqueCitedWorks.length > 0 && (
