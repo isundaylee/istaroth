@@ -111,10 +111,10 @@ mcp:
 
   resources:
     limits:
-      cpu: 500m
+      cpu: 6
       memory: 3Gi
     requests:
-      cpu: 100m
+      cpu: 1
       memory: 1Gi
 
   # Extra environment variables for MCP pods
