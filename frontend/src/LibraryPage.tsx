@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import Card from './components/Card'
 import PageCard from './components/PageCard'
 import ErrorDisplay from './components/ErrorDisplay'
-
-interface LibraryCategoriesResponse {
-  categories: string[]
-}
-
-interface LibraryFilesResponse {
-  files: string[]
-}
+import type {
+  LibraryCategoriesResponse,
+  LibraryFilesResponse,
+  LibraryFileResponse
+} from './types/api'
 
 function LibraryPage() {
   const t = useT()
@@ -19,6 +17,8 @@ function LibraryPage() {
   const [categories, setCategories] = useState<string[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [files, setFiles] = useState<string[]>([])
+  const [selectedFile, setSelectedFile] = useState<string | null>(null)
+  const [fileContent, setFileContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -77,6 +77,34 @@ function LibraryPage() {
     fetchFiles()
   }, [selectedCategory, language, t])
 
+  useEffect(() => {
+    if (!selectedCategory || !selectedFile) {
+      setFileContent(null)
+      return
+    }
+
+    const fetchFileContent = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await fetch(
+          `/api/library/file/${encodeURIComponent(selectedCategory)}/${encodeURIComponent(selectedFile)}?language=${language}`
+        )
+        if (!res.ok) {
+          throw new Error(t('library.errors.loadFailed'))
+        }
+        const data = (await res.json()) as LibraryFileResponse
+        setFileContent(data.content)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : t('library.errors.unknown'))
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchFileContent()
+  }, [selectedCategory, selectedFile, language, t])
+
   return (
     <div className="app">
       <Navigation />
@@ -96,8 +124,13 @@ function LibraryPage() {
                 </h1>
                 <button
                   onClick={() => {
-                    setSelectedCategory(null)
-                    setFiles([])
+                    if (selectedFile) {
+                      setSelectedFile(null)
+                      setFileContent(null)
+                    } else {
+                      setSelectedCategory(null)
+                      setFiles([])
+                    }
                   }}
                   style={{
                     padding: '0.5rem 1rem',
@@ -109,7 +142,7 @@ function LibraryPage() {
                     right: 0
                   }}
                 >
-                  ← {t('library.backToCategories')}
+                  ← {selectedFile ? t('library.backToFiles') : t('library.backToCategories')}
                 </button>
               </div>
             )}
@@ -175,7 +208,7 @@ function LibraryPage() {
               </div>
             )}
 
-            {selectedCategory && (
+            {selectedCategory && !selectedFile && (
               <div>
                 {loading && (
                   <div style={{ textAlign: 'center', padding: '2rem' }}>
@@ -200,10 +233,7 @@ function LibraryPage() {
                     {files.map((file) => (
                       <div
                         key={file}
-                        onClick={() => {
-                          // TODO: Navigate to file viewer in Phase 3
-                          console.log('File clicked:', file)
-                        }}
+                        onClick={() => setSelectedFile(file)}
                         onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                           const card = e.currentTarget.querySelector('.card') as HTMLElement
                           if (card) {
@@ -232,6 +262,28 @@ function LibraryPage() {
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+            )}
+
+            {selectedCategory && selectedFile && (
+              <div>
+                {loading && (
+                  <div style={{ textAlign: 'center', padding: '2rem' }}>
+                    {t('common.loading')}
+                  </div>
+                )}
+
+                {!loading && fileContent && (
+                  <div className="answer">
+                    <ReactMarkdown>{fileContent}</ReactMarkdown>
+                  </div>
+                )}
+
+                {!loading && !fileContent && error && (
+                  <Card style={{ margin: '1rem 0', backgroundColor: '#fee', borderColor: '#f00' }}>
+                    <p style={{ color: '#c00' }}>{error}</p>
+                  </Card>
                 )}
               </div>
             )}

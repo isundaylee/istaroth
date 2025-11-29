@@ -105,6 +105,7 @@ export const chs = {
     placeholder: '图书馆功能即将推出...',
     selectCategory: '选择分类',
     backToCategories: '返回分类',
+    backToFiles: '返回文件列表',
     noFiles: '该分类下没有文件',
     categories: {
       artifact_sets: '圣遗物套装',

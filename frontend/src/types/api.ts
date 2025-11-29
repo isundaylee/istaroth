@@ -27,3 +27,18 @@ export interface ErrorResponse {
 export interface ExampleQuestionRequest {
   language: string
 }
+
+// Library API types (will be in generated types after OpenAPI spec regeneration)
+export interface LibraryCategoriesResponse {
+  categories: string[]
+}
+
+export interface LibraryFilesResponse {
+  files: string[]
+}
+
+export interface LibraryFileResponse {
+  category: string
+  filename: string
+  content: string
+}

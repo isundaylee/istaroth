@@ -105,6 +105,7 @@ export const eng = {
     placeholder: 'Library feature coming soon...',
     selectCategory: 'Select Category',
     backToCategories: 'Back to Categories',
+    backToFiles: 'Back to Files',
     noFiles: 'No files in this category',
     categories: {
       artifact_sets: 'Artifact Sets',
