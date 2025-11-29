@@ -5,6 +5,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 
 from istaroth.agd import localization
+from istaroth.rag import text_set
 from istaroth.services.backend import models
 from istaroth.services.backend.dependencies import DocumentStoreSet
 from istaroth.services.backend.utils import handle_unexpected_exception
@@ -76,6 +77,16 @@ async def get_citations_batch(
                 total_chunks is not None
             ), f"Chunk exists but file metadata missing for {file_id}"
 
+            # Extract filename and category from metadata
+            filename = chunk.metadata.get("filename")
+            category = None
+            if filename:
+                try:
+                    category = text_set.get_category_from_filename(filename)
+                except ValueError:
+                    # Filename doesn't match any known category prefix
+                    category = None
+
             # Success - add to results
             successes.append(
                 models.CitationResponse(
@@ -84,6 +95,8 @@ async def get_citations_batch(
                     content=chunk.page_content,
                     metadata=chunk.metadata,
                     total_chunks=total_chunks,
+                    category=category,
+                    filename=filename,
                 )
             )
 

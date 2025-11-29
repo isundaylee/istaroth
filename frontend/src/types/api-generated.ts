@@ -107,6 +107,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/library/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Categories
+         * @description Get list of all categories for a language.
+         */
+        get: operations["get_categories_api_library_categories_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/files/{category}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Files
+         * @description Get list of files in a category for a language.
+         */
+        get: operations["get_files_api_library_files__category__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/file/{category}/{filename}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get File
+         * @description Get full text content of a file.
+         */
+        get: operations["get_file_api_library_file__category___filename__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -163,6 +223,10 @@ export interface components {
             };
             /** Total Chunks */
             total_chunks: number;
+            /** Category */
+            category?: string | null;
+            /** Filename */
+            filename?: string | null;
         };
         /**
          * ConversationResponse
@@ -200,6 +264,48 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * LibraryCategoriesResponse
+         * @description Response model for library categories endpoint.
+         */
+        LibraryCategoriesResponse: {
+            /** Categories */
+            categories: string[];
+        };
+        /**
+         * LibraryFileInfo
+         * @description File information with parsed components.
+         */
+        LibraryFileInfo: {
+            /** Category */
+            category: string;
+            /** Name */
+            name: string;
+            /** Id */
+            id: number | null;
+            /** Filename */
+            filename: string;
+        };
+        /**
+         * LibraryFileResponse
+         * @description Response model for library file content endpoint.
+         */
+        LibraryFileResponse: {
+            /** Category */
+            category: string;
+            /** Filename */
+            filename: string;
+            /** Content */
+            content: string;
+        };
+        /**
+         * LibraryFilesResponse
+         * @description Response model for library files endpoint.
+         */
+        LibraryFilesResponse: {
+            /** Files */
+            files: components["schemas"]["LibraryFileInfo"][];
         };
         /**
          * ModelsResponse
@@ -392,6 +498,107 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CitationBatchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_categories_api_library_categories_get: {
+        parameters: {
+            query: {
+                /** @description Language code (CHS, ENG) */
+                language: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryCategoriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_files_api_library_files__category__get: {
+        parameters: {
+            query: {
+                /** @description Language code (CHS, ENG) */
+                language: string;
+            };
+            header?: never;
+            path: {
+                category: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryFilesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_file_api_library_file__category___filename__get: {
+        parameters: {
+            query: {
+                /** @description Language code (CHS, ENG) */
+                language: string;
+            };
+            header?: never;
+            path: {
+                category: string;
+                filename: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryFileResponse"];
                 };
             };
             /** @description Validation Error */

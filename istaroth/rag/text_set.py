@@ -32,6 +32,33 @@ def get_category_prefix(category: str) -> str:
     return category_prefix_map[category]
 
 
+def get_category_from_filename(filename: str) -> str:
+    """Get the category from a filename by matching its prefix.
+
+    Returns the category name if the filename starts with a known category prefix,
+    otherwise raises ValueError.
+    """
+    category_prefix_map = {
+        "artifact_sets": "artifact_set_",
+        "character_stories": "character_story_",
+        "material_types": "material_type_",
+        "quest": "quest_",
+        "readable": "readable_",
+        "subtitles": "subtitle_",
+        "talk_groups": "talk_group_",
+        "talks": "talk_",
+        "voicelines": "voiceline_",
+    }
+
+    name_without_ext = filename[:-4] if filename.endswith(".txt") else filename
+
+    for category, prefix in category_prefix_map.items():
+        if name_without_ext.startswith(prefix):
+            return category
+
+    raise ValueError(f"Unknown category prefix in filename: {filename}")
+
+
 @attrs.define
 class TextSet:
     """Set of text files organized by category for a language."""

@@ -92,7 +92,8 @@ export const chs = {
     current: '当前',
     list: {
       title: '引用文献'
-    }
+    },
+    openInLibrary: '在图书馆中打开'
   },
 
   navigation: {

@@ -198,6 +198,168 @@
           }
         }
       }
+    },
+    "/api/library/categories": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Get Categories",
+        "description": "Get list of all categories for a language.",
+        "operationId": "get_categories_api_library_categories_get",
+        "parameters": [
+          {
+            "name": "language",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Language code (CHS, ENG)",
+              "title": "Language"
+            },
+            "description": "Language code (CHS, ENG)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryCategoriesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/files/{category}": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Get Files",
+        "description": "Get list of files in a category for a language.",
+        "operationId": "get_files_api_library_files__category__get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Category"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Language code (CHS, ENG)",
+              "title": "Language"
+            },
+            "description": "Language code (CHS, ENG)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryFilesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/file/{category}/{filename}": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Get File",
+        "description": "Get full text content of a file.",
+        "operationId": "get_file_api_library_file__category___filename__get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Category"
+            }
+          },
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Filename"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Language code (CHS, ENG)",
+              "title": "Language"
+            },
+            "description": "Language code (CHS, ENG)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryFileResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -305,6 +467,28 @@
           "total_chunks": {
             "type": "integer",
             "title": "Total Chunks"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
           }
         },
         "type": "object",
@@ -398,6 +582,100 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "LibraryCategoriesResponse": {
+        "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Categories"
+          }
+        },
+        "type": "object",
+        "required": [
+          "categories"
+        ],
+        "title": "LibraryCategoriesResponse",
+        "description": "Response model for library categories endpoint."
+      },
+      "LibraryFileInfo": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "name",
+          "id",
+          "filename"
+        ],
+        "title": "LibraryFileInfo",
+        "description": "File information with parsed components."
+      },
+      "LibraryFileResponse": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "filename",
+          "content"
+        ],
+        "title": "LibraryFileResponse",
+        "description": "Response model for library file content endpoint."
+      },
+      "LibraryFilesResponse": {
+        "properties": {
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/LibraryFileInfo"
+            },
+            "type": "array",
+            "title": "Files"
+          }
+        },
+        "type": "object",
+        "required": [
+          "files"
+        ],
+        "title": "LibraryFilesResponse",
+        "description": "Response model for library files endpoint."
       },
       "ModelsResponse": {
         "properties": {

@@ -92,7 +92,8 @@ export const eng = {
     current: 'current',
     list: {
       title: 'Cited Works'
-    }
+    },
+    openInLibrary: 'Open in library'
   },
 
   navigation: {
