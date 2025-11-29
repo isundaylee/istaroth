@@ -28,17 +28,7 @@ spec:
                 name: {{ $.Release.Name }}-backend
                 port:
                   number: {{ $.Values.backend.service.port }}
-          {{- $mcp := $.Values.mcp }}
-          {{- range $language := $mcp.languages }}
-          # MCP server ({{ $language }}) routes
-          - path: /mcp/{{ $language }}
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ $.Release.Name }}-mcp-{{ $language }}
-                port:
-                  number: {{ $mcp.service.port }}
-          {{- end }}
+          # MCP routes are handled in mcp-ingress.yaml with path rewriting
           # Everything else to frontend
           - path: /
             pathType: Prefix

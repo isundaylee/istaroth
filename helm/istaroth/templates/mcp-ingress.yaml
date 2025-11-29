@@ -1,0 +1,53 @@
+{{- if and .Values.ingress.enabled (gt (len .Values.mcp.languages) 0) -}}
+{{- $mcp := .Values.mcp }}
+{{- range $language := $mcp.languages }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ $.Release.Name }}-mcp-{{ $language }}-stripprefix
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $.Release.Name }}-mcp-{{ $language }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/component: mcp-{{ $language }}
+spec:
+  stripPrefix:
+    prefixes:
+      - /mcp/{{ $language }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $.Release.Name }}-mcp-{{ $language }}
+  labels:
+    app.kubernetes.io/name: {{ $.Release.Name }}-mcp-{{ $language }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/component: mcp-{{ $language }}
+    {{- with $.Values.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  annotations:
+    # Use StripPrefix middleware to rewrite /mcp/{{ $language }}/* -> /mcp/*
+    # Middleware reference must include namespace prefix: namespace-middlewarename@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: {{ $.Release.Namespace }}-{{ $.Release.Name }}-mcp-{{ $language }}-stripprefix@kubernetescrd
+    {{- with $.Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ $.Values.ingress.className }}
+  rules:
+    {{- range $.Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          - path: /mcp/{{ $language }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $.Release.Name }}-mcp-{{ $language }}
+                port:
+                  number: {{ $mcp.service.port }}
+    {{- end }}
+{{- end }}
+{{- end }}
