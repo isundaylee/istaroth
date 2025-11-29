@@ -1,21 +1,15 @@
 import { useT } from './contexts/LanguageContext'
 import QueryForm from './QueryForm'
 import Card from './components/Card'
-import LanguageSwitcher from './components/LanguageSwitcher'
+import Navigation from './components/Navigation'
 
 function QueryPage() {
   const t = useT()
 
   return (
     <div className="app">
+      <Navigation />
       <main className="main">
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          padding: '0.5rem 0 1rem 0'
-        }}>
-          <LanguageSwitcher />
-        </div>
 
         <QueryForm />
 

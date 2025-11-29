@@ -93,5 +93,15 @@ export const eng = {
     list: {
       title: 'Cited Works'
     }
+  },
+
+  navigation: {
+    home: 'Q&A',
+    library: 'Library'
+  },
+
+  library: {
+    title: 'Library',
+    placeholder: 'Library feature coming soon...'
   }
 }

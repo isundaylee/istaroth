@@ -93,5 +93,15 @@ export const chs = {
     list: {
       title: '引用文献'
     }
+  },
+
+  navigation: {
+    home: '问答',
+    library: '图书馆'
+  },
+
+  library: {
+    title: '图书馆',
+    placeholder: '图书馆功能即将推出...'
   }
 }

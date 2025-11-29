@@ -3,6 +3,7 @@ import { LanguageProvider } from './contexts/LanguageContext'
 import DocumentTitle from './components/DocumentTitle'
 import QueryPage from './QueryPage'
 import ConversationPage from './ConversationPage'
+import LibraryPage from './LibraryPage'
 import NotFoundPage from './NotFoundPage'
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
         <Routes>
           <Route path="/" element={<QueryPage />} />
           <Route path="/conversation/:id" element={<ConversationPage />} />
+          <Route path="/library" element={<LibraryPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Router>
