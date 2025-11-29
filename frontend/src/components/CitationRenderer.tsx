@@ -519,7 +519,8 @@ function CitationRenderer({ content }: CitationRendererProps) {
                     transition: 'background-color 0.15s ease',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.5rem'
+                    gap: '0.5rem',
+                    minWidth: 0
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = '#f5f5f5'
@@ -535,7 +536,10 @@ function CitationRenderer({ content }: CitationRendererProps) {
                       fontSize: '0.9rem',
                       fontWeight: 500,
                       cursor: 'pointer',
-                      flex: 1
+                      flex: 1,
+                      minWidth: 0,
+                      wordBreak: 'break-all',
+                      overflowWrap: 'anywhere'
                     }}
                     onClick={(e) => handleCitationListClick(e, formatCitationId(fileId, 0))}
                   >
@@ -552,7 +556,8 @@ function CitationRenderer({ content }: CitationRendererProps) {
                         cursor: 'pointer',
                         padding: '2px 6px',
                         borderRadius: '3px',
-                        transition: 'background-color 0.15s ease'
+                        transition: 'background-color 0.15s ease',
+                        flexShrink: 0
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.backgroundColor = '#e0e0e0'

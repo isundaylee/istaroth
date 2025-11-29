@@ -375,6 +375,20 @@ body {
     position: static !important;
     align-self: center;
   }
+
+  /* Citation list mobile styles */
+  [data-citation-container] ul {
+    font-size: 0.85rem !important;
+  }
+
+  [data-citation-container] li {
+    padding: 0.25rem 0 !important;
+  }
+
+  [data-citation-container] li > span {
+    font-size: 0.85rem !important;
+    line-height: 1.4 !important;
+  }
 }
 
 @media (min-width: 600px) {
