@@ -126,3 +126,23 @@ class CitationBatchResponse(BaseModel):
 
     successes: list[CitationResponse]
     errors: list[CitationError]
+
+
+class LibraryCategoriesResponse(BaseModel):
+    """Response model for library categories endpoint."""
+
+    categories: list[str]
+
+
+class LibraryFilesResponse(BaseModel):
+    """Response model for library files endpoint."""
+
+    files: list[str]
+
+
+class LibraryFileResponse(BaseModel):
+    """Response model for library file content endpoint."""
+
+    category: str
+    filename: str
+    content: str

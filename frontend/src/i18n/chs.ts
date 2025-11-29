@@ -102,6 +102,13 @@ export const chs = {
 
   library: {
     title: '图书馆',
-    placeholder: '图书馆功能即将推出...'
+    placeholder: '图书馆功能即将推出...',
+    selectCategory: '选择分类',
+    backToCategories: '返回分类',
+    noFiles: '该分类下没有文件',
+    errors: {
+      loadFailed: '加载失败',
+      unknown: '发生未知错误'
+    }
   }
 }

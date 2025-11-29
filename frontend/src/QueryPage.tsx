@@ -1,7 +1,7 @@
 import { useT } from './contexts/LanguageContext'
 import QueryForm from './QueryForm'
-import Card from './components/Card'
 import Navigation from './components/Navigation'
+import PageCard from './components/PageCard'
 
 function QueryPage() {
   const t = useT()
@@ -17,13 +17,7 @@ function QueryPage() {
           textAlign: 'center',
           marginBottom: '40px'
         }}>
-          <Card style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-            padding: '30px',
-            margin: '0'
-          }}>
+          <PageCard>
             <h1 style={{ fontSize: '2.5rem', color: '#2c3e50', marginBottom: '15px' }}>
               {t('query.title')}
             </h1>
@@ -75,7 +69,7 @@ function QueryPage() {
                 {t('meta.githubLink')}
               </a>
             </div>
-          </Card>
+          </PageCard>
         </div>
       </main>
     </div>

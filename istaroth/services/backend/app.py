@@ -6,6 +6,7 @@ from istaroth.services.backend.routers import (
     citations,
     conversations,
     examples,
+    library,
     models,
     query,
 )
@@ -25,5 +26,6 @@ def create_app() -> FastAPI:
     app.include_router(models.router, tags=["models"])
     app.include_router(examples.router, tags=["examples"])
     app.include_router(citations.router, tags=["citations"])
+    app.include_router(library.router, tags=["library"])
 
     return app

@@ -1,21 +1,237 @@
-import { useT } from './contexts/LanguageContext'
+import React, { useState, useEffect } from 'react'
+import { useT, useTranslation } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
+import Card from './components/Card'
+import PageCard from './components/PageCard'
+
+interface LibraryCategoriesResponse {
+  categories: string[]
+}
+
+interface LibraryFilesResponse {
+  files: string[]
+}
 
 function LibraryPage() {
   const t = useT()
+  const { language } = useTranslation()
+  const [categories, setCategories] = useState<string[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [files, setFiles] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await fetch(`/api/library/categories?language=${language}`)
+        if (!res.ok) {
+          throw new Error(t('library.errors.loadFailed'))
+        }
+        const data = (await res.json()) as LibraryCategoriesResponse
+        setCategories(data.categories)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : t('library.errors.unknown'))
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCategories()
+  }, [language, t])
+
+  useEffect(() => {
+    if (!selectedCategory) {
+      setFiles([])
+      return
+    }
+
+    const fetchFiles = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await fetch(
+          `/api/library/files/${encodeURIComponent(selectedCategory)}?language=${language}`
+        )
+        if (!res.ok) {
+          throw new Error(t('library.errors.loadFailed'))
+        }
+        const data = (await res.json()) as LibraryFilesResponse
+        setFiles(data.files)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : t('library.errors.unknown'))
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchFiles()
+  }, [selectedCategory, language, t])
 
   return (
     <div className="app">
       <Navigation />
       <main className="main">
-        <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-          <h1 style={{ marginBottom: '2rem', textAlign: 'center' }}>
-            {t('library.title')}
-          </h1>
-          <p style={{ textAlign: 'center', color: '#666' }}>
-            {t('library.placeholder')}
-          </p>
-        </div>
+          <PageCard>
+            {!selectedCategory && (
+              <h1 style={{ marginBottom: '2rem', textAlign: 'center', fontSize: '2.5rem', color: '#2c3e50' }}>
+                {t('library.title')}
+              </h1>
+            )}
+
+            {selectedCategory && (
+              <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+                <h1 style={{ margin: 0, fontSize: '2.5rem', color: '#2c3e50', textAlign: 'center' }}>
+                  {selectedCategory}
+                </h1>
+                <button
+                  onClick={() => {
+                    setSelectedCategory(null)
+                    setFiles([])
+                  }}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    backgroundColor: 'white',
+                    cursor: 'pointer',
+                    position: 'absolute',
+                    right: 0
+                  }}
+                >
+                  ← {t('library.backToCategories')}
+                </button>
+              </div>
+            )}
+
+            {loading && !selectedCategory && (
+              <div style={{ textAlign: 'center', padding: '2rem' }}>
+                {t('common.loading')}
+              </div>
+            )}
+
+            {error && (
+              <Card style={{ backgroundColor: '#fee', borderColor: '#f00', margin: '1rem 0' }}>
+                <p style={{ color: '#c00' }}>{error}</p>
+              </Card>
+            )}
+
+            {!loading && !error && !selectedCategory && (
+              <div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '1.5rem'
+                  }}
+                >
+                  {categories.map((category) => (
+                    <div
+                      key={category}
+                      onClick={() => setSelectedCategory(category)}
+                      onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
+                        const card = e.currentTarget.querySelector('.card') as HTMLElement
+                        if (card) {
+                          card.style.backgroundColor = '#f0f0f0'
+                          card.style.transform = 'translateY(-2px)'
+                        }
+                      }}
+                      onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
+                        const card = e.currentTarget.querySelector('.card') as HTMLElement
+                        if (card) {
+                          card.style.backgroundColor = '#f8f9fa'
+                          card.style.transform = 'translateY(0)'
+                        }
+                      }}
+                      style={{
+                        aspectRatio: '1',
+                        minHeight: 0
+                      }}
+                    >
+                      <Card
+                        style={{
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          padding: '1.5rem',
+                          margin: 0,
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderRadius: '12px'
+                        }}
+                      >
+                        <h3 style={{ margin: 0, textAlign: 'center', fontSize: '1.1rem', color: '#2c3e50' }}>{category}</h3>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedCategory && (
+              <div>
+                {loading && (
+                  <div style={{ textAlign: 'center', padding: '2rem' }}>
+                    {t('common.loading')}
+                  </div>
+                )}
+
+                {!loading && files.length === 0 && (
+                  <Card style={{ margin: '1rem 0' }}>
+                    <p>{t('library.noFiles')}</p>
+                  </Card>
+                )}
+
+                {!loading && files.length > 0 && (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                      gap: '1rem'
+                    }}
+                  >
+                    {files.map((file) => (
+                      <div
+                        key={file}
+                        onClick={() => {
+                          // TODO: Navigate to file viewer in Phase 3
+                          console.log('File clicked:', file)
+                        }}
+                        onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
+                          const card = e.currentTarget.querySelector('.card') as HTMLElement
+                          if (card) {
+                            card.style.backgroundColor = '#f0f0f0'
+                            card.style.transform = 'translateY(-2px)'
+                          }
+                        }}
+                        onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
+                          const card = e.currentTarget.querySelector('.card') as HTMLElement
+                          if (card) {
+                            card.style.backgroundColor = '#f8f9fa'
+                            card.style.transform = 'translateY(0)'
+                          }
+                        }}
+                      >
+                        <Card
+                          style={{
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            padding: '1rem',
+                            margin: 0
+                          }}
+                        >
+                          <p style={{ margin: 0, wordBreak: 'break-word' }}>{file}</p>
+                        </Card>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </PageCard>
       </main>
     </div>
   )

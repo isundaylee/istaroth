@@ -8,7 +8,7 @@ import attrs
 
 from istaroth import utils
 from istaroth.agd import localization
-from istaroth.rag import document_store, query_transform, rerank, vector_store
+from istaroth.rag import document_store, query_transform, rerank, text_set, vector_store
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,7 @@ class DocumentStoreSet:
     """Set of document stores for different languages."""
 
     _stores: dict[localization.Language, document_store.DocumentStore] = attrs.field()
+    _checkpoint_paths: dict[localization.Language, pathlib.Path] = attrs.field()
 
     @classmethod
     def from_env(cls) -> "DocumentStoreSet":
@@ -60,6 +61,7 @@ class DocumentStoreSet:
             external_chroma_servers = _parse_external_chroma_servers()
 
             stores = {}
+            checkpoint_paths = {}
             pairs = store_set_str.split(",")
 
             for pair in pairs:
@@ -87,6 +89,7 @@ class DocumentStoreSet:
                     ) from e
 
                 store_path = pathlib.Path(path_str)
+                checkpoint_paths[language] = store_path
 
                 # Check if this language should use external Chroma server
                 if language in external_chroma_servers:
@@ -133,7 +136,7 @@ class DocumentStoreSet:
             logger.info(
                 "Document store set initialized with languages: %s", language_names
             )
-            return cls(stores)
+            return cls(stores, checkpoint_paths)
 
     def get_store(
         self, language: localization.Language
@@ -151,3 +154,14 @@ class DocumentStoreSet:
     def available_languages(self) -> list[localization.Language]:
         """Available languages."""
         return list(self._stores.keys())
+
+    def get_text_set(self, language: localization.Language) -> text_set.TextSet:
+        """Get TextSet for a language."""
+        if language not in self._checkpoint_paths:
+            available = ", ".join(lang.name for lang in self._checkpoint_paths.keys())
+            raise KeyError(
+                f"Language '{language.name}' not available. Available languages: {available}"
+            )
+
+        checkpoint_path = self._checkpoint_paths[language]
+        return text_set.TextSet(checkpoint_path=checkpoint_path, language=language)

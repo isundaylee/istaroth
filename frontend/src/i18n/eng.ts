@@ -102,6 +102,13 @@ export const eng = {
 
   library: {
     title: 'Library',
-    placeholder: 'Library feature coming soon...'
+    placeholder: 'Library feature coming soon...',
+    selectCategory: 'Select Category',
+    backToCategories: 'Back to Categories',
+    noFiles: 'No files in this category',
+    errors: {
+      loadFailed: 'Failed to load',
+      unknown: 'An unknown error occurred'
+    }
   }
 }
