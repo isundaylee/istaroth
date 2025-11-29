@@ -24,7 +24,7 @@ jieba
 langchain
 langchain-cohere
 langchain-community
-langchain-google-genai
+langchain-google-genai>=3.1.0
 langchain-huggingface
 langchain-openai
 mcp

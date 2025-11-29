@@ -13,7 +13,8 @@ _ALL_SUPPORTED_MODELS: list[str] = [
     "gemini-2.5-flash",
     "gpt-5-nano",
     "gpt-5-mini",
-    "gemini-2.5-pro",  # Slowest
+    "gemini-2.5-pro",
+    "gemini-3-pro-preview",  # Slowest
 ]
 
 # Cache for available models from environment
@@ -117,7 +118,19 @@ class LLMManager:
 def extract_text_from_response(response: typing.Any) -> str:
     """Extract text content from various LLM response types."""
     if isinstance(response, messages.AIMessage):
-        return str(response.content)
+        content = response.content
+        # Handle Gemini 3 format: list of dicts with 'text' keys
+        if isinstance(content, list):
+            text_parts = []
+            for item in content:
+                if isinstance(item, dict) and "text" in item:
+                    text_parts.append(item["text"])
+                elif isinstance(item, str):
+                    text_parts.append(item)
+                else:
+                    text_parts.append(str(item))
+            return "\n\n".join(text_parts)
+        return str(content)
     elif isinstance(response, str):
         return response
     else:

@@ -4,8 +4,7 @@ import logging
 import typing
 
 import attrs
-from langchain import prompts
-from langchain_core import language_models
+from langchain_core import language_models, prompts
 from langchain_core.runnables import RunnableConfig
 
 from istaroth import langsmith_utils, llm_manager

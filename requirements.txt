@@ -6,17 +6,19 @@
 #
 aiohappyeyeballs==2.6.1
     # via aiohttp
-aiohttp==3.12.14
+aiohttp==3.13.2
     # via langchain-community
 aiosignal==1.4.0
     # via aiohttp
 aiosqlite==0.21.0
     # via -r requirements.in
-alembic==1.16.4
+alembic==1.17.2
     # via -r requirements.in
+annotated-doc==0.0.4
+    # via fastapi
 annotated-types==0.7.0
     # via pydantic
-anyio==4.9.0
+anyio==4.12.0
     # via
     #   httpx
     #   mcp
@@ -24,90 +26,95 @@ anyio==4.9.0
     #   sse-starlette
     #   starlette
     #   watchfiles
-asyncpg==0.30.0
+asyncpg==0.31.0
     # via -r requirements.in
-attrs==25.3.0
+attrs==25.4.0
     # via
     #   -r requirements.in
     #   aiohttp
     #   cyclopts
     #   jsonschema
     #   referencing
-authlib==1.6.1
+authlib==1.6.5
     # via fastmcp
 backoff==2.2.1
     # via posthog
-bcrypt==4.3.0
+bcrypt==5.0.0
     # via chromadb
-boto3==1.40.4
-    # via cohere
-botocore==1.40.4
+beartype==0.22.7
     # via
-    #   boto3
-    #   s3transfer
-build==1.2.2.post1
+    #   py-key-value-aio
+    #   py-key-value-shared
+build==1.3.0
     # via
     #   chromadb
     #   pip-tools
-cachetools==5.5.2
-    # via google-auth
-certifi==2025.7.14
+cachetools==6.2.2
+    # via
+    #   google-auth
+    #   py-key-value-aio
+certifi==2025.11.12
     # via
     #   httpcore
     #   httpx
     #   kubernetes
     #   requests
-cffi==1.17.1
+cffi==2.0.0
     # via cryptography
-cfgv==3.4.0
+cfgv==3.5.0
     # via pre-commit
-charset-normalizer==3.4.2
+charset-normalizer==3.4.4
     # via requests
-chromadb==1.0.20
+chromadb==1.3.5
     # via -r requirements.in
-click==8.1.8
+click==8.3.1
     # via
     #   -r requirements.in
     #   pip-tools
     #   typer
+    #   typer-slim
     #   uvicorn
-cohere==5.6.2
+cohere==5.20.0
     # via langchain-cohere
 coloredlogs==15.0.1
     # via onnxruntime
-cryptography==45.0.5
-    # via authlib
-cyclopts==3.22.3
+cryptography==46.0.3
+    # via
+    #   authlib
+    #   pyjwt
+cyclopts==4.3.0
     # via fastmcp
 dataclasses-json==0.6.7
     # via langchain-community
+diskcache==5.6.3
+    # via py-key-value-aio
 distlib==0.4.0
     # via virtualenv
 distro==1.9.0
     # via
     #   openai
     #   posthog
-dnspython==2.7.0
+dnspython==2.8.0
     # via email-validator
 docstring-parser==0.17.0
     # via cyclopts
-docutils==0.21.2
+docutils==0.22.3
     # via rich-rst
 durationpy==0.10
     # via kubernetes
-email-validator==2.2.0
+email-validator==2.3.0
     # via pydantic
-exceptiongroup==1.3.0
+exceptiongroup==1.3.1
     # via fastmcp
-faiss-cpu==1.11.0.post1
+faiss-cpu==1.13.0
     # via -r requirements.in
-fastapi==0.116.1
+fastapi==0.122.0
     # via -r requirements.in
-fastavro==1.12.0
+fastavro==1.12.1
     # via cohere
-fastmcp==2.10.6
+fastmcp==2.13.1
     # via -r requirements.in
-filelock==3.18.0
+filelock==3.20.0
     # via
     #   huggingface-hub
     #   torch
@@ -115,26 +122,26 @@ filelock==3.18.0
     #   virtualenv
 filetype==1.2.0
     # via langchain-google-genai
-flatbuffers==25.2.10
+flatbuffers==25.9.23
     # via onnxruntime
-frozenlist==1.7.0
+frozenlist==1.8.0
     # via
     #   aiohttp
     #   aiosignal
-fsspec==2025.7.0
+fsspec==2025.10.0
     # via
     #   huggingface-hub
     #   torch
-google-ai-generativelanguage==0.6.18
+google-ai-generativelanguage==0.9.0
     # via langchain-google-genai
-google-api-core[grpc]==2.25.1
+google-api-core[grpc]==2.28.1
     # via google-ai-generativelanguage
-google-auth==2.40.3
+google-auth==2.43.0
     # via
     #   google-ai-generativelanguage
     #   google-api-core
     #   kubernetes
-googleapis-common-protos==1.70.0
+googleapis-common-protos==1.72.0
     # via
     #   google-api-core
     #   grpcio-status
@@ -143,38 +150,41 @@ greenlet==3.2.4
     # via
     #   -r requirements.in
     #   sqlalchemy
-grpcio==1.74.0
+grpcio==1.76.0
     # via
     #   chromadb
+    #   google-ai-generativelanguage
     #   google-api-core
     #   grpcio-status
     #   opentelemetry-exporter-otlp-proto-grpc
-grpcio-status==1.74.0
+grpcio-status==1.76.0
     # via google-api-core
 h11==0.16.0
     # via
     #   httpcore
     #   uvicorn
-hf-xet==1.1.5
+hf-xet==1.2.0
     # via huggingface-hub
 httpcore==1.0.9
     # via httpx
-httptools==0.6.4
+httptools==0.7.1
     # via uvicorn
 httpx==0.28.1
     # via
     #   chromadb
     #   cohere
     #   fastmcp
+    #   huggingface-hub
+    #   langgraph-sdk
     #   langsmith
     #   mcp
     #   openai
-httpx-sse==0.4.1
+httpx-sse==0.4.0
     # via
     #   cohere
     #   langchain-community
     #   mcp
-huggingface-hub==0.34.1
+huggingface-hub==0.36.0
     # via
     #   -r requirements.in
     #   langchain-huggingface
@@ -183,9 +193,9 @@ huggingface-hub==0.34.1
     #   transformers
 humanfriendly==10.0
     # via coloredlogs
-identify==2.6.12
+identify==2.6.15
     # via pre-commit
-idna==3.10
+idna==3.11
     # via
     #   anyio
     #   email-validator
@@ -196,78 +206,97 @@ importlib-metadata==8.7.0
     # via opentelemetry-api
 importlib-resources==6.5.2
     # via chromadb
-iniconfig==2.1.0
+iniconfig==2.3.0
     # via pytest
+jaraco-classes==3.4.0
+    # via keyring
+jaraco-context==6.0.1
+    # via keyring
+jaraco-functools==4.3.0
+    # via keyring
 jieba==0.42.1
     # via -r requirements.in
 jinja2==3.1.6
     # via torch
-jiter==0.10.0
+jiter==0.12.0
     # via openai
-jmespath==1.0.1
-    # via
-    #   boto3
-    #   botocore
-joblib==1.5.1
+joblib==1.5.2
     # via scikit-learn
 jsonpatch==1.33
     # via langchain-core
 jsonpointer==3.0.0
     # via jsonpatch
-jsonschema==4.25.0
+jsonschema==4.25.1
     # via
     #   chromadb
     #   mcp
-jsonschema-specifications==2025.4.1
+jsonschema-path==0.3.4
+    # via fastmcp
+jsonschema-specifications==2025.9.1
     # via jsonschema
-kubernetes==33.1.0
+keyring==25.7.0
+    # via py-key-value-aio
+kubernetes==34.1.0
     # via chromadb
-langchain==0.3.27
-    # via
-    #   -r requirements.in
-    #   langchain-community
-langchain-cohere==0.3.5
+langchain==1.1.0
     # via -r requirements.in
-langchain-community==0.3.27
+langchain-classic==1.0.0
+    # via langchain-community
+langchain-cohere==0.5.0
+    # via -r requirements.in
+langchain-community==0.4.1
     # via
     #   -r requirements.in
-    #   langchain-experimental
-langchain-core==0.3.72
+    #   langchain-cohere
+langchain-core==1.1.0
     # via
     #   langchain
+    #   langchain-classic
     #   langchain-cohere
     #   langchain-community
-    #   langchain-experimental
     #   langchain-google-genai
     #   langchain-huggingface
     #   langchain-openai
     #   langchain-text-splitters
-langchain-experimental==0.3.4
-    # via langchain-cohere
-langchain-google-genai==2.1.8
+    #   langgraph
+    #   langgraph-checkpoint
+    #   langgraph-prebuilt
+langchain-google-genai==3.2.0
     # via -r requirements.in
-langchain-huggingface==0.3.1
+langchain-huggingface==1.1.0
     # via -r requirements.in
-langchain-openai==0.3.28
+langchain-openai==1.1.0
     # via -r requirements.in
-langchain-text-splitters==0.3.9
+langchain-text-splitters==1.0.0
+    # via langchain-classic
+langgraph==1.0.4
     # via langchain
-langsmith==0.4.8
+langgraph-checkpoint==3.0.1
     # via
-    #   langchain
+    #   langgraph
+    #   langgraph-prebuilt
+langgraph-prebuilt==1.0.5
+    # via langgraph
+langgraph-sdk==0.2.10
+    # via langgraph
+langsmith==0.4.49
+    # via
+    #   langchain-classic
     #   langchain-community
     #   langchain-core
+librt==0.6.2
+    # via mypy
 mako==1.3.10
     # via alembic
-markdown-it-py==3.0.0
+markdown-it-py==4.0.0
     # via rich
-markupsafe==3.0.2
+markupsafe==3.0.3
     # via
     #   jinja2
     #   mako
 marshmallow==3.26.1
     # via dataclasses-json
-mcp==1.12.2
+mcp==1.22.0
     # via
     #   -r requirements.in
     #   fastmcp
@@ -275,70 +304,74 @@ mdurl==0.1.2
     # via markdown-it-py
 mmh3==5.2.0
     # via chromadb
+more-itertools==10.8.0
+    # via
+    #   jaraco-classes
+    #   jaraco-functools
 mpmath==1.3.0
     # via sympy
-multidict==6.6.3
+multidict==6.7.0
     # via
     #   aiohttp
     #   yarl
-mypy==1.17.1
+mypy==1.19.0
     # via -r requirements.in
 mypy-extensions==1.1.0
     # via
     #   mypy
     #   typing-inspect
-networkx==3.5
+networkx==3.6
     # via torch
 nodeenv==1.9.1
     # via pre-commit
-numpy==2.3.2
+numpy==2.3.5
     # via
     #   -r requirements.in
     #   chromadb
     #   faiss-cpu
     #   langchain-community
     #   onnxruntime
-    #   pandas
     #   rank-bm25
     #   scikit-learn
     #   scipy
     #   transformers
 oauthlib==3.3.1
-    # via
-    #   kubernetes
-    #   requests-oauthlib
-onnxruntime==1.22.1
+    # via requests-oauthlib
+onnxruntime==1.23.2
     # via chromadb
-openai==1.99.3
+openai==2.8.1
     # via
     #   -r requirements.in
     #   langchain-openai
 openapi-pydantic==0.5.1
     # via fastmcp
-opentelemetry-api==1.36.0
+opentelemetry-api==1.38.0
     # via
     #   chromadb
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
-opentelemetry-exporter-otlp-proto-common==1.36.0
+opentelemetry-exporter-otlp-proto-common==1.38.0
     # via opentelemetry-exporter-otlp-proto-grpc
-opentelemetry-exporter-otlp-proto-grpc==1.36.0
+opentelemetry-exporter-otlp-proto-grpc==1.38.0
     # via chromadb
-opentelemetry-proto==1.36.0
+opentelemetry-proto==1.38.0
     # via
     #   opentelemetry-exporter-otlp-proto-common
     #   opentelemetry-exporter-otlp-proto-grpc
-opentelemetry-sdk==1.36.0
+opentelemetry-sdk==1.38.0
     # via
     #   chromadb
     #   opentelemetry-exporter-otlp-proto-grpc
-opentelemetry-semantic-conventions==0.57b0
+opentelemetry-semantic-conventions==0.59b0
     # via opentelemetry-sdk
-orjson==3.11.1
+orjson==3.11.4
     # via
     #   chromadb
+    #   langgraph-sdk
     #   langsmith
+ormsgpack==1.12.0
+    # via langgraph-checkpoint
 overrides==7.7.0
     # via chromadb
 packaging==25.0
@@ -352,25 +385,27 @@ packaging==25.0
     #   onnxruntime
     #   pytest
     #   transformers
-pandas==2.3.1
-    # via langchain-cohere
-parameterized==0.9.0
-    # via cohere
+pathable==0.4.4
+    # via jsonschema-path
 pathspec==0.12.1
     # via mypy
-pillow==11.3.0
+pathvalidate==3.3.1
+    # via py-key-value-aio
+pillow==12.0.0
     # via sentence-transformers
-pip-tools==7.4.1
+pip-tools==7.5.2
     # via -r requirements.in
-platformdirs==4.3.8
-    # via virtualenv
+platformdirs==4.5.0
+    # via
+    #   fastmcp
+    #   virtualenv
 pluggy==1.6.0
     # via pytest
 posthog==5.4.0
     # via chromadb
-pre-commit==4.2.0
+pre-commit==4.5.0
     # via -r requirements.in
-propcache==0.3.2
+propcache==0.4.1
     # via
     #   aiohttp
     #   yarl
@@ -378,7 +413,7 @@ proto-plus==1.26.1
     # via
     #   google-ai-generativelanguage
     #   google-api-core
-protobuf==6.31.1
+protobuf==6.33.1
     # via
     #   google-ai-generativelanguage
     #   google-api-core
@@ -387,8 +422,12 @@ protobuf==6.31.1
     #   onnxruntime
     #   opentelemetry-proto
     #   proto-plus
-psycopg2-binary==2.9.10
+psycopg2-binary==2.9.11
     # via -r requirements.in
+py-key-value-aio[disk,keyring,memory]==0.2.8
+    # via fastmcp
+py-key-value-shared==0.2.8
+    # via py-key-value-aio
 pyasn1==0.6.1
     # via
     #   pyasn1-modules
@@ -397,9 +436,9 @@ pyasn1-modules==0.4.2
     # via google-auth
 pybase64==1.4.2
     # via chromadb
-pycparser==2.22
+pycparser==2.23
     # via cffi
-pydantic[email]==2.11.7
+pydantic[email]==2.12.5
     # via
     #   -r requirements.in
     #   chromadb
@@ -407,17 +446,21 @@ pydantic[email]==2.11.7
     #   fastapi
     #   fastmcp
     #   langchain
+    #   langchain-classic
     #   langchain-cohere
     #   langchain-core
     #   langchain-google-genai
+    #   langgraph
     #   langsmith
     #   mcp
     #   openai
     #   openapi-pydantic
     #   pydantic-settings
-pydantic-core==2.33.2
-    # via pydantic
-pydantic-settings==2.10.1
+pydantic-core==2.41.5
+    # via
+    #   cohere
+    #   pydantic
+pydantic-settings==2.12.0
     # via
     #   langchain-community
     #   mcp
@@ -425,7 +468,9 @@ pygments==2.19.2
     # via
     #   pytest
     #   rich
-pyperclip==1.9.0
+pyjwt[crypto]==2.10.1
+    # via mcp
+pyperclip==1.11.0
     # via fastmcp
 pypika==0.48.9
     # via chromadb
@@ -433,29 +478,26 @@ pyproject-hooks==1.2.0
     # via
     #   build
     #   pip-tools
-pytest==8.4.1
+pytest==9.0.1
     # via -r requirements.in
 python-dateutil==2.9.0.post0
     # via
-    #   botocore
     #   kubernetes
-    #   pandas
     #   posthog
-python-dotenv==1.1.1
+python-dotenv==1.2.1
     # via
     #   fastmcp
     #   pydantic-settings
     #   uvicorn
 python-multipart==0.0.20
     # via mcp
-pytz==2025.2
-    # via pandas
-pyyaml==6.0.2
+pyyaml==6.0.3
     # via
     #   chromadb
     #   huggingface-hub
+    #   jsonschema-path
     #   kubernetes
-    #   langchain
+    #   langchain-classic
     #   langchain-community
     #   langchain-core
     #   pre-commit
@@ -466,18 +508,20 @@ rank-bm25==0.2.2
 referencing==0.36.2
     # via
     #   jsonschema
+    #   jsonschema-path
     #   jsonschema-specifications
-regex==2024.11.6
+regex==2025.11.3
     # via
     #   tiktoken
     #   transformers
-requests==2.32.4
+requests==2.32.5
     # via
     #   cohere
     #   google-api-core
     #   huggingface-hub
+    #   jsonschema-path
     #   kubernetes
-    #   langchain
+    #   langchain-classic
     #   langchain-community
     #   langsmith
     #   posthog
@@ -489,58 +533,56 @@ requests-oauthlib==2.0.0
     # via kubernetes
 requests-toolbelt==1.0.0
     # via langsmith
-rich==14.1.0
+rich==14.2.0
     # via
     #   chromadb
     #   cyclopts
     #   fastmcp
     #   rich-rst
     #   typer
-rich-rst==1.3.1
+rich-rst==1.3.2
     # via cyclopts
-rpds-py==0.26.0
+rpds-py==0.29.0
     # via
     #   jsonschema
     #   referencing
 rsa==4.9.1
     # via google-auth
-s3transfer==0.13.1
-    # via boto3
-safetensors==0.5.3
+safetensors==0.7.0
     # via
     #   -r requirements.in
     #   transformers
-scikit-learn==1.7.1
+scikit-learn==1.7.2
     # via
     #   -r requirements.in
     #   sentence-transformers
-scipy==1.16.0
+scipy==1.16.3
     # via
     #   -r requirements.in
     #   scikit-learn
     #   sentence-transformers
-sentence-transformers==5.0.0
+sentence-transformers==5.1.2
     # via -r requirements.in
 shellingham==1.5.4
-    # via typer
+    # via
+    #   huggingface-hub
+    #   typer
 six==1.17.0
     # via
     #   kubernetes
     #   posthog
     #   python-dateutil
 sniffio==1.3.1
-    # via
-    #   anyio
-    #   openai
-sqlalchemy[asyncio]==2.0.41
+    # via openai
+sqlalchemy[asyncio]==2.0.44
     # via
     #   -r requirements.in
     #   alembic
-    #   langchain
+    #   langchain-classic
     #   langchain-community
-sse-starlette==3.0.2
+sse-starlette==3.0.3
     # via mcp
-starlette==0.47.2
+starlette==0.50.0
     # via
     #   fastapi
     #   mcp
@@ -549,9 +591,7 @@ sympy==1.14.0
     #   onnxruntime
     #   torch
 tabulate==0.9.0
-    # via
-    #   -r requirements.in
-    #   langchain-cohere
+    # via -r requirements.in
 tenacity==9.1.2
     # via
     #   chromadb
@@ -559,16 +599,16 @@ tenacity==9.1.2
     #   langchain-core
 threadpoolctl==3.6.0
     # via scikit-learn
-tiktoken==0.11.0
+tiktoken==0.12.0
     # via langchain-openai
-tokenizers==0.21.2
+tokenizers==0.22.1
     # via
     #   -r requirements.in
     #   chromadb
     #   cohere
     #   langchain-huggingface
     #   transformers
-torch==2.7.1
+torch==2.9.1
     # via
     #   -r requirements.in
     #   sentence-transformers
@@ -580,21 +620,23 @@ tqdm==4.67.1
     #   openai
     #   sentence-transformers
     #   transformers
-transformers==4.54.0
+transformers==4.57.3
     # via
     #   -r requirements.in
     #   sentence-transformers
-typer==0.16.1
+typer==0.20.0
     # via chromadb
-types-requests==2.32.4.20250611
+types-pyyaml==6.0.12.20250915
+    # via langchain-cohere
+types-requests==2.32.4.20250913
     # via
     #   cohere
     #   types-tqdm
 types-tabulate==0.9.0.20241207
     # via -r requirements.in
-types-tqdm==4.67.0.20250516
+types-tqdm==4.67.0.20250809
     # via -r requirements.in
-typing-extensions==4.14.1
+typing-extensions==4.15.0
     # via
     #   aiosignal
     #   aiosqlite
@@ -604,14 +646,17 @@ typing-extensions==4.14.1
     #   cohere
     #   exceptiongroup
     #   fastapi
+    #   grpcio
     #   huggingface-hub
     #   langchain-core
+    #   mcp
     #   mypy
     #   openai
     #   opentelemetry-api
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
+    #   py-key-value-shared
     #   pydantic
     #   pydantic-core
     #   referencing
@@ -620,44 +665,48 @@ typing-extensions==4.14.1
     #   starlette
     #   torch
     #   typer
+    #   typer-slim
     #   typing-inspect
     #   typing-inspection
 typing-inspect==0.9.0
     # via dataclasses-json
-typing-inspection==0.4.1
+typing-inspection==0.4.2
     # via
+    #   mcp
     #   pydantic
     #   pydantic-settings
-tzdata==2025.2
-    # via pandas
-urllib3==2.5.0
+urllib3==2.3.0
     # via
-    #   botocore
     #   kubernetes
     #   requests
     #   types-requests
-uvicorn[standard]==0.35.0
+uvicorn[standard]==0.38.0
     # via
     #   -r requirements.in
     #   chromadb
+    #   fastmcp
     #   mcp
-uvloop==0.21.0
+uvloop==0.22.1
     # via uvicorn
-virtualenv==20.32.0
+virtualenv==20.35.4
     # via pre-commit
-watchfiles==1.1.0
+watchfiles==1.1.1
     # via uvicorn
-websocket-client==1.8.0
+websocket-client==1.9.0
     # via kubernetes
 websockets==15.0.1
-    # via uvicorn
+    # via
+    #   fastmcp
+    #   uvicorn
 wheel==0.45.1
     # via pip-tools
-yarl==1.20.1
+xxhash==3.6.0
+    # via langgraph
+yarl==1.22.0
     # via aiohttp
 zipp==3.23.0
     # via importlib-metadata
-zstandard==0.23.0
+zstandard==0.25.0
     # via langsmith
 
 # The following packages are considered to be unsafe in a requirements file:

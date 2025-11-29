@@ -28,7 +28,8 @@ export const chs = {
       'gemini-2_5-flash': '快速 (gemini-2.5-flash)',
       'gpt-5-nano': '快速 (gpt-5-nano)',
       'gpt-5-mini': '中速 (gpt-5-mini)',
-      'gemini-2_5-pro': '慢速 (gemini-2.5-pro)'
+      'gemini-2_5-pro': '慢速 (gemini-2.5-pro)',
+      'gemini-3-pro-preview': '慢速 (gemini-3-pro-preview)'
     },
     errors: {
       unknown: '发生了未知错误',

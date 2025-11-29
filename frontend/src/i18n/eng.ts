@@ -28,7 +28,8 @@ export const eng = {
       'gemini-2_5-flash': 'Fast (gemini-2.5-flash)',
       'gpt-5-nano': 'Fast (gpt-5-nano)',
       'gpt-5-mini': 'Medium (gpt-5-mini)',
-      'gemini-2_5-pro': 'Slow (gemini-2.5-pro)'
+      'gemini-2_5-pro': 'Slow (gemini-2.5-pro)',
+      'gemini-3-pro-preview': 'Slow (gemini-3-pro-preview)'
     },
     errors: {
       unknown: 'An unknown error occurred',

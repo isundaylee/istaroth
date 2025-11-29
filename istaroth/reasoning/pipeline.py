@@ -3,10 +3,9 @@
 import logging
 import time
 
-from langchain import agents, prompts
+from langchain import agents
 from langchain.agents import AgentExecutor
-from langchain_core import language_models, tools
-from langchain_core.prompts import MessagesPlaceholder
+from langchain_core import language_models, prompts, tools
 
 from istaroth import langsmith_utils, llm_manager
 from istaroth.agd import localization
@@ -60,7 +59,7 @@ class ReasoningPipeline:
                 [
                     ("system", prompt_set.system_prompt),
                     ("user", "{input}"),
-                    MessagesPlaceholder(variable_name="agent_scratchpad"),
+                    prompts.MessagesPlaceholder(variable_name="agent_scratchpad"),
                 ]
             ),
         )
