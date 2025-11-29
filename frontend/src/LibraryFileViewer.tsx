@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { useT, useTranslation } from './contexts/LanguageContext'
@@ -24,6 +24,12 @@ function LibraryFileViewer() {
   }
 
   useEffect(() => {
+    if (!category || !filename) {
+      setError(t('library.errors.unknown'))
+      setLoading(false)
+      return
+    }
+
     const fetchFileContent = async () => {
       setLoading(true)
       setError(null)
@@ -45,6 +51,19 @@ function LibraryFileViewer() {
 
     fetchFileContent()
   }, [category, filename, language, t])
+
+  if (!category || !filename) {
+    return (
+      <div className="app">
+        <Navigation />
+        <main className="main">
+          <PageCard>
+            <ErrorDisplay error={t('library.errors.unknown')} />
+          </PageCard>
+        </main>
+      </div>
+    )
+  }
 
   return (
     <div className="app">
