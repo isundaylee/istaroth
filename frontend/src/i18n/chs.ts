@@ -106,6 +106,17 @@ export const chs = {
     selectCategory: '选择分类',
     backToCategories: '返回分类',
     noFiles: '该分类下没有文件',
+    categories: {
+      artifact_sets: '圣遗物套装',
+      character_stories: '角色故事',
+      material_types: '材料类型',
+      quest: '任务',
+      readable: '可读文本',
+      subtitles: '字幕',
+      talk_groups: '对话组',
+      talks: '对话',
+      voicelines: '语音台词'
+    },
     errors: {
       loadFailed: '加载失败',
       unknown: '发生未知错误'

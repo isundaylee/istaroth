@@ -21,6 +21,12 @@ function LibraryPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const translateCategory = (category: string): string => {
+    const translationKey = `library.categories.${category}`
+    const translated = t(translationKey)
+    return translated === translationKey ? category : translated
+  }
+
   useEffect(() => {
     const fetchCategories = async () => {
       setLoading(true)
@@ -84,7 +90,7 @@ function LibraryPage() {
             {selectedCategory && (
               <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
                 <h1 style={{ margin: 0, fontSize: '2.5rem', color: '#2c3e50', textAlign: 'center' }}>
-                  {selectedCategory}
+                  {translateCategory(selectedCategory)}
                 </h1>
                 <button
                   onClick={() => {
@@ -163,7 +169,9 @@ function LibraryPage() {
                           borderRadius: '12px'
                         }}
                       >
-                        <h3 style={{ margin: 0, textAlign: 'center', fontSize: '1.1rem', color: '#2c3e50' }}>{category}</h3>
+                        <h3 style={{ margin: 0, textAlign: 'center', fontSize: '1.1rem', color: '#2c3e50' }}>
+                          {translateCategory(category)}
+                        </h3>
                       </Card>
                     </div>
                   ))}

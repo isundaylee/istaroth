@@ -106,6 +106,17 @@ export const eng = {
     selectCategory: 'Select Category',
     backToCategories: 'Back to Categories',
     noFiles: 'No files in this category',
+    categories: {
+      artifact_sets: 'Artifact Sets',
+      character_stories: 'Character Stories',
+      material_types: 'Material Types',
+      quest: 'Quests',
+      readable: 'Readables',
+      subtitles: 'Subtitles',
+      talk_groups: 'Talk Groups',
+      talks: 'Talks',
+      voicelines: 'Voicelines'
+    },
     errors: {
       loadFailed: 'Failed to load',
       unknown: 'An unknown error occurred'
