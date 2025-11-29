@@ -8,7 +8,7 @@ from istaroth.agd import localization
 from istaroth.rag import text_set
 from istaroth.services.backend import models
 from istaroth.services.backend.dependencies import DocumentStoreSet
-from istaroth.services.backend.utils import handle_unexpected_exception
+from istaroth.services.backend.utils import handle_unexpected_exception, parse_filename
 
 logger = logging.getLogger(__name__)
 
@@ -77,15 +77,17 @@ async def get_citations_batch(
                 total_chunks is not None
             ), f"Chunk exists but file metadata missing for {file_id}"
 
-            # Extract filename and category from metadata
+            # Extract filename and parse file info from metadata
             filename = chunk.metadata.get("filename")
-            category = None
+            file_info = None
+
             if filename:
                 try:
-                    category = text_set.get_category_from_filename(filename)
+                    # Parse LibraryFileInfo from filename (category determined internally)
+                    file_info = parse_filename(filename)
                 except ValueError:
-                    # Filename doesn't match any known category prefix
-                    category = None
+                    # Filename doesn't match expected format or category prefix
+                    file_info = None
 
             # Success - add to results
             successes.append(
@@ -95,8 +97,7 @@ async def get_citations_batch(
                     content=chunk.page_content,
                     metadata=chunk.metadata,
                     total_chunks=total_chunks,
-                    category=category,
-                    filename=filename,
+                    file_info=file_info,
                 )
             )
 

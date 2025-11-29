@@ -419,6 +419,10 @@ function CitationRenderer({ content }: CitationRendererProps) {
 
     if (cachedChunk && !('error' in cachedChunk[1])) {
       const citation = cachedChunk[1] as CitationResponse
+      // Use parsed name if available, otherwise fall back to filename, then fileId
+      if (citation.file_info?.name) {
+        return citation.file_info.name
+      }
       const filename = citation.metadata.filename
       return typeof filename === 'string' ? filename : fileId
     }
@@ -426,17 +430,19 @@ function CitationRenderer({ content }: CitationRendererProps) {
     return fileId
   }, [citationCache])
 
-  // Get category and filename for a cited work (from cache if available)
+  // Get file info for a cited work (from cache if available)
   const getCitedWorkInfo = useCallback((fileId: string): { category: string | null, filename: string | null } => {
-    // Try to find any cached chunk for this file to get the category and filename
+    // Try to find any cached chunk for this file to get the file info
     const cachedChunk = Object.entries(citationCache)
       .find(([key]) => key.startsWith(`${fileId}:`))
 
     if (cachedChunk && !('error' in cachedChunk[1])) {
       const citation = cachedChunk[1] as CitationResponse
-      return {
-        category: citation.category ?? null,
-        filename: citation.filename ?? null
+      if (citation.file_info) {
+        return {
+          category: citation.file_info.category,
+          filename: citation.file_info.filename
+        }
       }
     }
 

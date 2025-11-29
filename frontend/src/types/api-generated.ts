@@ -223,10 +223,7 @@ export interface components {
             };
             /** Total Chunks */
             total_chunks: number;
-            /** Category */
-            category?: string | null;
-            /** Filename */
-            filename?: string | null;
+            file_info?: components["schemas"]["LibraryFileInfo"] | null;
         };
         /**
          * ConversationResponse

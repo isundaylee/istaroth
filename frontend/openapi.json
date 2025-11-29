@@ -468,27 +468,15 @@
             "type": "integer",
             "title": "Total Chunks"
           },
-          "category": {
+          "file_info": {
             "anyOf": [
               {
-                "type": "string"
+                "$ref": "#/components/schemas/LibraryFileInfo"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Category"
-          },
-          "filename": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Filename"
+            ]
           }
         },
         "type": "object",

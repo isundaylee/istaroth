@@ -4,6 +4,8 @@ IMPORTANT: Keep these models in sync with frontend/src/types/api.ts
 Any changes to request/response structures should be reflected in both files.
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 from pydantic import BaseModel, field_validator
@@ -97,8 +99,7 @@ class CitationResponse(BaseModel):
     content: str
     metadata: dict[str, Any]
     total_chunks: int
-    category: str | None = None
-    filename: str | None = None
+    file_info: LibraryFileInfo | None = None
 
 
 class CitationBatchRequest(BaseModel):
