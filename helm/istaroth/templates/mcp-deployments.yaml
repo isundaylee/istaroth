@@ -1,0 +1,100 @@
+{{- $mcp := .Values.mcp }}
+{{- range $language := $mcp.languages }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-mcp-{{ $language }}
+  labels:
+    app.kubernetes.io/name: {{ $.Release.Name }}-mcp-{{ $language }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/component: mcp-{{ $language }}
+    {{- with $.Values.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $.Release.Name }}-mcp-{{ $language }}
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ $.Release.Name }}-mcp-{{ $language }}
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+        app.kubernetes.io/component: mcp-{{ $language }}
+      annotations:
+        checkpoint-release: {{ $.Values.backend.checkpointRelease | quote }}
+        {{- with $.Values.annotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with $.Values.podSecurityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- $langCfg := index $.Values.languages $language }}
+      {{- if $langCfg.useChroma }}
+      initContainers:
+      - name: wait-chroma-{{ $language }}
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for Chroma server {{ $language }} to be ready..."
+          until nc -z {{ $.Release.Name }}-chroma-{{ $language }} 8000; do
+            echo "Chroma server {{ $language }} not ready, waiting..."
+            sleep 5
+          done
+          echo "Chroma server {{ $language }} is ready!"
+        {{- with $.Values.containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- end }}
+      containers:
+      - name: mcp
+        image: "{{ $mcp.image.repository }}:{{ $mcp.image.tag }}"
+        imagePullPolicy: {{ $mcp.image.pullPolicy }}
+        ports:
+        - containerPort: {{ $mcp.service.port }}
+          name: http
+          protocol: TCP
+        env:
+        - name: ISTAROTH_MCP_LANGUAGE
+          value: {{ upper $language | quote }}
+        {{- with $mcp.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        envFrom:
+        - configMapRef:
+            name: {{ $.Release.Name }}-config
+        - secretRef:
+            name: {{ $.Release.Name }}-secret
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        {{- with $mcp.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with $mcp.probes.liveness }}
+        livenessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with $mcp.probes.readiness }}
+        readinessProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with $.Values.containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: {{ $.Release.Name }}-scratch
+{{- end }}

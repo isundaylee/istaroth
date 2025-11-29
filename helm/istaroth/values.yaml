@@ -89,6 +89,51 @@ frontend:
       initialDelaySeconds: 5
       periodSeconds: 5
 
+# MCP server configuration (no MCP resources are created if languages is empty)
+mcp:
+  # Image for MCP servers (defaults match backend image)
+  image:
+    repository: isundaylee/istaroth
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  # Languages to run MCP servers for (must match keys in .Values.languages)
+  # Example:
+  # languages:
+  #   - eng
+  #   - chs
+  languages: []
+
+  # Service configuration for MCP instances
+  service:
+    type: ClusterIP
+    port: 8000
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 3Gi
+    requests:
+      cpu: 100m
+      memory: 1Gi
+
+  # Extra environment variables for MCP pods
+  env: []
+
+  probes:
+    liveness:
+      tcpSocket:
+        port: 8000
+      failureThreshold: 3
+      timeoutSeconds: 30
+      periodSeconds: 60
+    readiness:
+      tcpSocket:
+        port: 8000
+      failureThreshold: 3
+      timeoutSeconds: 30
+      periodSeconds: 60
+
 # Language configurations
 languages:
   eng:
