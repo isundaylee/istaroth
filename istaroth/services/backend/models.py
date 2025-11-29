@@ -134,10 +134,19 @@ class LibraryCategoriesResponse(BaseModel):
     categories: list[str]
 
 
+class LibraryFileInfo(BaseModel):
+    """File information with parsed components."""
+
+    category: str
+    name: str
+    id: int | None
+    filename: str
+
+
 class LibraryFilesResponse(BaseModel):
     """Response model for library files endpoint."""
 
-    files: list[str]
+    files: list[LibraryFileInfo]
 
 
 class LibraryFileResponse(BaseModel):

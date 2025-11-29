@@ -120,7 +120,9 @@ export const eng = {
     },
     errors: {
       loadFailed: 'Failed to load',
-      unknown: 'An unknown error occurred'
-    }
+      unknown: 'An unknown error occurred',
+      invalidCategory: 'Invalid category'
+    },
+    noFileName: 'Untitled'
   }
 }

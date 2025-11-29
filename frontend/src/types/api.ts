@@ -33,8 +33,15 @@ export interface LibraryCategoriesResponse {
   categories: string[]
 }
 
+export interface LibraryFileInfo {
+  category: string
+  name: string
+  id: number | null
+  filename: string
+}
+
 export interface LibraryFilesResponse {
-  files: string[]
+  files: LibraryFileInfo[]
 }
 
 export interface LibraryFileResponse {

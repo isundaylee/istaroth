@@ -120,7 +120,9 @@ export const chs = {
     },
     errors: {
       loadFailed: '加载失败',
-      unknown: '发生未知错误'
-    }
+      unknown: '发生未知错误',
+      invalidCategory: '无效分类'
+    },
+    noFileName: '未命名'
   }
 }

@@ -6,14 +6,14 @@ import Card from './components/Card'
 import PageCard from './components/PageCard'
 import ErrorDisplay from './components/ErrorDisplay'
 import LibraryHeader from './components/LibraryHeader'
-import type { LibraryFilesResponse } from './types/api'
+import type { LibraryFilesResponse, LibraryFileInfo } from './types/api'
 
 function LibraryFilesPage() {
   const t = useT()
   const { language } = useTranslation()
   const { category } = useParams<{ category: string }>()
   const navigate = useNavigate()
-  const [files, setFiles] = useState<string[]>([])
+  const [files, setFiles] = useState<LibraryFileInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,6 +24,12 @@ function LibraryFilesPage() {
   }
 
   useEffect(() => {
+    if (!category) {
+      setError(t('library.errors.invalidCategory'))
+      setLoading(false)
+      return
+    }
+
     const fetchFiles = async () => {
       setLoading(true)
       setError(null)
@@ -53,7 +59,7 @@ function LibraryFilesPage() {
         {error && <ErrorDisplay error={error} />}
         <PageCard>
           <LibraryHeader
-            title={translateCategory(category)}
+            title={category ? translateCategory(category) : ''}
             backPath="/library"
             backText={t('library.backToCategories')}
           />
@@ -80,8 +86,8 @@ function LibraryFilesPage() {
             >
               {files.map((file) => (
                 <div
-                  key={file}
-                  onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(file)}`)}
+                  key={file.filename}
+                  onClick={() => category && navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(file.filename)}`)}
                   onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                     const card = e.currentTarget.querySelector('.card') as HTMLElement
                     if (card) {
@@ -105,7 +111,9 @@ function LibraryFilesPage() {
                       margin: 0
                     }}
                   >
-                    <p style={{ margin: 0, wordBreak: 'break-word' }}>{file}</p>
+                    <p style={{ margin: 0, wordBreak: 'break-word' }}>
+                      {file.name || t('library.noFileName')}
+                    </p>
                   </Card>
                 </div>
               ))}
