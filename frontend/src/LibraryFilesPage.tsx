@@ -5,6 +5,7 @@ import Navigation from './components/Navigation'
 import Card from './components/Card'
 import PageCard from './components/PageCard'
 import ErrorDisplay from './components/ErrorDisplay'
+import LibraryHeader from './components/LibraryHeader'
 import type { LibraryFilesResponse } from './types/api'
 
 function LibraryFilesPage() {
@@ -51,25 +52,11 @@ function LibraryFilesPage() {
       <main className="main">
         {error && <ErrorDisplay error={error} />}
         <PageCard>
-          <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-            <h1 style={{ margin: 0, fontSize: '2.5rem', color: '#2c3e50', textAlign: 'center' }}>
-              {translateCategory(category)}
-            </h1>
-            <button
-              onClick={() => navigate('/library')}
-              style={{
-                padding: '0.5rem 1rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                backgroundColor: 'white',
-                cursor: 'pointer',
-                position: 'absolute',
-                right: 0
-              }}
-            >
-              ← {t('library.backToCategories')}
-            </button>
-          </div>
+          <LibraryHeader
+            title={translateCategory(category)}
+            backPath="/library"
+            backText={t('library.backToCategories')}
+          />
 
           {loading && (
             <div style={{ textAlign: 'center', padding: '2rem' }}>

@@ -343,4 +343,42 @@ body {
   .answer-header h3 {
     text-align: left;
   }
+
+  .app {
+    padding: 10px;
+  }
+
+  nav {
+    padding: 0.5rem 1rem !important;
+  }
+
+  nav > div:first-child {
+    gap: 0.75rem !important;
+  }
+
+  nav a {
+    padding: 0.4rem 1rem !important;
+    font-size: 0.9rem !important;
+  }
+
+  .category-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Make back button wrap below title on mobile */
+  .library-header {
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+
+  .library-header button {
+    position: static !important;
+    align-self: center;
+  }
+}
+
+@media (min-width: 600px) {
+  .category-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
 }

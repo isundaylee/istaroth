@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import Card from './components/Card'
 import PageCard from './components/PageCard'
 import ErrorDisplay from './components/ErrorDisplay'
+import LibraryHeader from './components/LibraryHeader'
 import type { LibraryFileResponse } from './types/api'
 
 function LibraryFileViewer() {
   const t = useT()
   const { language } = useTranslation()
   const { category, filename } = useParams<{ category: string; filename: string }>()
-  const navigate = useNavigate()
   const [fileContent, setFileContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,25 +52,11 @@ function LibraryFileViewer() {
       <main className="main">
         {error && <ErrorDisplay error={error} />}
         <PageCard>
-          <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-            <h1 style={{ margin: 0, fontSize: '2.5rem', color: '#2c3e50', textAlign: 'center' }}>
-              {translateCategory(category)}
-            </h1>
-            <button
-              onClick={() => navigate(`/library/${encodeURIComponent(category)}`)}
-              style={{
-                padding: '0.5rem 1rem',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                backgroundColor: 'white',
-                cursor: 'pointer',
-                position: 'absolute',
-                right: 0
-              }}
-            >
-              ← {t('library.backToFiles')}
-            </button>
-          </div>
+          <LibraryHeader
+            title={translateCategory(category)}
+            backPath={`/library/${encodeURIComponent(category)}`}
+            backText={t('library.backToFiles')}
+          />
 
           {loading && (
             <div style={{ textAlign: 'center', padding: '2rem' }}>

@@ -61,9 +61,10 @@ function LibraryCategoriesPage() {
           {!loading && !error && (
             <div>
               <div
+                className="category-grid"
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
                   gap: '1.5rem'
                 }}
               >

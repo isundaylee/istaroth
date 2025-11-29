@@ -23,10 +23,12 @@ function Navigation() {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
+        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+        flexWrap: 'wrap',
+        gap: '0.75rem'
       }}
     >
-      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
         {navLinks.map(({ path, key }) => {
           const active = isActive(path)
           return (
@@ -43,7 +45,8 @@ function Navigation() {
                 fontSize: '1rem',
                 fontWeight: active ? '600' : 'normal',
                 transition: 'all 0.2s',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                whiteSpace: 'nowrap'
               }}
               onMouseEnter={(e) => {
                 if (!active) {
