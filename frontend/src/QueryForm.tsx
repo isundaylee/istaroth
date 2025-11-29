@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import type { QueryRequest, QueryResponse, ErrorResponse, ModelsResponse, ExampleQuestionResponse } from './types/api'
+import ErrorDisplay from './components/ErrorDisplay'
 
 interface QueryFormProps {
   currentQuestion?: string
@@ -180,12 +181,7 @@ function QueryForm({ currentQuestion }: QueryFormProps = {}) {
         </div>
       </form>
 
-      {error && (
-        <div className="error">
-          <h3>{t('common.error')}</h3>
-          <p>{error}</p>
-        </div>
-      )}
+      {error && <ErrorDisplay error={error} />}
     </>
   )
 }

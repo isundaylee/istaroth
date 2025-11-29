@@ -3,6 +3,7 @@ import { useT, useTranslation } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import Card from './components/Card'
 import PageCard from './components/PageCard'
+import ErrorDisplay from './components/ErrorDisplay'
 
 interface LibraryCategoriesResponse {
   categories: string[]
@@ -80,6 +81,7 @@ function LibraryPage() {
     <div className="app">
       <Navigation />
       <main className="main">
+          {error && <ErrorDisplay error={error} />}
           <PageCard>
             {!selectedCategory && (
               <h1 style={{ marginBottom: '2rem', textAlign: 'center', fontSize: '2.5rem', color: '#2c3e50' }}>
@@ -116,12 +118,6 @@ function LibraryPage() {
               <div style={{ textAlign: 'center', padding: '2rem' }}>
                 {t('common.loading')}
               </div>
-            )}
-
-            {error && (
-              <Card style={{ backgroundColor: '#fee', borderColor: '#f00', margin: '1rem 0' }}>
-                <p style={{ color: '#c00' }}>{error}</p>
-              </Card>
             )}
 
             {!loading && !error && !selectedCategory && (

@@ -6,6 +6,7 @@ import QueryForm from './QueryForm'
 import Card from './components/Card'
 import Navigation from './components/Navigation'
 import CitationRenderer from './components/CitationRenderer'
+import ErrorDisplay from './components/ErrorDisplay'
 
 interface ConversationResponse {
   uuid: string
@@ -132,19 +133,7 @@ function ConversationPage() {
   }
 
   if (error) {
-    return (
-      <div className="app">
-        <main className="main">
-          <div className="error">
-            <h3>{t('common.error')}</h3>
-            <p>{error}</p>
-            <Link to="/" className="back-link">
-              {t('common.back')}
-            </Link>
-          </div>
-        </main>
-      </div>
-    )
+    return <ErrorDisplay error={error} fullPage={true} showBackLink={true} />
   }
 
 
