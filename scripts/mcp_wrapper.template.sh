@@ -1,7 +1,10 @@
 #!/bin/bash
 
 # Set your environment variables here
-export ISTAROTH_DOCUMENT_STORE="/path/to/checkpoint" # REPLACE
+# Comma-separated list of language checkpoints, e.g. CHS:/path/to/chs_checkpoint,ENG:/path/to/eng_checkpoint
+export ISTAROTH_DOCUMENT_STORE_SET="CHS:/path/to/chs_checkpoint" # REPLACE
+# Language used by the MCP server (must be one of the supported languages, e.g. CHS or ENG)
+export ISTAROTH_MCP_LANGUAGE="CHS" # REPLACE
 export GOOGLE_API_KEY="your-google-api-key-here"  # REPLACE
 
 # Optional: Set LangSmith tracing environment variables if you want to enable tracing

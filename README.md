@@ -80,6 +80,13 @@ claude mcp add istaroth --transport=http http://127.0.0.1:8000/mcp/
 # Restart Claude Code
 ```
 
+### MCP Environment Variables
+
+The MCP server uses the following environment variables:
+
+- `ISTAROTH_DOCUMENT_STORE_SET`: Comma-separated list of language checkpoints, e.g. `CHS:/path/to/chs_checkpoint,ENG:/path/to/eng_checkpoint`.
+- `ISTAROTH_MCP_LANGUAGE`: Language for queries, must be one of the supported languages (currently `CHS` or `ENG`).
+
 ### Usage
 
 Once configured, you can query the Istaroth knowledge base directly in Claude using natural language. The MCP server provides two tools:
