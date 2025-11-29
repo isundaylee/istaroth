@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """HTTP/WebSocket MCP server for Istaroth RAG functionality."""
 
+import functools
 import os
 import pathlib
 import sys
@@ -13,13 +14,24 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 import langsmith as ls
 
 from istaroth.agd import localization
-from istaroth.rag import document_store_set, output_rendering
+from istaroth.rag import document_store, document_store_set, output_rendering
 
 _mcp: FastMCP = FastMCP("istaroth")
-_store_set = document_store_set.DocumentStoreSet.from_env()
-_mcp_language_str = os.environ["ISTAROTH_MCP_LANGUAGE"]
-_mcp_language = localization.Language(_mcp_language_str.upper())
-_store = _store_set.get_store(_mcp_language)
+
+
+@functools.cache
+def _get_store() -> document_store.DocumentStore:
+    """Lazy initialization of document store to avoid startup issues."""
+    try:
+        store_set = document_store_set.DocumentStoreSet.from_env()
+        mcp_language_str = os.environ["ISTAROTH_MCP_LANGUAGE"]
+        mcp_language = localization.Language(mcp_language_str.upper())
+        return store_set.get_store(mcp_language)
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to initialize document store: {e}. "
+            "Please check ISTAROTH_DOCUMENT_STORE_SET and ISTAROTH_MCP_LANGUAGE environment variables."
+        ) from e
 
 
 @_mcp.tool()
@@ -37,7 +49,8 @@ def get_file_content(file_id: str, max_chunks: int = 50, start_index: int = 0) -
     - 文件的内容片段，每个片段包含索引和内容
     """
     try:
-        if _store.num_documents == 0:
+        store = _get_store()
+        if store.num_documents == 0:
             return "错误：文档库为空。"
 
         with ls.trace(
@@ -50,7 +63,7 @@ def get_file_content(file_id: str, max_chunks: int = 50, start_index: int = 0) -
             },
         ) as rt:
             # Get all chunks for the file
-            all_chunks = _store.get_file_chunks(file_id)
+            all_chunks = store.get_file_chunks(file_id)
 
             if all_chunks is None:
                 error_msg = f"错误：未找到文件ID '{file_id}'。"
@@ -129,7 +142,8 @@ def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
     - 探索剧情细节和彩蛋
     """
     try:
-        if _store.num_documents == 0:
+        store = _get_store()
+        if store.num_documents == 0:
             return "错误：文档库为空，请先添加文档。"
 
         with ls.trace(
@@ -137,7 +151,7 @@ def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
             "chain",
             inputs={"query": query, "k": k, "chunk_context": chunk_context},
         ) as rt:
-            retrieve_output = _store.retrieve(query, k=k, chunk_context=chunk_context)
+            retrieve_output = store.retrieve(query, k=k, chunk_context=chunk_context)
 
             if not retrieve_output.results:
                 formatted_output = "未找到相关结果。"
