@@ -25,8 +25,37 @@ jobs:
         echo "timestamp_tag=${TIMESTAMP_TAG}" >> $GITHUB_OUTPUT
         echo "Generated tag: ${TIMESTAMP_TAG}"
 
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Detect changes
+      id: filter
+      uses: dorny/paths-filter@v2
+      with:
+        filters: |
+          backend:
+            - 'istaroth/**'
+            - 'scripts/**'
+            - 'migrations/**'
+            - 'alembic.ini'
+            - 'requirements.in'
+            - 'requirements.txt'
+            - 'pyproject.toml'
+            - 'Dockerfile'
+            - '.github/workflows/docker-build.yml'
+          frontend:
+            - 'frontend/**'
+            - '.github/workflows/docker-build.yml'
+
   build-backend:
-    needs: generate-tag
+    needs: [generate-tag, detect-changes]
+    if: needs.detect-changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     environment: build-push-docker-image
 
@@ -74,7 +103,8 @@ jobs:
         platforms: linux/amd64,linux/arm64
 
   build-frontend:
-    needs: generate-tag
+    needs: [generate-tag, detect-changes]
+    if: needs.detect-changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     environment: build-push-docker-image
 
