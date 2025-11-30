@@ -1,5 +1,7 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useCallback, ReactNode, useMemo } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { translations, Language, TranslationKey } from '../i18n'
+import { getLanguageFromUrl, buildUrlWithLanguage } from '../utils/language'
 
 interface LanguageContextType {
   language: Language
@@ -9,41 +11,29 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined)
 
-const LANGUAGE_STORAGE_KEY = 'istaroth-language'
-
-const getInitialLanguage = (): Language => {
-  // Try to get from localStorage first
-  const stored = localStorage.getItem(LANGUAGE_STORAGE_KEY)
-  if (stored && (stored === 'chs' || stored === 'eng')) {
-    return stored as Language
-  }
-
-  // Fallback to browser language
-  const browserLang = navigator.language.toLowerCase()
-  if (browserLang.startsWith('zh')) {
-    return 'chs'
-  }
-
-  // Default to Chinese
-  return 'chs'
-}
-
 interface LanguageProviderProps {
   children: ReactNode
 }
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
-  const [language, setLanguage] = useState<Language>(getInitialLanguage)
+  const location = useLocation()
+  const navigate = useNavigate()
 
-  useEffect(() => {
-    localStorage.setItem(LANGUAGE_STORAGE_KEY, language)
-  }, [language])
+  const language = useMemo(() => {
+    const url = `${window.location.origin}${location.pathname}${location.search}`
+    return getLanguageFromUrl(url)
+  }, [location.pathname, location.search])
 
-  const contextValue: LanguageContextType = {
+  const setLanguage = useCallback((lang: Language) => {
+    const newUrl = buildUrlWithLanguage(location.pathname, location.search, lang)
+    navigate(newUrl, { replace: true })
+  }, [location.pathname, location.search, navigate])
+
+  const contextValue: LanguageContextType = useMemo(() => ({
     language,
     setLanguage,
     t: translations[language]
-  }
+  }), [language, setLanguage])
 
   return (
     <LanguageContext.Provider value={contextValue}>
