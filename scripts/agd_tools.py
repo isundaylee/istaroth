@@ -176,7 +176,7 @@ def _generate_content(
     # Apply sampling if sample_rate < 1.0
     if sample_rate < 1.0:
         original_count = len(renderable_keys)
-        sample_size = int(len(renderable_keys) * sample_rate)
+        sample_size = max(1, int(len(renderable_keys) * sample_rate))
         renderable_keys = random.sample(renderable_keys, sample_size)
         click.echo(
             f"Sampling {len(renderable_keys)} of {original_count} items ({sample_rate:.1%})"
