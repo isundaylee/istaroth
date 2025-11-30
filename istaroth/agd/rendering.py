@@ -43,7 +43,10 @@ def render_readable(
     rendered_content = f"# {metadata.title}\n\n{content}"
 
     return types.RenderedItem(
-        filename=filename, content=rendered_content, id=metadata.localization_id
+        filename=filename,
+        content=rendered_content,
+        id=metadata.localization_id,
+        title=metadata.title,
     )
 
 
@@ -70,8 +73,10 @@ def render_talk(
         # Take first 50 characters and clean for filename
         safe_title = utils.make_safe_filename_part(first_message)
         filename = f"{talk_id}_{safe_title}.txt"
+        title = first_message[:100] if len(first_message) > 100 else first_message
     else:
         filename = f"{talk_id}_empty.txt"
+        title = "Empty Talk"
 
     # Format content as dialog with role labels
     content_lines = ["# Talk Dialog\n"]
@@ -85,7 +90,7 @@ def render_talk(
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(
-        filename=filename, content=rendered_content, id=int(talk_id)
+        filename=filename, content=rendered_content, id=int(talk_id), title=title
     )
 
 
@@ -130,7 +135,10 @@ def render_quest(
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(
-        filename=filename, content=rendered_content, id=int(quest.quest_id)
+        filename=filename,
+        content=rendered_content,
+        id=int(quest.quest_id),
+        title=quest.title,
     )
 
 
@@ -153,7 +161,10 @@ def render_character_story(story_info: types.CharacterStoryInfo) -> types.Render
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(
-        filename=filename, content=rendered_content, id=int(story_info.avatar_id)
+        filename=filename,
+        content=rendered_content,
+        id=int(story_info.avatar_id),
+        title=story_info.character_name,
     )
 
 
@@ -178,7 +189,7 @@ def render_subtitle(
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(
-        filename=filename, content=rendered_content, id=subtitle_id
+        filename=filename, content=rendered_content, id=subtitle_id, title=path_obj.stem
     )
 
 
@@ -195,7 +206,10 @@ def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(
-        filename=filename, content=rendered_content, id=int(material_info.material_id)
+        filename=filename,
+        content=rendered_content,
+        id=int(material_info.material_id),
+        title=material_info.name,
     )
 
 
@@ -227,7 +241,10 @@ def render_materials_by_type(
     rendered_content = "\n".join(content_lines).rstrip()
 
     return types.RenderedItem(
-        filename=filename, content=rendered_content, id=material_type_id
+        filename=filename,
+        content=rendered_content,
+        id=material_type_id,
+        title=material_type,
     )
 
 
@@ -248,7 +265,10 @@ def render_voiceline(voiceline_info: types.VoicelineInfo) -> types.RenderedItem:
     rendered_content = "\n".join(content_lines).rstrip()
 
     return types.RenderedItem(
-        filename=filename, content=rendered_content, id=int(voiceline_info.avatar_id)
+        filename=filename,
+        content=rendered_content,
+        id=int(voiceline_info.avatar_id),
+        title=voiceline_info.character_name,
     )
 
 
@@ -281,7 +301,10 @@ def render_artifact_set(artifact_set_info: types.ArtifactSetInfo) -> types.Rende
     rendered_content = "\n".join(content_lines).rstrip()
 
     return types.RenderedItem(
-        filename=filename, content=rendered_content, id=int(artifact_set_info.set_id)
+        filename=filename,
+        content=rendered_content,
+        id=int(artifact_set_info.set_id),
+        title=artifact_set_info.set_name,
     )
 
 
@@ -321,6 +344,7 @@ def render_talk_group(
 
     rendered_content = "\n".join(content_lines).rstrip()
 
+    title = f"{talk_group_type} - {talk_group_id}"
     return types.RenderedItem(
-        filename=filename, content=rendered_content, id=int(talk_group_id)
+        filename=filename, content=rendered_content, id=int(talk_group_id), title=title
     )

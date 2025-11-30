@@ -553,6 +553,7 @@ class RenderedItem:
     filename: str
     content: str
     id: int
+    title: str
 
     def to_text_metadata(self, category):
         """Convert to TextMetadata."""
@@ -562,7 +563,7 @@ class RenderedItem:
         relative_path = f"{category_dir}/{self.filename}"
         return text_types.TextMetadata(
             category=category,
-            title=self.filename,
+            title=self.title,
             id=self.id,
             relative_path=relative_path,
         )
