@@ -77,11 +77,12 @@ spec:
         - -c
         - |
           echo "Waiting for Chroma server {{ $lang }} to be ready..."
-          until nc -z {{ $.Release.Name }}-chroma-{{ $lang }} 8000; do
-            echo "Chroma server {{ $lang }} not ready, waiting..."
+          CHROMA_SERVICE="{{ $.Release.Name }}-chroma-{{ $lang }}-{{ $.Values.backend.checkpointRelease | replace "/" "-" | replace "." "-" | lower }}"
+          until nc -z ${CHROMA_SERVICE} 8000; do
+            echo "Chroma server ${CHROMA_SERVICE} not ready, waiting..."
             sleep 5
           done
-          echo "Chroma server {{ $lang }} is ready!"
+          echo "Chroma server ${CHROMA_SERVICE} is ready!"
         {{- with $.Values.containerSecurityContext }}
         securityContext:
           {{- toYaml . | nindent 10 }}

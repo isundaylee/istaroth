@@ -28,7 +28,7 @@ data:
   {{- $chromaServers := list }}
   {{- range $lang, $config := .Values.languages }}
     {{- if $config.useChroma }}
-      {{- $serverHost := printf "%s-chroma-%s" $.Release.Name $lang }}
+      {{- $serverHost := printf "%s-chroma-%s-%s" $.Release.Name $lang ($.Values.backend.checkpointRelease | replace "/" "-" | replace "." "-" | lower) }}
       {{- $serverEntry := printf "%s:%s:8000" (upper $lang) $serverHost }}
       {{- $chromaServers = append $chromaServers $serverEntry }}
     {{- end }}

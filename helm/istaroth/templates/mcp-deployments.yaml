@@ -26,7 +26,7 @@ spec:
         app.kubernetes.io/instance: {{ $.Release.Name }}
         app.kubernetes.io/component: mcp-{{ $language }}
       annotations:
-        checkpoint-release: {{ $.Values.backend.checkpointRelease | quote }}
+        istaroth.me/checkpoint-release: {{ $.Values.backend.checkpointRelease | quote }}
         {{- with $.Values.annotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -45,11 +45,12 @@ spec:
         - -c
         - |
           echo "Waiting for Chroma server {{ $language }} to be ready..."
-          until nc -z {{ $.Release.Name }}-chroma-{{ $language }} 8000; do
-            echo "Chroma server {{ $language }} not ready, waiting..."
+          CHROMA_SERVICE="{{ $.Release.Name }}-chroma-{{ $language }}-{{ $.Values.backend.checkpointRelease | replace "/" "-" | replace "." "-" | lower }}"
+          until nc -z ${CHROMA_SERVICE} 8000; do
+            echo "Chroma server ${CHROMA_SERVICE} not ready, waiting..."
             sleep 5
           done
-          echo "Chroma server {{ $language }} is ready!"
+          echo "Chroma server ${CHROMA_SERVICE} is ready!"
         {{- with $.Values.containerSecurityContext }}
         securityContext:
           {{- toYaml . | nindent 10 }}
