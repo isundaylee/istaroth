@@ -34,6 +34,8 @@ from istaroth.agd.renderable_types import (
     Talks,
     Voicelines,
 )
+from istaroth.text import manifest
+from istaroth.text import types as text_types
 
 
 @attrs.define
@@ -143,6 +145,7 @@ def _generate_content(
     errors_file: TextIO | None = None,
     sample_rate: float = 1.0,
     strict: bool = False,
+    manifest_list: list[text_types.TextMetadata],
 ) -> tuple[int, int, int, types.TrackerStats]:
     """Generate content files using renderable type.
 
@@ -182,29 +185,13 @@ def _generate_content(
     # Prepare arguments for multiprocessing
     process_args = [(key, renderable_type, strict) for key in renderable_keys]
 
-    # Track used filenames to prevent collisions
-    used_filenames: set[str] = set()
+    # Track used paths to detect collisions
+    used_paths: set[str] = set()
 
     def log_message(message: str) -> None:
         """Helper to log message to errors file."""
         if errors_file:
             errors_file.write(message + "\n")
-
-    def resolve_filename_collision(original_filename: str) -> str:
-        """Helper to resolve filename collisions by adding counter suffix."""
-        filename = original_filename
-        counter = 1
-
-        while filename in used_filenames:
-            # Add counter to make filename unique
-            name, ext = (
-                pathlib.Path(original_filename).stem,
-                pathlib.Path(original_filename).suffix,
-            )
-            filename = f"{name}_{counter}{ext}"
-            counter += 1
-
-        return filename
 
     # Use the provided multiprocessing pool
     # Process with progress bar
@@ -248,22 +235,31 @@ def _generate_content(
                 skipped_count += 1
                 continue
 
-            # Handle filename collisions
-            original_filename = result.rendered_item.filename
-            filename = resolve_filename_collision(original_filename)
+            # Convert to TextMetadata
+            category = renderable_type.renderable_type.text_category
+            text_metadata = result.rendered_item.to_text_metadata(category)
 
-            # Log warning if there was a collision
-            if filename != original_filename:
-                log_message(
-                    f"⚠ {renderable_type_name}: {result.renderable_key} -> WARNING: Filename collision, renamed to {filename}"
+            # Check for path collision
+            if text_metadata.relative_path in used_paths:
+                error_msg = (
+                    f"Path collision detected: '{text_metadata.relative_path}' "
+                    f"for {renderable_type_name}: {result.renderable_key}"
                 )
+                log_message(f"✗ {error_msg}")
+                raise ValueError(error_msg)
 
-            used_filenames.add(filename)
+            used_paths.add(text_metadata.relative_path)
+
+            # Get output path from metadata
+            output_file = output_dir / text_metadata.relative_path
+            output_file.parent.mkdir(parents=True, exist_ok=True)
 
             # Write to output file
-            output_file = output_path / filename
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(result.rendered_item.content)
+
+            # Add to manifest
+            manifest_list.append(text_metadata)
 
             success_count += 1
 
@@ -349,6 +345,9 @@ def generate_all(
     # Collect stats for summary table
     summary_stats = []
 
+    # Manifest list to collect all text metadata
+    manifest_list: list[text_types.TextMetadata] = []
+
     # Helper function to process a content type conditionally
     def process_content_type(
         should_generate: bool, renderable: BaseRenderableType
@@ -367,6 +366,7 @@ def generate_all(
             errors_file=errors_file,
             sample_rate=sample_rate,
             strict=strict,
+            manifest_list=manifest_list,
         )
         total_success += success
         total_error += error
@@ -454,6 +454,10 @@ def generate_all(
     with unused_stats_path.open("w", encoding="utf-8") as f:
         json.dump(unused_stats_data, f, indent=2, ensure_ascii=False)
     click.echo(f"Text map usage stats written to {unused_stats_path}")
+
+    # Write manifest
+    manifest.write_manifest(output_dir, manifest_list)
+    click.echo(f"Manifest written to {output_dir / 'manifest.json'}")
 
     if total_error > 0:
         click.echo(f"\nDetailed errors written to {errors_file_path}")

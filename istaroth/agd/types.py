@@ -553,3 +553,17 @@ class RenderedItem:
     filename: str
     content: str
     id: int
+
+    def to_text_metadata(self, category):
+        """Convert to TextMetadata."""
+        from istaroth.text import types as text_types
+
+        category_dir = category.value
+        file_id = str(self.id)
+        relative_path = f"{category_dir}/{self.filename}"
+        return text_types.TextMetadata(
+            category=category,
+            title=self.filename,
+            id=file_id,
+            relative_path=relative_path,
+        )

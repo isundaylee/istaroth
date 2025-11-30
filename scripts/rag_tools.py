@@ -86,6 +86,7 @@ def build(text_path: pathlib.Path, checkpoint_path: pathlib.Path, force: bool) -
     )
     store = document_store.DocumentStore.build(
         files_to_process,
+        text_root=text_path,
         chunk_size_multiplier=chunk_size_multiplier,
         show_progress=True,
     )
@@ -209,9 +210,27 @@ def chunk_stats(path: pathlib.Path, *, chunk_size_multiplier: float) -> None:
 
     logger.info("Analyzing chunks from %d files...", len(files_to_process))
 
+    # Determine text root from file paths (common parent)
+    if not files_to_process:
+        logger.error("No files to process.")
+        sys.exit(1)
+    text_root = files_to_process[0].parent
+    for file_path in files_to_process[1:]:
+        # Find common parent by comparing path parts
+        current_common = []
+        for i, part in enumerate(text_root.parts):
+            if i < len(file_path.parent.parts) and file_path.parent.parts[i] == part:
+                current_common.append(part)
+            else:
+                break
+        text_root = (
+            pathlib.Path(*current_common) if current_common else file_path.parent
+        )
+
     # Chunk the documents
     all_documents = document_store.chunk_documents(
         files_to_process,
+        text_root=text_root,
         chunk_size_multiplier=chunk_size_multiplier,
         show_progress=True,
     )
@@ -309,8 +328,9 @@ def chunk_file(file: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     print("=" * 60)
 
     # Use the existing chunk_documents function from document_store
+    # Use file's parent as text root
     all_documents = document_store.chunk_documents(
-        [file], chunk_size_multiplier=chunk_size_multiplier
+        [file], text_root=file.parent, chunk_size_multiplier=chunk_size_multiplier
     )
 
     # Get the documents for this file

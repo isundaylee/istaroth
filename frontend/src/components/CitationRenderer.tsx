@@ -303,8 +303,9 @@ function CitationRenderer({ content }: CitationRendererProps) {
         }
       } else {
         // This is a successful response
+        const path = (cached.metadata.path as string | undefined) || fileId
         return {
-          title: `${t('citation.source')}: ${cached.metadata.filename || fileId}`,
+          title: `${t('citation.source')}: ${path}`,
           chunks: [],
           content: cached.content,
           fileId,
@@ -341,8 +342,9 @@ function CitationRenderer({ content }: CitationRendererProps) {
       .sort((a, b) => a.chunk_index - b.chunk_index)
 
     if (fileChunks.length > 0) {
+      const path = (fileChunks[0].metadata.path as string | undefined) || fileId
       return {
-        title: `${t('citation.source')}: ${fileChunks[0].metadata.filename || fileId}`,
+        title: `${t('citation.source')}: ${path}`,
         chunks: fileChunks,
         content: '',
         fileId,
@@ -420,12 +422,12 @@ function CitationRenderer({ content }: CitationRendererProps) {
 
     if (cachedChunk && !('error' in cachedChunk[1])) {
       const citation = cachedChunk[1] as CitationResponse
-      // Use parsed name if available, otherwise fall back to filename, then fileId
+      // Use parsed name if available, otherwise fall back to path, then fileId
       if (citation.file_info?.name) {
         return citation.file_info.name
       }
-      const filename = citation.metadata.filename
-      return typeof filename === 'string' ? filename : fileId
+      const path = citation.metadata.path as string | undefined
+      return path || fileId
     }
 
     return fileId

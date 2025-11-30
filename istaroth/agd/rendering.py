@@ -37,7 +37,7 @@ def render_readable(
     """Render readable content into RAG-suitable format."""
     # Generate filename based on title
     safe_title = utils.make_safe_filename_part(metadata.title)
-    filename = f"readable_{safe_title}_{metadata.localization_id}.txt"
+    filename = f"{metadata.localization_id}_{safe_title}.txt"
 
     # Format content with title header
     rendered_content = f"# {metadata.title}\n\n{content}"
@@ -69,9 +69,9 @@ def render_talk(
         )
         # Take first 50 characters and clean for filename
         safe_title = utils.make_safe_filename_part(first_message)
-        filename = f"talk_{talk_type}_{safe_title}_{talk_id}.txt"
+        filename = f"{talk_id}_{safe_title}.txt"
     else:
-        filename = f"talk_{talk_type}_empty_{talk_id}.txt"
+        filename = f"{talk_id}_empty.txt"
 
     # Format content as dialog with role labels
     content_lines = ["# Talk Dialog\n"]
@@ -95,7 +95,7 @@ def render_quest(
     """Render quest information into RAG-suitable format."""
     # Generate filename based on quest title
     safe_title = utils.make_safe_filename_part(quest.title)
-    filename = f"quest_{safe_title}_{quest.quest_id}.txt"
+    filename = f"{quest.quest_id}_{safe_title}.txt"
 
     # Format content with chapter title (if available) and quest title
     content_lines = []
@@ -138,12 +138,10 @@ def render_character_story(story_info: types.CharacterStoryInfo) -> types.Render
     """Render all character stories into RAG-suitable format."""
     # Generate filename based on character name with collision safeguards
     safe_name = utils.make_safe_filename_part(story_info.character_name)
-
-    # Add character count for additional uniqueness
-    story_count = len(story_info.stories)
-    filename = f"character_story_{safe_name}.txt"
+    filename = f"{story_info.avatar_id}_{safe_name}.txt"
 
     # Format content with character name header and all stories
+    story_count = len(story_info.stories)
     content_lines = [f"# {story_info.character_name} - Character Stories\n"]
     content_lines.append(f"*{story_count} stories for this character*\n")
 
@@ -163,21 +161,21 @@ def render_subtitle(
     subtitle_info: types.SubtitleInfo, subtitle_path: str
 ) -> types.RenderedItem:
     """Render subtitle content into RAG-suitable format."""
+    # Generate ID from hash of subtitle path
+    subtitle_id = int(
+        hashlib.sha256(subtitle_path.encode("utf-8")).hexdigest()[:15], base=16
+    )
+
     # Generate filename based on subtitle file name
     path_obj = pathlib.Path(subtitle_path)
     safe_name = utils.make_safe_filename_part(path_obj.stem)
-    filename = f"subtitle_{safe_name}.txt"
+    filename = f"{subtitle_id}_{safe_name}.txt"
 
     # Format content with subtitle header and all text lines
     content_lines = [f"# Subtitle: {path_obj.stem}\n"]
     content_lines.extend(subtitle_info.text_lines)
 
     rendered_content = "\n".join(content_lines)
-
-    # Generate ID from hash of subtitle path
-    subtitle_id = int(
-        hashlib.sha256(subtitle_path.encode("utf-8")).hexdigest()[:15], base=16
-    )
 
     return types.RenderedItem(
         filename=filename, content=rendered_content, id=subtitle_id
@@ -188,7 +186,7 @@ def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
     """Render material content into RAG-suitable format."""
     # Generate filename based on material name
     safe_name = utils.make_safe_filename_part(material_info.name)
-    filename = f"material_{safe_name}_{material_info.material_id}.txt"
+    filename = f"{material_info.material_id}_{safe_name}.txt"
 
     # Format content with material name header and description
     content_lines = [f"# {material_info.name}\n"]
@@ -205,9 +203,14 @@ def render_materials_by_type(
     material_type: str, materials: list[types.MaterialInfo]
 ) -> types.RenderedItem:
     """Render multiple materials of the same type into a single RAG-suitable format file."""
+    # Generate ID from hash of material type
+    material_type_id = int(
+        hashlib.sha256(material_type.encode("utf-8")).hexdigest()[:15], base=16
+    )
+
     # Generate filename based on material type
     safe_type = utils.make_safe_filename_part(material_type)
-    filename = f"material_type_{safe_type}.txt"
+    filename = f"{material_type_id}_{safe_type}.txt"
 
     # Format content with material type header and all materials
     content_lines = [f"# Materials: {material_type}\n"]
@@ -223,11 +226,6 @@ def render_materials_by_type(
 
     rendered_content = "\n".join(content_lines).rstrip()
 
-    # Generate ID from hash of material type
-    material_type_id = int(
-        hashlib.sha256(material_type.encode("utf-8")).hexdigest()[:15], base=16
-    )
-
     return types.RenderedItem(
         filename=filename, content=rendered_content, id=material_type_id
     )
@@ -237,7 +235,7 @@ def render_voiceline(voiceline_info: types.VoicelineInfo) -> types.RenderedItem:
     """Render voiceline content into RAG-suitable format."""
     # Generate filename based on character name
     safe_name = utils.make_safe_filename_part(voiceline_info.character_name)
-    filename = f"voiceline_{safe_name}.txt"
+    filename = f"{voiceline_info.avatar_id}_{safe_name}.txt"
 
     # Format content with character name header and all voicelines
     content_lines = [f"# {voiceline_info.character_name} Voicelines\n"]
@@ -258,7 +256,7 @@ def render_artifact_set(artifact_set_info: types.ArtifactSetInfo) -> types.Rende
     """Render artifact set content into RAG-suitable format."""
     # Generate filename based on set name and ID
     safe_name = utils.make_safe_filename_part(artifact_set_info.set_name)
-    filename = f"artifact_set_{safe_name}_{artifact_set_info.set_id}.txt"
+    filename = f"{artifact_set_info.set_id}_{safe_name}.txt"
 
     # Format content with set name header and all artifact pieces
     content_lines = [f"# {artifact_set_info.set_name}\n"]
@@ -295,7 +293,8 @@ def render_talk_group(
 ) -> types.RenderedItem:
     """Render multiple talks from an activity group into a single file."""
     # Generate filename based on activity ID
-    filename = f"talk_group_{talk_group_type}_{talk_group_id}.txt"
+    safe_type = utils.make_safe_filename_part(str(talk_group_type))
+    filename = f"{talk_group_id}_{safe_type}.txt"
 
     # Format content with activity group header and all talks
     content_lines = [f"# Talk Group: {talk_group_type} - {talk_group_id}\n"]

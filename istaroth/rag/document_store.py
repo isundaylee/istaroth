@@ -130,10 +130,17 @@ def get_document_store_path() -> pathlib.Path:
 def chunk_documents(
     file_paths: list[pathlib.Path],
     *,
+    text_root: pathlib.Path,
     chunk_size_multiplier: float,
     show_progress: bool = False,
 ) -> dict[str, dict[int, Document]]:
     """Chunk documents from file paths.
+
+    Args:
+        file_paths: List of absolute file paths to chunk
+        text_root: Root directory for text files (used to compute relative paths)
+        chunk_size_multiplier: Multiplier for chunk size
+        show_progress: Whether to show progress bar
 
     Returns:
         Dictionary of all_documents
@@ -147,22 +154,28 @@ def chunk_documents(
     )
 
     all_documents = {}
-    seen_basenames: dict[str, pathlib.Path] = {}
+    seen_paths: dict[str, pathlib.Path] = {}
 
     for file_path in tqdm(
         file_paths, desc="Reading & chunking files", disable=not show_progress
     ):
-        # Generate file ID from MD5 hash of basename
-        basename = file_path.name
-        file_id = hashlib.md5(basename.encode("utf-8")).hexdigest()
+        # Compute relative path from text root
+        try:
+            relative_path = str(file_path.relative_to(text_root))
+        except ValueError:
+            # If file is not under text_root, use absolute path
+            relative_path = str(file_path)
 
-        # Check for duplicate basenames
-        if file_id in seen_basenames:
+        # Generate file ID from MD5 hash of path (not just basename)
+        file_id = hashlib.md5(relative_path.encode("utf-8")).hexdigest()
+
+        # Check for duplicate paths
+        if file_id in seen_paths:
             raise ValueError(
-                f"Duplicate basename detected: '{basename}' "
-                f"(current: {file_path}, previous: {seen_basenames[file_id]})"
+                f"Duplicate path detected: '{relative_path}' "
+                f"(current: {file_path}, previous: {seen_paths[file_id]})"
             )
-        seen_basenames[file_id] = file_path
+        seen_paths[file_id] = file_path
 
         content = file_path.read_text(encoding="utf-8")
         chunks = text_splitter.split_text(content.strip())
@@ -173,7 +186,7 @@ def chunk_documents(
             metadata: types.DocumentMetadata = {
                 "source": str(file_path),
                 "type": "document",
-                "filename": file_path.name,
+                "path": relative_path,
                 "file_id": file_id,
                 "chunk_index": chunk_index,
             }
@@ -205,6 +218,7 @@ class DocumentStore:
         cls,
         file_paths: list[pathlib.Path],
         *,
+        text_root: pathlib.Path,
         chunk_size_multiplier: float,
         query_transformer: query_transform.QueryTransformer | None = None,
         reranker: rerank.Reranker | None = None,
@@ -213,6 +227,7 @@ class DocumentStore:
         """Build a document store from file paths."""
         all_documents = chunk_documents(
             file_paths,
+            text_root=text_root,
             chunk_size_multiplier=chunk_size_multiplier,
             show_progress=show_progress,
         )

@@ -93,7 +93,7 @@ def test_bm25_store_with_k_zero():
 
 
 def test_chunk_documents_uses_md5_file_id():
-    """Test that chunk_documents uses MD5 hash of basename as file ID."""
+    """Test that chunk_documents uses MD5 hash of path as file ID."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = pathlib.Path(temp_dir)
 
@@ -101,30 +101,32 @@ def test_chunk_documents_uses_md5_file_id():
         test_file = temp_path / "test_file.txt"
         test_file.write_text("This is a test document content.")
 
-        # Expected MD5 hash of filename
+        # Expected MD5 hash of path (relative to text root)
         expected_file_id = hashlib.md5("test_file.txt".encode("utf-8")).hexdigest()
 
         # Chunk the document
-        result = chunk_documents([test_file], chunk_size_multiplier=1.0)
+        result = chunk_documents(
+            [test_file], text_root=temp_path, chunk_size_multiplier=1.0
+        )
 
         # Assert file ID is MD5 hash
         assert (
             expected_file_id in result
         ), f"Expected file ID {expected_file_id} not found"
 
-        # Check that metadata contains correct file_id
+        # Check that metadata contains correct file_id and path
         file_docs = result[expected_file_id]
         for doc in file_docs.values():
             assert doc.metadata["file_id"] == expected_file_id
-            assert doc.metadata["filename"] == "test_file.txt"
+            assert doc.metadata["path"] == "test_file.txt"
 
 
-def test_chunk_documents_detects_duplicate_basenames():
-    """Test that chunk_documents raises ValueError for duplicate basenames."""
+def test_chunk_documents_detects_duplicate_paths():
+    """Test that chunk_documents raises ValueError for duplicate paths."""
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = pathlib.Path(temp_dir)
 
-        # Create two files with the same basename in different directories
+        # Create two files with the same relative path
         dir1 = temp_path / "dir1"
         dir2 = temp_path / "dir2"
         dir1.mkdir()
@@ -136,6 +138,8 @@ def test_chunk_documents_detects_duplicate_basenames():
         file1.write_text("Content of first file")
         file2.write_text("Content of second file")
 
-        # Should raise ValueError due to duplicate basename
-        with pytest.raises(ValueError, match="Duplicate basename detected"):
-            chunk_documents([file1, file2], chunk_size_multiplier=1.0)
+        # Should raise ValueError due to duplicate path (same relative path from text root)
+        with pytest.raises(ValueError, match="Duplicate path detected"):
+            chunk_documents(
+                [file1, file2], text_root=temp_path, chunk_size_multiplier=1.0
+            )

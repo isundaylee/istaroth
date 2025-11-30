@@ -1,6 +1,7 @@
 """Citation endpoints."""
 
 import logging
+import pathlib
 
 from fastapi import APIRouter, HTTPException
 
@@ -77,17 +78,21 @@ async def get_citations_batch(
                 total_chunks is not None
             ), f"Chunk exists but file metadata missing for {file_id}"
 
-            # Extract filename and parse file info from metadata
-            filename = chunk.metadata.get("filename")
-            file_info = None
+            # Extract path and parse file info from metadata
+            assert (
+                "path" in chunk.metadata
+            ), f"Path missing from chunk metadata for {file_id}"
+            path = chunk.metadata["path"]
+            assert path, f"Path is empty in chunk metadata for {file_id}"
 
-            if filename:
-                try:
-                    # Parse LibraryFileInfo from filename (category determined internally)
-                    file_info = parse_filename(filename)
-                except ValueError:
-                    # Filename doesn't match expected format or category prefix
-                    file_info = None
+            file_info = None
+            try:
+                # Extract filename from path and parse file info
+                filename = pathlib.Path(path).name
+                file_info = parse_filename(filename)
+            except ValueError:
+                # Path/filename doesn't match expected format or category prefix
+                file_info = None
 
             # Success - add to results
             successes.append(

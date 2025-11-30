@@ -38,6 +38,24 @@ class RenderableType(Enum):
         """Return the output subdirectory for this renderable type."""
         return self.value
 
+    @property
+    def text_category(self):
+        """Convert to TextCategory."""
+        from istaroth.text import types as text_types
+
+        mapping = {
+            RenderableType.READABLE: text_types.TextCategory.AGD_READABLE,
+            RenderableType.QUEST: text_types.TextCategory.AGD_QUEST,
+            RenderableType.CHARACTER_STORY: text_types.TextCategory.AGD_CHARACTER_STORY,
+            RenderableType.SUBTITLE: text_types.TextCategory.AGD_SUBTITLE,
+            RenderableType.MATERIAL_TYPE: text_types.TextCategory.AGD_MATERIAL_TYPE,
+            RenderableType.VOICELINE: text_types.TextCategory.AGD_VOICELINE,
+            RenderableType.TALK_GROUP: text_types.TextCategory.AGD_TALK_GROUP,
+            RenderableType.TALK: text_types.TextCategory.AGD_TALK,
+            RenderableType.ARTIFACT_SET: text_types.TextCategory.AGD_ARTIFACT_SET,
+        }
+        return mapping[self]
+
 
 class BaseRenderableType(ABC, Generic[TKey]):
     """Abstract base class for renderable content types."""

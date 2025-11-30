@@ -12,7 +12,7 @@ class DocumentMetadata(TypedDict):
 
     source: str
     type: str
-    filename: str
+    path: str
     file_id: str
     chunk_index: int
 
