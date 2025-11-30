@@ -1,9 +1,12 @@
 """Type definitions for AnimeGameData (AGD) structures."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, NotRequired, TypeAlias, TypedDict
 
 if TYPE_CHECKING:
     from istaroth.agd.repo import TextMapTracker, TalkTracker, ReadablesTracker
+    from istaroth.text import types as text_types
 
 import attrs
 
@@ -550,20 +553,5 @@ class ArtifactSetInfo:
 class RenderedItem:
     """Rendered content suitable for RAG training."""
 
-    filename: str
+    text_metadata: text_types.TextMetadata
     content: str
-    id: int
-    title: str
-
-    def to_text_metadata(self, category):
-        """Convert to TextMetadata."""
-        from istaroth.text import types as text_types
-
-        category_dir = category.value
-        relative_path = f"{category_dir}/{self.filename}"
-        return text_types.TextMetadata(
-            category=category,
-            title=self.title,
-            id=self.id,
-            relative_path=relative_path,
-        )

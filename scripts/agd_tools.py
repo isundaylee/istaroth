@@ -235,9 +235,8 @@ def _generate_content(
                 skipped_count += 1
                 continue
 
-            # Convert to TextMetadata
-            category = renderable_type.renderable_type.text_category
-            text_metadata = result.rendered_item.to_text_metadata(category)
+            # Get TextMetadata from RenderedItem
+            text_metadata = result.rendered_item.text_metadata
 
             # Check for path collision
             if text_metadata.relative_path in used_paths:

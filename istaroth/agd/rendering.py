@@ -5,6 +5,7 @@ import pathlib
 
 from istaroth import utils
 from istaroth.agd import localization, talk_parsing, text_utils, types
+from istaroth.text import types as text_types
 
 
 def _extract_talk_type_from_path(talk_file_path: str) -> str:
@@ -43,10 +44,13 @@ def render_readable(
     rendered_content = f"# {metadata.title}\n\n{content}"
 
     return types.RenderedItem(
-        filename=filename,
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_READABLE,
+            title=metadata.title,
+            id=metadata.localization_id,
+            relative_path=f"{text_types.TextCategory.AGD_READABLE.value}/{filename}",
+        ),
         content=rendered_content,
-        id=metadata.localization_id,
-        title=metadata.title,
     )
 
 
@@ -90,7 +94,13 @@ def render_talk(
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(
-        filename=filename, content=rendered_content, id=int(talk_id), title=title
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_TALK,
+            title=title,
+            id=int(talk_id),
+            relative_path=f"{text_types.TextCategory.AGD_TALK.value}/{filename}",
+        ),
+        content=rendered_content,
     )
 
 
@@ -135,10 +145,13 @@ def render_quest(
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(
-        filename=filename,
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_QUEST,
+            title=quest.title,
+            id=int(quest.quest_id),
+            relative_path=f"{text_types.TextCategory.AGD_QUEST.value}/{filename}",
+        ),
         content=rendered_content,
-        id=int(quest.quest_id),
-        title=quest.title,
     )
 
 
@@ -161,10 +174,13 @@ def render_character_story(story_info: types.CharacterStoryInfo) -> types.Render
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(
-        filename=filename,
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_CHARACTER_STORY,
+            title=story_info.character_name,
+            id=int(story_info.avatar_id),
+            relative_path=f"{text_types.TextCategory.AGD_CHARACTER_STORY.value}/{filename}",
+        ),
         content=rendered_content,
-        id=int(story_info.avatar_id),
-        title=story_info.character_name,
     )
 
 
@@ -189,7 +205,13 @@ def render_subtitle(
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(
-        filename=filename, content=rendered_content, id=subtitle_id, title=path_obj.stem
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_SUBTITLE,
+            title=path_obj.stem,
+            id=subtitle_id,
+            relative_path=f"{text_types.TextCategory.AGD_SUBTITLE.value}/{filename}",
+        ),
+        content=rendered_content,
     )
 
 
@@ -206,10 +228,13 @@ def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(
-        filename=filename,
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_MATERIAL_TYPE,
+            title=material_info.name,
+            id=int(material_info.material_id),
+            relative_path=f"{text_types.TextCategory.AGD_MATERIAL_TYPE.value}/{filename}",
+        ),
         content=rendered_content,
-        id=int(material_info.material_id),
-        title=material_info.name,
     )
 
 
@@ -241,10 +266,13 @@ def render_materials_by_type(
     rendered_content = "\n".join(content_lines).rstrip()
 
     return types.RenderedItem(
-        filename=filename,
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_MATERIAL_TYPE,
+            title=material_type,
+            id=material_type_id,
+            relative_path=f"{text_types.TextCategory.AGD_MATERIAL_TYPE.value}/{filename}",
+        ),
         content=rendered_content,
-        id=material_type_id,
-        title=material_type,
     )
 
 
@@ -265,10 +293,13 @@ def render_voiceline(voiceline_info: types.VoicelineInfo) -> types.RenderedItem:
     rendered_content = "\n".join(content_lines).rstrip()
 
     return types.RenderedItem(
-        filename=filename,
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_VOICELINE,
+            title=voiceline_info.character_name,
+            id=int(voiceline_info.avatar_id),
+            relative_path=f"{text_types.TextCategory.AGD_VOICELINE.value}/{filename}",
+        ),
         content=rendered_content,
-        id=int(voiceline_info.avatar_id),
-        title=voiceline_info.character_name,
     )
 
 
@@ -301,10 +332,13 @@ def render_artifact_set(artifact_set_info: types.ArtifactSetInfo) -> types.Rende
     rendered_content = "\n".join(content_lines).rstrip()
 
     return types.RenderedItem(
-        filename=filename,
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_ARTIFACT_SET,
+            title=artifact_set_info.set_name,
+            id=int(artifact_set_info.set_id),
+            relative_path=f"{text_types.TextCategory.AGD_ARTIFACT_SET.value}/{filename}",
+        ),
         content=rendered_content,
-        id=int(artifact_set_info.set_id),
-        title=artifact_set_info.set_name,
     )
 
 
@@ -344,7 +378,12 @@ def render_talk_group(
 
     rendered_content = "\n".join(content_lines).rstrip()
 
-    title = f"{talk_group_type} - {talk_group_id}"
     return types.RenderedItem(
-        filename=filename, content=rendered_content, id=int(talk_group_id), title=title
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_TALK_GROUP,
+            title=f"{talk_group_type} - {talk_group_id}",
+            id=int(talk_group_id),
+            relative_path=f"{text_types.TextCategory.AGD_TALK_GROUP.value}/{filename}",
+        ),
+        content=rendered_content,
     )
