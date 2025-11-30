@@ -188,9 +188,9 @@ def render_subtitle(
     subtitle_info: types.SubtitleInfo, subtitle_path: str
 ) -> types.RenderedItem:
     """Render subtitle content into RAG-suitable format."""
-    # Generate ID from hash of subtitle path
+    # Generate ID from hash of subtitle path (12 hex chars = 48 bits, safe for JavaScript)
     subtitle_id = int(
-        hashlib.sha256(subtitle_path.encode("utf-8")).hexdigest()[:15], base=16
+        hashlib.sha256(subtitle_path.encode("utf-8")).hexdigest()[:12], base=16
     )
 
     # Generate filename based on subtitle file name
@@ -242,9 +242,9 @@ def render_materials_by_type(
     material_type: str, materials: list[types.MaterialInfo]
 ) -> types.RenderedItem:
     """Render multiple materials of the same type into a single RAG-suitable format file."""
-    # Generate ID from hash of material type
+    # Generate ID from hash of material type (12 hex chars = 48 bits, safe for JavaScript)
     material_type_id = int(
-        hashlib.sha256(material_type.encode("utf-8")).hexdigest()[:15], base=16
+        hashlib.sha256(material_type.encode("utf-8")).hexdigest()[:12], base=16
     )
 
     # Generate filename based on material type
