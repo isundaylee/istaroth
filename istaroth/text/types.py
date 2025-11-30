@@ -1,5 +1,7 @@
 """Generic text types."""
 
+from __future__ import annotations
+
 from enum import Enum
 from typing import Any
 
@@ -20,6 +22,18 @@ class TextCategory(Enum):
     AGD_ARTIFACT_SET = "agd_artifact_set"
 
 
+def _validate_relative_path(
+    instance: TextMetadata, attribute: attrs.Attribute, value: str
+) -> None:
+    """Validate that relative_path starts with the expected category prefix."""
+    expected_prefix = f"{instance.category.value}/"
+    if not value.startswith(expected_prefix):
+        raise ValueError(
+            f"relative_path '{value}' must start with '{expected_prefix}' "
+            f"for category {instance.category.name}"
+        )
+
+
 @attrs.define
 class TextMetadata:
     """Metadata for a text file."""
@@ -27,7 +41,7 @@ class TextMetadata:
     category: TextCategory
     title: str
     id: int
-    relative_path: str
+    relative_path: str = attrs.field(validator=_validate_relative_path)
 
     def to_dict(self) -> dict[str, str | int]:
         """Convert to dictionary for JSON serialization."""
@@ -39,7 +53,7 @@ class TextMetadata:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "TextMetadata":
+    def from_dict(cls, data: dict[str, Any]) -> TextMetadata:
         """Create TextMetadata from dictionary."""
         category_enum = TextCategory(data["category"])
         id_value = data["id"]
