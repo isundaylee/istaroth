@@ -36,8 +36,29 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- $langCfg := index $.Values.languages $language }}
-      {{- if $langCfg.useChroma }}
       initContainers:
+      - name: wait-checkpoint-{{ $language }}
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          echo "Waiting for checkpoint {{ $language }} to be ready..."
+          CHECKPOINT_DIR="/data/checkpoints/{{ $.Values.backend.checkpointRelease | replace "/" "-" }}/{{ $language }}"
+          RELEASE_TAG_FILE="${CHECKPOINT_DIR}.release"
+          until [ -f "${RELEASE_TAG_FILE}" ] && [ -d "${CHECKPOINT_DIR}" ]; do
+            echo "Checkpoint ${CHECKPOINT_DIR} not ready, waiting..."
+            sleep 5
+          done
+          echo "Checkpoint ${CHECKPOINT_DIR} is ready!"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        {{- with $.Values.containerSecurityContext }}
+        securityContext:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+      {{- if $langCfg.useChroma }}
       - name: wait-chroma-{{ $language }}
         image: busybox:1.36
         command:

@@ -12,8 +12,6 @@ backend:
     type: ClusterIP
     port: 8000
 
-  # Download checkpoints for all configured languages on startup
-  downloadCheckpoints: true
   # Checkpoint release version to download (e.g., "latest", "v1.0.0", or a git tag)
   checkpointRelease: "latest"
 
