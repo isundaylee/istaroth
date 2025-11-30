@@ -35,9 +35,9 @@ export interface LibraryCategoriesResponse {
 
 export interface LibraryFileInfo {
   category: string
-  name: string
-  id: number | null
-  filename: string
+  title: string
+  id: number
+  relative_path: string
 }
 
 export interface LibraryFilesResponse {
@@ -45,7 +45,6 @@ export interface LibraryFilesResponse {
 }
 
 export interface LibraryFileResponse {
-  category: string
-  filename: string
+  file_info: LibraryFileInfo
   content: string
 }

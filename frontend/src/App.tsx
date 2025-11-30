@@ -18,7 +18,7 @@ function App() {
           <Route path="/conversation/:id" element={<ConversationPage />} />
           <Route path="/library" element={<LibraryCategoriesPage />} />
           <Route path="/library/:category" element={<LibraryFilesPage />} />
-          <Route path="/library/:category/:filename" element={<LibraryFileViewer />} />
+          <Route path="/library/:category/:id" element={<LibraryFileViewer />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Router>

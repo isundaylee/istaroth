@@ -164,4 +164,5 @@ class DocumentStoreSet:
             )
 
         checkpoint_path = self._checkpoint_paths[language]
-        return text_set.TextSet(checkpoint_path=checkpoint_path, language=language)
+        text_path = checkpoint_path / "text"
+        return text_set.TextSet(text_path=text_path, language=language)

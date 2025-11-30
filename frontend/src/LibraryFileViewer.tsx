@@ -13,7 +13,7 @@ import type { LibraryFileResponse } from './types/api'
 function LibraryFileViewer() {
   const t = useT()
   const { language } = useTranslation()
-  const { category, filename } = useParams<{ category: string; filename: string }>()
+  const { category, id } = useParams<{ category: string; id: string }>()
   const [fileContent, setFileContent] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -25,7 +25,7 @@ function LibraryFileViewer() {
   }
 
   useEffect(() => {
-    if (!category || !filename) {
+    if (!category || !id) {
       setError(t('library.errors.unknown'))
       setLoading(false)
       return
@@ -36,7 +36,7 @@ function LibraryFileViewer() {
       setError(null)
       try {
         const res = await fetch(
-          `/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(filename)}?language=${language}`
+          `/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(id)}?language=${language}`
         )
         if (!res.ok) {
           throw new Error(t('library.errors.loadFailed'))
@@ -51,16 +51,14 @@ function LibraryFileViewer() {
     }
 
     fetchFileContent()
-  }, [category, filename, language, t])
+  }, [category, id, language, t])
 
-  if (!category || !filename) {
+  if (!category || !id) {
     return (
       <div className="app">
         <Navigation />
         <main className="main">
-          <PageCard>
-            <ErrorDisplay error={t('library.errors.unknown')} />
-          </PageCard>
+          <ErrorDisplay error={t('library.errors.unknown')} />
         </main>
       </div>
     )

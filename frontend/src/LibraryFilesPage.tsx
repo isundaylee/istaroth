@@ -86,8 +86,8 @@ function LibraryFilesPage() {
             >
               {files.map((file) => (
                 <div
-                  key={file.filename}
-                  onClick={() => category && navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(file.filename)}`)}
+                  key={file.id}
+                  onClick={() => category && navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(file.id)}`)}
                   onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                     const card = e.currentTarget.querySelector('.card') as HTMLElement
                     if (card) {
@@ -112,7 +112,7 @@ function LibraryFilesPage() {
                     }}
                   >
                     <p style={{ margin: 0, wordBreak: 'break-word' }}>
-                      {file.name || t('library.noFileName')}
+                      {file.title || t('library.noFileName')}
                     </p>
                   </Card>
                 </div>

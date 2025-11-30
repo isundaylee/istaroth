@@ -298,14 +298,14 @@
         }
       }
     },
-    "/api/library/file/{category}/{filename}": {
+    "/api/library/file/{category}/{id}": {
       "get": {
         "tags": [
           "library"
         ],
         "summary": "Get File",
-        "description": "Get full text content of a file.",
-        "operationId": "get_file_api_library_file__category___filename__get",
+        "description": "Get full text content of a file by category and id.",
+        "operationId": "get_file_api_library_file__category___id__get",
         "parameters": [
           {
             "name": "category",
@@ -317,12 +317,12 @@
             }
           },
           {
-            "name": "filename",
+            "name": "id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Filename"
+              "title": "Id"
             }
           },
           {
@@ -594,45 +594,33 @@
             "type": "string",
             "title": "Category"
           },
-          "name": {
+          "title": {
             "type": "string",
-            "title": "Name"
+            "title": "Title"
           },
           "id": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "type": "integer",
             "title": "Id"
           },
-          "filename": {
+          "relative_path": {
             "type": "string",
-            "title": "Filename"
+            "title": "Relative Path"
           }
         },
         "type": "object",
         "required": [
           "category",
-          "name",
+          "title",
           "id",
-          "filename"
+          "relative_path"
         ],
         "title": "LibraryFileInfo",
         "description": "File information with parsed components."
       },
       "LibraryFileResponse": {
         "properties": {
-          "category": {
-            "type": "string",
-            "title": "Category"
-          },
-          "filename": {
-            "type": "string",
-            "title": "Filename"
+          "file_info": {
+            "$ref": "#/components/schemas/LibraryFileInfo"
           },
           "content": {
             "type": "string",
@@ -641,8 +629,7 @@
         },
         "type": "object",
         "required": [
-          "category",
-          "filename",
+          "file_info",
           "content"
         ],
         "title": "LibraryFileResponse",

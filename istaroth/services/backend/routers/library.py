@@ -1,6 +1,7 @@
 """Library endpoints for browsing text files by category."""
 
 import logging
+import pathlib
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -8,7 +9,11 @@ from istaroth.agd import localization
 from istaroth.rag import text_set
 from istaroth.services.backend import models
 from istaroth.services.backend.dependencies import DocumentStoreSet
-from istaroth.services.backend.utils import handle_unexpected_exception, parse_filename
+from istaroth.services.backend.utils import (
+    handle_unexpected_exception,
+    text_metadata_to_library_file_info,
+)
+from istaroth.text import types as text_types
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +42,9 @@ async def get_categories(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    categories = text_set_obj.get_categories()
+    # Compute categories from manifest at caller site
+    manifest = text_set_obj.get_manifest()
+    categories = sorted(set(item.category.value for item in manifest))
     return models.LibraryCategoriesResponse(categories=categories)
 
 
@@ -65,55 +72,38 @@ async def get_files(
         raise HTTPException(status_code=404, detail=str(e))
 
     try:
-        filenames = text_set_obj.get_files(category)
+        # Convert directory name to TextCategory enum
+        text_category = text_types.TextCategory(category)
+        all_metadata = text_set_obj.get_manifest()
+        # Filter by TextCategory enum
+        metadata_list = [
+            metadata for metadata in all_metadata if metadata.category == text_category
+        ]
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
     file_infos = []
-    for filename in filenames:
-        try:
-            file_info = parse_filename(filename)
-            # Verify that the parsed category matches the requested category
-            if file_info.category != category:
-                raise ValueError(
-                    f"Parsed category '{file_info.category}' doesn't match requested category '{category}'"
-                )
-            file_infos.append(file_info)
-        except ValueError as e:
-            logger.warning(f"Failed to parse filename {filename}: {e}")
-            # Fallback: create file info with filename as name and no id
-            file_infos.append(
-                models.LibraryFileInfo(
-                    category=category,
-                    name=filename[:-4] if filename.endswith(".txt") else filename,
-                    id=None,
-                    filename=filename,
-                )
-            )
+    for metadata in metadata_list:
+        file_info = text_metadata_to_library_file_info(metadata)
+        file_infos.append(file_info)
 
     # Sort by ID ascending
-    # Files without IDs come after files with numeric IDs
-    def sort_key(file_info: models.LibraryFileInfo) -> tuple[int, int]:
-        if file_info.id is None:
-            return (1, 0)  # Files without IDs come last
-        return (0, file_info.id)  # Numeric IDs sorted numerically
-
-    file_infos.sort(key=sort_key)
+    file_infos.sort(key=lambda file_info: file_info.id)
 
     return models.LibraryFilesResponse(files=file_infos)
 
 
 @router.get(
-    "/api/library/file/{category}/{filename}", response_model=models.LibraryFileResponse
+    "/api/library/file/{category}/{id}", response_model=models.LibraryFileResponse
 )
 @handle_unexpected_exception
 async def get_file(
     category: str,
-    filename: str,
+    id: str,
     document_store_set: DocumentStoreSet,
     language: str = Query(..., description="Language code (CHS, ENG)"),
 ) -> models.LibraryFileResponse:
-    """Get full text content of a file."""
+    """Get full text content of a file by category and id."""
     try:
         language_enum = localization.Language(language.upper())
     except ValueError:
@@ -129,13 +119,23 @@ async def get_file(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    try:
-        content = text_set_obj.get_file_content(category, filename)
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to read file: {str(e)}")
-
-    return models.LibraryFileResponse(
-        category=category, filename=filename, content=content
+    manifest_item = text_set_obj.get_manifest_item(
+        text_types.TextCategory(category), int(id)
     )
+    if manifest_item is None:
+        raise HTTPException(
+            status_code=404, detail=f"File not found: category={category}, id={id}"
+        )
+
+    # Get file content from relative_path
+    content = text_set_obj.get_content(manifest_item.relative_path)
+    if content is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"File not found on disk: {manifest_item.relative_path}",
+        )
+
+    # Convert manifest item to LibraryFileInfo
+    file_info = text_metadata_to_library_file_info(manifest_item)
+
+    return models.LibraryFileResponse(file_info=file_info, content=content)

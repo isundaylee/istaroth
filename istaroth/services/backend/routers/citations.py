@@ -9,7 +9,10 @@ from istaroth.agd import localization
 from istaroth.rag import text_set
 from istaroth.services.backend import models
 from istaroth.services.backend.dependencies import DocumentStoreSet
-from istaroth.services.backend.utils import handle_unexpected_exception, parse_filename
+from istaroth.services.backend.utils import (
+    handle_unexpected_exception,
+    text_metadata_to_library_file_info,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -78,20 +81,19 @@ async def get_citations_batch(
                 total_chunks is not None
             ), f"Chunk exists but file metadata missing for {file_id}"
 
-            # Extract path and parse file info from metadata
+            # Extract path and get file info from manifest
             assert (
                 "path" in chunk.metadata
             ), f"Path missing from chunk metadata for {file_id}"
             path = chunk.metadata["path"]
             assert path, f"Path is empty in chunk metadata for {file_id}"
 
-            file_info = None
-            try:
-                # Extract filename from path and parse file info
-                filename = pathlib.Path(path).name
-                file_info = parse_filename(filename)
-            except ValueError:
-                # Path/filename doesn't match expected format or category prefix
+            # Get text set to access manifest
+            text_set_obj = document_store_set.get_text_set(language_enum)
+            manifest_item = text_set_obj.get_manifest_item_by_relative_path(path)
+            if manifest_item is not None:
+                file_info = text_metadata_to_library_file_info(manifest_item)
+            else:
                 file_info = None
 
             # Success - add to results

@@ -147,7 +147,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/library/file/{category}/{filename}": {
+    "/api/library/file/{category}/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -156,9 +156,9 @@ export interface paths {
         };
         /**
          * Get File
-         * @description Get full text content of a file.
+         * @description Get full text content of a file by category and id.
          */
-        get: operations["get_file_api_library_file__category___filename__get"];
+        get: operations["get_file_api_library_file__category___id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -277,22 +277,19 @@ export interface components {
         LibraryFileInfo: {
             /** Category */
             category: string;
-            /** Name */
-            name: string;
+            /** Title */
+            title: string;
             /** Id */
-            id: number | null;
-            /** Filename */
-            filename: string;
+            id: number;
+            /** Relative Path */
+            relative_path: string;
         };
         /**
          * LibraryFileResponse
          * @description Response model for library file content endpoint.
          */
         LibraryFileResponse: {
-            /** Category */
-            category: string;
-            /** Filename */
-            filename: string;
+            file_info: components["schemas"]["LibraryFileInfo"];
             /** Content */
             content: string;
         };
@@ -574,7 +571,7 @@ export interface operations {
             };
         };
     };
-    get_file_api_library_file__category___filename__get: {
+    get_file_api_library_file__category___id__get: {
         parameters: {
             query: {
                 /** @description Language code (CHS, ENG) */
@@ -583,7 +580,7 @@ export interface operations {
             header?: never;
             path: {
                 category: string;
-                filename: string;
+                id: string;
             };
             cookie?: never;
         };

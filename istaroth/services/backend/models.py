@@ -141,9 +141,9 @@ class LibraryFileInfo(BaseModel):
     """File information with parsed components."""
 
     category: str
-    name: str
-    id: int | None
-    filename: str
+    title: str
+    id: int
+    relative_path: str
 
 
 class LibraryFilesResponse(BaseModel):
@@ -155,6 +155,5 @@ class LibraryFilesResponse(BaseModel):
 class LibraryFileResponse(BaseModel):
     """Response model for library file content endpoint."""
 
-    category: str
-    filename: str
+    file_info: LibraryFileInfo
     content: str

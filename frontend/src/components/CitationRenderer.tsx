@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import { useTranslation, useT } from '../contexts/LanguageContext'
-import type { CitationResponse } from '../types/api'
+import type { CitationResponse, LibraryFileInfo } from '../types/api'
 import CitationPopup from './CitationPopup'
 import { preprocessCitationsForDisplay, formatCitationId, parseCitationId } from '../utils/citations'
 
@@ -414,43 +414,36 @@ function CitationRenderer({ content }: CitationRendererProps) {
   }), [hoveredCitation, stickyCitation, handleCitationHover, handleCitationClick])
 
 
-  // Get title for a cited work (from cache if available, otherwise use fileId)
-  const getCitedWorkTitle = useCallback((fileId: string): string => {
-    // Try to find any cached chunk for this file to get the title
-    const cachedChunk = Object.entries(citationCache)
-      .find(([key]) => key.startsWith(`${fileId}:`))
-
-    if (cachedChunk && !('error' in cachedChunk[1])) {
-      const citation = cachedChunk[1] as CitationResponse
-      // Use parsed name if available, otherwise fall back to path, then fileId
-      if (citation.file_info?.name) {
-        return citation.file_info.name
-      }
-      const path = citation.metadata.path as string | undefined
-      return path || fileId
-    }
-
-    return fileId
-  }, [citationCache])
-
   // Get file info for a cited work (from cache if available)
-  const getCitedWorkInfo = useCallback((fileId: string): { category: string | null, filename: string | null } => {
+  const getCitedWorkInfo = useCallback((fileId: string): LibraryFileInfo | null => {
     // Try to find any cached chunk for this file to get the file info
     const cachedChunk = Object.entries(citationCache)
       .find(([key]) => key.startsWith(`${fileId}:`))
 
     if (cachedChunk && !('error' in cachedChunk[1])) {
       const citation = cachedChunk[1] as CitationResponse
-      if (citation.file_info) {
-        return {
-          category: citation.file_info.category,
-          filename: citation.file_info.filename
-        }
-      }
+      return citation.file_info
     }
 
-    return { category: null, filename: null }
+    return null
   }, [citationCache])
+
+  // Get title for a cited work (from cache if available, otherwise use fileId)
+  const getCitedWorkTitle = useCallback((fileId: string): string => {
+    const fileInfo = getCitedWorkInfo(fileId)
+    if (fileInfo) {
+      return fileInfo.title
+    }
+    // Fall back to path from metadata, then fileId
+    const cachedChunk = Object.entries(citationCache)
+      .find(([key]) => key.startsWith(`${fileId}:`))
+    if (cachedChunk && !('error' in cachedChunk[1])) {
+      const citation = cachedChunk[1] as CitationResponse
+      const path = citation.metadata.path as string | undefined
+      return path || fileId
+    }
+    return fileId
+  }, [citationCache, getCitedWorkInfo])
 
   const displayedCitation = stickyCitation || hoveredCitation
   const isSticky = stickyCitation !== null
@@ -506,14 +499,14 @@ function CitationRenderer({ content }: CitationRendererProps) {
             {uniqueCitedWorks.map((fileId, index) => {
               const title = getCitedWorkTitle(fileId)
               const isLoading = loadingCitations.has(formatCitationId(fileId, 0))
-              const { category, filename } = getCitedWorkInfo(fileId)
-              const hasLibraryLink = category !== null && filename !== null
+              const fileInfo = getCitedWorkInfo(fileId)
+              const hasLibraryLink = fileInfo !== null
 
               const handleLibraryLinkClick = (e: React.MouseEvent<HTMLElement>) => {
                 e.preventDefault()
                 e.stopPropagation()
-                if (hasLibraryLink) {
-                  const url = `/library/${encodeURIComponent(category!)}/${encodeURIComponent(filename!)}`
+                if (hasLibraryLink && fileInfo) {
+                  const url = `/library/${encodeURIComponent(fileInfo.category)}/${encodeURIComponent(fileInfo.id)}`
                   window.open(url, '_blank', 'noopener,noreferrer')
                 }
               }
@@ -554,9 +547,9 @@ function CitationRenderer({ content }: CitationRendererProps) {
                   >
                     {isLoading ? t('citation.loading') : `${index + 1}. ${title}`}
                   </span>
-                  {hasLibraryLink && (
+                  {hasLibraryLink && fileInfo && (
                     <a
-                      href={`/library/${encodeURIComponent(category!)}/${encodeURIComponent(filename!)}`}
+                      href={`/library/${encodeURIComponent(fileInfo.category)}/${encodeURIComponent(fileInfo.id)}`}
                       onClick={handleLibraryLinkClick}
                       style={{
                         color: '#888',

@@ -1,6 +1,7 @@
 """Generic text types."""
 
 from enum import Enum
+from typing import Any
 
 import attrs
 
@@ -25,10 +26,10 @@ class TextMetadata:
 
     category: TextCategory
     title: str
-    id: str
+    id: int
     relative_path: str
 
-    def to_dict(self) -> dict[str, str]:
+    def to_dict(self) -> dict[str, str | int]:
         """Convert to dictionary for JSON serialization."""
         return {
             "category": self.category.value,
@@ -36,3 +37,20 @@ class TextMetadata:
             "id": self.id,
             "relative_path": self.relative_path,
         }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "TextMetadata":
+        """Create TextMetadata from dictionary."""
+        category_enum = TextCategory(data["category"])
+        id_value = data["id"]
+        # Convert id to int if it's a string
+        if isinstance(id_value, str):
+            id_int = int(id_value)
+        else:
+            id_int = id_value
+        return cls(
+            category=category_enum,
+            title=str(data["title"]),
+            id=id_int,
+            relative_path=str(data["relative_path"]),
+        )
