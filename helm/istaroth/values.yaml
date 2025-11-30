@@ -202,6 +202,11 @@ chroma:
       cpu: 200m
       memory: 512Mi
 
+  # Environment variables for Chroma containers
+  env:
+    - name: RUST_BACKTRACE
+      value: "1"
+
 # Extra manifests (e.g., for SealedSecrets)
 extraManifests: []
   # Example: To inject a SealedSecret, add it to extraManifests like this:

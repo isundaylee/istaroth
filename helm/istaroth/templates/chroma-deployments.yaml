@@ -75,6 +75,9 @@ spec:
           value: '["*"]'
         - name: IS_PERSISTENT
           value: "1"
+        {{- with $.Values.chroma.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         volumeMounts:
         - name: data
           mountPath: /data
