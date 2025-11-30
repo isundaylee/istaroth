@@ -126,20 +126,12 @@ def test_chunk_documents_detects_duplicate_paths():
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = pathlib.Path(temp_dir)
 
-        # Create two files with the same relative path
-        dir1 = temp_path / "dir1"
-        dir2 = temp_path / "dir2"
-        dir1.mkdir()
-        dir2.mkdir()
+        # Create a test file
+        test_file = temp_path / "test_file.txt"
+        test_file.write_text("Content of test file")
 
-        file1 = dir1 / "same_name.txt"
-        file2 = dir2 / "same_name.txt"
-
-        file1.write_text("Content of first file")
-        file2.write_text("Content of second file")
-
-        # Should raise ValueError due to duplicate path (same relative path from text root)
+        # Should raise ValueError when the same file appears multiple times in input list
         with pytest.raises(ValueError, match="Duplicate path detected"):
             chunk_documents(
-                [file1, file2], text_root=temp_path, chunk_size_multiplier=1.0
+                [test_file, test_file], text_root=temp_path, chunk_size_multiplier=1.0
             )

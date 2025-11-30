@@ -119,6 +119,12 @@ def test_text_dir(tmp_path: pathlib.Path) -> pathlib.Path:
         json.dumps({"language": localization.Language.CHS.value})
     )
 
+    # Create manifest.json file required by rag_tools
+    manifest_data = [{"relative_path": filename} for filename in documents.keys()]
+    (data_dir / "manifest.json").write_text(
+        json.dumps(manifest_data, indent=2, ensure_ascii=False)
+    )
+
     return data_dir
 
 
