@@ -91,10 +91,12 @@ async def get_citations_batch(
             # Get text set to access manifest
             text_set_obj = document_store_set.get_text_set(language_enum)
             manifest_item = text_set_obj.get_manifest_item_by_relative_path(path)
-            if manifest_item is not None:
-                file_info = text_metadata_to_library_file_info(manifest_item)
-            else:
-                file_info = None
+            if manifest_item is None:
+                raise ValueError(
+                    f"Manifest item not found for path: {path} (file_id: {file_id}). "
+                    "Document store and manifest are out of sync."
+                )
+            file_info = text_metadata_to_library_file_info(manifest_item)
 
             # Success - add to results
             successes.append(

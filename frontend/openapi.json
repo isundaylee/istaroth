@@ -469,14 +469,7 @@
             "title": "Total Chunks"
           },
           "file_info": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/LibraryFileInfo"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/LibraryFileInfo"
           }
         },
         "type": "object",
@@ -485,7 +478,8 @@
           "chunk_index",
           "content",
           "metadata",
-          "total_chunks"
+          "total_chunks",
+          "file_info"
         ],
         "title": "CitationResponse",
         "description": "Response model for citation content endpoint."

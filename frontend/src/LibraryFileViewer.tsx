@@ -15,6 +15,7 @@ function LibraryFileViewer() {
   const { language } = useTranslation()
   const { category, id } = useParams<{ category: string; id: string }>()
   const [fileContent, setFileContent] = useState<string | null>(null)
+  const [fileTitle, setFileTitle] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -43,6 +44,7 @@ function LibraryFileViewer() {
         }
         const data = (await res.json()) as LibraryFileResponse
         setFileContent(data.content)
+        setFileTitle(data.file_info.title)
       } catch (err) {
         setError(err instanceof Error ? err.message : t('library.errors.unknown'))
       } finally {
@@ -71,7 +73,7 @@ function LibraryFileViewer() {
         {error && <ErrorDisplay error={error} />}
         <PageCard>
           <LibraryHeader
-            title={translateCategory(category)}
+            title={fileTitle || translateCategory(category)}
             backPath={`/library/${encodeURIComponent(category)}`}
             backText={t('library.backToFiles')}
           />

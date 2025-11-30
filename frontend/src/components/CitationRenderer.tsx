@@ -434,16 +434,8 @@ function CitationRenderer({ content }: CitationRendererProps) {
     if (fileInfo) {
       return fileInfo.title
     }
-    // Fall back to path from metadata, then fileId
-    const cachedChunk = Object.entries(citationCache)
-      .find(([key]) => key.startsWith(`${fileId}:`))
-    if (cachedChunk && !('error' in cachedChunk[1])) {
-      const citation = cachedChunk[1] as CitationResponse
-      const path = citation.metadata.path as string | undefined
-      return path || fileId
-    }
     return fileId
-  }, [citationCache, getCitedWorkInfo])
+  }, [getCitedWorkInfo])
 
   const displayedCitation = stickyCitation || hoveredCitation
   const isSticky = stickyCitation !== null
@@ -500,12 +492,11 @@ function CitationRenderer({ content }: CitationRendererProps) {
               const title = getCitedWorkTitle(fileId)
               const isLoading = loadingCitations.has(formatCitationId(fileId, 0))
               const fileInfo = getCitedWorkInfo(fileId)
-              const hasLibraryLink = fileInfo !== null
 
               const handleLibraryLinkClick = (e: React.MouseEvent<HTMLElement>) => {
                 e.preventDefault()
                 e.stopPropagation()
-                if (hasLibraryLink && fileInfo) {
+                if (fileInfo) {
                   const url = `/library/${encodeURIComponent(fileInfo.category)}/${encodeURIComponent(fileInfo.id)}`
                   window.open(url, '_blank', 'noopener,noreferrer')
                 }
@@ -547,7 +538,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
                   >
                     {isLoading ? t('citation.loading') : `${index + 1}. ${title}`}
                   </span>
-                  {hasLibraryLink && fileInfo && (
+                  {fileInfo && (
                     <a
                       href={`/library/${encodeURIComponent(fileInfo.category)}/${encodeURIComponent(fileInfo.id)}`}
                       onClick={handleLibraryLinkClick}

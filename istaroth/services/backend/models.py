@@ -99,7 +99,7 @@ class CitationResponse(BaseModel):
     content: str
     metadata: dict[str, Any]
     total_chunks: int
-    file_info: LibraryFileInfo | None = None
+    file_info: LibraryFileInfo
 
 
 class CitationBatchRequest(BaseModel):
