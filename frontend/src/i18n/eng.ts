@@ -124,6 +124,8 @@ export const eng = {
       unknown: 'An unknown error occurred',
       invalidCategory: 'Invalid category'
     },
-    noFileName: 'Untitled'
+    noFileName: 'Untitled',
+    previous: 'Previous',
+    next: 'Next'
   }
 }

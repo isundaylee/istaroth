@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import { useT, useTranslation } from './contexts/LanguageContext'
@@ -8,16 +8,20 @@ import Card from './components/Card'
 import PageCard from './components/PageCard'
 import ErrorDisplay from './components/ErrorDisplay'
 import LibraryHeader from './components/LibraryHeader'
-import type { LibraryFileResponse } from './types/api'
+import NavButton from './components/NavButton'
+import type { LibraryFileResponse, LibraryFilesResponse, LibraryFileInfo } from './types/api'
 
 function LibraryFileViewer() {
   const t = useT()
   const { language } = useTranslation()
+  const navigate = useNavigate()
   const { category, id } = useParams<{ category: string; id: string }>()
   const [fileContent, setFileContent] = useState<string | null>(null)
   const [fileTitle, setFileTitle] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [previousFile, setPreviousFile] = useState<LibraryFileInfo | null>(null)
+  const [nextFile, setNextFile] = useState<LibraryFileInfo | null>(null)
 
   const translateCategory = (category: string): string => {
     const translationKey = `library.categories.${category}`
@@ -35,6 +39,8 @@ function LibraryFileViewer() {
     const fetchFileContent = async () => {
       setLoading(true)
       setError(null)
+      setPreviousFile(null)
+      setNextFile(null)
       try {
         const res = await fetch(
           `/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(id)}?language=${language}`
@@ -52,7 +58,36 @@ function LibraryFileViewer() {
       }
     }
 
+    const fetchNavigationFiles = async () => {
+      try {
+        const res = await fetch(
+          `/api/library/files/${encodeURIComponent(category)}?language=${language}`
+        )
+        if (!res.ok) {
+          return
+        }
+        const data = (await res.json()) as LibraryFilesResponse
+        const currentId = parseInt(id, 10)
+        const currentIndex = data.files.findIndex((file) => file.id === currentId)
+
+        if (currentIndex > 0) {
+          setPreviousFile(data.files[currentIndex - 1])
+        } else {
+          setPreviousFile(null)
+        }
+
+        if (currentIndex >= 0 && currentIndex < data.files.length - 1) {
+          setNextFile(data.files[currentIndex + 1])
+        } else {
+          setNextFile(null)
+        }
+      } catch (err) {
+        // Silently fail - navigation is optional
+      }
+    }
+
     fetchFileContent()
+    fetchNavigationFiles()
   }, [category, id, language, t])
 
   if (!category || !id) {
@@ -85,9 +120,27 @@ function LibraryFileViewer() {
           )}
 
           {!loading && fileContent && (
-            <div className="answer">
-              <ReactMarkdown remarkPlugins={[remarkBreaks]}>{fileContent}</ReactMarkdown>
-            </div>
+            <>
+              <div className="answer">
+                <ReactMarkdown remarkPlugins={[remarkBreaks]}>{fileContent}</ReactMarkdown>
+              </div>
+              {previousFile && (
+                <NavButton
+                  onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(previousFile.id)}`)}
+                  label={t('library.previous')}
+                  title={previousFile.title || t('library.noFileName')}
+                  marginTop="2rem"
+                />
+              )}
+              {nextFile && (
+                <NavButton
+                  onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(nextFile.id)}`)}
+                  label={t('library.next')}
+                  title={nextFile.title || t('library.noFileName')}
+                  marginTop={previousFile ? '1rem' : '2rem'}
+                />
+              )}
+            </>
           )}
 
           {!loading && !fileContent && error && (

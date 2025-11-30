@@ -124,6 +124,8 @@ export const chs = {
       unknown: '发生未知错误',
       invalidCategory: '无效分类'
     },
-    noFileName: '未命名'
+    noFileName: '未命名',
+    previous: '上一篇',
+    next: '下一篇'
   }
 }
