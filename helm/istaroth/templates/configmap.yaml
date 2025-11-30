@@ -13,7 +13,6 @@ data:
   {{- toYaml . | nindent 2 }}
   {{- end }}
 
-  {{- /* Generate ISTAROTH_DOCUMENT_STORE_SET from languages config */ -}}
   {{- if .Values.languages }}
   {{- $stores := list }}
   {{- range $lang, $config := .Values.languages }}
@@ -24,11 +23,12 @@ data:
   ISTAROTH_DOCUMENT_STORE_SET: {{ join "," $stores | quote }}
   {{- end }}
 
-  {{- /* Generate ISTAROTH_EXTERNAL_CHROMA_SERVERS from languages config */ -}}
   {{- $chromaServers := list }}
   {{- range $lang, $config := .Values.languages }}
     {{- if $config.useChroma }}
-      {{- $serverHost := printf "%s-chroma-%s-%s" $.Release.Name $lang ($.Values.backend.checkpointRelease | replace "/" "-" | replace "." "-" | lower) }}
+      {{- $checkpoint := $.Values.backend.checkpointRelease | replace "/" "-" | replace "." "-" | lower }}
+      {{- $checkpointShort := trunc -8 $checkpoint }}
+      {{- $serverHost := printf "%s-chroma-%s-%s" $.Release.Name $lang $checkpointShort }}
       {{- $serverEntry := printf "%s:%s:8000" (upper $lang) $serverHost }}
       {{- $chromaServers = append $chromaServers $serverEntry }}
     {{- end }}

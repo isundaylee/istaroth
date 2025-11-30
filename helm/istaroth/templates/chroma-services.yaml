@@ -4,7 +4,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ $.Release.Name }}-chroma-{{ $language }}-{{ $.Values.backend.checkpointRelease | replace "/" "-" | replace "." "-" | lower }}
+  {{- $checkpoint := $.Values.backend.checkpointRelease | replace "/" "-" | replace "." "-" | lower }}
+  {{- $checkpointShort := trunc -8 $checkpoint }}
+  name: {{ $.Release.Name }}-chroma-{{ $language }}-{{ $checkpointShort }}
   labels:
     app.kubernetes.io/name: {{ $.Release.Name }}-chroma-{{ $language }}
     app.kubernetes.io/instance: {{ $.Release.Name }}
