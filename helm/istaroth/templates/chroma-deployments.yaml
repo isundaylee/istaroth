@@ -45,6 +45,7 @@ spec:
         - |
           echo "Waiting for checkpoint release file..."
           RELEASE_TAG_FILE="/data/checkpoints/{{ $.Values.backend.checkpointRelease | replace "/" "-" }}/{{ $language }}.release"
+          CHROMA_SQLITE3_FILE="/data/checkpoints/{{ $.Values.backend.checkpointRelease | replace "/" "-" }}/{{ $language }}/chroma_index/chroma.sqlite3"
 
           # Wait for release tag file to exist
           while [ ! -f "$RELEASE_TAG_FILE" ]; do
@@ -53,6 +54,7 @@ spec:
           done
 
           echo "Checkpoint ready!"
+          echo "md5sum of chroma_index/chroma.sqlite3: $(md5sum $CHROMA_SQLITE3_FILE)"
         volumeMounts:
         - name: data
           mountPath: /data
