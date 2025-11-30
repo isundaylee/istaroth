@@ -2,7 +2,6 @@
 
 from abc import ABC, abstractmethod
 from collections import Counter
-from enum import Enum
 from typing import ClassVar, Generic, TypeVar
 
 from istaroth import text_cleanup
@@ -15,52 +14,16 @@ from istaroth.agd import (
     text_utils,
     types,
 )
+from istaroth.text import types as text_types
 
 # Generic type variable for renderable keys
 TKey = TypeVar("TKey")
 
 
-class RenderableType(Enum):
-    """Enum for renderable content types."""
-
-    READABLE = "readable"
-    QUEST = "quest"
-    CHARACTER_STORY = "character_story"
-    SUBTITLE = "subtitle"
-    MATERIAL_TYPE = "material_type"
-    VOICELINE = "voiceline"
-    TALK_GROUP = "talk_group"
-    TALK = "talk"
-    ARTIFACT_SET = "artifact_set"
-
-    @property
-    def output_subdir(self) -> str:
-        """Return the output subdirectory for this renderable type."""
-        return self.value
-
-    @property
-    def text_category(self):
-        """Convert to TextCategory."""
-        from istaroth.text import types as text_types
-
-        mapping = {
-            RenderableType.READABLE: text_types.TextCategory.AGD_READABLE,
-            RenderableType.QUEST: text_types.TextCategory.AGD_QUEST,
-            RenderableType.CHARACTER_STORY: text_types.TextCategory.AGD_CHARACTER_STORY,
-            RenderableType.SUBTITLE: text_types.TextCategory.AGD_SUBTITLE,
-            RenderableType.MATERIAL_TYPE: text_types.TextCategory.AGD_MATERIAL_TYPE,
-            RenderableType.VOICELINE: text_types.TextCategory.AGD_VOICELINE,
-            RenderableType.TALK_GROUP: text_types.TextCategory.AGD_TALK_GROUP,
-            RenderableType.TALK: text_types.TextCategory.AGD_TALK,
-            RenderableType.ARTIFACT_SET: text_types.TextCategory.AGD_ARTIFACT_SET,
-        }
-        return mapping[self]
-
-
 class BaseRenderableType(ABC, Generic[TKey]):
     """Abstract base class for renderable content types."""
 
-    renderable_type: ClassVar[RenderableType]
+    text_category: ClassVar[text_types.TextCategory]
     error_limit: ClassVar[int] = 0  # Default error limit
     error_limit_non_chinese: ClassVar[int] = 0  # Higher limit for non-Chinese languages
 
@@ -80,7 +43,9 @@ class BaseRenderableType(ABC, Generic[TKey]):
 class Readables(BaseRenderableType[str]):
     """Readable content type (books, weapons, etc.)."""
 
-    renderable_type: ClassVar[RenderableType] = RenderableType.READABLE
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_READABLE
+    )
     error_limit: ClassVar[int] = 50
     error_limit_non_chinese: ClassVar[int] = 200
 
@@ -122,7 +87,7 @@ class Readables(BaseRenderableType[str]):
 class Quests(BaseRenderableType[str]):
     """Quest content type (dialog, cutscenes, etc.)"""
 
-    renderable_type: ClassVar[RenderableType] = RenderableType.QUEST
+    text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_QUEST
     error_limit: ClassVar[int] = 100
     error_limit_non_chinese: ClassVar[int] = 2000
 
@@ -157,7 +122,9 @@ class Quests(BaseRenderableType[str]):
 class CharacterStories(BaseRenderableType[str]):
     """Character story content type."""
 
-    renderable_type: ClassVar[RenderableType] = RenderableType.CHARACTER_STORY
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_CHARACTER_STORY
+    )
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all unique character IDs that have stories."""
@@ -189,7 +156,9 @@ class CharacterStories(BaseRenderableType[str]):
 class Subtitles(BaseRenderableType[str]):
     """Subtitle content type (.srt files)."""
 
-    renderable_type: ClassVar[RenderableType] = RenderableType.SUBTITLE
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_SUBTITLE
+    )
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all subtitle files."""
@@ -217,7 +186,9 @@ class Subtitles(BaseRenderableType[str]):
 class MaterialTypes(BaseRenderableType[str]):
     """Material types content type (materials grouped by type)."""
 
-    renderable_type: ClassVar[RenderableType] = RenderableType.MATERIAL_TYPE
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_MATERIAL_TYPE
+    )
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Discover all unique material types."""
@@ -263,7 +234,9 @@ class MaterialTypes(BaseRenderableType[str]):
 class Voicelines(BaseRenderableType[str]):
     """Voiceline content type (character voice lines)."""
 
-    renderable_type: ClassVar[RenderableType] = RenderableType.VOICELINE
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_VOICELINE
+    )
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all avatar IDs that have voicelines."""
@@ -292,7 +265,9 @@ class Voicelines(BaseRenderableType[str]):
 class ArtifactSets(BaseRenderableType[str]):
     """Artifact set content type (artifact sets with individual piece stories)."""
 
-    renderable_type: ClassVar[RenderableType] = RenderableType.ARTIFACT_SET
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_ARTIFACT_SET
+    )
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all artifact set IDs from ReliquarySetExcelConfigData."""
@@ -322,7 +297,9 @@ class ArtifactSets(BaseRenderableType[str]):
 class TalkGroups(BaseRenderableType[tuple[talk_parsing.TalkGroupType, str]]):
     """Talk activity groups content type (talks grouped by activity)."""
 
-    renderable_type: ClassVar[RenderableType] = RenderableType.TALK_GROUP
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_TALK_GROUP
+    )
     error_limit: ClassVar[int] = 100
     error_limit_non_chinese: ClassVar[int] = 100
 
@@ -354,7 +331,7 @@ class TalkGroups(BaseRenderableType[tuple[talk_parsing.TalkGroupType, str]]):
 class Talks(BaseRenderableType[str]):
     """Standalone talk content type for talks not used by other renderable types."""
 
-    renderable_type: ClassVar[RenderableType] = RenderableType.TALK
+    text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_TALK
     error_limit: ClassVar[int] = 500
     error_limit_non_chinese: ClassVar[int] = 500
 

@@ -9,7 +9,7 @@ import attrs
 
 
 class TextCategory(Enum):
-    """Enum for text categories, separate from AGD RenderableType."""
+    """Enum for text categories."""
 
     AGD_READABLE = "agd_readable"
     AGD_QUEST = "agd_quest"

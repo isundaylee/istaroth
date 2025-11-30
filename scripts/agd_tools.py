@@ -28,7 +28,6 @@ from istaroth.agd.renderable_types import (
     MaterialTypes,
     Quests,
     Readables,
-    RenderableType,
     Subtitles,
     TalkGroups,
     Talks,
@@ -161,10 +160,6 @@ def _generate_content(
         accessed_readable_ids=set(),
     )
 
-    output_subdir = renderable_type.renderable_type.output_subdir
-    output_path = output_dir / output_subdir
-    output_path.mkdir(parents=True, exist_ok=True)
-
     # Discover renderable keys for this type
     renderable_keys = renderable_type.discover(data_repo)
 
@@ -283,7 +278,7 @@ def cli() -> None:
 @click.option("-f", "--force", is_flag=True, help="Delete output dir if it exists")
 @click.option(
     "--only",
-    type=click.Choice([rt.value for rt in RenderableType]),
+    type=click.Choice([tc.value for tc in text_types.TextCategory]),
     help="Generate only specific content type",
 )
 @click.option(
@@ -356,7 +351,6 @@ def generate_all(
             return
 
         nonlocal total_success, total_error, total_skipped
-        output_subdir = renderable.renderable_type.output_subdir
         success, error, skipped, tracker_stats = _generate_content(
             renderable,
             output_dir,
@@ -371,24 +365,39 @@ def generate_all(
         total_error += error
         total_skipped += skipped
         all_tracker_stats.update(tracker_stats)
-        summary_stats.append([output_subdir, success, error, skipped])
+        summary_stats.append([renderable.text_category.value, success, error, skipped])
 
     # Determine which content types to generate
-    only_enum = RenderableType(only) if only else None
-    generate_readable = only_enum is None or only_enum == RenderableType.READABLE
-    generate_quest = only_enum is None or only_enum == RenderableType.QUEST
+    only_category = text_types.TextCategory(only) if only else None
+    generate_readable = (
+        only_category is None or only_category == text_types.TextCategory.AGD_READABLE
+    )
+    generate_quest = (
+        only_category is None or only_category == text_types.TextCategory.AGD_QUEST
+    )
     generate_character_stories = (
-        only_enum is None or only_enum == RenderableType.CHARACTER_STORY
+        only_category is None
+        or only_category == text_types.TextCategory.AGD_CHARACTER_STORY
     )
-    generate_subtitles = only_enum is None or only_enum == RenderableType.SUBTITLE
+    generate_subtitles = (
+        only_category is None or only_category == text_types.TextCategory.AGD_SUBTITLE
+    )
     generate_material_types = (
-        only_enum is None or only_enum == RenderableType.MATERIAL_TYPE
+        only_category is None
+        or only_category == text_types.TextCategory.AGD_MATERIAL_TYPE
     )
-    generate_voicelines = only_enum is None or only_enum == RenderableType.VOICELINE
-    generate_talk_groups = only_enum is None or only_enum == RenderableType.TALK_GROUP
-    generate_talks = only_enum is None or only_enum == RenderableType.TALK
+    generate_voicelines = (
+        only_category is None or only_category == text_types.TextCategory.AGD_VOICELINE
+    )
+    generate_talk_groups = (
+        only_category is None or only_category == text_types.TextCategory.AGD_TALK_GROUP
+    )
+    generate_talks = (
+        only_category is None or only_category == text_types.TextCategory.AGD_TALK
+    )
     generate_artifact_sets = (
-        only_enum is None or only_enum == RenderableType.ARTIFACT_SET
+        only_category is None
+        or only_category == text_types.TextCategory.AGD_ARTIFACT_SET
     )
 
     # Set up multiprocessing pool to reuse across all content generation
