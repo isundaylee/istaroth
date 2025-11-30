@@ -3,9 +3,9 @@ import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration, useLoca
 import { LanguageProvider, useTranslation } from './contexts/LanguageContext'
 import DocumentTitle from './components/DocumentTitle'
 import QueryPage from './QueryPage'
-import ConversationPage from './ConversationPage'
-import LibraryCategoriesPage from './LibraryCategoriesPage'
-import LibraryFilesPage from './LibraryFilesPage'
+import ConversationPage, { conversationPageLoader } from './ConversationPage'
+import LibraryCategoriesPage, { libraryCategoriesPageLoader } from './LibraryCategoriesPage'
+import LibraryFilesPage, { libraryFilesPageLoader } from './LibraryFilesPage'
 import LibraryFileViewer, { libraryFileViewerLoader } from './LibraryFileViewer'
 import NotFoundPage from './NotFoundPage'
 import { getLanguageFromUrl, buildUrlWithLanguage, DEFAULT_LANGUAGE } from './utils/language'
@@ -44,7 +44,7 @@ function RootLayout() {
       <DocumentTitle />
       <LanguageSync />
       <Outlet />
-      <ScrollRestoration getKey={(location) => location.pathname} />
+      <ScrollRestoration  />
     </>
   )
 }
@@ -54,9 +54,9 @@ const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       { path: "/", element: <QueryPage /> },
-      { path: "/conversation/:id", element: <ConversationPage /> },
-      { path: "/library", element: <LibraryCategoriesPage /> },
-      { path: "/library/:category", element: <LibraryFilesPage /> },
+      { path: "/conversation/:id", element: <ConversationPage />, loader: conversationPageLoader },
+      { path: "/library", element: <LibraryCategoriesPage />, loader: libraryCategoriesPageLoader },
+      { path: "/library/:category", element: <LibraryFilesPage />, loader: libraryFilesPageLoader },
       { path: "/library/:category/:id", element: <LibraryFileViewer />, loader: libraryFileViewerLoader },
       { path: "*", element: <NotFoundPage /> },
     ],

@@ -1,46 +1,43 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useT, useTranslation } from './contexts/LanguageContext'
+import React from 'react'
+import { useNavigate, useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
+import { useT } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import Card from './components/Card'
 import PageCard from './components/PageCard'
 import ErrorDisplay from './components/ErrorDisplay'
+import { getLanguageFromUrl } from './utils/language'
 import type { LibraryCategoriesResponse } from './types/api'
+
+interface LoaderData {
+  categories: string[]
+  error?: string
+}
+
+export async function libraryCategoriesPageLoader({ request }: LoaderFunctionArgs): Promise<LoaderData> {
+  const language = getLanguageFromUrl(request.url)
+
+  try {
+    const res = await fetch(`/api/library/categories?language=${language}`)
+    if (!res.ok) {
+      return { categories: [], error: 'Failed to load categories' }
+    }
+    const data = (await res.json()) as LibraryCategoriesResponse
+    return { categories: data.categories }
+  } catch (err) {
+    return { categories: [], error: err instanceof Error ? err.message : 'Failed to load categories' }
+  }
+}
 
 function LibraryCategoriesPage() {
   const t = useT()
-  const { language } = useTranslation()
   const navigate = useNavigate()
-  const [categories, setCategories] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { categories, error } = useLoaderData() as LoaderData
 
   const translateCategory = (category: string): string => {
     const translationKey = `library.categories.${category}`
     const translated = t(translationKey)
     return translated === translationKey ? category : translated
   }
-
-  useEffect(() => {
-    const fetchCategories = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const res = await fetch(`/api/library/categories?language=${language}`)
-        if (!res.ok) {
-          throw new Error(t('library.errors.loadFailed'))
-        }
-        const data = (await res.json()) as LibraryCategoriesResponse
-        setCategories(data.categories)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : t('library.errors.unknown'))
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchCategories()
-  }, [language, t])
 
   return (
     <div className="app">
@@ -52,13 +49,7 @@ function LibraryCategoriesPage() {
             {t('library.title')}
           </h1>
 
-          {loading && (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              {t('common.loading')}
-            </div>
-          )}
-
-          {!loading && !error && (
+          {!error && (
             <div>
               <div
                 className="category-grid"

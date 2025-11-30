@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { Link, useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import html2canvas from 'html2canvas'
 import { useT } from './contexts/LanguageContext'
 import QueryForm from './QueryForm'
@@ -7,28 +7,45 @@ import Card from './components/Card'
 import Navigation from './components/Navigation'
 import CitationRenderer from './components/CitationRenderer'
 import ErrorDisplay from './components/ErrorDisplay'
-
-interface ConversationResponse {
-  uuid: string
-  question: string
-  answer: string
-  language: string
-  model: string | null
-  k: number
-  created_at: number
-  generation_time_seconds: number | null
-}
+import type { ConversationResponse } from './types/api'
 
 interface ErrorResponse {
   error: string
 }
 
+interface LoaderData {
+  conversation: ConversationResponse | null
+  error?: string
+}
+
+export async function conversationPageLoader({ params }: LoaderFunctionArgs): Promise<LoaderData> {
+  const { id } = params
+  if (!id) {
+    return { conversation: null, error: 'Invalid conversation ID' }
+  }
+
+  try {
+    const res = await fetch(`/api/conversations/${id}`)
+    const data = await res.json()
+
+    if (res.ok) {
+      const conversationData = data as ConversationResponse
+      if (!conversationData) {
+        return { conversation: null, error: 'Empty conversation data' }
+      }
+      return { conversation: conversationData }
+    } else {
+      const errorData = data as ErrorResponse
+      return { conversation: null, error: errorData.error || 'Failed to load conversation' }
+    }
+  } catch (err) {
+    return { conversation: null, error: err instanceof Error ? err.message : 'Failed to load conversation' }
+  }
+}
+
 function ConversationPage() {
-  const { id } = useParams<{ id: string }>()
   const t = useT()
-  const [conversation, setConversation] = useState<ConversationResponse | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { conversation, error } = useLoaderData() as LoaderData
   const [exporting, setExporting] = useState(false)
   const [exportedImage, setExportedImage] = useState<string | null>(null)
   const [copyButtonText, setCopyButtonText] = useState('')
@@ -36,38 +53,6 @@ function ConversationPage() {
   useEffect(() => {
     setCopyButtonText(t('conversation.shareLink'))
   }, [t])
-
-  useEffect(() => {
-    const fetchConversation = async () => {
-      if (!id) {
-        setError(t('conversation.errors.invalidId'))
-        setLoading(false)
-        return
-      }
-
-      try {
-        const res = await fetch(`/api/conversations/${id}`)
-        const data = await res.json()
-
-        if (res.ok) {
-          const conversationData = data as ConversationResponse
-          if (!conversationData) {
-            throw new Error(t('conversation.errors.emptyData'))
-          }
-          setConversation(conversationData)
-        } else {
-          const errorData = data as ErrorResponse
-          setError(errorData.error || t('conversation.errors.loadFailed'))
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : t('query.errors.noConnection'))
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchConversation()
-  }, [id])
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp * 1000).toLocaleString('zh-CN', {
@@ -122,18 +107,8 @@ function ConversationPage() {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="app">
-        <main className="main">
-          <div className="loading">{t('common.loading')}</div>
-        </main>
-      </div>
-    )
-  }
-
-  if (error) {
-    return <ErrorDisplay error={error} fullPage={true} showBackLink={true} />
+  if (error || !conversation) {
+    return <ErrorDisplay error={error || t('conversation.errors.loadFailed')} fullPage={true} showBackLink={true} />
   }
 
 
@@ -142,12 +117,12 @@ function ConversationPage() {
       <Navigation />
       <main className="main">
 
-        <QueryForm currentQuestion={conversation?.question} />
+        <QueryForm currentQuestion={conversation.question} />
 
         <div className="conversation-content">
           <Card borderColor="green">
             <h3>
-              {t('conversation.question')}: <span style={{ fontWeight: 'normal' }}>{conversation!.question}</span>
+              {t('conversation.question')}: <span style={{ fontWeight: 'normal' }}>{conversation.question}</span>
             </h3>
           </Card>
 
@@ -200,7 +175,7 @@ function ConversationPage() {
                     <button
                       onClick={() => {
                         const link = document.createElement('a')
-                        link.download = `istaroth-conversation-${conversation!.uuid}-${Date.now()}.png`
+                        link.download = `istaroth-conversation-${conversation.uuid}-${Date.now()}.png`
                         link.href = exportedImage
                         link.click()
                       }}
@@ -222,17 +197,17 @@ function ConversationPage() {
             )}
 
             <div className="answer">
-              <CitationRenderer content={conversation!.answer} />
+              <CitationRenderer content={conversation.answer} />
             </div>
           </Card>
 
           <div className="conversation-footer">
             <div className="conversation-meta">
-              <p>{t('conversation.metadata.conversation')} #{conversation!.uuid}</p>
-              <p>{t('conversation.metadata.time')}: {formatDate(conversation!.created_at)}</p>
-              <p>{t('conversation.metadata.language')}: {conversation!.language}</p>
-              <p>{t('conversation.metadata.model')}: {conversation!.model}</p>
-              {conversation!.generation_time_seconds && <p>{t('conversation.metadata.generationTime')}: {conversation!.generation_time_seconds.toFixed(2)}{t('conversation.metadata.seconds')}</p>}
+              <p>{t('conversation.metadata.conversation')} #{conversation.uuid}</p>
+              <p>{t('conversation.metadata.time')}: {formatDate(conversation.created_at)}</p>
+              <p>{t('conversation.metadata.language')}: {conversation.language}</p>
+              <p>{t('conversation.metadata.model')}: {conversation.model}</p>
+              {conversation.generation_time_seconds && <p>{t('conversation.metadata.generationTime')}: {conversation.generation_time_seconds.toFixed(2)}{t('conversation.metadata.seconds')}</p>}
             </div>
             <Link to="/" className="back-link">
               ← {t('common.back')}
