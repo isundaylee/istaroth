@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useT } from '../contexts/LanguageContext'
+import Navigation from './Navigation'
 
 interface ErrorDisplayProps {
   error: string
@@ -31,6 +32,7 @@ function ErrorDisplay({
   if (fullPage) {
     return (
       <div className="app">
+        <Navigation />
         <main className="main">
           {errorContent}
         </main>
