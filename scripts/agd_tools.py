@@ -28,6 +28,7 @@ from istaroth.agd.renderable_types import (
     MaterialTypes,
     Quests,
     Readables,
+    RenderableType,
     Subtitles,
     TalkGroups,
     Talks,
@@ -157,7 +158,9 @@ def _generate_content(
         accessed_readable_ids=set(),
     )
 
-    output_dir.mkdir(exist_ok=True)
+    output_subdir = renderable_type.renderable_type.output_subdir
+    output_path = output_dir / output_subdir
+    output_path.mkdir(parents=True, exist_ok=True)
 
     # Discover renderable keys for this type
     renderable_keys = renderable_type.discover(data_repo)
@@ -258,7 +261,7 @@ def _generate_content(
             used_filenames.add(filename)
 
             # Write to output file
-            output_file = output_dir / filename
+            output_file = output_path / filename
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write(result.rendered_item.content)
 
@@ -285,19 +288,7 @@ def cli() -> None:
 @click.option("-f", "--force", is_flag=True, help="Delete output dir if it exists")
 @click.option(
     "--only",
-    type=click.Choice(
-        [
-            "readables",
-            "quests",
-            "character-stories",
-            "subtitles",
-            "material-types",
-            "voicelines",
-            "talk-groups",
-            "talks",
-            "artifact-sets",
-        ]
-    ),
+    type=click.Choice([rt.value for rt in RenderableType]),
     help="Generate only specific content type",
 )
 @click.option(
@@ -360,16 +351,17 @@ def generate_all(
 
     # Helper function to process a content type conditionally
     def process_content_type(
-        should_generate: bool, renderable: BaseRenderableType, output_subdir: str
+        should_generate: bool, renderable: BaseRenderableType
     ) -> None:
         """Process a single content type if condition is met and update global stats."""
         if not should_generate:
             return
 
         nonlocal total_success, total_error, total_skipped
+        output_subdir = renderable.renderable_type.output_subdir
         success, error, skipped, tracker_stats = _generate_content(
             renderable,
-            output_dir / output_subdir,
+            output_dir,
             data_repo=data_repo,
             pool=pool,
             errors_file=errors_file,
@@ -383,15 +375,22 @@ def generate_all(
         summary_stats.append([output_subdir, success, error, skipped])
 
     # Determine which content types to generate
-    generate_readable = only is None or only == "readables"
-    generate_quest = only is None or only == "quests"
-    generate_character_stories = only is None or only == "character-stories"
-    generate_subtitles = only is None or only == "subtitles"
-    generate_material_types = only is None or only == "material-types"
-    generate_voicelines = only is None or only == "voicelines"
-    generate_talk_groups = only is None or only == "talk-groups"
-    generate_talks = only is None or only == "talks"
-    generate_artifact_sets = only is None or only == "artifact-sets"
+    only_enum = RenderableType(only) if only else None
+    generate_readable = only_enum is None or only_enum == RenderableType.READABLE
+    generate_quest = only_enum is None or only_enum == RenderableType.QUEST
+    generate_character_stories = (
+        only_enum is None or only_enum == RenderableType.CHARACTER_STORY
+    )
+    generate_subtitles = only_enum is None or only_enum == RenderableType.SUBTITLE
+    generate_material_types = (
+        only_enum is None or only_enum == RenderableType.MATERIAL_TYPE
+    )
+    generate_voicelines = only_enum is None or only_enum == RenderableType.VOICELINE
+    generate_talk_groups = only_enum is None or only_enum == RenderableType.TALK_GROUP
+    generate_talks = only_enum is None or only_enum == RenderableType.TALK
+    generate_artifact_sets = (
+        only_enum is None or only_enum == RenderableType.ARTIFACT_SET
+    )
 
     # Set up multiprocessing pool to reuse across all content generation
     if processes is None:
@@ -403,24 +402,21 @@ def generate_all(
         errors_file_path.open("w", encoding="utf-8") as errors_file,
         multiprocessing.Pool(processes=processes) as pool,
     ):
-        process_content_type(generate_artifact_sets, ArtifactSets(), "artifact_sets")
-        process_content_type(generate_quest, Quests(), "quest")
-        process_content_type(
-            generate_character_stories, CharacterStories(), "character_stories"
-        )
-        process_content_type(generate_subtitles, Subtitles(), "subtitles")
-        process_content_type(generate_material_types, MaterialTypes(), "material_types")
-        process_content_type(generate_voicelines, Voicelines(), "voicelines")
-        process_content_type(generate_talk_groups, TalkGroups(), "talk_groups")
+        process_content_type(generate_artifact_sets, ArtifactSets())
+        process_content_type(generate_quest, Quests())
+        process_content_type(generate_character_stories, CharacterStories())
+        process_content_type(generate_subtitles, Subtitles())
+        process_content_type(generate_material_types, MaterialTypes())
+        process_content_type(generate_voicelines, Voicelines())
+        process_content_type(generate_talk_groups, TalkGroups())
 
         # Generating remaining unused readables/talks
         process_content_type(
             generate_readable,
             Readables(all_tracker_stats.accessed_readable_ids.copy()),
-            "readable",
         )
         process_content_type(
-            generate_talks, Talks(all_tracker_stats.accessed_talk_ids.copy()), "talks"
+            generate_talks, Talks(all_tracker_stats.accessed_talk_ids.copy())
         )
 
     # Create summary table
