@@ -109,15 +109,15 @@ export const chs = {
     backToFiles: '返回文件列表',
     noFiles: '该分类下没有文件',
     categories: {
-      artifact_sets: '圣遗物套装',
-      character_stories: '角色故事',
-      material_types: '材料类型',
-      quest: '任务',
-      readable: '可读文本',
-      subtitles: '字幕',
-      talk_groups: '对话组',
-      talks: '对话',
-      voicelines: '语音台词'
+      agd_artifact_set: '圣遗物套装',
+      agd_character_story: '角色故事',
+      agd_material_type: '材料类型',
+      agd_quest: '任务',
+      agd_readable: '可读文本',
+      agd_subtitle: '字幕',
+      agd_talk_group: '对话组',
+      agd_talk: '对话',
+      agd_voiceline: '语音台词'
     },
     errors: {
       loadFailed: '加载失败',

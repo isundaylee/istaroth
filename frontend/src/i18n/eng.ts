@@ -109,15 +109,15 @@ export const eng = {
     backToFiles: 'Back to Files',
     noFiles: 'No files in this category',
     categories: {
-      artifact_sets: 'Artifact Sets',
-      character_stories: 'Character Stories',
-      material_types: 'Material Types',
-      quest: 'Quests',
-      readable: 'Readables',
-      subtitles: 'Subtitles',
-      talk_groups: 'Talk Groups',
-      talks: 'Talks',
-      voicelines: 'Voicelines'
+      agd_artifact_set: 'Artifact Sets',
+      agd_character_story: 'Character Stories',
+      agd_material_type: 'Material Types',
+      agd_quest: 'Quests',
+      agd_readable: 'Readables',
+      agd_subtitle: 'Subtitles',
+      agd_talk_group: 'Talk Groups',
+      agd_talk: 'Talks',
+      agd_voiceline: 'Voicelines'
     },
     errors: {
       loadFailed: 'Failed to load',
