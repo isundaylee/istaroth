@@ -15,6 +15,7 @@ def test_render_readable_basic() -> None:
         rendered.content
         == "# Test Book Title\n\nThis is some readable content.\nWith multiple lines."
     )
+    assert rendered.id == 0
 
 
 def test_render_readable_special_characters() -> None:
@@ -26,6 +27,7 @@ def test_render_readable_special_characters() -> None:
 
     assert rendered.filename == "readable_神霄折戟录第六卷_0.txt"
     assert rendered.content == "# 神霄折戟录·第六卷\n\nContent here."
+    assert rendered.id == 0
 
 
 def test_render_readable_whitespace() -> None:
@@ -39,6 +41,7 @@ def test_render_readable_whitespace() -> None:
 
     assert rendered.filename == "readable_Title_With_Spaces_0.txt"
     assert rendered.content == "#   Title   With   Spaces  \n\nSome content."
+    assert rendered.id == 0
 
 
 def test_render_talk_basic() -> None:
@@ -65,6 +68,7 @@ def test_render_talk_basic() -> None:
         "神秘声音: 欢迎来到这里..."
     )
     assert rendered.content == expected_content
+    assert rendered.id == 12345
 
 
 def test_render_talk_long_message() -> None:
@@ -91,6 +95,7 @@ def test_render_talk_long_message() -> None:
         "这是一个非常长的消息，超过了五十个字符的限制，应该被截断以创建合适的文件名。"
         in rendered.content
     )
+    assert rendered.id == 67890
 
 
 def test_render_talk_empty() -> None:
@@ -106,6 +111,7 @@ def test_render_talk_empty() -> None:
 
     assert rendered.filename == "talk_root_empty_99999.txt"
     assert rendered.content == "# Talk Dialog\n"
+    assert rendered.id == 99999
 
 
 def test_render_talk_special_characters() -> None:
@@ -122,3 +128,4 @@ def test_render_talk_special_characters() -> None:
 
     assert rendered.filename == "talk_dialogue_这是引号还有破折号_11111.txt"
     assert "角色: 「这是引号」—还有破折号！" in rendered.content
+    assert rendered.id == 11111

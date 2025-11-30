@@ -290,7 +290,9 @@ def get_character_story_info(
 
             stories.append(types.CharacterStory(title=title, content=content))
 
-    return types.CharacterStoryInfo(character_name=character_name, stories=stories)
+    return types.CharacterStoryInfo(
+        character_name=character_name, stories=stories, avatar_id=avatar_id_str
+    )
 
 
 def get_subtitle_info(
@@ -371,7 +373,9 @@ def get_voiceline_info(
             if content:  # Only add if there's actual content
                 voicelines[title] = content
 
-    return types.VoicelineInfo(character_name=character_name, voicelines=voicelines)
+    return types.VoicelineInfo(
+        character_name=character_name, voicelines=voicelines, avatar_id=avatar_id_str
+    )
 
 
 def get_artifact_set_info(

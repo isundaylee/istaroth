@@ -1,5 +1,6 @@
 """Rendering functions for converting AGD content to RAG-suitable text format."""
 
+import hashlib
 import pathlib
 
 from istaroth import utils
@@ -41,7 +42,9 @@ def render_readable(
     # Format content with title header
     rendered_content = f"# {metadata.title}\n\n{content}"
 
-    return types.RenderedItem(filename=filename, content=rendered_content)
+    return types.RenderedItem(
+        filename=filename, content=rendered_content, id=metadata.localization_id
+    )
 
 
 def render_talk(
@@ -81,7 +84,9 @@ def render_talk(
 
     rendered_content = "\n".join(content_lines)
 
-    return types.RenderedItem(filename=filename, content=rendered_content)
+    return types.RenderedItem(
+        filename=filename, content=rendered_content, id=int(talk_id)
+    )
 
 
 def render_quest(
@@ -124,7 +129,9 @@ def render_quest(
 
     rendered_content = "\n".join(content_lines)
 
-    return types.RenderedItem(filename=filename, content=rendered_content)
+    return types.RenderedItem(
+        filename=filename, content=rendered_content, id=int(quest.quest_id)
+    )
 
 
 def render_character_story(story_info: types.CharacterStoryInfo) -> types.RenderedItem:
@@ -147,7 +154,9 @@ def render_character_story(story_info: types.CharacterStoryInfo) -> types.Render
 
     rendered_content = "\n".join(content_lines)
 
-    return types.RenderedItem(filename=filename, content=rendered_content)
+    return types.RenderedItem(
+        filename=filename, content=rendered_content, id=int(story_info.avatar_id)
+    )
 
 
 def render_subtitle(
@@ -155,8 +164,6 @@ def render_subtitle(
 ) -> types.RenderedItem:
     """Render subtitle content into RAG-suitable format."""
     # Generate filename based on subtitle file name
-    import pathlib
-
     path_obj = pathlib.Path(subtitle_path)
     safe_name = utils.make_safe_filename_part(path_obj.stem)
     filename = f"subtitle_{safe_name}.txt"
@@ -167,7 +174,14 @@ def render_subtitle(
 
     rendered_content = "\n".join(content_lines)
 
-    return types.RenderedItem(filename=filename, content=rendered_content)
+    # Generate ID from hash of subtitle path
+    subtitle_id = int(
+        hashlib.sha256(subtitle_path.encode("utf-8")).hexdigest()[:15], base=16
+    )
+
+    return types.RenderedItem(
+        filename=filename, content=rendered_content, id=subtitle_id
+    )
 
 
 def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
@@ -182,7 +196,9 @@ def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
 
     rendered_content = "\n".join(content_lines)
 
-    return types.RenderedItem(filename=filename, content=rendered_content)
+    return types.RenderedItem(
+        filename=filename, content=rendered_content, id=int(material_info.material_id)
+    )
 
 
 def render_materials_by_type(
@@ -207,7 +223,14 @@ def render_materials_by_type(
 
     rendered_content = "\n".join(content_lines).rstrip()
 
-    return types.RenderedItem(filename=filename, content=rendered_content)
+    # Generate ID from hash of material type
+    material_type_id = int(
+        hashlib.sha256(material_type.encode("utf-8")).hexdigest()[:15], base=16
+    )
+
+    return types.RenderedItem(
+        filename=filename, content=rendered_content, id=material_type_id
+    )
 
 
 def render_voiceline(voiceline_info: types.VoicelineInfo) -> types.RenderedItem:
@@ -226,7 +249,9 @@ def render_voiceline(voiceline_info: types.VoicelineInfo) -> types.RenderedItem:
 
     rendered_content = "\n".join(content_lines).rstrip()
 
-    return types.RenderedItem(filename=filename, content=rendered_content)
+    return types.RenderedItem(
+        filename=filename, content=rendered_content, id=int(voiceline_info.avatar_id)
+    )
 
 
 def render_artifact_set(artifact_set_info: types.ArtifactSetInfo) -> types.RenderedItem:
@@ -257,7 +282,9 @@ def render_artifact_set(artifact_set_info: types.ArtifactSetInfo) -> types.Rende
 
     rendered_content = "\n".join(content_lines).rstrip()
 
-    return types.RenderedItem(filename=filename, content=rendered_content)
+    return types.RenderedItem(
+        filename=filename, content=rendered_content, id=int(artifact_set_info.set_id)
+    )
 
 
 def render_talk_group(
@@ -295,4 +322,6 @@ def render_talk_group(
 
     rendered_content = "\n".join(content_lines).rstrip()
 
-    return types.RenderedItem(filename=filename, content=rendered_content)
+    return types.RenderedItem(
+        filename=filename, content=rendered_content, id=int(talk_group_id)
+    )

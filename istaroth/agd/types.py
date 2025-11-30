@@ -455,6 +455,7 @@ class CharacterStoryInfo:
 
     character_name: str
     stories: list[CharacterStory]
+    avatar_id: str
 
 
 @attrs.define
@@ -479,6 +480,7 @@ class VoicelineInfo:
 
     character_name: str
     voicelines: dict[str, str]  # title -> content mapping
+    avatar_id: str
 
 
 @attrs.define
@@ -550,3 +552,4 @@ class RenderedItem:
 
     filename: str
     content: str
+    id: int
