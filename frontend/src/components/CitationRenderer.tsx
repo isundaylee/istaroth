@@ -303,9 +303,8 @@ function CitationRenderer({ content }: CitationRendererProps) {
         }
       } else {
         // This is a successful response
-        const path = (cached.metadata.path as string | undefined) || fileId
         return {
-          title: `${t('citation.source')}: ${path}`,
+          title: `${t('citation.source')}: ${cached.file_info.title}`,
           chunks: [],
           content: cached.content,
           fileId,
@@ -342,9 +341,8 @@ function CitationRenderer({ content }: CitationRendererProps) {
       .sort((a, b) => a.chunk_index - b.chunk_index)
 
     if (fileChunks.length > 0) {
-      const path = (fileChunks[0].metadata.path as string | undefined) || fileId
       return {
-        title: `${t('citation.source')}: ${path}`,
+        title: `${t('citation.source')}: ${fileChunks[0].file_info.title}`,
         chunks: fileChunks,
         content: '',
         fileId,
