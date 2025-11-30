@@ -25,9 +25,21 @@ logger = logging.getLogger(__name__)
 
 
 def _get_files_to_process(text_path: pathlib.Path) -> list[pathlib.Path]:
-    """Get a list of .txt files to process from the given path."""
+    """Get a list of .txt files to process from the manifest file."""
     assert text_path.is_dir(), f"Path {text_path} must be a directory"
-    return list(text_path.glob("**/*.txt"))
+    manifest_path = text_path / "manifest.json"
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"Manifest file not found: {manifest_path}")
+    manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
+    files = []
+    for entry in manifest_data:
+        relative_path = entry["relative_path"]
+        file_path = text_path / relative_path
+        if not file_path.exists():
+            logger.warning("File from manifest does not exist: %s", file_path)
+            continue
+        files.append(file_path)
+    return files
 
 
 def _load_or_create_store() -> document_store.DocumentStore:
@@ -68,7 +80,7 @@ def build(text_path: pathlib.Path, checkpoint_path: pathlib.Path, force: bool) -
     files_to_process = _get_files_to_process(text_path)
 
     if not files_to_process:
-        logger.error("No .txt files found to process.")
+        logger.error("No files found in manifest to process.")
         sys.exit(1)
 
     metadata = json.loads((text_path / "metadata.json").read_text())
