@@ -17,7 +17,7 @@ data:
   {{- if .Values.languages }}
   {{- $stores := list }}
   {{- range $lang, $config := .Values.languages }}
-    {{- $path := printf "/data/checkpoint_web/%s" $lang }}
+    {{- $path := printf "/data/checkpoints/%s/%s" ($.Values.backend.checkpointRelease | replace "/" "-") $lang }}
     {{- $storeEntry := printf "%s:%s" (upper $lang) $path }}
     {{- $stores = append $stores $storeEntry }}
   {{- end }}

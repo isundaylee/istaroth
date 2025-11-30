@@ -38,31 +38,17 @@ spec:
       initContainers:
       - name: wait-for-checkpoint
         image: busybox:1.36
-        env:
-        - name: EXPECTED_RELEASE
-          value: {{ $.Values.backend.checkpointRelease | quote }}
         command:
         - sh
         - -c
         - |
-          echo "Waiting for checkpoint release file with correct version..."
-          RELEASE_TAG_FILE="/data/checkpoint_web/{{ $language }}.release"
+          echo "Waiting for checkpoint release file..."
+          RELEASE_TAG_FILE="/data/checkpoints/{{ $.Values.backend.checkpointRelease | replace "/" "-" }}/{{ $language }}.release"
 
-          # Wait for release tag file to exist and match expected version
-          while true; do
-            if [ -f "$RELEASE_TAG_FILE" ]; then
-              ACTUAL_RELEASE=$(cat "$RELEASE_TAG_FILE" | tr -d '\n\r ')
-              if [ "$ACTUAL_RELEASE" = "$EXPECTED_RELEASE" ] || [ "$EXPECTED_RELEASE" = "latest" ]; then
-                echo "Checkpoint release version matches: $ACTUAL_RELEASE"
-                break
-              else
-                echo "Checkpoint release version mismatch: expected '$EXPECTED_RELEASE', found '$ACTUAL_RELEASE', waiting for update..."
-                sleep 1
-              fi
-            else
-              echo "Release tag file $RELEASE_TAG_FILE not found, waiting..."
-              sleep 1
-            fi
+          # Wait for release tag file to exist
+          while [ ! -f "$RELEASE_TAG_FILE" ]; do
+            echo "Release tag file $RELEASE_TAG_FILE not found, waiting..."
+            sleep 1
           done
 
           echo "Checkpoint ready!"
@@ -89,7 +75,7 @@ spec:
         volumeMounts:
         - name: data
           mountPath: /data
-          subPath: "checkpoint_web/{{ $language }}/chroma_index"
+          subPath: "checkpoints/{{ $.Values.backend.checkpointRelease | replace "/" "-" }}/{{ $language }}/chroma_index"
         {{- with $.Values.chroma.resources }}
         resources:
           {{- toYaml . | nindent 10 }}

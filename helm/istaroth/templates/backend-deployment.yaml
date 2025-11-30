@@ -58,7 +58,7 @@ spec:
         - scripts/checkpoint_tools.py
         - download
         - {{ $lang }}
-        - /data/checkpoint_web/{{ $lang }}
+        - /data/checkpoints/{{ $.Values.backend.checkpointRelease | replace "/" "-" }}/{{ $lang }}
         - --release
         - {{ $.Values.backend.checkpointRelease | quote }}
         volumeMounts:
