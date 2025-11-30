@@ -4,7 +4,6 @@ import { useT } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import Card from './components/Card'
 import PageCard from './components/PageCard'
-import ErrorDisplay from './components/ErrorDisplay'
 import LibraryHeader from './components/LibraryHeader'
 import { getLanguageFromUrl } from './utils/language'
 import type { LibraryFilesResponse, LibraryFileInfo } from './types/api'
@@ -12,35 +11,30 @@ import type { LibraryFilesResponse, LibraryFileInfo } from './types/api'
 interface LoaderData {
   files: LibraryFileInfo[]
   category: string
-  error?: string
 }
 
 export async function libraryFilesPageLoader({ params, request }: LoaderFunctionArgs): Promise<LoaderData> {
   const { category } = params
   if (!category) {
-    return { files: [], category: '', error: 'Invalid category' }
+    throw new Response('Invalid category', { status: 400 })
   }
 
   const language = getLanguageFromUrl(request.url)
 
-  try {
-    const res = await fetch(
-      `/api/library/files/${encodeURIComponent(category)}?language=${language}`
-    )
-    if (!res.ok) {
-      return { files: [], category, error: 'Failed to load files' }
-    }
-    const data = (await res.json()) as LibraryFilesResponse
-    return { files: data.files, category }
-  } catch (err) {
-    return { files: [], category, error: err instanceof Error ? err.message : 'Failed to load files' }
+  const res = await fetch(
+    `/api/library/files/${encodeURIComponent(category)}?language=${language}`
+  )
+  if (!res.ok) {
+    throw new Response('Failed to load files', { status: res.status })
   }
+  const data = (await res.json()) as LibraryFilesResponse
+  return { files: data.files, category }
 }
 
 function LibraryFilesPage() {
   const t = useT()
   const navigate = useNavigate()
-  const { files, category, error } = useLoaderData() as LoaderData
+  const { files, category } = useLoaderData() as LoaderData
 
   const translateCategory = (category: string): string => {
     const translationKey = `library.categories.${category}`
@@ -52,21 +46,20 @@ function LibraryFilesPage() {
     <div className="app">
       <Navigation />
       <main className="main">
-        {error && <ErrorDisplay error={error} />}
         <PageCard>
           <LibraryHeader
-            title={category ? translateCategory(category) : ''}
+            title={translateCategory(category)}
             backPath="/library"
             backText={t('library.backToCategories')}
           />
 
-          {!error && files.length === 0 && (
+          {files.length === 0 && (
             <Card style={{ margin: '1rem 0' }}>
               <p>{t('library.noFiles')}</p>
             </Card>
           )}
 
-          {!error && files.length > 0 && (
+          {files.length > 0 && (
             <div
               style={{
                 display: 'grid',

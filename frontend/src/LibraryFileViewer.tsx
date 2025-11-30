@@ -3,9 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import { useT } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
-import Card from './components/Card'
 import PageCard from './components/PageCard'
-import ErrorDisplay from './components/ErrorDisplay'
 import LibraryHeader from './components/LibraryHeader'
 import NavButton from './components/NavButton'
 import { getLanguageFromUrl } from './utils/language'
@@ -17,13 +15,12 @@ interface LoaderData {
   previousFile: LibraryFileInfo | null
   nextFile: LibraryFileInfo | null
   category: string
-  error?: string
 }
 
 export async function libraryFileViewerLoader({ params, request }: LoaderFunctionArgs): Promise<LoaderData> {
   const { category, id } = params
   if (!category || !id) {
-    return { fileContent: '', fileTitle: '', previousFile: null, nextFile: null, category: '', error: 'Invalid params' }
+    throw new Response('Invalid params', { status: 400 })
   }
 
   const language = getLanguageFromUrl(request.url)
@@ -34,7 +31,7 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
   ])
 
   if (!fileRes.ok) {
-    return { fileContent: '', fileTitle: '', previousFile: null, nextFile: null, category, error: 'Failed to load file' }
+    throw new Response('Failed to load file', { status: fileRes.status })
   }
 
   const fileData = (await fileRes.json()) as LibraryFileResponse
@@ -61,7 +58,7 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
 function LibraryFileViewer() {
   const t = useT()
   const navigate = useNavigate()
-  const { fileContent, fileTitle, previousFile, nextFile, category, error } = useLoaderData() as LoaderData
+  const { fileContent, fileTitle, previousFile, nextFile, category } = useLoaderData() as LoaderData
 
   const translateCategory = (category: string): string => {
     const translationKey = `library.categories.${category}`
@@ -73,7 +70,6 @@ function LibraryFileViewer() {
     <div className="app">
       <Navigation />
       <main className="main">
-        {error && <ErrorDisplay error={t('library.errors.loadFailed')} />}
         <PageCard>
           <LibraryHeader
             title={fileTitle || translateCategory(category)}
@@ -81,34 +77,24 @@ function LibraryFileViewer() {
             backText={t('library.backToFiles')}
           />
 
-          {!error && fileContent && (
-            <>
-              <div className="answer">
-                <ReactMarkdown remarkPlugins={[remarkBreaks]}>{fileContent}</ReactMarkdown>
-              </div>
-              {previousFile && (
-                <NavButton
-                  onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(previousFile.id)}`)}
-                  label={t('library.previous')}
-                  title={previousFile.title || t('library.noFileName')}
-                  marginTop="2rem"
-                />
-              )}
-              {nextFile && (
-                <NavButton
-                  onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(nextFile.id)}`)}
-                  label={t('library.next')}
-                  title={nextFile.title || t('library.noFileName')}
-                  marginTop={previousFile ? '1rem' : '2rem'}
-                />
-              )}
-            </>
+          <div className="answer">
+            <ReactMarkdown remarkPlugins={[remarkBreaks]}>{fileContent}</ReactMarkdown>
+          </div>
+          {previousFile && (
+            <NavButton
+              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(previousFile.id)}`)}
+              label={t('library.previous')}
+              title={previousFile.title || t('library.noFileName')}
+              marginTop="2rem"
+            />
           )}
-
-          {!fileContent && error && (
-            <Card style={{ margin: '1rem 0', backgroundColor: '#fee', borderColor: '#f00' }}>
-              <p style={{ color: '#c00' }}>{t('library.errors.loadFailed')}</p>
-            </Card>
+          {nextFile && (
+            <NavButton
+              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(nextFile.id)}`)}
+              label={t('library.next')}
+              title={nextFile.title || t('library.noFileName')}
+              marginTop={previousFile ? '1rem' : '2rem'}
+            />
           )}
         </PageCard>
       </main>

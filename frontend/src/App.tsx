@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration } from 'react-router-dom'
 import { LanguageProvider } from './contexts/LanguageContext'
 import DocumentTitle from './components/DocumentTitle'
+import ErrorBoundary from './components/ErrorBoundary'
 import QueryPage from './QueryPage'
 import ConversationPage, { conversationPageLoader } from './ConversationPage'
 import LibraryCategoriesPage, { libraryCategoriesPageLoader } from './LibraryCategoriesPage'
@@ -23,10 +24,10 @@ const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       { path: "/", element: <QueryPage /> },
-      { path: "/conversation/:id", element: <ConversationPage />, loader: conversationPageLoader },
-      { path: "/library", element: <LibraryCategoriesPage />, loader: libraryCategoriesPageLoader },
-      { path: "/library/:category", element: <LibraryFilesPage />, loader: libraryFilesPageLoader },
-      { path: "/library/:category/:id", element: <LibraryFileViewer />, loader: libraryFileViewerLoader },
+      { path: "/conversation/:id", element: <ConversationPage />, loader: conversationPageLoader, errorElement: <ErrorBoundary /> },
+      { path: "/library", element: <LibraryCategoriesPage />, loader: libraryCategoriesPageLoader, errorElement: <ErrorBoundary /> },
+      { path: "/library/:category", element: <LibraryFilesPage />, loader: libraryFilesPageLoader, errorElement: <ErrorBoundary /> },
+      { path: "/library/:category/:id", element: <LibraryFileViewer />, loader: libraryFileViewerLoader, errorElement: <ErrorBoundary /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

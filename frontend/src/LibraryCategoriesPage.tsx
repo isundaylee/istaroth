@@ -4,34 +4,28 @@ import { useT } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import Card from './components/Card'
 import PageCard from './components/PageCard'
-import ErrorDisplay from './components/ErrorDisplay'
 import { getLanguageFromUrl } from './utils/language'
 import type { LibraryCategoriesResponse } from './types/api'
 
 interface LoaderData {
   categories: string[]
-  error?: string
 }
 
 export async function libraryCategoriesPageLoader({ request }: LoaderFunctionArgs): Promise<LoaderData> {
   const language = getLanguageFromUrl(request.url)
 
-  try {
-    const res = await fetch(`/api/library/categories?language=${language}`)
-    if (!res.ok) {
-      return { categories: [], error: 'Failed to load categories' }
-    }
-    const data = (await res.json()) as LibraryCategoriesResponse
-    return { categories: data.categories }
-  } catch (err) {
-    return { categories: [], error: err instanceof Error ? err.message : 'Failed to load categories' }
+  const res = await fetch(`/api/library/categories?language=${language}`)
+  if (!res.ok) {
+    throw new Response('Failed to load categories', { status: res.status })
   }
+  const data = (await res.json()) as LibraryCategoriesResponse
+  return { categories: data.categories }
 }
 
 function LibraryCategoriesPage() {
   const t = useT()
   const navigate = useNavigate()
-  const { categories, error } = useLoaderData() as LoaderData
+  const { categories } = useLoaderData() as LoaderData
 
   const translateCategory = (category: string): string => {
     const translationKey = `library.categories.${category}`
@@ -43,23 +37,21 @@ function LibraryCategoriesPage() {
     <div className="app">
       <Navigation />
       <main className="main">
-        {error && <ErrorDisplay error={error} />}
         <PageCard>
           <h1 style={{ marginBottom: '2rem', textAlign: 'center', fontSize: '2.5rem', color: '#2c3e50' }}>
             {t('library.title')}
           </h1>
 
-          {!error && (
-            <div>
-              <div
-                className="category-grid"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(2, 1fr)',
-                  gap: '1.5rem'
-                }}
-              >
-                {categories.map((category) => (
+          <div>
+            <div
+              className="category-grid"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '1.5rem'
+              }}
+            >
+              {categories.map((category) => (
                   <div
                     key={category}
                     onClick={() => navigate(`/library/${encodeURIComponent(category)}`)}
@@ -103,7 +95,6 @@ function LibraryCategoriesPage() {
                 ))}
               </div>
             </div>
-          )}
         </PageCard>
       </main>
     </div>

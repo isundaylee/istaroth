@@ -6,46 +6,31 @@ import QueryForm from './QueryForm'
 import Card from './components/Card'
 import Navigation from './components/Navigation'
 import CitationRenderer from './components/CitationRenderer'
-import ErrorDisplay from './components/ErrorDisplay'
 import type { ConversationResponse } from './types/api'
 
-interface ErrorResponse {
-  error: string
-}
-
 interface LoaderData {
-  conversation: ConversationResponse | null
-  error?: string
+  conversation: ConversationResponse
 }
 
 export async function conversationPageLoader({ params }: LoaderFunctionArgs): Promise<LoaderData> {
   const { id } = params
   if (!id) {
-    return { conversation: null, error: 'Invalid conversation ID' }
+    throw new Response('Invalid conversation ID', { status: 400 })
   }
 
-  try {
-    const res = await fetch(`/api/conversations/${id}`)
-    const data = await res.json()
-
-    if (res.ok) {
-      const conversationData = data as ConversationResponse
-      if (!conversationData) {
-        return { conversation: null, error: 'Empty conversation data' }
-      }
-      return { conversation: conversationData }
-    } else {
-      const errorData = data as ErrorResponse
-      return { conversation: null, error: errorData.error || 'Failed to load conversation' }
-    }
-  } catch (err) {
-    return { conversation: null, error: err instanceof Error ? err.message : 'Failed to load conversation' }
+  const res = await fetch(`/api/conversations/${id}`)
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    throw new Response(errorData.error || 'Failed to load conversation', { status: res.status })
   }
+
+  const conversationData = (await res.json()) as ConversationResponse
+  return { conversation: conversationData }
 }
 
 function ConversationPage() {
   const t = useT()
-  const { conversation, error } = useLoaderData() as LoaderData
+  const { conversation } = useLoaderData() as LoaderData
   const [exporting, setExporting] = useState(false)
   const [exportedImage, setExportedImage] = useState<string | null>(null)
   const [copyButtonText, setCopyButtonText] = useState('')
@@ -75,8 +60,6 @@ function ConversationPage() {
   }
 
   const exportPageAsPNG = async () => {
-    if (!conversation) return
-
     setExporting(true)
 
     try {
@@ -106,11 +89,6 @@ function ConversationPage() {
       setExporting(false)
     }
   }
-
-  if (error || !conversation) {
-    return <ErrorDisplay error={error || t('conversation.errors.loadFailed')} fullPage={true} showBackLink={true} />
-  }
-
 
   return (
     <div className="app">
