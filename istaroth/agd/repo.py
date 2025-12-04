@@ -321,8 +321,9 @@ class DataRepo:
         """Load talk data from specified talk file."""
         file_path = self.agd_path / talk_file
         with open(file_path, encoding="utf-8") as f:
-            data: types.TalkData = json.load(f)
-            return data
+            raw_data: dict[str, Any] = json.load(f)
+            data = deobfuscation.deobfuscate_talk_data(raw_data)
+            return data  # type: ignore[return-value]
 
     @functools.lru_cache(maxsize=None)
     def load_talk_group_data(self, path: str) -> dict[str, Any]:
