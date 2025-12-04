@@ -13,7 +13,7 @@ import attrs
 from numpy import isin
 
 from istaroth import text_cleanup
-from istaroth.agd import localization, talk_parsing, types
+from istaroth.agd import deobfuscation, localization, talk_parsing, types
 
 logger = logging.getLogger(__name__)
 
@@ -337,8 +337,9 @@ class DataRepo:
         """Load quest data from specified quest file."""
         file_path = self.agd_path / quest_file
         with open(file_path, encoding="utf-8") as f:
-            data: types.QuestData = json.load(f)
-            return data
+            raw_data: dict[str, Any] = json.load(f)
+            data = deobfuscation.deobfuscate_quest_data(raw_data)
+            return data  # type: ignore[return-value]
 
     @functools.lru_cache(maxsize=None)
     def load_avatar_excel_config_data(self) -> types.AvatarExcelConfigData:
