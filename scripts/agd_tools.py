@@ -129,7 +129,7 @@ def _process_single_item(
         )
     except Exception as e:
         if strict:
-            raise
+            raise RuntimeError(f"Error processing {renderable_key}")
         return _RenderableResult(
             renderable_key, None, repr(e), types.TrackerStats(set(), set(), set())
         )

@@ -7,7 +7,7 @@ from typing import Any
 
 # Global field mappings - union of all mappings used across different data types
 _COMMON_FIELD_MAPPINGS = {
-    # Quest data fields
+    "JOLEJEFDNJJ": "id",
     "FJIMHCGKKPJ": "id",
     "DLPKBOPINEE": "descTextMapHash",
     "HMPOGBDMBOK": "titleTextMapHash",
@@ -16,13 +16,11 @@ _COMMON_FIELD_MAPPINGS = {
     "DCHHEHNNEOO": "talks",
     "FKJCGCAMNEH": "subId",
     "JDCNDABFDFP": "order",
-    # Talk data fields
     "PDFCHAAMEHA": "talkId",
     "IKCBIFLCCOH": "dialogList",
     "DBIHEJMJCMK": "talkContentTextMapHash",
     "BCBFGKALICJ": "talkRole",
     "IJOEEMHDLHF": "talkRoleNameTextMapHash",
-    # Talk group data fields
     "JDOFKFPHIDC": "npcId",
     "PGCNMMEBDIE": "npcId",
     "ELEPNLBFNOP": "npcId",
@@ -31,7 +29,7 @@ _COMMON_FIELD_MAPPINGS = {
     "CLNOODHDADD": "configId",
     "PCNNNPLAEAI": "talks",
     "DMIMNILOLKP": "talks",
-    # TalkRole fields
+    "FHNJHCFCADD": "questId",
     "_type": "type",
     "_id": "_id",
     "id": "id",
@@ -127,4 +125,6 @@ def deobfuscate_talk_group_data(data: dict[str, Any]) -> dict[str, Any]:
     Handles ActivityGroup, NpcGroup, and GadgetGroup data.
     Returns data unchanged if it doesn't contain obfuscated field names.
     """
-    return _deobfuscate_data(data, _COMMON_FIELD_MAPPINGS, {})
+    return _deobfuscate_data(
+        data, _COMMON_FIELD_MAPPINGS, {"talks": _process_array_items}
+    )

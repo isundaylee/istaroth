@@ -281,9 +281,10 @@ class DataRepo:
         # Scan Quest directory for JSON files
         for json_file in (self.agd_path / "BinOutput" / "Quest").glob("*.json"):
             relative_path = json_file.relative_to(self.agd_path)
+            relative_path_str = relative_path.as_posix()
 
-            with open(json_file, encoding="utf-8") as f:
-                quest_data = json.load(f)
+            # Use load_quest_data to get deobfuscated data
+            quest_data = self.load_quest_data(relative_path_str)
 
             assert isinstance(quest_data, dict), relative_path
             quest_id = quest_data.get("id")
@@ -295,12 +296,12 @@ class DataRepo:
                     "Duplicate quest ID %s: already mapped to %s, ignoring %s",
                     quest_id,
                     quest_id_to_path[str(quest_id)],
-                    relative_path.as_posix(),
+                    relative_path_str,
                 )
                 continue
 
             # Store the mapping
-            quest_id_to_path[str(quest_id)] = relative_path.as_posix()
+            quest_id_to_path[str(quest_id)] = relative_path_str
 
         return quest_id_to_path
 
