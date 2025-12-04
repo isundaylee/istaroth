@@ -1,9 +1,13 @@
 """Talk parsing utilities for processing AGD talk files."""
 
-import json
+from __future__ import annotations
+
 import logging
 import pathlib
-from typing import Any, ClassVar, Literal, TypeAlias, assert_never, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeAlias, assert_never, cast
+
+if TYPE_CHECKING:
+    from istaroth.agd import repo
 
 logger = logging.getLogger(__name__)
 
@@ -35,39 +39,49 @@ class TalkParser:
         "NpcGroup",
     }
 
-    def __init__(self, agd_path: pathlib.Path) -> None:
-        self.agd_path = agd_path
+    def __init__(self, data_repo: repo.DataRepo) -> None:
+        self.agd_path = data_repo.agd_path
 
         self.talk_id_to_path = dict[str, str]()
         self.talk_group_id_to_path = dict[tuple[TalkGroupType, str], str]()
 
+        invalid_paths = dict[pathlib.Path, str]()
+
         # Scan Talk directory and all subdirectories for JSON files
-        for json_file in (agd_path / "BinOutput" / "Talk").glob("**/*.json"):
-            relative_path = json_file.relative_to(agd_path)
+        for json_file in (self.agd_path / "BinOutput" / "Talk").glob("**/*.json"):
+            relative_path = json_file.relative_to(self.agd_path)
 
             if relative_path in self._BAD_TALK_PATHS:
                 logger.warning("Known bad talk file %s", relative_path)
                 continue
 
-            with open(json_file, encoding="utf-8") as f:
-                data = json.load(f)
+            data = data_repo.load_talk_group_data(relative_path.as_posix())
 
             subdir = relative_path.parts[2]
 
-            if subdir in self._EXCLUDE_DIRECTORIES:
-                continue
-            elif subdir in self._GROUP_DIRECTORIES:
-                self._handle_talk_group_file(
-                    relative_path, cast(TalkGroupType, relative_path.parts[2]), data
-                )
-            elif self._is_talk_file(relative_path, data):
-                self._handle_talk_file(relative_path, data)
-            elif "activityId" in data:
-                self._handle_talk_group_file(relative_path, "ActivityGroup", data)
-            elif "npcId" in data:
-                self._handle_talk_group_file(relative_path, "NpcGroup", data)
-            else:
-                assert False, relative_path
+            try:
+                if subdir in self._EXCLUDE_DIRECTORIES:
+                    continue
+                elif subdir in self._GROUP_DIRECTORIES:
+                    self._handle_talk_group_file(
+                        relative_path, cast(TalkGroupType, relative_path.parts[2]), data
+                    )
+                elif self._is_talk_file(relative_path, data):
+                    self._handle_talk_file(relative_path, data)
+                elif "activityId" in data:
+                    self._handle_talk_group_file(relative_path, "ActivityGroup", data)
+                elif "npcId" in data:
+                    self._handle_talk_group_file(relative_path, "NpcGroup", data)
+                else:
+                    raise RuntimeError(f"Unknown talk file type {relative_path}")
+            except Exception as e:
+                logger.warning("Error parsing talk file %s: %s", relative_path, e)
+                invalid_paths[relative_path] = str(e)
+
+        if invalid_paths:
+            raise ValueError(
+                f"{len(invalid_paths)} invalid talk file paths: {invalid_paths}"
+            )
 
     def _handle_talk_group_file(
         self,
@@ -75,20 +89,14 @@ class TalkParser:
         group_type: TalkGroupType,
         data: dict[str, Any],
     ) -> None:
+        if not data["talks"]:
+            return
+
         match group_type:
             case "ActivityGroup" | "NpcGroup":
-                id = (
-                    data.get("activityId")
-                    or data.get("npcId")
-                    or data.get("JDOFKFPHIDC")
-                    or data.get("PGCNMMEBDIE")
-                )
+                id = data.get("activityId") or data.get("npcId")
             case "GadgetGroup":
-                id = (
-                    data.get("configId")
-                    or data.get("DANPPPLPAEE")
-                    or data.get("JEMDGACPOPC")
-                )
+                id = data.get("configId")
             case _:
                 assert_never(group_type)
 

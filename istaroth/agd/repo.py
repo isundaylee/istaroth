@@ -306,7 +306,7 @@ class DataRepo:
 
     @functools.lru_cache(maxsize=None)
     def _get_talk_parser(self) -> talk_parsing.TalkParser:
-        return talk_parsing.TalkParser(self.agd_path)
+        return talk_parsing.TalkParser(self)
 
     @functools.lru_cache(maxsize=None)
     def load_talk_excel_config_data(self) -> TalkTracker:
@@ -330,7 +330,8 @@ class DataRepo:
         """Load talk group data from specified talk file."""
         file_path = self.agd_path / path
         with open(file_path, encoding="utf-8") as f:
-            data: dict[str, Any] = json.load(f)
+            raw_data: dict[str, Any] = json.load(f)
+            data = deobfuscation.deobfuscate_talk_group_data(raw_data)
             return data
 
     @functools.lru_cache(maxsize=None)
