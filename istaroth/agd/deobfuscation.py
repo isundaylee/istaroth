@@ -30,6 +30,8 @@ _COMMON_FIELD_MAPPINGS = {
     "PCNNNPLAEAI": "talks",
     "DMIMNILOLKP": "talks",
     "FHNJHCFCADD": "questId",
+    "GCABNOAOIFL": "CUSTOM_addlLocalID",
+    "PFAJMABJOFK": "CUSTOM_addlLocalID",
     "_type": "type",
     "_id": "_id",
     "id": "id",
@@ -128,3 +130,14 @@ def deobfuscate_talk_group_data(data: dict[str, Any]) -> dict[str, Any]:
     return _deobfuscate_data(
         data, _COMMON_FIELD_MAPPINGS, {"talks": _process_array_items}
     )
+
+
+def deobfuscate_document_excel_config_data(
+    data: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """De-obfuscate document Excel config data JSON by renaming obfuscated field names.
+
+    Processes a list of document configuration items.
+    Returns data unchanged if it doesn't contain obfuscated field names.
+    """
+    return _process_array_items(data)

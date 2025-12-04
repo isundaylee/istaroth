@@ -95,8 +95,7 @@ class DocumentExcelConfigDataItem(TypedDict):
 
     id: int
     titleTextMapHash: int
-    ICGFBCENKJD: NotRequired[list[int]]
-    GCABNOAOIFL: NotRequired[list[int]]
+    CUSTOM_addlLocalID: NotRequired[list[int]]
     questContentLocalizedId: list[int]
     questIDList: list[int]
 

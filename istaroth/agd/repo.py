@@ -256,8 +256,9 @@ class DataRepo:
         """Load document Excel configuration data."""
         file_path = self.agd_path / "ExcelBinOutput" / "DocumentExcelConfigData.json"
         with open(file_path, encoding="utf-8") as f:
-            data: types.DocumentExcelConfigData = json.load(f)
-            return data
+            raw_data: list[dict[str, Any]] = json.load(f)
+            data = deobfuscation.deobfuscate_document_excel_config_data(raw_data)
+            return data  # type: ignore[return-value]
 
     @functools.lru_cache(maxsize=None)
     def load_material_excel_config_data(self) -> MaterialTracker:
