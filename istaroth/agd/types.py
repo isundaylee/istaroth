@@ -25,20 +25,8 @@ Example file: TextMap/TextMapCHS.json
 class NpcExcelConfigDataItem(TypedDict):
     """Type definition for individual NPC configuration entries."""
 
-    jsonName: str
-    alias: str
-    scriptDataPath: str
-    luaDataPath: str
-    dyePart: str
-    billboardIcon: str
-    templateEmotionPath: str
-    actionIdList: list[int]
-    uniqueBodyId: int
     id: int
     nameTextMapHash: int
-    prefabPathHash: int
-    campID: int
-    lodPatternName: str
 
 
 NpcExcelConfigData: TypeAlias = list[NpcExcelConfigDataItem]
@@ -60,10 +48,8 @@ class DialogExcelConfigDataItem(TypedDict):
     """Type definition for individual dialog configuration entries."""
 
     GFLDJMJKIKE: int
-    nextDialogs: list[int]
     talkRole: DialogTalkRole
     talkContentTextMapHash: int
-    talkTitleTextMapHash: int
     talkRoleNameTextMapHash: int
 
 
@@ -109,15 +95,10 @@ class DocumentExcelConfigDataItem(TypedDict):
 
     id: int
     titleTextMapHash: int
-    contentTextMapHash: int
     ICGFBCENKJD: NotRequired[list[int]]
     GCABNOAOIFL: NotRequired[list[int]]
     questContentLocalizedId: list[int]
     questIDList: list[int]
-    showOnlyUnlocked: bool
-    isDisuse: bool
-    subType: str
-    isImportant: bool
 
 
 DocumentExcelConfigData: TypeAlias = list[DocumentExcelConfigDataItem]
@@ -133,12 +114,7 @@ class MaterialExcelConfigDataItem(TypedDict):
     id: int
     nameTextMapHash: int
     descTextMapHash: int
-    icon: str
-    itemType: str
     materialType: str
-    weight: int
-    rank: int
-    gadgetId: int
 
 
 MaterialExcelConfigData: TypeAlias = list[MaterialExcelConfigDataItem]
@@ -152,21 +128,6 @@ class TalkExcelConfigDataItem(TypedDict):
     """Type definition for talk configuration entries."""
 
     id: int
-    initDialog: int
-    questId: int
-    npcId: list[int]
-    activeMode: str
-    beginWay: str
-    heroTalk: str
-    priority: int
-    performCfg: str
-    prePerformCfg: str
-    loadType: str
-    beginCond: list[dict[str, Any]]
-    beginCondComb: str
-    finishExec: list[dict[str, Any]]
-    nextTalks: list[int]
-    nextRandomTalks: list[int]
 
 
 TalkExcelConfigData: TypeAlias = list[TalkExcelConfigDataItem]
@@ -188,17 +149,9 @@ class TalkDialogItem(TypedDict):
     """Type definition for individual talk dialog entries."""
 
     id: int
-    nextDialogs: list[int]
     talkRole: TalkRole
     talkContentTextMapHash: int
-    talkAssetPath: str
-    talkAssetPathAlter: str
-    talkAudioName: str
-    actionBefore: str
-    actionWhile: str
-    actionAfter: str
-    optionIcon: str
-    iconPath: str
+    talkRoleNameTextMapHash: NotRequired[int]
 
 
 class TalkData(TypedDict):
@@ -215,31 +168,13 @@ class QuestTalkItem(TypedDict):
     """Type definition for quest talk entries."""
 
     id: int
-    beginWay: str
-    activeMode: str
-    beginCond: list[dict[str, str | list[str]]]
-    priority: int
-    initDialog: int
-    npcId: list[int]
-    performCfg: str
-    heroTalk: str
-    questId: int
-    assetIndex: int
-    prePerformCfg: str
 
 
 class SubQuestItem(TypedDict):
     """Type definition for sub-quest entries."""
 
     subId: int
-    mainId: int
     order: int
-    finishCond: list[dict[str, Any]]
-    guide: dict[str, Any]
-    guideHint: dict[str, Any]
-    isRewind: bool
-    versionBegin: str
-    versionEnd: str
 
 
 class QuestData(TypedDict):
@@ -249,8 +184,8 @@ class QuestData(TypedDict):
     """
 
     id: int
-    series: int
     descTextMapHash: int
+    titleTextMapHash: NotRequired[int]
     chapterId: NotRequired[int]
     subQuests: list[SubQuestItem]
     talks: NotRequired[list[QuestTalkItem]]  # Optional field, not always present
@@ -261,18 +196,6 @@ class AvatarExcelConfigDataItem(TypedDict):
 
     id: int
     nameTextMapHash: int
-    descTextMapHash: int
-    iconName: str
-    sideIconName: str
-    qualityType: str
-    chargeEfficiency: float
-    combatConfigHash: int
-    propGrowCurves: list[dict[str, Any]]
-    prefabPathHash: int
-    prefabPathRemoteHash: int
-    controllerPathHash: int
-    controllerPathRemoteHash: int
-    LODPatternName: str
 
 
 AvatarExcelConfigData: TypeAlias = list[AvatarExcelConfigDataItem]
@@ -286,13 +209,8 @@ class FetterStoryExcelConfigDataItem(TypedDict):
     """Type definition for fetter story configuration entries."""
 
     avatarId: int
-    fetterId: int
     storyTitleTextMapHash: int
     storyContextTextMapHash: int
-    storyTitleLockedTextMapHash: int
-    isHiden: bool
-    openConds: list[dict[str, Any]]
-    finishConds: list[dict[str, Any]]
 
 
 FetterStoryExcelConfigData: TypeAlias = list[FetterStoryExcelConfigDataItem]
@@ -300,7 +218,6 @@ FetterStoryExcelConfigData: TypeAlias = list[FetterStoryExcelConfigDataItem]
 
 class FettersExcelConfigDataItem(TypedDict):
     avatarId: int
-    fetterId: int
     voiceTitleTextMapHash: int
     voiceFileTextTextMapHash: int
 
@@ -310,11 +227,6 @@ FettersExcelConfigData: TypeAlias = list[FettersExcelConfigDataItem]
 
 class MainQuestExcelConfigDataItem(TypedDict):
     id: int
-    titleTextMapHash: int
-    descTextMapHash: int
-    type: str
-    showType: str
-    chapterId: int
 
 
 MainQuestExcelConfigData: TypeAlias = list[MainQuestExcelConfigDataItem]
@@ -326,12 +238,6 @@ class ChapterExcelConfigDataItem(TypedDict):
     id: int
     chapterTitleTextMapHash: int
     chapterNumTextMapHash: int
-    chapterIcon: str
-    questType: str
-    cityId: int
-    beginQuestId: int
-    endQuestId: int
-    needPlayerLevel: int
 
 
 ChapterExcelConfigData: TypeAlias = list[ChapterExcelConfigDataItem]
@@ -342,14 +248,6 @@ class ReliquarySetExcelConfigDataItem(TypedDict):
 
     setId: int
     containsList: list[int]
-    setNeedNum: list[int]
-    setIcon: str
-    equipAffixId: int
-    bagSortValue: NotRequired[int]
-    disableFilter: NotRequired[int]
-    dungeonGroup: NotRequired[list[Any]]
-    textList: NotRequired[list[int]]
-    JIMKNFNOJGO: NotRequired[int]
 
 
 class ReliquaryExcelConfigDataItem(TypedDict):
@@ -358,25 +256,6 @@ class ReliquaryExcelConfigDataItem(TypedDict):
     id: int
     nameTextMapHash: int
     descTextMapHash: NotRequired[int]
-    setId: int
-    equipType: str
-    itemType: str
-    rank: int
-    rankLevel: int
-    maxLevel: int
-    icon: str
-    storyId: NotRequired[int]
-    addPropLevels: NotRequired[list[Any]]
-    mainPropDepotId: NotRequired[int]
-    appendPropDepotId: NotRequired[int]
-    appendPropNum: NotRequired[int]
-    gadgetId: NotRequired[int]
-    dropable: NotRequired[bool]
-    initialLockState: NotRequired[int]
-    showPic: NotRequired[str]
-    useLevel: NotRequired[int]
-    weight: NotRequired[int]
-    globalItemLimit: NotRequired[int]
 
 
 ReliquarySetExcelConfigData: TypeAlias = list[ReliquarySetExcelConfigDataItem]
