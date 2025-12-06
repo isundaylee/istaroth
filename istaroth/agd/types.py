@@ -318,7 +318,8 @@ class QuestInfo:
     quest_id: str
     title: str
     chapter_title: str | None
-    talks: list[TalkInfo]
+    talks: list[tuple[int, TalkInfo]]
+    """List of (order_index, TalkInfo) tuples for subquest talks."""
     non_subquest_talks: list[TalkInfo]
 
 

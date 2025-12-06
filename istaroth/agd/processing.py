@@ -208,16 +208,26 @@ def get_quest_info(quest_id: str, *, data_repo: repo.DataRepo) -> types.QuestInf
 
     for subquest in sorted_subquests:
         sub_id = str(subquest["subId"])
+        order_index = subquest.get("order", 0)
 
         try:
             # Try to get talk info by sub_id as talk ID first
             talk_info = get_talk_info_by_id(sub_id, data_repo=data_repo)
             if talk_info.text:  # Only add if there's actual dialog content
-                subquest_talk_infos.append(talk_info)
+                subquest_talk_infos.append((order_index, talk_info))
                 subquest_talk_ids.add(sub_id)
         except Exception:
-            # Skip talks that can't be loaded
-            continue
+            # Include placeholder for missing talks
+            placeholder_talk_info = types.TalkInfo(
+                text=[
+                    types.TalkText(
+                        role="[Missing Talk]",
+                        message=f"Talk {sub_id} could not be retrieved",
+                    )
+                ]
+            )
+            subquest_talk_infos.append((order_index, placeholder_talk_info))
+            subquest_talk_ids.add(sub_id)
 
     # Process talks to find non-subquest dialogs
     non_subquest_talk_infos = []

@@ -119,9 +119,9 @@ def render_quest(
     content_lines.append(f"# {quest.title}\n")
 
     # Render main quest progression talks (from subQuests)
-    for i, talk in enumerate(quest.talks, 1):
+    for order_index, talk in quest.talks:
         if len(quest.talks) > 1:  # Only add talk headers if there are multiple talks
-            content_lines.append(f"\n## Talk {i}\n")
+            content_lines.append(f"\n## Talk {order_index}\n")
 
         for talk_text in talk.text:
             if text_utils.should_skip_text(talk_text.message, language):
