@@ -285,7 +285,11 @@ def _render_talk_content(
         if i > 0:
             all_lines.append("")
 
-        entrypoint_lines = _render_talk_dialogs(entrypoint, graph, rendered, language)
+        entrypoint_rendered = set[int]()
+        entrypoint_lines = _render_talk_dialogs(
+            entrypoint, graph, entrypoint_rendered, language
+        )
+        rendered.update(entrypoint_rendered)
         all_lines.extend(entrypoint_lines)
 
     all_dialog_ids = {text.dialog_id for text in talk.text}
