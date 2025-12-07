@@ -3,6 +3,7 @@
 import hashlib
 import pathlib
 from collections import defaultdict
+from typing import Iterator
 
 from istaroth import utils
 from istaroth.agd import localization, talk_parsing, text_utils, types
@@ -105,61 +106,89 @@ def _render_dialog_line(
 
 
 def _process_branch(
-    branch_start_id: int,
+    next_dialog_ids: list[int],
     graph: _TalkTextGraph,
     rendered: set[int],
     language: localization.Language,
-) -> tuple[list[str], int | None]:
-    """Process a single branch until convergence point.
+) -> tuple[int | None, list[list[str]]]:
+    """Process multiple branches until convergence point.
 
-    Follows the branch from branch_start_id, rendering all dialogs until hitting
-    a convergence point (dialog with 2+ incoming edges). Asserts that the branch
-    doesn't further branch.
+    Processes each branch from next_dialog_ids, rendering all dialogs until hitting
+    a convergence point (dialog with 2+ incoming edges). Asserts that all branches
+    converge at the same point.
 
     Args:
-        branch_start_id: Starting dialog ID for this branch
+        next_dialog_ids: List of starting dialog IDs for branches
         graph: TalkTextGraph object containing graph structure
         rendered: Set of already rendered dialog IDs
         language: Language for filtering
 
     Returns:
-        Tuple of (unindented rendered lines, convergence_point_id or None if end of path)
+        Tuple of (convergence_point_id or None, list of branch lines for each branch)
     """
-    lines: list[str] = []
-    current_id = branch_start_id
 
+    paths: list[list[int | None]] = [[di] for di in next_dialog_ids]
+    dialog_paths = defaultdict[int | None, set[int]](set)
+    dialog_paths.update({di: {i} for i, di in enumerate(next_dialog_ids)})
+
+    # First, keep advancing all paths until we find a convergence point.
     while True:
-        assert current_id not in rendered, f"Dialog {current_id} already rendered"
+        # If any dialog has been visited by all paths, that's our convergence point.
+        potential_conv_points = [
+            di
+            for di, visited_paths in dialog_paths.items()
+            if set(range(len(paths))) == visited_paths
+        ]
+        if potential_conv_points:
+            assert (
+                len(potential_conv_points) == 1
+            ), f"Multiple convergence points: {potential_conv_points}"
+            conv_point = potential_conv_points[0]
+            break
 
-        # Check if this is a convergence point
-        if graph.incoming_edges.get(current_id, 0) > 1:
-            return lines, current_id
+        # Otherwise, follow each path to the next dialog.
+        for path_index, path in enumerate(paths):
+            curr_di = path[-1]
+            if curr_di is None:
+                continue
 
-        rendered.add(current_id)
+            next_dis = graph.graph.get(curr_di, [])
 
-        # Check if dialog exists
-        if current_id in graph.dialog_id_to_text:
-            if line := _render_dialog_line(
-                graph.dialog_id_to_text[current_id], language
-            ):
-                lines.append(line)
-        else:
-            lines.append(f"[Missing Dialog {current_id}]")
-            return lines, None
+            if not next_dis:
+                path.append(None)
+                assert path_index not in dialog_paths[None]
+                dialog_paths[None].add(path_index)
+                continue
 
-        # Get next dialogs
-        next_dialog_ids = graph.graph.get(current_id, [])
+            for new_path_di in next_dis[1:]:
+                paths.append([*path, new_path_di])
+                for di in paths[-1]:
+                    assert len(paths) - 1 not in dialog_paths[di]
+                    dialog_paths[di].add(len(paths) - 1)
 
-        if not next_dialog_ids:
-            # End of path
-            return lines, None
+            path.append(next_dis[0])
+            assert path_index not in dialog_paths[next_dis[0]]
+            dialog_paths[next_dis[0]].add(path_index)
 
-        # Assert no further branching in this branch
-        assert (
-            len(next_dialog_ids) == 1
-        ), f"Branch further branches at dialog {current_id}: {next_dialog_ids}"
+    lines_list = []
+    for path in paths:
+        branch_lines = []
+        for di in path:
+            if di == conv_point:
+                break
 
-        current_id = next_dialog_ids[0]
+            assert di is not None
+
+            if (text := graph.dialog_id_to_text.get(di)) is None:
+                branch_lines.append(f"[Missing Dialog {di}]")
+            else:
+                rendered.add(di)
+                if (rendered_text := _render_dialog_line(text, language)) is not None:
+                    branch_lines.append(rendered_text)
+
+        lines_list.append(branch_lines)
+
+    return conv_point, lines_list
 
 
 def _render_talk_dialogs(
@@ -178,10 +207,10 @@ def _render_talk_dialogs(
         language: Language for filtering
     """
     lines: list[str] = []
-    current_id = dialog_id
+    current_id: int | None = dialog_id
 
     # Follow single next dialogues until we hit multiple next dialogues
-    while True:
+    while current_id is not None:
         assert current_id not in rendered, f"Dialog {current_id} already rendered"
 
         rendered.add(current_id)
@@ -210,33 +239,22 @@ def _render_talk_dialogs(
 
         # Case 3: we have multiple next dialogs
         # Process each branch until (but not including) a convergence point
-        conv_points: list[int | None] = []
+        current_id, branch_lines_list = _process_branch(
+            next_dialog_ids, graph, rendered, language
+        )
 
-        for i, branch_start_id in enumerate(next_dialog_ids, 1):
-            option_label = f"Option {i}:"
-            option_indent = "    "
-            lines.append(f"{option_indent}{option_label}")
+        if len(branch_lines_list) == 1:
+            lines.extend(branch_lines_list[0])
+        else:
+            for i, branch_lines in enumerate(branch_lines_list, 1):
+                option_label = f"Option {i}:"
+                option_indent = "    "
+                lines.append(f"{option_indent}{option_label}")
 
-            branch_lines, conv_point = _process_branch(
-                branch_start_id, graph, rendered, language
-            )
-            branch_indent = "    " * 2
-            lines.extend(
-                f"{branch_indent}{branch_line}" for branch_line in branch_lines
-            )
-            conv_points.append(conv_point)
-
-        # Assert all convergence points match
-        assert (
-            len(set(conv_points)) <= 1
-        ), f"Branches converge at different points: {conv_points}"
-
-        # Continue from convergence point if it exists
-        conv_point = next(iter(conv_points))
-        if conv_point is None:
-            break
-
-        current_id = conv_point
+                branch_indent = "    " * 2
+                lines.extend(
+                    f"{branch_indent}{branch_line}" for branch_line in branch_lines
+                )
 
     return lines
 

@@ -203,3 +203,117 @@ def test_render_talk_branching_convergence() -> None:
     """
     ).strip()
     assert rendered.content == expected_content
+
+
+def test_render_talk_nested_branches() -> None:
+    """Test talk rendering with nested branches."""
+    # Structure:
+    # Line 1 -> branches to Option 1 (Line 2) and Option 2 (Line 3)
+    # Option 1 (Line 2) -> branches to Option 1a (Line 4) and Option 1b (Line 5)
+    #   Option 1a (Line 4) -> Line 6 (convergence)
+    #   Option 1b (Line 5) -> Line 6 (convergence)
+    # Option 2 (Line 3) -> Line 6 (convergence)
+    # Line 6 -> end
+    talk_texts = [
+        types.TalkText(
+            role="NPC", message="Line 1", next_dialog_ids=[2, 3], dialog_id=1
+        ),
+        types.TalkText(
+            role="Player", message="Line 2", next_dialog_ids=[4, 5], dialog_id=2
+        ),
+        types.TalkText(
+            role="Player", message="Line 3", next_dialog_ids=[6], dialog_id=3
+        ),
+        types.TalkText(role="NPC", message="Line 4", next_dialog_ids=[6], dialog_id=4),
+        types.TalkText(role="NPC", message="Line 5", next_dialog_ids=[6], dialog_id=5),
+        types.TalkText(role="NPC", message="Line 6", next_dialog_ids=[], dialog_id=6),
+    ]
+    talk_info = types.TalkInfo(text=talk_texts)
+
+    rendered = rendering.render_talk(
+        talk_info,
+        talk_id="88888",
+        language=localization.Language.ENG,
+        talk_file_path="BinOutput/Talk/Quest/88888.json",
+    )
+
+    expected_content = textwrap.dedent(
+        """
+        # Talk Dialog
+
+        NPC: Line 1
+            Option 1:
+                Player: Line 2
+                NPC: Line 4
+            Option 2:
+                Player: Line 3
+            Option 3:
+                Player: Line 2
+                NPC: Line 5
+        NPC: Line 6
+    """
+    ).strip()
+    assert rendered.content == expected_content
+
+
+def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
+    """Test talk rendering with nested branches that converge at different levels."""
+    # Structure:
+    # Start -> branches to Option 1 (Branch 1) and Option 2 (Branch 2)
+    # Branch 1 -> Convergence Y (end)
+    # Branch 2 -> branches to Option 2a and Option 2b
+    #   Option 2a -> Convergence X
+    #   Option 2b -> Convergence X
+    # Convergence X -> Convergence Y (end)
+    # Convergence Y -> end
+    talk_texts = [
+        types.TalkText(
+            role="NPC", message="Start", next_dialog_ids=[2, 3], dialog_id=1
+        ),
+        types.TalkText(
+            role="Player", message="Branch 1", next_dialog_ids=[7], dialog_id=2
+        ),
+        types.TalkText(
+            role="Player", message="Branch 2", next_dialog_ids=[4, 5], dialog_id=3
+        ),
+        types.TalkText(
+            role="NPC", message="Branch 2a", next_dialog_ids=[6], dialog_id=4
+        ),
+        types.TalkText(
+            role="NPC", message="Branch 2b", next_dialog_ids=[6], dialog_id=5
+        ),
+        types.TalkText(
+            role="NPC", message="Convergence X", next_dialog_ids=[7], dialog_id=6
+        ),
+        types.TalkText(
+            role="NPC", message="Convergence Y", next_dialog_ids=[], dialog_id=7
+        ),
+    ]
+    talk_info = types.TalkInfo(text=talk_texts)
+
+    rendered = rendering.render_talk(
+        talk_info,
+        talk_id="77777",
+        language=localization.Language.ENG,
+        talk_file_path="BinOutput/Talk/Quest/77777.json",
+    )
+
+    expected_content = textwrap.dedent(
+        """
+        # Talk Dialog
+
+        NPC: Start
+            Option 1:
+                Player: Branch 1
+            Option 2:
+                Player: Branch 2
+                NPC: Branch 2a
+                NPC: Convergence X
+            Option 3:
+                Player: Branch 2
+                NPC: Branch 2b
+                NPC: Convergence X
+        NPC: Convergence Y
+    """
+    ).strip()
+    assert rendered.content == expected_content
