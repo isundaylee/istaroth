@@ -156,18 +156,18 @@ def _process_branch(
 
             if not next_dis:
                 path.append(None)
-                assert path_index not in dialog_paths[None]
+                assert path_index not in dialog_paths[None], "Found cycle"
                 dialog_paths[None].add(path_index)
                 continue
 
             for new_path_di in next_dis[1:]:
                 paths.append([*path, new_path_di])
                 for di in paths[-1]:
-                    assert len(paths) - 1 not in dialog_paths[di]
+                    assert len(paths) - 1 not in dialog_paths[di], "Found cycle"
                     dialog_paths[di].add(len(paths) - 1)
 
             path.append(next_dis[0])
-            assert path_index not in dialog_paths[next_dis[0]]
+            assert path_index not in dialog_paths[next_dis[0]], "Found cycle"
             dialog_paths[next_dis[0]].add(path_index)
 
     lines_list = []
@@ -177,7 +177,7 @@ def _process_branch(
             if di == conv_point:
                 break
 
-            assert di is not None
+            assert di is not None, "Unexpected None in path"
 
             if (text := graph.dialog_id_to_text.get(di)) is None:
                 branch_lines.append(f"[Missing Dialog {di}]")
