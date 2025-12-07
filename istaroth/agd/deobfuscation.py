@@ -32,6 +32,7 @@ _COMMON_FIELD_MAPPINGS = {
     "FHNJHCFCADD": "questId",
     "GCABNOAOIFL": "CUSTOM_addlLocalID",
     "PFAJMABJOFK": "CUSTOM_addlLocalID",
+    "JLLIMLALADN": "nextDialogs",
     "_type": "type",
     "_id": "_id",
     "id": "id",

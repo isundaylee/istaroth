@@ -151,6 +151,7 @@ class TalkDialogItem(TypedDict):
     talkRole: TalkRole
     talkContentTextMapHash: int
     talkRoleNameTextMapHash: NotRequired[int]
+    nextDialogs: NotRequired[list[int]]
 
 
 class TalkData(TypedDict):
@@ -296,6 +297,8 @@ class TalkText:
 
     role: str
     message: str
+    next_dialog_ids: list[int]
+    dialog_id: int
 
 
 @attrs.define

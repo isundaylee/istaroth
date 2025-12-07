@@ -2,10 +2,50 @@
 
 import hashlib
 import pathlib
+from collections import defaultdict
 
 from istaroth import utils
 from istaroth.agd import localization, talk_parsing, text_utils, types
 from istaroth.text import types as text_types
+
+
+class _TalkTextGraph:
+    """Graph structure for talk dialog items with nextDialogs relationships."""
+
+    def __init__(self, talk: types.TalkInfo) -> None:
+        """Build graph structure from talk dialog items."""
+        self.dialog_id_to_text: dict[int, types.TalkText] = {}
+        self.graph: dict[int, list[int]] = defaultdict(list)
+        self.incoming_edges: dict[int, int] = defaultdict(int)
+        self.outgoing_edges: dict[int, int] = defaultdict(int)
+
+        for talk_text in talk.text:
+            dialog_id = talk_text.dialog_id
+            self.dialog_id_to_text[dialog_id] = talk_text
+
+            for next_id in talk_text.next_dialog_ids:
+                self.graph[dialog_id].append(next_id)
+                self.incoming_edges[next_id] += 1
+                self.outgoing_edges[dialog_id] += 1
+
+        self.graph = dict(self.graph)
+        self.incoming_edges = dict(self.incoming_edges)
+        self.outgoing_edges = dict(self.outgoing_edges)
+
+    def find_entrypoint(self, talk: types.TalkInfo) -> int:
+        """Find entry points (dialogs with no incoming edges or first dialog)."""
+        entrypoints = []
+
+        # Find dialogs with no incoming edges
+        all_dialog_ids = {text.dialog_id for text in talk.text}
+        for dialog_id in all_dialog_ids:
+            if self.incoming_edges.get(dialog_id, 0) == 0:
+                entrypoints.append(dialog_id)
+
+        assert (
+            len(entrypoints) == 1
+        ), f"Expected exactly one entrypoint, found {len(entrypoints)}: {entrypoints}"
+        return entrypoints[0]
 
 
 def _extract_talk_type_from_path(talk_file_path: str) -> str:
@@ -54,6 +94,141 @@ def render_readable(
     )
 
 
+def _render_dialog_line(
+    talk_text: types.TalkText, language: localization.Language
+) -> str | None:
+    """Render a single dialog line if it should not be skipped.
+
+    Returns:
+        Formatted line string or None if dialog should be skipped
+    """
+    if text_utils.should_skip_text(talk_text.message, language):
+        return None
+    return f"{talk_text.role}: {talk_text.message}"
+
+
+def _process_branch(
+    branch_start_id: int,
+    graph: _TalkTextGraph,
+    rendered: set[int],
+    language: localization.Language,
+) -> tuple[list[str], int | None]:
+    """Process a single branch until convergence point.
+
+    Follows the branch from branch_start_id, rendering all dialogs until hitting
+    a convergence point (dialog with 2+ incoming edges). Asserts that the branch
+    doesn't further branch.
+
+    Args:
+        branch_start_id: Starting dialog ID for this branch
+        graph: TalkTextGraph object containing graph structure
+        rendered: Set of already rendered dialog IDs
+        language: Language for filtering
+
+    Returns:
+        Tuple of (unindented rendered lines, convergence_point_id or None if end of path)
+    """
+    lines: list[str] = []
+    current_id = branch_start_id
+
+    while True:
+        assert current_id not in rendered, f"Dialog {current_id} already rendered"
+
+        # Check if this is a convergence point
+        if graph.incoming_edges.get(current_id, 0) > 1:
+            return lines, current_id
+
+        rendered.add(current_id)
+
+        if line := _render_dialog_line(graph.dialog_id_to_text[current_id], language):
+            lines.append(line)
+
+        # Get next dialogs
+        next_dialog_ids = graph.graph.get(current_id, [])
+
+        if not next_dialog_ids:
+            # End of path
+            return lines, None
+
+        # Assert no further branching in this branch
+        assert (
+            len(next_dialog_ids) == 1
+        ), f"Branch further branches at dialog {current_id}: {next_dialog_ids}"
+
+        current_id = next_dialog_ids[0]
+
+
+def _render_dialog_with_branches(
+    dialog_id: int,
+    graph: _TalkTextGraph,
+    rendered: set[int],
+    language: localization.Language,
+) -> list[str]:
+    """Render dialog following single paths until branching, then process branches.
+
+    Args:
+        dialog_id: Current dialog ID to render
+        graph: TalkTextGraph object containing graph structure
+        visited: Set of visited dialog IDs in current path (for cycle detection)
+        rendered: Set of already rendered dialog IDs
+        language: Language for filtering
+    """
+    lines: list[str] = []
+    current_id = dialog_id
+
+    # Follow single next dialogues until we hit multiple next dialogues
+    while True:
+        assert current_id not in rendered, f"Dialog {current_id} already rendered"
+
+        rendered.add(current_id)
+        if line := _render_dialog_line(graph.dialog_id_to_text[current_id], language):
+            lines.append(line)
+
+        # Get next dialogs
+        next_dialog_ids = graph.graph.get(current_id, [])
+
+        # Case 1: we're done
+        if not next_dialog_ids:
+            break
+
+        # Case 2: we have a single next dialog
+        if len(next_dialog_ids) == 1:
+            current_id = next_dialog_ids[0]
+            continue
+
+        # Case 3: we have multiple next dialogs
+        # Process each branch until (but not including) a convergence point
+        conv_points: list[int | None] = []
+
+        for i, branch_start_id in enumerate(next_dialog_ids, 1):
+            option_label = f"Option {i}:"
+            option_indent = "    "
+            lines.append(f"{option_indent}{option_label}")
+
+            branch_lines, conv_point = _process_branch(
+                branch_start_id, graph, rendered, language
+            )
+            branch_indent = "    " * 2
+            lines.extend(
+                f"{branch_indent}{branch_line}" for branch_line in branch_lines
+            )
+            conv_points.append(conv_point)
+
+        # Assert all convergence points match
+        assert (
+            len(set(conv_points)) <= 1
+        ), f"Branches converge at different points: {conv_points}"
+
+        # Continue from convergence point if it exists
+        conv_point = next(iter(conv_points))
+        if conv_point is None:
+            break
+
+        current_id = conv_point
+
+    return lines
+
+
 def render_talk(
     talk: types.TalkInfo,
     *,
@@ -61,7 +236,7 @@ def render_talk(
     talk_file_path: str | None = None,
     language: localization.Language,
 ) -> types.RenderedItem:
-    """Render talk dialog into RAG-suitable format."""
+    """Render talk dialog into RAG-suitable format with branching support."""
     # Extract talk type from file path if provided
     talk_type = (
         _extract_talk_type_from_path(talk_file_path) if talk_file_path else "unknown"
@@ -82,14 +257,24 @@ def render_talk(
         filename = f"{talk_id}_empty.txt"
         title = "Empty Talk"
 
-    # Format content as dialog with role labels
+    # Render content
     content_lines = ["# Talk Dialog\n"]
 
-    for talk_text in talk.text:
-        if text_utils.should_skip_text(talk_text.message, language):
-            continue
+    # Build graph structure
+    if talk.text:
+        graph = _TalkTextGraph(talk)
+        entrypoint = graph.find_entrypoint(talk)
 
-        content_lines.append(f"{talk_text.role}: {talk_text.message}")
+        rendered: set[int] = set()
+        lines = _render_dialog_with_branches(entrypoint, graph, rendered, language)
+        content_lines.extend(lines)
+
+        # Assert all dialogs were rendered (no orphaned dialogs)
+        all_dialog_ids = {text.dialog_id for text in talk.text}
+        orphaned_ids = all_dialog_ids - rendered
+        assert (
+            not orphaned_ids
+        ), f"Found orphaned dialogs not reachable from entry point: {orphaned_ids}"
 
     rendered_content = "\n".join(content_lines)
 

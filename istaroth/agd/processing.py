@@ -153,10 +153,13 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
     talk_texts = []
     for dialog_item in dialog_list:
         content_hash = str(dialog_item["talkContentTextMapHash"])
+        next_dialog_ids = dialog_item.get("nextDialogs", [])
         talk_texts.append(
             types.TalkText(
                 role=_get_role_name(dialog_item),
                 message=text_map.get(content_hash, f"Missing text ({content_hash})"),
+                next_dialog_ids=next_dialog_ids,
+                dialog_id=dialog_item["id"],
             )
         )
 
@@ -223,6 +226,8 @@ def get_quest_info(quest_id: str, *, data_repo: repo.DataRepo) -> types.QuestInf
                     types.TalkText(
                         role="[Missing Talk]",
                         message=f"Talk {sub_id} could not be retrieved",
+                        next_dialog_ids=[],
+                        dialog_id=0,
                     )
                 ]
             )
@@ -476,11 +481,21 @@ def get_talk_group_info(
         talk_id = str(talk_entry["id"])
 
         # Get talk info using existing function
-        talk_info = get_talk_info_by_id(talk_id, data_repo=data_repo)
+        try:
+            talk_info = get_talk_info_by_id(talk_id, data_repo=data_repo)
+        except Exception:
+            raise RuntimeError(f"Failed to get talk info for talk ID: {talk_id}")
 
         next_talks = list[types.TalkInfo]()
         for next_talk_id in talk_entry.get("nextTalks", []):
-            next_talk_info = get_talk_info_by_id(str(next_talk_id), data_repo=data_repo)
+            try:
+                next_talk_info = get_talk_info_by_id(
+                    str(next_talk_id), data_repo=data_repo
+                )
+            except Exception:
+                raise RuntimeError(
+                    f"Failed to get talk info for talk ID: {next_talk_id}"
+                )
             if next_talk_info.text:
                 next_talks.append(next_talk_info)
 
