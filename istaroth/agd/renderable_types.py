@@ -58,7 +58,9 @@ class Readables(BaseRenderableType[str]):
         readables_tracker = data_repo.get_readables()
         return [
             f"Readable/{data_repo.language_short}/{filename}"
-            for filename in readables_tracker.get_all_ids() - self.used_readable_ids
+            for filename in sorted(
+                readables_tracker.get_all_ids() - self.used_readable_ids
+            )
         ]
 
     def process(
