@@ -310,6 +310,15 @@ class DataRepo:
     def _get_talk_parser(self) -> talk_parsing.TalkParser:
         return talk_parsing.TalkParser(self)
 
+    def precompute_for_fork(self) -> None:
+        """Pre-compute expensive mappings in parent process for inheritance via fork.
+
+        This method should be called in the parent process before creating
+        multiprocessing pools with fork start method to ensure child processes
+        inherit the cached results.
+        """
+        self.build_talk_group_mapping()
+
     @functools.lru_cache(maxsize=None)
     def load_talk_excel_config_data(self) -> TalkTracker:
         """Load talk Excel configuration data as TalkTracker."""

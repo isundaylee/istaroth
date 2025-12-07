@@ -404,6 +404,13 @@ def generate_all(
     if processes is None:
         processes = multiprocessing.cpu_count()
 
+    # Pre-compute expensive mappings in parent process for inheritance via fork
+    data_repo.precompute_for_fork()
+
+    # Explicitly set start method to 'fork' to ensure child processes inherit
+    # the pre-computed mapping from parent memory
+    multiprocessing.set_start_method("fork", force=True)
+
     # Open errors file for writing
     errors_file_path = output_dir / "errors.info"
     with (
