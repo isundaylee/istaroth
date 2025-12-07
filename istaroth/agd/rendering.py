@@ -370,9 +370,14 @@ def _render_talk_content(
 
     all_dialog_ids = {text.dialog_id for text in talk.text}
     orphaned_ids = all_dialog_ids - rendered
-    assert (
-        not orphaned_ids
-    ), f"Found orphaned dialogs not reachable from entry points: {orphaned_ids}"
+
+    if orphaned_ids:
+        all_lines.append("")
+
+        for orphaned_id in orphaned_ids:
+            text = graph.dialog_id_to_text[orphaned_id]
+            if (rendered_text := _render_dialog_line(text, language)) is not None:
+                all_lines.append(f"[Orphaned dialog] {rendered_text}")
 
     return all_lines
 
