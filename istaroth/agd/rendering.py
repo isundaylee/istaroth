@@ -128,26 +128,35 @@ def _process_branch(
     """
 
     paths: list[list[int | None]] = [[di] for di in next_dialog_ids]
+    # Path indexes for paths that have back edges (i.e. edges pointing to
+    # pre-branch dialogs).
+    cycle_pis = set[int]()
     dialog_paths = defaultdict[int | None, set[int]](set)
     dialog_paths.update({di: {i} for i, di in enumerate(next_dialog_ids)})
 
     # First, keep advancing all paths until we find a convergence point.
     while True:
-        # If any dialog has been visited by all paths, that's our convergence point.
+        assert cycle_pis < set(range(len(paths))), f"All paths ended in cycles"
+
+        # If any dialog has been visited by all non-cycle paths, that's our
+        # convergence point.
         potential_conv_points = [
             di
             for di, visited_paths in dialog_paths.items()
-            if set(range(len(paths))) == visited_paths
+            if visited_paths >= set(range(len(paths))) - cycle_pis
         ]
         if potential_conv_points:
             assert (
                 len(potential_conv_points) == 1
-            ), f"Multiple convergence points: {potential_conv_points}"
+            ) or cycle_pis, f"Multiple convergence points: {potential_conv_points}"
             conv_point = potential_conv_points[0]
             break
 
         # Otherwise, follow each path to the next dialog.
-        for path_index, path in enumerate(paths):
+        for pi, path in enumerate(paths):
+            if pi in cycle_pis:
+                continue
+
             curr_di = path[-1]
             if curr_di is None:
                 continue
@@ -156,22 +165,34 @@ def _process_branch(
 
             if not next_dis:
                 path.append(None)
-                assert path_index not in dialog_paths[None], "Found cycle"
-                dialog_paths[None].add(path_index)
+                assert pi not in dialog_paths[None], f"Path ended multiple times"
+                dialog_paths[None].add(pi)
                 continue
 
+            pis_to_extend = [pi]
             for new_path_di in next_dis[1:]:
-                paths.append([*path, new_path_di])
-                for di in paths[-1]:
-                    assert len(paths) - 1 not in dialog_paths[di], "Found cycle"
-                    dialog_paths[di].add(len(paths) - 1)
+                paths.append(path[:])
+                new_path_pi = len(paths) - 1
+                pis_to_extend.append(new_path_pi)
+                for di in paths[new_path_pi]:
+                    assert new_path_pi not in dialog_paths[di], f"Found cycle: {path}"
+                    dialog_paths[di].add(new_path_pi)
 
-            path.append(next_dis[0])
-            assert path_index not in dialog_paths[next_dis[0]], "Found cycle"
-            dialog_paths[next_dis[0]].add(path_index)
+            for pi_to_extend, di_to_extend in zip(pis_to_extend, next_dis):
+                paths[pi_to_extend].append(di_to_extend)
+
+                if di_to_extend in rendered:
+                    cycle_pis.add(pi_to_extend)
+                    continue
+
+                if pi_to_extend in dialog_paths[di_to_extend]:
+                    cycle_pis.add(pi_to_extend)
+                    continue
+
+                dialog_paths[di_to_extend].add(pi_to_extend)
 
     lines_list = []
-    for path in paths:
+    for pi, path in enumerate(paths):
         branch_lines = []
         for di in path:
             if di == conv_point:
@@ -185,6 +206,9 @@ def _process_branch(
                 rendered.add(di)
                 if (rendered_text := _render_dialog_line(text, language)) is not None:
                     branch_lines.append(rendered_text)
+        else:
+            assert pi in cycle_pis, f"Path {pi} did not converge"
+            branch_lines.append(f"[Circling back to a pre-branch dialog]")
 
         lines_list.append(branch_lines)
 
