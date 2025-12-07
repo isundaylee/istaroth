@@ -137,8 +137,15 @@ def _process_branch(
 
         rendered.add(current_id)
 
-        if line := _render_dialog_line(graph.dialog_id_to_text[current_id], language):
-            lines.append(line)
+        # Check if dialog exists
+        if current_id in graph.dialog_id_to_text:
+            if line := _render_dialog_line(
+                graph.dialog_id_to_text[current_id], language
+            ):
+                lines.append(line)
+        else:
+            lines.append(f"[Missing Dialog {current_id}]")
+            return lines, None
 
         # Get next dialogs
         next_dialog_ids = graph.graph.get(current_id, [])
@@ -178,8 +185,16 @@ def _render_talk_dialogs(
         assert current_id not in rendered, f"Dialog {current_id} already rendered"
 
         rendered.add(current_id)
-        if line := _render_dialog_line(graph.dialog_id_to_text[current_id], language):
-            lines.append(line)
+
+        # Check if dialog exists
+        if current_id in graph.dialog_id_to_text:
+            if line := _render_dialog_line(
+                graph.dialog_id_to_text[current_id], language
+            ):
+                lines.append(line)
+        else:
+            lines.append(f"[Missing Dialog {current_id}]")
+            return lines
 
         # Get next dialogs
         next_dialog_ids = graph.graph.get(current_id, [])
