@@ -300,8 +300,8 @@ class TalkGroups(BaseRenderableType[tuple[talk_parsing.TalkGroupType, str]]):
     text_category: ClassVar[text_types.TextCategory] = (
         text_types.TextCategory.AGD_TALK_GROUP
     )
-    error_limit: ClassVar[int] = 100
-    error_limit_non_chinese: ClassVar[int] = 100
+    error_limit: ClassVar[int] = 120
+    error_limit_non_chinese: ClassVar[int] = 120
 
     def discover(
         self, data_repo: repo.DataRepo
@@ -332,8 +332,8 @@ class Talks(BaseRenderableType[str]):
     """Standalone talk content type for talks not used by other renderable types."""
 
     text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_TALK
-    error_limit: ClassVar[int] = 500
-    error_limit_non_chinese: ClassVar[int] = 500
+    error_limit: ClassVar[int] = 1000
+    error_limit_non_chinese: ClassVar[int] = 1000
 
     def __init__(self, used_talk_ids: set[str]) -> None:
         """Initialize with set of already used talk IDs."""

@@ -158,7 +158,7 @@ def _process_branch(
         current_id = next_dialog_ids[0]
 
 
-def _render_dialog_with_branches(
+def _render_talk_dialogs(
     dialog_id: int,
     graph: _TalkTextGraph,
     rendered: set[int],
@@ -229,6 +229,36 @@ def _render_dialog_with_branches(
     return lines
 
 
+def _render_talk_content(
+    talk: types.TalkInfo, language: localization.Language
+) -> list[str]:
+    """Render talk dialog to lines with branching support.
+
+    Args:
+        talk: TalkInfo containing dialog items
+        language: Language for filtering
+
+    Returns:
+        List of rendered dialog lines
+    """
+    if not talk.text:
+        return []
+
+    graph = _TalkTextGraph(talk)
+    entrypoint = graph.find_entrypoint(talk)
+
+    rendered: set[int] = set()
+    lines = _render_talk_dialogs(entrypoint, graph, rendered, language)
+
+    all_dialog_ids = {text.dialog_id for text in talk.text}
+    orphaned_ids = all_dialog_ids - rendered
+    assert (
+        not orphaned_ids
+    ), f"Found orphaned dialogs not reachable from entry point: {orphaned_ids}"
+
+    return lines
+
+
 def render_talk(
     talk: types.TalkInfo,
     *,
@@ -259,22 +289,7 @@ def render_talk(
 
     # Render content
     content_lines = ["# Talk Dialog\n"]
-
-    # Build graph structure
-    if talk.text:
-        graph = _TalkTextGraph(talk)
-        entrypoint = graph.find_entrypoint(talk)
-
-        rendered: set[int] = set()
-        lines = _render_dialog_with_branches(entrypoint, graph, rendered, language)
-        content_lines.extend(lines)
-
-        # Assert all dialogs were rendered (no orphaned dialogs)
-        all_dialog_ids = {text.dialog_id for text in talk.text}
-        orphaned_ids = all_dialog_ids - rendered
-        assert (
-            not orphaned_ids
-        ), f"Found orphaned dialogs not reachable from entry point: {orphaned_ids}"
+    content_lines.extend(_render_talk_content(talk, language))
 
     rendered_content = "\n".join(content_lines)
 
@@ -308,10 +323,7 @@ def render_quest(
         if len(quest.talks) > 1:  # Only add talk headers if there are multiple talks
             content_lines.append(f"\n## Talk {order_index}\n")
 
-        for talk_text in talk.text:
-            if text_utils.should_skip_text(talk_text.message, language):
-                continue
-            content_lines.append(f"{talk_text.role}: {talk_text.message}")
+        content_lines.extend(_render_talk_content(talk, language))
 
     # Render non-subquest talks in a separate section
     if quest.non_subquest_talks:
@@ -322,10 +334,7 @@ def render_quest(
             if len(quest.non_subquest_talks) > 1:
                 content_lines.append(f"\n### Additional Talk {i}\n")
 
-            for talk_text in talk.text:
-                if text_utils.should_skip_text(talk_text.message, language):
-                    continue
-                content_lines.append(f"{talk_text.role}: {talk_text.message}")
+            content_lines.extend(_render_talk_content(talk, language))
 
     rendered_content = "\n".join(content_lines)
 
@@ -545,20 +554,14 @@ def render_talk_group(
         content_lines.append(f"## Talk {i}\n")
 
         # Add talk dialog
-        for talk_text in talk.text:
-            if text_utils.should_skip_text(talk_text.message, language):
-                continue
-            content_lines.append(f"{talk_text.role}: {talk_text.message}")
+        content_lines.extend(_render_talk_content(talk, language))
         content_lines.append("")  # Empty line between talks
 
         # Add followup talks
         for j, next_talk in enumerate(next_talks):
             content_lines.append(f"### Talk {i} related talk {j}\n")
             # Add talk dialog
-            for next_talk_text in next_talk.text:
-                if text_utils.should_skip_text(next_talk_text.message, language):
-                    continue
-                content_lines.append(f"{next_talk_text.role}: {next_talk_text.message}")
+            content_lines.extend(_render_talk_content(next_talk, language))
             content_lines.append("")  # Empty line between talks
 
     rendered_content = "\n".join(content_lines).rstrip()
