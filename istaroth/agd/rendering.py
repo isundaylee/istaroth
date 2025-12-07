@@ -285,7 +285,9 @@ def _render_talk_dialogs(
 
     # Follow single next dialogues until we hit multiple next dialogues
     while current_id is not None:
-        assert current_id not in rendered, f"Dialog {current_id} already rendered"
+        if current_id in rendered:
+            lines.append(f"[Circling back to a previous dialog]")
+            return lines
 
         rendered.add(current_id)
 
