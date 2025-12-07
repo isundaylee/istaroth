@@ -32,8 +32,8 @@ class _TalkTextGraph:
         self.incoming_edges = dict(self.incoming_edges)
         self.outgoing_edges = dict(self.outgoing_edges)
 
-    def find_entrypoint(self, talk: types.TalkInfo) -> int:
-        """Find entry points (dialogs with no incoming edges or first dialog)."""
+    def find_entrypoints(self, talk: types.TalkInfo) -> list[int]:
+        """Find entry points (dialogs with no incoming edges)."""
         entrypoints = []
 
         # Find dialogs with no incoming edges
@@ -42,10 +42,7 @@ class _TalkTextGraph:
             if self.incoming_edges.get(dialog_id, 0) == 0:
                 entrypoints.append(dialog_id)
 
-        assert (
-            len(entrypoints) == 1
-        ), f"Expected exactly one entrypoint, found {len(entrypoints)}: {entrypoints}"
-        return entrypoints[0]
+        return sorted(entrypoints)
 
 
 def _extract_talk_type_from_path(talk_file_path: str) -> str:
@@ -245,18 +242,26 @@ def _render_talk_content(
         return []
 
     graph = _TalkTextGraph(talk)
-    entrypoint = graph.find_entrypoint(talk)
+    entrypoints = graph.find_entrypoints(talk)
+    assert entrypoints, "No entrypoints found"
 
     rendered: set[int] = set()
-    lines = _render_talk_dialogs(entrypoint, graph, rendered, language)
+    all_lines: list[str] = []
+
+    for i, entrypoint in enumerate(entrypoints):
+        if i > 0:
+            all_lines.append("")
+
+        entrypoint_lines = _render_talk_dialogs(entrypoint, graph, rendered, language)
+        all_lines.extend(entrypoint_lines)
 
     all_dialog_ids = {text.dialog_id for text in talk.text}
     orphaned_ids = all_dialog_ids - rendered
     assert (
         not orphaned_ids
-    ), f"Found orphaned dialogs not reachable from entry point: {orphaned_ids}"
+    ), f"Found orphaned dialogs not reachable from entry points: {orphaned_ids}"
 
-    return lines
+    return all_lines
 
 
 def render_talk(
