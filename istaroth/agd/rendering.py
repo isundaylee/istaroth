@@ -34,7 +34,11 @@ class _TalkTextGraph:
         self.outgoing_edges = dict(self.outgoing_edges)
 
     def find_entrypoints(self, talk: types.TalkInfo) -> list[int]:
-        """Find entry points (dialogs with no incoming edges)."""
+        """Find entry points (dialogs with no incoming edges).
+
+        If no entry points are found, falls back to finding cycles and using
+        the smallest dialog ID from each cycle as an entry point.
+        """
         entrypoints = []
 
         # Find dialogs with no incoming edges
@@ -43,7 +47,53 @@ class _TalkTextGraph:
             if self.incoming_edges.get(dialog_id, 0) == 0:
                 entrypoints.append(dialog_id)
 
-        return sorted(entrypoints)
+        if entrypoints:
+            return sorted(entrypoints)
+
+        # Fallback: find all cycles and use smallest dialog ID from them
+        return [min(min(cycle) for cycle in self._find_cycles())]
+
+    def _find_cycles(self) -> list[set[int]]:
+        """Find all unique cycles in the graph.
+
+        Uses DFS to detect cycles. When a back edge is found, extracts the cycle.
+
+        Returns:
+            List of sets, where each set contains the dialog IDs in a cycle.
+        """
+        visited = set[int]()
+        rec_stack = set[int]()
+        cycles = []
+
+        def dfs(node: int, path: list[int]) -> None:
+            if node in rec_stack:
+                # Found a cycle - extract it
+                cycle_start_idx = path.index(node)
+                cycle = set(path[cycle_start_idx:])
+                # Only add if we haven't seen this cycle before
+                if cycle not in cycles:
+                    cycles.append(cycle)
+                # Continue exploring to find other cycles
+                return
+
+            if node in visited:
+                return
+
+            visited.add(node)
+            rec_stack.add(node)
+            path.append(node)
+
+            for next_node in self.graph.get(node, []):
+                dfs(next_node, path)
+
+            path.pop()
+            rec_stack.remove(node)
+
+        for dialog_id in self.dialog_id_to_text:
+            if dialog_id not in visited:
+                dfs(dialog_id, [])
+
+        return cycles
 
 
 def _extract_talk_type_from_path(talk_file_path: str) -> str:
