@@ -78,12 +78,16 @@ def create_llm(model_name: str, **kwargs) -> language_models.BaseLanguageModel:
             f"Model '{model_name}' is not available. Available models: {', '.join(available_models)}"
         )
 
+    implied_kwargs = {"max_retries": 1}
+
     # Google models
     if model_name.startswith("gemini-"):
-        return google_chat_models.ChatGoogleGenerativeAI(model=model_name, **kwargs)
+        return google_chat_models.ChatGoogleGenerativeAI(
+            model=model_name, **implied_kwargs, **kwargs
+        )
     # OpenAI models
     elif model_name.startswith("gpt-"):
-        return openai_llms.ChatOpenAI(model=model_name, **kwargs)
+        return openai_llms.ChatOpenAI(model=model_name, **implied_kwargs, **kwargs)
     else:
         raise ValueError(f"Unknown model provider for '{model_name}'.")
 
