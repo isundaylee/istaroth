@@ -24,6 +24,7 @@ from istaroth.agd import localization, processing, rendering, repo, types
 from istaroth.agd.renderable_types import (
     ArtifactSets,
     BaseRenderableType,
+    Books,
     CharacterStories,
     MaterialTypes,
     Quests,
@@ -372,6 +373,9 @@ def generate_all(
     generate_readable = (
         only_category is None or only_category == text_types.TextCategory.AGD_READABLE
     )
+    generate_books = (
+        only_category is None or only_category == text_types.TextCategory.AGD_BOOK
+    )
     generate_quest = (
         only_category is None or only_category == text_types.TextCategory.AGD_QUEST
     )
@@ -424,6 +428,8 @@ def generate_all(
         process_content_type(generate_material_types, MaterialTypes())
         process_content_type(generate_voicelines, Voicelines())
         process_content_type(generate_talk_groups, TalkGroups())
+
+        process_content_type(generate_books, Books())
 
         # Generating remaining unused readables/talks
         process_content_type(

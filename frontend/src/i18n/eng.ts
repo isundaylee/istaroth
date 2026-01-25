@@ -110,6 +110,7 @@ export const eng = {
     noFiles: 'No files in this category',
     categories: {
       agd_artifact_set: 'Artifact Sets',
+      agd_book: 'Books',
       agd_character_story: 'Character Stories',
       agd_material_type: 'Material Types',
       agd_quest: 'Quests',

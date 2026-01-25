@@ -142,6 +142,23 @@ def render_readable(
     )
 
 
+def render_book(content: str, metadata: types.ReadableMetadata) -> types.RenderedItem:
+    """Render book content into RAG-suitable format."""
+    safe_title = utils.make_safe_filename_part(metadata.title)
+    filename = f"{metadata.localization_id}_{safe_title}.txt"
+    rendered_content = f"# {metadata.title}\n\n{content}"
+
+    return types.RenderedItem(
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_BOOK,
+            title=metadata.title,
+            id=metadata.localization_id,
+            relative_path=f"{text_types.TextCategory.AGD_BOOK.value}/{filename}",
+        ),
+        content=rendered_content,
+    )
+
+
 def _render_dialog_line(
     talk_text: types.TalkText, language: localization.Language
 ) -> str | None:

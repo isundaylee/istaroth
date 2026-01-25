@@ -12,6 +12,7 @@ class TextCategory(Enum):
     """Enum for text categories."""
 
     AGD_READABLE = "agd_readable"
+    AGD_BOOK = "agd_book"
     AGD_QUEST = "agd_quest"
     AGD_CHARACTER_STORY = "agd_character_story"
     AGD_SUBTITLE = "agd_subtitle"

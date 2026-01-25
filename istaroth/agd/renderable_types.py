@@ -1,5 +1,6 @@
 """Renderable content type classes for different AGD content."""
 
+import pathlib
 from abc import ABC, abstractmethod
 from collections import Counter
 from typing import ClassVar, Generic, TypeVar
@@ -40,14 +41,51 @@ class BaseRenderableType(ABC, Generic[TKey]):
         pass
 
 
-class Readables(BaseRenderableType[str]):
+class BaseReadables(BaseRenderableType[str]):
+    """Base renderable for readable content."""
+
+    error_limit: ClassVar[int] = 50
+    error_limit_non_chinese: ClassVar[int] = 200
+
+    @abstractmethod
+    def _render(
+        self, content: str, metadata: types.ReadableMetadata
+    ) -> types.RenderedItem:
+        """Render readable content into a rendered item."""
+        pass
+
+    def process(
+        self, renderable_key: str, data_repo: repo.DataRepo
+    ) -> types.RenderedItem | None:
+        """Process readable file into rendered content."""
+        readables_tracker = data_repo.get_readables()
+        readable_filename = pathlib.Path(renderable_key).name
+        content = readables_tracker.get_content(readable_filename)
+        if content is None:
+            raise FileNotFoundError(f"Readable not found: {renderable_key}")
+        content = text_cleanup.clean_text_markers(content, data_repo.language)
+
+        if text_utils.should_skip_text(content, data_repo.language):
+            return None
+
+        metadata = processing.get_readable_metadata(renderable_key, data_repo=data_repo)
+        if text_utils.should_skip_text(metadata.title, data_repo.language):
+            return None
+
+        return self._render(content, metadata)
+
+
+class Readables(BaseReadables):
     """Readable content type (books, weapons, etc.)."""
 
     text_category: ClassVar[text_types.TextCategory] = (
         text_types.TextCategory.AGD_READABLE
     )
-    error_limit: ClassVar[int] = 50
-    error_limit_non_chinese: ClassVar[int] = 200
+
+    def _render(
+        self, content: str, metadata: types.ReadableMetadata
+    ) -> types.RenderedItem:
+        return rendering.render_readable(content, metadata)
 
     def __init__(self, used_readable_ids: set[str]) -> None:
         """Initialize with optional set of used readable IDs to exclude."""
@@ -63,27 +101,28 @@ class Readables(BaseRenderableType[str]):
             )
         ]
 
-    def process(
-        self, renderable_key: str, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
-        """Process readable file into rendered content."""
-        # Read the actual readable content
-        readable_file_path = data_repo.agd_path / renderable_key
-        with open(readable_file_path, "r", encoding="utf-8") as f:
-            content = text_cleanup.clean_text_markers(f.read(), data_repo.language)
 
-        if text_utils.should_skip_text(content, data_repo.language):
-            return None
+class Books(BaseReadables):
+    """Book content type."""
 
-        # Get readable metadata
-        metadata = processing.get_readable_metadata(renderable_key, data_repo=data_repo)
+    text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_BOOK
 
-        # Skip if title starts with "test" (case-insensitive) and language is CHS
-        if text_utils.should_skip_text(metadata.title, data_repo.language):
-            return None
+    def _render(
+        self, content: str, metadata: types.ReadableMetadata
+    ) -> types.RenderedItem:
+        return rendering.render_book(content, metadata)
 
-        # Render the content
-        return rendering.render_readable(content, metadata)
+    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+        """Find all readable files whose filename starts with Book."""
+        readables_tracker = data_repo.get_readables()
+        return [
+            f"Readable/{data_repo.language_short}/{filename}"
+            for filename in sorted(
+                filename
+                for filename in readables_tracker.get_all_ids()
+                if filename.startswith("Book")
+            )
+        ]
 
 
 class Quests(BaseRenderableType[str]):
