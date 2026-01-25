@@ -26,6 +26,7 @@ from istaroth.agd.renderable_types import (
     BaseRenderableType,
     Books,
     CharacterStories,
+    Costumes,
     MaterialTypes,
     Quests,
     Readables,
@@ -33,6 +34,8 @@ from istaroth.agd.renderable_types import (
     TalkGroups,
     Talks,
     Voicelines,
+    Weapons,
+    Wings,
 )
 from istaroth.text import manifest
 from istaroth.text import types as text_types
@@ -376,6 +379,15 @@ def generate_all(
     generate_books = (
         only_category is None or only_category == text_types.TextCategory.AGD_BOOK
     )
+    generate_weapons = (
+        only_category is None or only_category == text_types.TextCategory.AGD_WEAPON
+    )
+    generate_wings = (
+        only_category is None or only_category == text_types.TextCategory.AGD_WINGS
+    )
+    generate_costumes = (
+        only_category is None or only_category == text_types.TextCategory.AGD_COSTUME
+    )
     generate_quest = (
         only_category is None or only_category == text_types.TextCategory.AGD_QUEST
     )
@@ -430,6 +442,9 @@ def generate_all(
         process_content_type(generate_talk_groups, TalkGroups())
 
         process_content_type(generate_books, Books())
+        process_content_type(generate_weapons, Weapons())
+        process_content_type(generate_wings, Wings())
+        process_content_type(generate_costumes, Costumes())
 
         # Generating remaining unused readables/talks
         process_content_type(

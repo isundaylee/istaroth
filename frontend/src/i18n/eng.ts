@@ -111,6 +111,9 @@ export const eng = {
     categories: {
       agd_artifact_set: 'Artifact Sets',
       agd_book: 'Books',
+      agd_weapon: 'Weapons',
+      agd_wings: 'Wings',
+      agd_costume: 'Costumes',
       agd_character_story: 'Character Stories',
       agd_material_type: 'Material Types',
       agd_quest: 'Quests',

@@ -111,6 +111,9 @@ export const chs = {
     categories: {
       agd_artifact_set: '圣遗物套装',
       agd_book: '书籍',
+      agd_weapon: '武器',
+      agd_wings: '风之翼',
+      agd_costume: '服装',
       agd_character_story: '角色故事',
       agd_material_type: '材料类型',
       agd_quest: '任务',

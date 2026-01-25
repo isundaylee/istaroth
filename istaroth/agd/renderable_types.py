@@ -125,6 +125,79 @@ class Books(BaseReadables):
         ]
 
 
+class Weapons(BaseReadables):
+    """Weapon readable content type."""
+
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_WEAPON
+    )
+
+    def _render(
+        self, content: str, metadata: types.ReadableMetadata
+    ) -> types.RenderedItem:
+        return rendering.render_weapon(content, metadata)
+
+    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+        """Find all readable files whose filename starts with Weapon."""
+        readables_tracker = data_repo.get_readables()
+        return [
+            f"Readable/{data_repo.language_short}/{filename}"
+            for filename in sorted(
+                filename
+                for filename in readables_tracker.get_all_ids()
+                if filename.startswith("Weapon")
+            )
+        ]
+
+
+class Wings(BaseReadables):
+    """Wings readable content type."""
+
+    text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_WINGS
+
+    def _render(
+        self, content: str, metadata: types.ReadableMetadata
+    ) -> types.RenderedItem:
+        return rendering.render_wings(content, metadata)
+
+    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+        """Find all readable files whose filename starts with Wings."""
+        readables_tracker = data_repo.get_readables()
+        return [
+            f"Readable/{data_repo.language_short}/{filename}"
+            for filename in sorted(
+                filename
+                for filename in readables_tracker.get_all_ids()
+                if filename.startswith("Wings")
+            )
+        ]
+
+
+class Costumes(BaseReadables):
+    """Costume readable content type."""
+
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_COSTUME
+    )
+
+    def _render(
+        self, content: str, metadata: types.ReadableMetadata
+    ) -> types.RenderedItem:
+        return rendering.render_costume(content, metadata)
+
+    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+        """Find all readable files whose filename starts with Costume."""
+        readables_tracker = data_repo.get_readables()
+        return [
+            f"Readable/{data_repo.language_short}/{filename}"
+            for filename in sorted(
+                filename
+                for filename in readables_tracker.get_all_ids()
+                if filename.startswith("Costume")
+            )
+        ]
+
+
 class Quests(BaseRenderableType[str]):
     """Quest content type (dialog, cutscenes, etc.)"""
 

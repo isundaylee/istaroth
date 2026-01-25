@@ -159,6 +159,59 @@ def render_book(content: str, metadata: types.ReadableMetadata) -> types.Rendere
     )
 
 
+def render_weapon(content: str, metadata: types.ReadableMetadata) -> types.RenderedItem:
+    """Render weapon readable content into RAG-suitable format."""
+    safe_title = utils.make_safe_filename_part(metadata.title)
+    filename = f"{metadata.localization_id}_{safe_title}.txt"
+    rendered_content = f"# {metadata.title}\n\n{content}"
+
+    return types.RenderedItem(
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_WEAPON,
+            title=metadata.title,
+            id=metadata.localization_id,
+            relative_path=f"{text_types.TextCategory.AGD_WEAPON.value}/{filename}",
+        ),
+        content=rendered_content,
+    )
+
+
+def render_wings(content: str, metadata: types.ReadableMetadata) -> types.RenderedItem:
+    """Render wings readable content into RAG-suitable format."""
+    safe_title = utils.make_safe_filename_part(metadata.title)
+    filename = f"{metadata.localization_id}_{safe_title}.txt"
+    rendered_content = f"# {metadata.title}\n\n{content}"
+
+    return types.RenderedItem(
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_WINGS,
+            title=metadata.title,
+            id=metadata.localization_id,
+            relative_path=f"{text_types.TextCategory.AGD_WINGS.value}/{filename}",
+        ),
+        content=rendered_content,
+    )
+
+
+def render_costume(
+    content: str, metadata: types.ReadableMetadata
+) -> types.RenderedItem:
+    """Render costume readable content into RAG-suitable format."""
+    safe_title = utils.make_safe_filename_part(metadata.title)
+    filename = f"{metadata.localization_id}_{safe_title}.txt"
+    rendered_content = f"# {metadata.title}\n\n{content}"
+
+    return types.RenderedItem(
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_COSTUME,
+            title=metadata.title,
+            id=metadata.localization_id,
+            relative_path=f"{text_types.TextCategory.AGD_COSTUME.value}/{filename}",
+        ),
+        content=rendered_content,
+    )
+
+
 def _render_dialog_line(
     talk_text: types.TalkText, language: localization.Language
 ) -> str | None:

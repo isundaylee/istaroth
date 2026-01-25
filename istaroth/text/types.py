@@ -13,6 +13,9 @@ class TextCategory(Enum):
 
     AGD_READABLE = "agd_readable"
     AGD_BOOK = "agd_book"
+    AGD_WEAPON = "agd_weapon"
+    AGD_WINGS = "agd_wings"
+    AGD_COSTUME = "agd_costume"
     AGD_QUEST = "agd_quest"
     AGD_CHARACTER_STORY = "agd_character_story"
     AGD_SUBTITLE = "agd_subtitle"
