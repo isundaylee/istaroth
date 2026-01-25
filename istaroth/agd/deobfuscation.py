@@ -104,7 +104,7 @@ def _process_dialog_list(dialogs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     deobfuscated_dialogs = []
     for dialog in dialogs:
         deobfuscated_dialog = _deobfuscate_data(dialog, _COMMON_FIELD_MAPPINGS, {})
-        if obfuscated_role := dialog.get("BCBFGKALICJ"):
+        if obfuscated_role := deobfuscated_dialog.get("talkRole"):
             deobfuscated_dialog["talkRole"] = _deobfuscate_data(
                 obfuscated_role, _COMMON_FIELD_MAPPINGS, {}
             )
