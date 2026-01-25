@@ -322,10 +322,27 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_talk_excel_config_data(self) -> TalkTracker:
         """Load talk Excel configuration data as TalkTracker."""
-        file_path = self.agd_path / "ExcelBinOutput" / "TalkExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.TalkExcelConfigData = json.load(f)
+
+        def _load_talk_file(file_path: pathlib.Path) -> types.TalkExcelConfigData:
+            data = json.loads(file_path.read_text(encoding="utf-8"))
+            assert isinstance(data, list), file_path
+            return data
+
+        base_path = self.agd_path / "ExcelBinOutput"
+        if split_paths := sorted(base_path.glob("TalkExcelConfigData_*.json")):
+            data = []
+            for file_path in split_paths:
+                data.extend(_load_talk_file(file_path))
             return TalkTracker(data, self._get_talk_parser().talk_id_to_path)
+
+        file_path = base_path / "TalkExcelConfigData.json"
+        if not file_path.exists():
+            raise FileNotFoundError(
+                "TalkExcelConfigData.json or TalkExcelConfigData_*.json not found"
+            )
+        return TalkTracker(
+            _load_talk_file(file_path), self._get_talk_parser().talk_id_to_path
+        )
 
     @functools.lru_cache(maxsize=None)
     def load_talk_data(self, talk_file: str) -> types.TalkData:
