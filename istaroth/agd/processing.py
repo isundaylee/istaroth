@@ -58,16 +58,12 @@ def get_readable_metadata(
                 doc_item["questIDList"],
             )
         ):
-            doc_entry = doc_item
+            # Step 3: Get title from document's titleTextMapHash
+            title_hash = str(doc_item["titleTextMapHash"])
+            title = text_map.get(title_hash, "Unknown Title")
             break
     else:
-        raise ValueError(
-            f"Document entry not found for localization ID: {localization_id}"
-        )
-
-    # Step 3: Get title from document's titleTextMapHash
-    title_hash = str(doc_entry["titleTextMapHash"])
-    title = text_map.get(title_hash, "Unknown Title")
+        title = f"Unknown Title"
 
     return types.ReadableMetadata(localization_id=localization_id, title=title)
 
