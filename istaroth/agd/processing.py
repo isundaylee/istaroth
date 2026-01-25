@@ -188,9 +188,10 @@ def get_quest_info(quest_id: str, *, data_repo: repo.DataRepo) -> types.QuestInf
     chapter_id = quest_data.get("chapterId")
     if chapter_id:
         chapter_data = data_repo.load_chapter_excel_config_data()
-        chapter = chapter_data[chapter_id]
 
-        if chapter:
+        if (chapter := chapter_data.get(chapter_id)) is None:
+            chapter_title = f"Unknown Chapter {chapter_id}"
+        else:
             # Get chapter title and number from text map
             chapter_title = " ".join(
                 p
