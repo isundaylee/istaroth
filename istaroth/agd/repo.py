@@ -360,10 +360,17 @@ class DataRepo:
         with open(file_path, encoding="utf-8") as f:
             raw_data: dict[str, Any] = json.load(f)
             data = deobfuscation.deobfuscate_talk_group_data(raw_data)
-            if (file_path.parts[-2] in {"NpcGroup", "ActivityGroup"}) and (
-                file_path.stem.isdigit()
-            ):
-                data.setdefault("activityId", int(file_path.stem))
+            if (
+                (
+                    field := {
+                        "NpcGroup": "npcId",
+                        "ActivityGroup": "activityId",
+                        "StoryboardGroup": "storyboardId",
+                    }.get(file_path.parts[-2])
+                )
+                is not None
+            ) and file_path.stem.isdigit():
+                data.setdefault(field, int(file_path.stem))
             return data
 
     @functools.lru_cache(maxsize=None)

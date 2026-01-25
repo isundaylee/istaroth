@@ -31,16 +31,13 @@ class TalkParser:
         pathlib.Path("BinOutput/Talk/BlossomGroup/5900009.json"),
     ]
 
-    _EXCLUDE_DIRECTORIES: ClassVar[set[str]] = {
-        "BlossomGroup",
-        # TODO: support this
-        "StoryboardGroup",
-    }
+    _EXCLUDE_DIRECTORIES: ClassVar[set[str]] = {"BlossomGroup"}
 
     _GROUP_DIRECTORIES: ClassVar[set[str]] = {
         "ActivityGroup",
         "GadgetGroup",
         "NpcGroup",
+        "StoryboardGroup",
     }
 
     def __init__(self, data_repo: repo.DataRepo) -> None:
@@ -97,8 +94,12 @@ class TalkParser:
             return
 
         match group_type:
-            case "ActivityGroup" | "NpcGroup":
-                id = data.get("activityId") or data.get("npcId")
+            case "ActivityGroup" | "NpcGroup" | "StoryboardGroup":
+                id = (
+                    data.get("activityId")
+                    or data.get("npcId")
+                    or data.get("storyboardId")
+                )
             case "GadgetGroup":
                 id = data.get("configId")
             case _:
