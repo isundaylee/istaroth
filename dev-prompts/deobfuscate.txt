@@ -1,0 +1,10 @@
+try to fill in the deobfuscation entry for the clear text fields mentioned in _COMMON_FIELD_MAPPINGS
+
+do this by comparing the content of various files under /Users/jiahaoli/Programming/Git/AnimeGameData between revision f83066c8c20 (which contains a cleartext version) and revision HEAD (which contains a obfuscated version). put new entries together, under a comment section with text "OSRELWin6.3.0_R41701329_S41708913_D41667700".
+
+list of reference files to use:
+
+- BinOutput/Quest/11021.json
+- BinOutput/Talk/Npc/6159301.json
+- BinOutput/Talk/GadgetGroup/97001_144001097.json
+- BinOutput/Talk/NpcGroup/4073.json

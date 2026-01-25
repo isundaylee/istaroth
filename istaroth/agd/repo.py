@@ -343,6 +343,10 @@ class DataRepo:
         with open(file_path, encoding="utf-8") as f:
             raw_data: dict[str, Any] = json.load(f)
             data = deobfuscation.deobfuscate_talk_group_data(raw_data)
+            if (file_path.parts[-2] in {"NpcGroup", "ActivityGroup"}) and (
+                file_path.stem.isdigit()
+            ):
+                data.setdefault("activityId", int(file_path.stem))
             return data
 
     @functools.lru_cache(maxsize=None)

@@ -31,7 +31,11 @@ class TalkParser:
         pathlib.Path("BinOutput/Talk/BlossomGroup/5900009.json"),
     ]
 
-    _EXCLUDE_DIRECTORIES: ClassVar[set[str]] = {"BlossomGroup"}
+    _EXCLUDE_DIRECTORIES: ClassVar[set[str]] = {
+        "BlossomGroup",
+        # TODO: support this
+        "StoryboardGroup",
+    }
 
     _GROUP_DIRECTORIES: ClassVar[set[str]] = {
         "ActivityGroup",
