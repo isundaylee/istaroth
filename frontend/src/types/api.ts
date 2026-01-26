@@ -18,6 +18,8 @@ export type ModelsResponse = components['schemas']['ModelsResponse']
 export type ConversationResponse = components['schemas']['ConversationResponse']
 export type ExampleQuestionResponse = components['schemas']['ExampleQuestionResponse']
 export type CitationResponse = components['schemas']['CitationResponse']
+export type LibraryRetrieveRequest = components['schemas']['LibraryRetrieveRequest']
+export type LibraryRetrieveResponse = components['schemas']['LibraryRetrieveResponse']
 
 // Additional types that may not be in the OpenAPI spec but are used by the frontend
 export interface ErrorResponse {

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
@@ -8,6 +8,8 @@ import ErrorDisplay from './components/ErrorDisplay'
 import { buildUrlWithLanguage } from './utils/language'
 import { buildLibraryFilePath } from './utils/library'
 import type { LibraryRetrieveRequest, LibraryRetrieveResponse } from './types/api'
+
+const QUERY_PARAM = 'q'
 
 const escapeRegExp = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -40,15 +42,15 @@ function RetrievePage() {
   const t = useT()
   const { language } = useTranslation()
   const location = useLocation()
+  const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<LibraryRetrieveResponse['results']>([])
   const [submittedQuery, setSubmittedQuery] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const trimmed = query.trim()
+  const runSearch = async (value: string) => {
+    const trimmed = value.trim()
     if (!trimmed) return
 
     setLoading(true)
@@ -81,6 +83,36 @@ function RetrievePage() {
       setLoading(false)
     }
   }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const trimmed = query.trim()
+    if (!trimmed) return
+
+    const params = new URLSearchParams(location.search)
+    params.set(QUERY_PARAM, trimmed)
+    const nextUrl = buildUrlWithLanguage(location.pathname, `?${params.toString()}`, language)
+    navigate(nextUrl, { replace: true })
+    await runSearch(trimmed)
+  }
+
+  useEffect(() => {
+    if (loading) {
+      return
+    }
+    const params = new URLSearchParams(location.search)
+    const urlQuery = params.get(QUERY_PARAM)
+    if (!urlQuery) {
+      return
+    }
+    if (urlQuery !== query) {
+      setQuery(urlQuery)
+      return
+    }
+    if (urlQuery !== submittedQuery) {
+      void runSearch(urlQuery)
+    }
+  }, [location.search, language, query, submittedQuery, loading])
 
   const resultsContent = useMemo(() => {
     if (!submittedQuery) {
