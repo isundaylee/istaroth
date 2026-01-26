@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
@@ -42,12 +42,18 @@ function RetrievePage() {
   const t = useT()
   const { language } = useTranslation()
   const location = useLocation()
-  const navigate = useNavigate()
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<LibraryRetrieveResponse['results']>([])
   const [submittedQuery, setSubmittedQuery] = useState<string | null>(null)
+  const [initialQuerySubmitted, setInitialQuerySubmitted] = useState(false)
+  const [results, setResults] = useState<LibraryRetrieveResponse['results']>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const activeQueryRef = useRef<string | null>(null)
+
+  const urlQuery = useMemo(() => {
+    const params = new URLSearchParams(location.search)
+    return params.get(QUERY_PARAM)
+  }, [location.search])
 
   const runSearch = async (value: string) => {
     const trimmed = value.trim()
@@ -55,6 +61,8 @@ function RetrievePage() {
 
     setLoading(true)
     setError(null)
+    activeQueryRef.current = trimmed
+    setSubmittedQuery(trimmed)
 
     try {
       const reqBody: LibraryRetrieveRequest = {
@@ -72,15 +80,22 @@ function RetrievePage() {
       const data = await res.json()
       if (res.ok) {
         const response = data as LibraryRetrieveResponse
-        setResults(response.results)
-        setSubmittedQuery(response.query)
+        if (activeQueryRef.current === trimmed) {
+          setResults(response.results)
+        }
       } else {
-        setError((data as { error?: string }).error || t('retrieve.errors.unknown'))
+        if (activeQueryRef.current === trimmed) {
+          setError((data as { error?: string }).error || t('retrieve.errors.unknown'))
+        }
       }
     } catch (err) {
-      setError(t('retrieve.errors.noConnection'))
+      if (activeQueryRef.current === trimmed) {
+        setError(t('retrieve.errors.noConnection'))
+      }
     } finally {
-      setLoading(false)
+      if (activeQueryRef.current === trimmed) {
+        setLoading(false)
+      }
     }
   }
 
@@ -89,30 +104,36 @@ function RetrievePage() {
     const trimmed = query.trim()
     if (!trimmed) return
 
+    if (trimmed === submittedQuery) {
+      return
+    }
+
     const params = new URLSearchParams(location.search)
     params.set(QUERY_PARAM, trimmed)
     const nextUrl = buildUrlWithLanguage(location.pathname, `?${params.toString()}`, language)
-    navigate(nextUrl, { replace: true })
+    window.history.replaceState(null, '', nextUrl)
     await runSearch(trimmed)
   }
 
   useEffect(() => {
+    if (initialQuerySubmitted) {
+      return
+    }
     if (loading) {
       return
     }
-    const params = new URLSearchParams(location.search)
-    const urlQuery = params.get(QUERY_PARAM)
     if (!urlQuery) {
+      activeQueryRef.current = null
+      setResults([])
+      setError(null)
+      setInitialQuerySubmitted(true)
       return
     }
-    if (urlQuery !== query) {
-      setQuery(urlQuery)
-      return
-    }
-    if (urlQuery !== submittedQuery) {
-      void runSearch(urlQuery)
-    }
-  }, [location.search, language, query, submittedQuery, loading])
+    setQuery(urlQuery)
+    setSubmittedQuery(urlQuery)
+    setInitialQuerySubmitted(true)
+    runSearch(urlQuery)
+  }, [urlQuery, language, loading, initialQuerySubmitted])
 
   const resultsContent = useMemo(() => {
     if (!submittedQuery) {
@@ -156,7 +177,7 @@ function RetrievePage() {
         })}
       </div>
     )
-  }, [results, submittedQuery, location.search, language, t])
+  }, [results, urlQuery, location.search, language, t])
 
   return (
     <div className="app">
