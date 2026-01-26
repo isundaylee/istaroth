@@ -48,7 +48,7 @@ function RetrievePage() {
   const [results, setResults] = useState<LibraryRetrieveResponse['results']>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const activeQueryRef = useRef<string | null>(null)
+  const activeRequestIdRef = useRef(0)
 
   const urlQuery = useMemo(() => {
     const params = new URLSearchParams(location.search)
@@ -61,7 +61,8 @@ function RetrievePage() {
 
     setLoading(true)
     setError(null)
-    activeQueryRef.current = trimmed
+    const requestId = activeRequestIdRef.current + 1
+    activeRequestIdRef.current = requestId
     setSubmittedQuery(trimmed)
 
     try {
@@ -80,20 +81,20 @@ function RetrievePage() {
       const data = await res.json()
       if (res.ok) {
         const response = data as LibraryRetrieveResponse
-        if (activeQueryRef.current === trimmed) {
+        if (activeRequestIdRef.current === requestId) {
           setResults(response.results)
         }
       } else {
-        if (activeQueryRef.current === trimmed) {
+        if (activeRequestIdRef.current === requestId) {
           setError((data as { error?: string }).error || t('retrieve.errors.unknown'))
         }
       }
     } catch (err) {
-      if (activeQueryRef.current === trimmed) {
+      if (activeRequestIdRef.current === requestId) {
         setError(t('retrieve.errors.noConnection'))
       }
     } finally {
-      if (activeQueryRef.current === trimmed) {
+      if (activeRequestIdRef.current === requestId) {
         setLoading(false)
       }
     }
@@ -123,7 +124,7 @@ function RetrievePage() {
       return
     }
     if (!urlQuery) {
-      activeQueryRef.current = null
+      activeRequestIdRef.current += 1
       setResults([])
       setError(null)
       setInitialQuerySubmitted(true)
