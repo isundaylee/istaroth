@@ -360,6 +360,48 @@
           }
         }
       }
+    },
+    "/api/library/retrieve": {
+      "post": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Retrieve Library",
+        "description": "Retrieve library documents using BM25 keyword search only.",
+        "operationId": "retrieve_library_api_library_retrieve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LibraryRetrieveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryRetrieveResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -645,6 +687,75 @@
         ],
         "title": "LibraryFilesResponse",
         "description": "Response model for library files endpoint."
+      },
+      "LibraryRetrieveRequest": {
+        "properties": {
+          "language": {
+            "type": "string",
+            "title": "Language"
+          },
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "k": {
+            "type": "integer",
+            "title": "K"
+          }
+        },
+        "type": "object",
+        "required": [
+          "language",
+          "query",
+          "k"
+        ],
+        "title": "LibraryRetrieveRequest",
+        "description": "Request model for BM25-only library retrieval endpoint."
+      },
+      "LibraryRetrieveResponse": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/LibraryRetrieveResult"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "results"
+        ],
+        "title": "LibraryRetrieveResponse",
+        "description": "Response model for BM25-only library retrieval endpoint."
+      },
+      "LibraryRetrieveResult": {
+        "properties": {
+          "file_info": {
+            "$ref": "#/components/schemas/LibraryFileInfo"
+          },
+          "snippet": {
+            "type": "string",
+            "title": "Snippet"
+          },
+          "score": {
+            "type": "number",
+            "title": "Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file_info",
+          "snippet",
+          "score"
+        ],
+        "title": "LibraryRetrieveResult",
+        "description": "Single retrieved library document with snippet."
       },
       "ModelsResponse": {
         "properties": {

@@ -98,7 +98,20 @@ export const chs = {
 
   navigation: {
     home: '问答',
+    retrieve: '检索',
     library: '图书馆'
+  },
+
+  retrieve: {
+    title: '关键词检索',
+    placeholder: '输入文本以查找相关文档',
+    submitButton: '搜索',
+    submitting: '搜索中...',
+    noResults: '未找到相关文档',
+    errors: {
+      unknown: '发生未知错误',
+      noConnection: '无法连接到服务器'
+    }
   },
 
   library: {

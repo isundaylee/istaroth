@@ -213,6 +213,75 @@ class DocumentStore:
 
     _documents: dict[str, dict[int, Document]]
 
+    def _select_scored_documents(
+        self,
+        query: str,
+        scored_docs: list[types.ScoredDocument],
+        *,
+        k: int,
+        chunk_context: int,
+    ) -> types.RetrieveOutput:
+        final_file_ids = list[tuple[float, str]]()
+        final_chunk_indices = dict[str, set[int]]()
+        max_total_chunks = k * (2 * chunk_context + 1)
+        total_chunks = 0
+
+        for scored_doc in sorted(scored_docs, key=lambda x: x.score, reverse=True):
+            doc = scored_doc.document
+            metadata = cast(types.DocumentMetadata, doc.metadata)
+            file_id = metadata["file_id"]
+            file_docs = self._documents[file_id]
+
+            # For multiple retrieved docs from the same file, we use the highest
+            # score for now.
+            if file_id not in final_chunk_indices:
+                if len(final_file_ids) == k:
+                    break
+
+                final_file_ids.append((scored_doc.score, file_id))
+                final_chunk_indices[file_id] = set()
+
+            # Calculate how many new chunks would be added
+            new_chunk_indices = set()
+            for chunk_index in range(
+                max(metadata["chunk_index"] - chunk_context, 0),
+                min(metadata["chunk_index"] + chunk_context + 1, len(file_docs)),
+            ):
+                if chunk_index not in final_chunk_indices[file_id]:
+                    new_chunk_indices.add(chunk_index)
+
+            # Add the new chunks
+            final_chunk_indices[file_id].update(new_chunk_indices)
+            total_chunks += len(new_chunk_indices)
+
+            # Check if we've exceeded the limit after adding - if so, stop processing more
+            if total_chunks >= max_total_chunks:
+                break
+
+        logger.info(
+            "Selected %d total chunks between %d files",
+            total_chunks,
+            len(final_file_ids),
+        )
+
+        return types.RetrieveOutput(
+            query=types.RetrieveQuery(
+                query=query,
+                k=k,
+                chunk_context=chunk_context,
+            ),
+            results=[
+                (
+                    score,
+                    [
+                        self._documents[file_id][chunk_index]
+                        for chunk_index in sorted(final_chunk_indices[file_id])
+                    ],
+                )
+                for score, file_id in final_file_ids
+            ],
+        )
+
     @classmethod
     def build(
         cls,
@@ -288,65 +357,18 @@ class DocumentStore:
         fused_results = self._reranker.rerank(query, all_results, weights)
         langsmith_utils.log_scored_docs("reranked_docs", fused_results)
 
-        final_file_ids = list[tuple[float, str]]()
-        final_chunk_indices = dict[str, set[int]]()
-        max_total_chunks = k * (2 * chunk_context + 1)
-        total_chunks = 0
-
-        for scored_doc in sorted(fused_results, key=lambda x: x.score, reverse=True):
-            doc = scored_doc.document
-            metadata = cast(types.DocumentMetadata, doc.metadata)
-            file_id = metadata["file_id"]
-            file_docs = self._documents[file_id]
-
-            # For multiple retrieved docs from the same file, we use the highest
-            # score for now.
-            if file_id not in final_chunk_indices:
-                if len(final_file_ids) == k:
-                    break
-
-                final_file_ids.append((scored_doc.score, file_id))
-                final_chunk_indices[file_id] = set()
-
-            # Calculate how many new chunks would be added
-            new_chunk_indices = set()
-            for chunk_index in range(
-                max(metadata["chunk_index"] - chunk_context, 0),
-                min(metadata["chunk_index"] + chunk_context + 1, len(file_docs)),
-            ):
-                if chunk_index not in final_chunk_indices[file_id]:
-                    new_chunk_indices.add(chunk_index)
-
-            # Add the new chunks
-            final_chunk_indices[file_id].update(new_chunk_indices)
-            total_chunks += len(new_chunk_indices)
-
-            # Check if we've exceeded the limit after adding - if so, stop processing more
-            if total_chunks >= max_total_chunks:
-                break
-
-        logger.info(
-            "Selected %d total chunks between %d files",
-            total_chunks,
-            len(final_file_ids),
+        return self._select_scored_documents(
+            query, fused_results, k=k, chunk_context=chunk_context
         )
 
-        return types.RetrieveOutput(
-            query=types.RetrieveQuery(
-                query=query,
-                k=k,
-                chunk_context=chunk_context,
-            ),
-            results=[
-                (
-                    score,
-                    [
-                        self._documents[file_id][chunk_index]
-                        for chunk_index in sorted(final_chunk_indices[file_id])
-                    ],
-                )
-                for score, file_id in final_file_ids
-            ],
+    @traceable(name="bm25_search")
+    def retrieve_bm25(
+        self, query: str, *, k: int, chunk_context: int
+    ) -> types.RetrieveOutput:
+        """Search using BM25 keyword retrieval only."""
+        scored_docs = self._bm25_store.search(query, k * 2)
+        return self._select_scored_documents(
+            query, scored_docs, k=k, chunk_context=chunk_context
         )
 
     def save(self, path: pathlib.Path) -> None:

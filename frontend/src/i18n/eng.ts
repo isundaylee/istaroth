@@ -98,7 +98,20 @@ export const eng = {
 
   navigation: {
     home: 'Q&A',
+    retrieve: 'Retrieve',
     library: 'Library'
+  },
+
+  retrieve: {
+    title: 'Keyword Retrieval',
+    placeholder: 'Enter text to find related documents',
+    submitButton: 'Search',
+    submitting: 'Searching...',
+    noResults: 'No documents found',
+    errors: {
+      unknown: 'An unknown error occurred',
+      noConnection: 'Failed to connect to server'
+    }
   },
 
   library: {

@@ -157,3 +157,33 @@ class LibraryFileResponse(BaseModel):
 
     file_info: LibraryFileInfo
     content: str
+
+
+class LibraryRetrieveRequest(BaseModel):
+    """Request model for BM25-only library retrieval endpoint."""
+
+    language: str
+    query: str
+    k: int
+
+    @field_validator("k")
+    @classmethod
+    def _validate_k(cls, value: int) -> int:
+        if not (0 < value <= 15):
+            raise ValueError("Invalid k value: must be between 1 and 15")
+        return value
+
+
+class LibraryRetrieveResult(BaseModel):
+    """Single retrieved library document with snippet."""
+
+    file_info: LibraryFileInfo
+    snippet: str
+    score: float
+
+
+class LibraryRetrieveResponse(BaseModel):
+    """Response model for BM25-only library retrieval endpoint."""
+
+    query: str
+    results: list[LibraryRetrieveResult]

@@ -10,6 +10,7 @@ function Navigation() {
 
   const navLinks = [
     { path: '/', key: 'home' },
+    { path: '/retrieve', key: 'retrieve' },
     { path: '/library', key: 'library' }
   ]
 

@@ -4,6 +4,7 @@ import type { Components } from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import { useTranslation, useT } from '../contexts/LanguageContext'
 import type { CitationResponse, LibraryFileInfo } from '../types/api'
+import { buildLibraryFilePath } from '../utils/library'
 import CitationPopup from './CitationPopup'
 import { preprocessCitationsForDisplay, formatCitationId, parseCitationId } from '../utils/citations'
 
@@ -495,7 +496,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
                 e.preventDefault()
                 e.stopPropagation()
                 if (fileInfo) {
-                  const url = `/library/${encodeURIComponent(fileInfo.category)}/${encodeURIComponent(fileInfo.id)}`
+                  const url = buildLibraryFilePath(fileInfo)
                   window.open(url, '_blank', 'noopener,noreferrer')
                 }
               }
@@ -538,7 +539,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
                   </span>
                   {fileInfo && (
                     <a
-                      href={`/library/${encodeURIComponent(fileInfo.category)}/${encodeURIComponent(fileInfo.id)}`}
+                      href={buildLibraryFilePath(fileInfo)}
                       onClick={handleLibraryLinkClick}
                       style={{
                         color: '#888',

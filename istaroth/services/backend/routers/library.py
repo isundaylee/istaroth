@@ -2,11 +2,13 @@
 
 import logging
 import pathlib
+from typing import cast
 
 from fastapi import APIRouter, HTTPException, Query
 
 from istaroth.agd import localization
 from istaroth.rag import text_set
+from istaroth.rag import types as rag_types
 from istaroth.services.backend import models
 from istaroth.services.backend.dependencies import DocumentStoreSet
 from istaroth.services.backend.utils import (
@@ -18,6 +20,40 @@ from istaroth.text import types as text_types
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+_SNIPPET_CHUNK_CONTEXT = 0
+
+
+def _format_snippet(content: str) -> str:
+    return content.replace("\r\n", " ").replace("\n", " ")
+
+
+def _build_retrieve_results(
+    text_set_obj: text_set.TextSet,
+    retrieve_output: rag_types.RetrieveOutput,
+) -> list[models.LibraryRetrieveResult]:
+    results = []
+    for score, docs in retrieve_output.results:
+        if not docs:
+            continue
+        metadata = cast(rag_types.DocumentMetadata, docs[0].metadata)
+        relative_path = metadata["path"]
+        manifest_item = text_set_obj.get_manifest_item_by_relative_path(relative_path)
+        if manifest_item is None:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Missing manifest item for path: {relative_path}",
+            )
+        file_info = text_metadata_to_library_file_info(manifest_item)
+        snippet = _format_snippet(docs[0].page_content)
+        results.append(
+            models.LibraryRetrieveResult(
+                file_info=file_info,
+                snippet=snippet,
+                score=score,
+            )
+        )
+    return results
 
 
 @router.get("/api/library/categories", response_model=models.LibraryCategoriesResponse)
@@ -139,3 +175,34 @@ async def get_file(
     file_info = text_metadata_to_library_file_info(manifest_item)
 
     return models.LibraryFileResponse(file_info=file_info, content=content)
+
+
+@router.post("/api/library/retrieve", response_model=models.LibraryRetrieveResponse)
+@handle_unexpected_exception
+async def retrieve_library(
+    request: models.LibraryRetrieveRequest,
+    document_store_set: DocumentStoreSet,
+) -> models.LibraryRetrieveResponse:
+    """Retrieve library documents using BM25 keyword search only."""
+    try:
+        language_enum = localization.Language(request.language.upper())
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid language: {request.language}. Available: CHS, ENG",
+        )
+
+    try:
+        document_store = document_store_set.get_store(language_enum)
+        text_set_obj = document_store_set.get_text_set(language_enum)
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    retrieve_output = document_store.retrieve_bm25(
+        request.query, k=request.k, chunk_context=_SNIPPET_CHUNK_CONTEXT
+    )
+
+    results = _build_retrieve_results(text_set_obj, retrieve_output)
+    return models.LibraryRetrieveResponse(query=request.query, results=results)

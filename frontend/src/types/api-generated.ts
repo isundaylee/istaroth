@@ -167,6 +167,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/library/retrieve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retrieve Library
+         * @description Retrieve library documents using BM25 keyword search only.
+         */
+        post: operations["retrieve_library_api_library_retrieve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -300,6 +320,39 @@ export interface components {
         LibraryFilesResponse: {
             /** Files */
             files: components["schemas"]["LibraryFileInfo"][];
+        };
+        /**
+         * LibraryRetrieveRequest
+         * @description Request model for BM25-only library retrieval endpoint.
+         */
+        LibraryRetrieveRequest: {
+            /** Language */
+            language: string;
+            /** Query */
+            query: string;
+            /** K */
+            k: number;
+        };
+        /**
+         * LibraryRetrieveResponse
+         * @description Response model for BM25-only library retrieval endpoint.
+         */
+        LibraryRetrieveResponse: {
+            /** Query */
+            query: string;
+            /** Results */
+            results: components["schemas"]["LibraryRetrieveResult"][];
+        };
+        /**
+         * LibraryRetrieveResult
+         * @description Single retrieved library document with snippet.
+         */
+        LibraryRetrieveResult: {
+            file_info: components["schemas"]["LibraryFileInfo"];
+            /** Snippet */
+            snippet: string;
+            /** Score */
+            score: number;
         };
         /**
          * ModelsResponse
@@ -593,6 +646,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LibraryFileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retrieve_library_api_library_retrieve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LibraryRetrieveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryRetrieveResponse"];
                 };
             };
             /** @description Validation Error */

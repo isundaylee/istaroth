@@ -3,6 +3,7 @@ import { LanguageProvider } from './contexts/LanguageContext'
 import DocumentTitle from './components/DocumentTitle'
 import ErrorBoundary from './components/ErrorBoundary'
 import QueryPage from './QueryPage'
+import RetrievePage from './RetrievePage'
 import ConversationPage, { conversationPageLoader } from './ConversationPage'
 import LibraryCategoriesPage, { libraryCategoriesPageLoader } from './LibraryCategoriesPage'
 import LibraryFilesPage, { libraryFilesPageLoader } from './LibraryFilesPage'
@@ -24,6 +25,7 @@ const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       { path: "/", element: <QueryPage /> },
+      { path: "/retrieve", element: <RetrievePage /> },
       { path: "/conversation/:id", element: <ConversationPage />, loader: conversationPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/library", element: <LibraryCategoriesPage />, loader: libraryCategoriesPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/library/:category", element: <LibraryFilesPage />, loader: libraryFilesPageLoader, errorElement: <ErrorBoundary /> },
