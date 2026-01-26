@@ -9,6 +9,33 @@ import { buildUrlWithLanguage } from './utils/language'
 import { buildLibraryFilePath } from './utils/library'
 import type { LibraryRetrieveRequest, LibraryRetrieveResponse } from './types/api'
 
+const escapeRegExp = (value: string): string =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+const highlightSnippet = (snippet: string, query: string): React.ReactNode => {
+  const tokens = Array.from(new Set(query.split(/\s+/).map((token) => token.trim()).filter(Boolean)))
+  if (tokens.length === 0) {
+    return snippet
+  }
+
+  const escapedTokens = tokens.map(escapeRegExp).join('|')
+  const splitRegex = new RegExp(`(${escapedTokens})`, 'gi')
+  const matchRegex = new RegExp(`^(${escapedTokens})$`, 'i')
+
+  return snippet.split(splitRegex).map((part, index) => (
+    matchRegex.test(part)
+      ? (
+        <span
+          key={`${part}-${index}`}
+          style={{ backgroundColor: 'rgba(52, 152, 219, 0.50)' }}
+        >
+          {part}
+        </span>
+      )
+      : part
+  ))
+}
+
 function RetrievePage() {
   const t = useT()
   const { language } = useTranslation()
@@ -89,7 +116,7 @@ function RetrievePage() {
                   {result.file_info.title || t('library.noFileName')}
                 </Link>
                 <p style={{ margin: 0, color: '#5a6c7d', lineHeight: '1.6' }}>
-                  {result.snippet}
+                  {highlightSnippet(result.snippet, submittedQuery ?? '')}
                 </p>
               </div>
             </Card>
