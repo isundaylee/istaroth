@@ -21,6 +21,15 @@ repos:
         types: [text]
         exclude: ^\.pre-commit-config\.yaml$
 
+  - repo: local
+    hooks:
+      - id: eslint-frontend
+        name: eslint (frontend)
+        entry: bash -c 'cd frontend && npx eslint src/'
+        language: system
+        files: ^frontend/src/.*\.(ts|tsx)$
+        pass_filenames: false
+
   - repo: https://github.com/psf/black
     rev: 25.1.0
     hooks:

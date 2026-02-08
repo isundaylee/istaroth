@@ -13,8 +13,8 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
+# Lint and build the application
+RUN npm run lint && npm run build
 
 # Production stage with unprivileged nginx
 FROM nginxinc/nginx-unprivileged:alpine
