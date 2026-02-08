@@ -6,6 +6,7 @@ import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
 import Card from './components/Card'
 import ErrorDisplay from './components/ErrorDisplay'
+import { buildUrlWithLanguage } from './utils/language'
 import { buildLibraryFilePath } from './utils/library'
 import type { LibraryRetrieveRequest, LibraryRetrieveResponse } from './types/api'
 
