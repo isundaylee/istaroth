@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useT, useTranslation } from './contexts/LanguageContext'
+import { AppLink } from './components/AppLink'
 import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
 import Card from './components/Card'
 import ErrorDisplay from './components/ErrorDisplay'
-import { buildUrlWithLanguage } from './utils/language'
 import { buildLibraryFilePath } from './utils/library'
 import type { LibraryRetrieveRequest, LibraryRetrieveResponse } from './types/api'
 
@@ -150,15 +150,11 @@ function RetrievePage() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
         {results.map((result) => {
-          const linkPath = buildUrlWithLanguage(
-            buildLibraryFilePath(result.file_info),
-            location.search,
-            language
-          )
+          const linkPath = buildLibraryFilePath(result.file_info)
           return (
             <Card key={`${result.file_info.category}-${result.file_info.id}`} style={{ margin: 0 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <Link
+                <AppLink
                   to={linkPath}
                   style={{
                     fontSize: '1.1rem',
@@ -168,7 +164,7 @@ function RetrievePage() {
                   }}
                 >
                   {result.file_info.title || t('library.noFileName')}
-                </Link>
+                </AppLink>
                 <p style={{ margin: 0, color: '#5a6c7d', lineHeight: '1.6' }}>
                   {highlightSnippet(result.snippet, submittedQuery ?? '')}
                 </p>
