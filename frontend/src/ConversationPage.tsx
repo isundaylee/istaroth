@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Link, useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
+import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import html2canvas from 'html2canvas'
 import { useT } from './contexts/LanguageContext'
 import QueryForm from './QueryForm'
 import Card from './components/Card'
 import Navigation from './components/Navigation'
 import CitationRenderer from './components/CitationRenderer'
+import { AppLink } from './components/AppLink'
 import type { ConversationResponse } from './types/api'
 
 interface LoaderData {
@@ -187,9 +188,9 @@ function ConversationPage() {
               <p>{t('conversation.metadata.model')}: {conversation.model}</p>
               {conversation.generation_time_seconds && <p>{t('conversation.metadata.generationTime')}: {conversation.generation_time_seconds.toFixed(2)}{t('conversation.metadata.seconds')}</p>}
             </div>
-            <Link to="/" className="back-link">
+            <AppLink to="/" className="back-link">
               ← {t('common.back')}
-            </Link>
+            </AppLink>
           </div>
         </div>
       </main>

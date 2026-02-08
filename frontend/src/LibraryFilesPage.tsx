@@ -1,11 +1,12 @@
 import React from 'react'
-import { useNavigate, useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
+import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import { useT } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import Card from './components/Card'
 import PageCard from './components/PageCard'
 import LibraryHeader from './components/LibraryHeader'
 import { getLanguageFromUrl } from './utils/language'
+import { useAppNavigate } from './hooks/useAppNavigate'
 import type { LibraryFilesResponse, LibraryFileInfo } from './types/api'
 
 interface LoaderData {
@@ -33,7 +34,7 @@ export async function libraryFilesPageLoader({ params, request }: LoaderFunction
 
 function LibraryFilesPage() {
   const t = useT()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { files, category } = useLoaderData() as LoaderData
 
   const translateCategory = (category: string): string => {

@@ -1,7 +1,7 @@
-import { Link } from 'react-router-dom'
 import { useT } from './contexts/LanguageContext'
 import Card from './components/Card'
 import LanguageSwitcher from './components/LanguageSwitcher'
+import { AppLink } from './components/AppLink'
 
 function NotFoundPage() {
   const t = useT()
@@ -23,7 +23,7 @@ function NotFoundPage() {
             <p style={{ margin: '1rem 0', color: '#666' }}>
               {t('notFound.message')}
             </p>
-            <Link
+            <AppLink
               to="/"
               className="back-link"
               style={{
@@ -40,7 +40,7 @@ function NotFoundPage() {
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#007bff'}
             >
               {t('notFound.backButton')}
-            </Link>
+            </AppLink>
           </div>
         </Card>
       </main>

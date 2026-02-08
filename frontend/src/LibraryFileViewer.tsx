@@ -1,4 +1,4 @@
-import { useNavigate, useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
+import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import { useT } from './contexts/LanguageContext'
@@ -7,6 +7,7 @@ import PageCard from './components/PageCard'
 import LibraryHeader from './components/LibraryHeader'
 import NavButton from './components/NavButton'
 import { getLanguageFromUrl } from './utils/language'
+import { useAppNavigate } from './hooks/useAppNavigate'
 import type { LibraryFileResponse, LibraryFilesResponse, LibraryFileInfo } from './types/api'
 
 interface LoaderData {
@@ -57,7 +58,7 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
 
 function LibraryFileViewer() {
   const t = useT()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { fileContent, fileTitle, previousFile, nextFile, category } = useLoaderData() as LoaderData
 
   const translateCategory = (category: string): string => {

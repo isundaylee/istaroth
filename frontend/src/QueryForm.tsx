@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useT, useTranslation } from './contexts/LanguageContext'
+import { useAppNavigate } from './hooks/useAppNavigate'
 import type { QueryRequest, QueryResponse, ErrorResponse, ModelsResponse, ExampleQuestionResponse } from './types/api'
 import ErrorDisplay from './components/ErrorDisplay'
 
@@ -9,7 +9,7 @@ interface QueryFormProps {
 }
 
 function QueryForm({ currentQuestion }: QueryFormProps = {}) {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const t = useT()
   const { language } = useTranslation()
   const [question, setQuestion] = useState('')

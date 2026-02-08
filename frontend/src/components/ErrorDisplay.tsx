@@ -1,6 +1,6 @@
-import { Link } from 'react-router-dom'
 import { useT } from '../contexts/LanguageContext'
 import Navigation from './Navigation'
+import { AppLink } from './AppLink'
 
 interface ErrorDisplayProps {
   error: string
@@ -22,9 +22,9 @@ function ErrorDisplay({
       <h3>{t('common.error')}</h3>
       <p>{error}</p>
       {showBackLink && (
-        <Link to={backLinkTo} className="back-link">
+        <AppLink to={backLinkTo} className="back-link">
           {t('common.back')}
-        </Link>
+        </AppLink>
       )}
     </div>
   )

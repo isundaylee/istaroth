@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useAppNavigate } from '../hooks/useAppNavigate'
 
 interface LibraryHeaderProps {
   title: string
@@ -8,7 +8,7 @@ interface LibraryHeaderProps {
 }
 
 function LibraryHeader({ title, backPath, backText }: LibraryHeaderProps) {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const [isHovered, setIsHovered] = useState(false)
 
   const baseStyle: React.CSSProperties = {

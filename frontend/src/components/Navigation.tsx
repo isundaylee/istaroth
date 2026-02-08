@@ -1,5 +1,6 @@
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useT } from '../contexts/LanguageContext'
+import { AppLink } from './AppLink'
 import LanguageSwitcher from './LanguageSwitcher'
 
 function Navigation() {
@@ -33,7 +34,7 @@ function Navigation() {
         {navLinks.map(({ path, key }) => {
           const active = isActive(path)
           return (
-            <Link
+            <AppLink
               key={path}
               to={path}
               style={{
@@ -63,7 +64,7 @@ function Navigation() {
               }}
             >
               {t(`navigation.${key}`)}
-            </Link>
+            </AppLink>
           )
         })}
       </div>
