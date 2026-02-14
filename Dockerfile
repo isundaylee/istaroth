@@ -50,7 +50,7 @@ COPY --chown=app:app alembic.ini ./alembic.ini
 
 
 # Set environment variables
-ENV ISTAROTH_DOCUMENT_STORE=/data/checkpoint
+ENV ISTAROTH_DOCUMENT_STORE_SET=CHS:/data/checkpoint/chs
 ENV ISTAROTH_TRAINING_DEVICE=cpu
 ENV HF_HOME=/data/models/hf
 

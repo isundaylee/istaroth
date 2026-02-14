@@ -134,7 +134,7 @@ def rag_env(
 ) -> Generator[pathlib.Path, None, None]:
     """Set up RAG environment variables."""
     checkpoint_dir = tmp_path / "checkpoint"
-    monkeypatch.setenv("ISTAROTH_DOCUMENT_STORE", str(checkpoint_dir))
+    monkeypatch.setenv("ISTAROTH_DOCUMENT_STORE_SET", f"CHS:{checkpoint_dir}")
     monkeypatch.setenv("ISTAROTH_TRAINING_DEVICE", "cpu")
     yield checkpoint_dir
 

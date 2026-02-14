@@ -18,7 +18,13 @@ import langsmith as ls
 
 from istaroth import llm_manager, utils
 from istaroth.agd import localization
-from istaroth.rag import document_store, output_rendering, pipeline, retrieval_diff
+from istaroth.rag import (
+    document_store,
+    document_store_set,
+    output_rendering,
+    pipeline,
+    retrieval_diff,
+)
 from istaroth.rag.eval import dataset
 
 logger = logging.getLogger(__name__)
@@ -42,12 +48,16 @@ def _get_files_to_process(text_path: pathlib.Path) -> list[pathlib.Path]:
     return files
 
 
-def _load_or_create_store() -> document_store.DocumentStore:
-    """Load existing document store or create new one."""
-    store = document_store.DocumentStore.from_env()
+def _load_store() -> tuple[document_store.DocumentStore, localization.Language]:
+    """Load document store using default language from env config."""
+    store_set = document_store_set.DocumentStoreSet.from_env()
+    languages = store_set.available_languages
+    assert languages, "No document stores configured in ISTAROTH_DOCUMENT_STORE_SET."
+    language = languages[0]
+    store = store_set.get_store(language)
     if store.num_documents > 0:
         logger.info("Loaded store with %d existing documents", store.num_documents)
-    return store
+    return store, language
 
 
 @click.group()
@@ -124,7 +134,7 @@ def retrieve(
         "chain",
         inputs={"query": query, "k": k, "chunk_context": chunk_context},
     ) as rt:
-        store = _load_or_create_store()
+        store, _ = _load_store()
 
         if store.num_documents == 0:
             logger.error("No documents in store. Use 'add-documents' command first.")
@@ -160,7 +170,7 @@ def retrieve(
 def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
     """Evaluate retrieval on a fixed dataset and save into the output path."""
 
-    store = _load_or_create_store()
+    store, _ = _load_store()
 
     for query in dataset.RETRIEVAL_QUESTIONS:
         with ls.trace(
@@ -184,7 +194,7 @@ def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
 @click.option("--chunk-context", default=10)
 def query(question: str, *, k: int, chunk_context: int) -> None:
     """Answer a question using RAG pipeline."""
-    store = _load_or_create_store()
+    store, language = _load_store()
 
     if store.num_documents == 0:
         logger.error("No documents in store.")
@@ -198,7 +208,7 @@ def query(question: str, *, k: int, chunk_context: int) -> None:
 
     rag = pipeline.RAGPipeline(
         store,
-        language=localization.Language.CHS,
+        language=language,
         llm=lm.get_default_llm(),
         preprocessing_llm=lm.get_llm("gemini-2.5-flash-lite"),
     )

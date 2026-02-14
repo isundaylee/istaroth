@@ -3,7 +3,6 @@
 import hashlib
 import json
 import logging
-import os
 import pathlib
 import pickle
 from typing import cast
@@ -114,17 +113,6 @@ class _BM25Store:
                 outputs={"documents": [sd.to_langsmith_output() for sd in scored_docs]}
             )
             return scored_docs
-
-
-def get_document_store_path() -> pathlib.Path:
-    """Get document store path from ISTAROTH_DOCUMENT_STORE environment variable."""
-    path_str = os.getenv("ISTAROTH_DOCUMENT_STORE")
-    if not path_str:
-        raise ValueError(
-            "ISTAROTH_DOCUMENT_STORE environment variable is required. "
-            "Please set it to the path where the document database is stored."
-        )
-    return pathlib.Path(path_str)
 
 
 def chunk_documents(
@@ -471,49 +459,6 @@ class DocumentStore:
     def num_documents(self) -> int:
         """Number of documents in the store."""
         return sum(len(docs) for docs in self._documents.values())
-
-    @classmethod
-    def from_env(cls) -> "DocumentStore":
-        """Create DocumentStore from ISTAROTH_DOCUMENT_STORE environment variable.
-
-        Loads existing store if path exists, otherwise creates new empty store.
-        """
-        with utils.timer("document store initialization from environment"):
-            store_path = get_document_store_path()
-
-            query_transformer = query_transform.QueryTransformer.from_env()
-            reranker = rerank.Reranker.from_env()
-
-            if store_path.exists():
-                logger.info("Found existing document store at %s", store_path)
-                result = cls.load(
-                    store_path, query_transformer=query_transformer, reranker=reranker
-                )
-            else:
-                logger.info("Creating empty document store (no existing store found)")
-
-                # Create empty store based on environment variable
-                vs: vector_store.VectorStore
-                match (vst := vector_store.get_vector_store_type_from_env()):
-                    case vector_store.VectorStoreType.CHROMA:
-                        vs = vector_store.ChromaVectorStore.build([])
-                    case vector_store.VectorStoreType.CHROMA_EXTERNAL:
-                        raise ValueError(
-                            "Cannot create external Chroma store from env."
-                        )
-                    case _:
-                        # TODO figure out why assert_never did not work here
-                        assert False, f"Unknown vector store type: {vst}"
-
-                result = cls(
-                    vs,
-                    _BM25Store.build([]),
-                    query_transformer,
-                    reranker,
-                    {},
-                )
-
-            return result
 
     def get_chunk(self, file_id: str, chunk_index: int) -> Document | None:
         """Get a specific chunk from a file."""
