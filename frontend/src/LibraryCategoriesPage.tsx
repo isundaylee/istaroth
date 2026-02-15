@@ -48,8 +48,9 @@ function LibraryCategoriesPage() {
               className="category-grid"
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '1.5rem'
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '1rem',
+                maxWidth: '100%'
               }}
             >
               {categories.map((category) => (
@@ -71,21 +72,21 @@ function LibraryCategoriesPage() {
                       }
                     }}
                     style={{
-                      aspectRatio: '1',
-                      minHeight: 0
+                      minHeight: '80px'
                     }}
                   >
                     <Card
                       style={{
                         cursor: 'pointer',
                         transition: 'all 0.2s',
-                        padding: '1.5rem',
+                        padding: '1rem 1.5rem',
                         margin: 0,
                         height: '100%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        borderRadius: '12px'
+                        borderRadius: '12px',
+                        minHeight: '80px'
                       }}
                     >
                       <h3 style={{ margin: 0, textAlign: 'center', fontSize: '1.1rem', color: '#2c3e50' }}>
