@@ -19,6 +19,8 @@ Pre-commit hooks are configured with:
 - Standard pre-commit hooks (trailing whitespace, YAML validation, etc.)
 
 ### Commands
+Activate the virtual environment first: `source env/bin/activate`
+
 - Install dependencies: `pip install -r requirements.txt`
 - Compile requirements: `pip-compile requirements.in`
 - Sync dependencies: `pip-sync requirements.txt`
@@ -63,7 +65,7 @@ istaroth/
 
 ## Import Conventions
 - ALWAYS import istaroth.agd.types aliased as agd_types outside istaroth.agd; but import is normally as from istaroth.agd import types when inside the istaroth.agd package.
-- ALWAYS use from packaeg.subpackage import module import syntax; e.g. from istaroth.agd import processing
+- ALWAYS use from package.subpackage import module import syntax; e.g. from istaroth.agd import processing
 
 ## Functional Programming Guidelines
 - Pass arguments that are not primary inputs to the function itself but rather toolkit objects (e.g. DataRepo) as kw-only args
@@ -73,6 +75,33 @@ istaroth/
 
 ## Script Development Guidelines
 - ALWAYS include a shebang and make the script executable for files under scripts/
+
+## Running the Application
+
+### Environment Setup
+1. Download a checkpoint release from the GitHub release page and extract to `tmp/checkpoints/chs`
+2. Create `istaroth/.env`:
+```bash
+export ISTAROTH_DATABASE_URI="sqlite+aiosqlite:///tmp/istaroth.db"
+export ISTAROTH_DOCUMENT_STORE_SET="chs:tmp/checkpoints/chs"
+export ISTAROTH_TRAINING_DEVICE="cpu"
+export ISTAROTH_AVAILABLE_MODELS="all"
+```
+
+### Frontend
+```bash
+cd istaroth/frontend
+npm install  # First time only
+npm run dev -- --host  # Port 5173
+```
+
+### Backend
+```bash
+cd istaroth
+source env/bin/activate
+source .env
+python -m istaroth.services.backend --host 0.0.0.0 --port 8000
+```
 
 ## LangSmith Tracing
 The RAG pipeline supports LangSmith tracing for debugging and monitoring. Required environment variables:
@@ -87,5 +116,5 @@ Tracing is automatically enabled when all required environment variables are set
 
 ## Development Conventions
 - ALWAYS invoke mypy as `env/bin/mypy`
-- ALWAYS activate the `env/` virtualenv before running commands.
-- you can source `.source_me` to get env vars if needed.
+- ALWAYS invoke python as `env/bin/python`
+- ALWAYS activate the `env/` virtualenv before running commands; you can source `.env` to get env vars if needed.
