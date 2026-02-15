@@ -21,7 +21,7 @@ Special thanks to Dimbreath for his wonderful work on AnimeGameData!
 
 ### Checkpoint
 
-A checkpoint currently mainly consists of the vectorstore and various other data stores containing cleaned game texts. You can either grab a pre-trained checkpoint from the [release page](https://github.com/isundaylee/istaroth/releases), or follow the sections below to train your own. If you grab a pre-trained checkpoint, be sure to use it with the corresponding Git commit hash. Currently pre-trained checkpoints are only provided for the Chinese language.
+A checkpoint currently mainly consists of the vectorstore and various other data stores containing cleaned game texts. You can either grab a pre-trained checkpoint from the [release page](https://github.com/isundaylee/istaroth/releases), or follow the sections below to train your own. If you grab a pre-trained checkpoint, be sure to use it with the corresponding Git commit hash.
 
 #### Checkpoint Training
 
@@ -61,11 +61,9 @@ python -m istaroth.services.backend --host 0.0.0.0 --port 8000
 
 ## MCP Server
 
-Istaroth provides an MCP (Model Context Protocol) server that enables Claude to query the RAG system directly. Three deployment options are available:
+Istaroth provides an MCP (Model Context Protocol) server that enables Claude to query the RAG system directly. For the list of MCP tools and their parameters, see `scripts/mcp_server.py`. See `scripts/mcp_wrapper.template.sh` for a list of env vars used to configure the MCP server. Three deployment options are available below.
 
-For the list of MCP tools and their parameters, see `scripts/mcp_server.py`.
-
-### Quick Start with Docker
+### Option 1: Quick Start with Docker
 
 Launch a prebuilt server with a single command:
 
@@ -73,11 +71,10 @@ Launch a prebuilt server with a single command:
 docker run -p 8000:8000 isundaylee/istaroth:latest
 ```
 
-- Defaults to Chinese checkpoint on first startup
-- Customize with `ISTAROTH_CHECKPOINT_URL` environment variable
+- Defaults to Chinese checkpoint on first startup - customize with `ISTAROTH_CHECKPOINT_URL` environment variable.
 - Follow [Remote Setup](#remote-mcp-server-httpwebsocket) instructions below to integrate with Claude
 
-### Local MCP Server (stdio)
+### Option 2: Local MCP Server (stdio)
 
 ```bash
 # Copy and configure the wrapper
@@ -90,7 +87,7 @@ claude mcp add istaroth /path/to/istaroth/scripts/mcp_wrapper.sh
 # Restart Claude Code
 ```
 
-### Remote MCP Server (HTTP/WebSocket)
+### Option 3: Remote MCP Server (HTTP/WebSocket)
 
 ```bash
 # Start the server
@@ -102,13 +99,6 @@ claude mcp add istaroth --transport=http http://127.0.0.1:8000/mcp/
 # Restart Claude Code
 ```
 
-### MCP Environment Variables
-
-The MCP server uses the following environment variables:
-
-- `ISTAROTH_DOCUMENT_STORE_SET`: Comma-separated list of language checkpoints, e.g. `CHS:/path/to/chs_checkpoint,ENG:/path/to/eng_checkpoint`.
-- `ISTAROTH_MCP_LANGUAGE`: Language for queries, must be one of the supported languages (currently `CHS` or `ENG`).
-
 ## Example Query
 
-See `examples` folder in the repo.
+See `examples` folder in the repo for some example conversations of using Istaroth MCP server with local Claude Code.
