@@ -18,8 +18,6 @@ Special thanks to Dimbreath for his wonderful work on AnimeGameData!
 
 - Clone repository and install dependencies: `pip install -r requirements.txt`
 - Install pre-commit hooks (if you plan on doing development): `pre-commit install`
-- Set required environment variable: `export ISTAROTH_DOCUMENT_STORE_SET="CHS:/path/to/document/store"`
-- Optional LangSmith tracing: Set `LANGSMITH_API_KEY`, `LANGCHAIN_PROJECT`, `LANGCHAIN_TRACING_V2="true"`
 
 ### Checkpoint
 
@@ -32,13 +30,6 @@ A checkpoint currently mainly consists of the vectorstore and various other data
     - `export AGD_LANGUAGE="CHS"` (or `ENG` for English)
 - Process AGD data: `scripts/agd_tools.py generate-all /path/to/text/files/output` to extract and clean text files
 - Build a checkpoint: `scripts/rag_tools.py build /path/to/text/files/output /path/to/checkpoint/output`
-
-### Running Queries
-
-- Set some env vars:
-    - `GOOGLE_API_KEY` to a Google API key with Gemini API enabled
-    - `ISTAROTH_TRAINING_DEVICE=cpu` if you don't have CUDA
-- Retrieve documents: `scripts/rag_tools.py retrieve "璃月港的历史" -k 3 -c 0`
 
 ## Web UI
 
