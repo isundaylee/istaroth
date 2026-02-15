@@ -1,6 +1,7 @@
 import { useT } from './contexts/LanguageContext'
 import Card from './components/Card'
 import LanguageSwitcher from './components/LanguageSwitcher'
+import PageTitle from './components/PageTitle'
 import { AppLink } from './components/AppLink'
 
 function NotFoundPage() {
@@ -19,7 +20,9 @@ function NotFoundPage() {
         <Card>
           <div style={{ textAlign: 'center', padding: '2rem 0' }}>
             <h1 style={{ fontSize: '4rem', margin: '0', color: '#666' }}>{t('notFound.title')}</h1>
-            <h2 style={{ margin: '1rem 0', color: '#333' }}>{t('notFound.heading')}</h2>
+            <PageTitle as="h2">
+              {t('notFound.heading')}
+            </PageTitle>
             <p style={{ margin: '1rem 0', color: '#666' }}>
               {t('notFound.message')}
             </p>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAppNavigate } from '../hooks/useAppNavigate'
+import PageTitle from './PageTitle'
 
 interface LibraryHeaderProps {
   title: string
@@ -17,9 +18,10 @@ function LibraryHeader({ title, backPath, backText }: LibraryHeaderProps) {
     borderRadius: '4px',
     backgroundColor: 'white',
     cursor: 'pointer',
-    position: 'absolute',
-    right: 0,
-    transition: 'all 0.2s ease'
+    transition: 'all 0.2s ease',
+    whiteSpace: 'nowrap',
+    fontSize: '0.9rem',
+    minWidth: 'fit-content'
   }
 
   const hoverStyle: React.CSSProperties = {
@@ -27,19 +29,22 @@ function LibraryHeader({ title, backPath, backText }: LibraryHeaderProps) {
     borderColor: '#ccc'
   }
 
+  const backButton = (
+    <button
+      onClick={() => navigate(backPath)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      style={{ ...baseStyle, ...(isHovered ? hoverStyle : {}) }}
+    >
+      ← {backText}
+    </button>
+  )
+
   return (
-    <div className="library-header" style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-      <h1 style={{ margin: 0, fontSize: '2.5rem', color: '#2c3e50', textAlign: 'center' }}>
+    <div className="library-header">
+      <PageTitle rightElement={backButton}>
         {title}
-      </h1>
-      <button
-        onClick={() => navigate(backPath)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        style={{ ...baseStyle, ...(isHovered ? hoverStyle : {}) }}
-      >
-        ← {backText}
-      </button>
+      </PageTitle>
     </div>
   )
 }

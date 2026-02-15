@@ -2,6 +2,7 @@ import { useT } from './contexts/LanguageContext'
 import QueryForm from './QueryForm'
 import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
+import PageTitle from './components/PageTitle'
 
 function QueryPage() {
   const t = useT()
@@ -18,14 +19,13 @@ function QueryPage() {
           marginBottom: '40px'
         }}>
           <PageCard>
-            <h1 style={{ fontSize: '2.5rem', color: '#2c3e50', marginBottom: '15px' }}>
+            <PageTitle>
               {t('query.title')}
-            </h1>
+            </PageTitle>
             <p style={{
               fontSize: '1.1rem',
               color: '#5a6c7d',
               lineHeight: '1.6',
-              marginBottom: '25px',
               maxWidth: '600px',
               margin: '0 auto 25px auto'
             }}>

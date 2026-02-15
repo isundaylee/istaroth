@@ -4,6 +4,7 @@ import { useT } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import Card from './components/Card'
 import PageCard from './components/PageCard'
+import PageTitle from './components/PageTitle'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import type { LibraryCategoriesResponse } from './types/api'
@@ -39,9 +40,9 @@ function LibraryCategoriesPage() {
       <Navigation />
       <main className="main">
         <PageCard>
-          <h1 style={{ marginBottom: '2rem', textAlign: 'center', fontSize: '2.5rem', color: '#2c3e50' }}>
+          <PageTitle>
             {t('library.title')}
-          </h1>
+          </PageTitle>
 
           <div>
             <div
