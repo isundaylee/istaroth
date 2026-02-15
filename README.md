@@ -36,8 +36,9 @@ A checkpoint currently mainly consists of the vectorstore and various other data
 You can either download a checkpoint from the [release page](https://github.com/isundaylee/istaroth/releases) or train your own as described above. After obtaining a checkpoint (e.g., extracted to `tmp/checkpoints/chs`), configure your environment:
 
 ```bash
+cp .env.common.example .env.common
 cp .env.web.example .env.web
-# Edit .env.web to set your environment variables
+# Edit .env.common and .env.web to set your environment variables
 ```
 
 **Frontend:**
@@ -58,7 +59,7 @@ python -m istaroth.services.backend --host 0.0.0.0 --port 8000
 
 ## MCP Server
 
-Istaroth provides an MCP (Model Context Protocol) server that enables Claude to query the RAG system directly. For the list of MCP tools and their parameters, see `scripts/mcp_server.py`. See `.env.mcp.example` for the list of env vars used to configure the MCP server. Three deployment options are available below.
+Istaroth provides an MCP (Model Context Protocol) server that enables Claude to query the RAG system directly. For the list of MCP tools and their parameters, see `scripts/mcp_server.py`. See `.env.common.example` and `.env.mcp.example` for the env vars used to configure the MCP server. Three deployment options are available below.
 
 ### Option 1: Quick Start with Docker
 
@@ -75,8 +76,9 @@ docker run -p 8000:8000 isundaylee/istaroth:latest
 
 ```bash
 # Configure environment variables
+cp .env.common.example .env.common
 cp .env.mcp.example .env.mcp
-# Edit .env.mcp to set your environment variables
+# Edit .env.common and .env.mcp to set your environment variables
 
 # Add to Claude Code
 claude mcp add istaroth /path/to/istaroth/scripts/mcp_wrapper.sh
