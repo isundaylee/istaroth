@@ -44,7 +44,7 @@ cp .env.web.example .env.web
 **Frontend:**
 
 ```bash
-cd istaroth/frontend
+cd frontend
 npm install  # First time only
 npm run dev -- --host  # Port 5173
 ```
