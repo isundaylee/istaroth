@@ -4,6 +4,7 @@ import { useT, useTranslation } from './contexts/LanguageContext'
 import { AppLink } from './components/AppLink'
 import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
+import PageTitle from './components/PageTitle'
 import Card from './components/Card'
 import ErrorDisplay from './components/ErrorDisplay'
 import { buildUrlWithLanguage } from './utils/language'
@@ -182,9 +183,9 @@ function RetrievePage() {
       <Navigation />
       <main className="main">
         <PageCard>
-          <h1 style={{ marginBottom: '1.5rem', textAlign: 'center', fontSize: '2.2rem', color: '#2c3e50' }}>
+          <PageTitle>
             {t('retrieve.title')}
-          </h1>
+          </PageTitle>
           <form onSubmit={handleSubmit} className="query-form">
             <div className="input-row">
               <input
