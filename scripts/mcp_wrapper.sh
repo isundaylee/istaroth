@@ -1,0 +1,5 @@
+#!/bin/bash
+cd "$(dirname "$0")/.."
+source .env.mcp
+source env/bin/activate
+scripts/mcp_server.py

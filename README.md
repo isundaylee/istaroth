@@ -33,13 +33,11 @@ A checkpoint currently mainly consists of the vectorstore and various other data
 
 ## Web UI
 
-You can either download a checkpoint from the [release page](https://github.com/isundaylee/istaroth/releases) or train your own as described above. After obtaining a checkpoint (e.g., extracted to `tmp/checkpoints/chs`), configure your environment (create `istaroth/.env`):
+You can either download a checkpoint from the [release page](https://github.com/isundaylee/istaroth/releases) or train your own as described above. After obtaining a checkpoint (e.g., extracted to `tmp/checkpoints/chs`), configure your environment:
 
 ```bash
-export ISTAROTH_DATABASE_URI="sqlite+aiosqlite:///tmp/istaroth.db"
-export ISTAROTH_DOCUMENT_STORE_SET="chs:tmp/checkpoints/chs"
-export ISTAROTH_TRAINING_DEVICE="cpu"
-export ISTAROTH_AVAILABLE_MODELS="all"
+cp .env.web.example .env.web
+# Edit .env.web to set your environment variables
 ```
 
 **Frontend:**
@@ -53,15 +51,14 @@ npm run dev -- --host  # Port 5173
 **Backend:**
 
 ```bash
-cd istaroth
 source env/bin/activate
-source .env
+source .env.web
 python -m istaroth.services.backend --host 0.0.0.0 --port 8000
 ```
 
 ## MCP Server
 
-Istaroth provides an MCP (Model Context Protocol) server that enables Claude to query the RAG system directly. For the list of MCP tools and their parameters, see `scripts/mcp_server.py`. See `scripts/mcp_wrapper.template.sh` for a list of env vars used to configure the MCP server. Three deployment options are available below.
+Istaroth provides an MCP (Model Context Protocol) server that enables Claude to query the RAG system directly. For the list of MCP tools and their parameters, see `scripts/mcp_server.py`. See `.env.mcp.example` for the list of env vars used to configure the MCP server. Three deployment options are available below.
 
 ### Option 1: Quick Start with Docker
 
@@ -77,9 +74,9 @@ docker run -p 8000:8000 isundaylee/istaroth:latest
 ### Option 2: Local MCP Server (stdio)
 
 ```bash
-# Copy and configure the wrapper
-cp scripts/mcp_wrapper.template.sh scripts/mcp_wrapper.sh
-# Edit scripts/mcp_wrapper.sh to set environment variables
+# Configure environment variables
+cp .env.mcp.example .env.mcp
+# Edit .env.mcp to set your environment variables
 
 # Add to Claude Code
 claude mcp add istaroth /path/to/istaroth/scripts/mcp_wrapper.sh

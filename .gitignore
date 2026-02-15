@@ -135,6 +135,8 @@ celerybeat.pid
 
 # Environments
 .env
+.env.mcp
+.env.web
 .envrc
 .venv
 env/
@@ -214,7 +216,6 @@ istaroth.code-workspace
 
 /tmp
 /claude-prompts
-scripts/mcp_wrapper.sh
 
 # Helm local values files
 helm/*/values-local.yaml
