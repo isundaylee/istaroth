@@ -30,7 +30,8 @@ A checkpoint currently mainly consists of the vectorstore and various other data
 - Set some env vars:
     - `export AGD_PATH="/path/to/AnimeGameData"`
     - `export AGD_LANGUAGE="CHS"` (or `ENG` for English)
-- Process AGD data: `scripts/agd_tools.py generate-all /path/to/text/files` to extract and clean text files
+- Process AGD data: `scripts/agd_tools.py generate-all /path/to/text/files/output` to extract and clean text files
+- Build a checkpoint: `scripts/rag_tools.py build /path/to/text/files/output /path/to/checkpoint/output`
 
 ### Running Queries
 
@@ -39,9 +40,39 @@ A checkpoint currently mainly consists of the vectorstore and various other data
     - `ISTAROTH_TRAINING_DEVICE=cpu` if you don't have CUDA
 - Retrieve documents: `scripts/rag_tools.py retrieve "璃月港的历史" -k 3 -c 0`
 
+## Web UI
+
+You can either download a checkpoint from the [release page](https://github.com/isundaylee/istaroth/releases) or train your own as described above. After obtaining a checkpoint (e.g., extracted to `tmp/checkpoints/chs`), configure your environment (create `istaroth/.env`):
+
+```bash
+export ISTAROTH_DATABASE_URI="sqlite+aiosqlite:///tmp/istaroth.db"
+export ISTAROTH_DOCUMENT_STORE_SET="chs:tmp/checkpoints/chs"
+export ISTAROTH_TRAINING_DEVICE="cpu"
+export ISTAROTH_AVAILABLE_MODELS="all"
+```
+
+**Frontend:**
+
+```bash
+cd istaroth/frontend
+npm install  # First time only
+npm run dev -- --host  # Port 5173
+```
+
+**Backend:**
+
+```bash
+cd istaroth
+source env/bin/activate
+source .env
+python -m istaroth.services.backend --host 0.0.0.0 --port 8000
+```
+
 ## MCP Server
 
 Istaroth provides an MCP (Model Context Protocol) server that enables Claude to query the RAG system directly. Three deployment options are available:
+
+For the list of MCP tools and their parameters, see `scripts/mcp_server.py`.
 
 ### Quick Start with Docker
 
@@ -86,19 +117,6 @@ The MCP server uses the following environment variables:
 
 - `ISTAROTH_DOCUMENT_STORE_SET`: Comma-separated list of language checkpoints, e.g. `CHS:/path/to/chs_checkpoint,ENG:/path/to/eng_checkpoint`.
 - `ISTAROTH_MCP_LANGUAGE`: Language for queries, must be one of the supported languages (currently `CHS` or `ENG`).
-
-### Usage
-
-Once configured, you can query the Istaroth knowledge base directly in Claude using natural language. The MCP server provides two tools:
-
-**`retrieve`** - Search for relevant documents
-- Query the knowledge base with natural language questions
-- Best for finding documents related to characters, lore, regions, and storylines
-- Returns matching document excerpts with file IDs for detailed access
-
-**`get_file_content`** - Get complete file contents
-- Retrieve full content from specific files using their file ID
-- Use after `retrieve` to get complete context from interesting files
 
 ## Example Query
 

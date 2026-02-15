@@ -78,30 +78,7 @@ istaroth/
 
 ## Running the Application
 
-### Environment Setup
-1. Download a checkpoint release from the GitHub release page and extract to `tmp/checkpoints/chs`
-2. Create `istaroth/.env`:
-```bash
-export ISTAROTH_DATABASE_URI="sqlite+aiosqlite:///tmp/istaroth.db"
-export ISTAROTH_DOCUMENT_STORE_SET="chs:tmp/checkpoints/chs"
-export ISTAROTH_TRAINING_DEVICE="cpu"
-export ISTAROTH_AVAILABLE_MODELS="all"
-```
-
-### Frontend
-```bash
-cd istaroth/frontend
-npm install  # First time only
-npm run dev -- --host  # Port 5173
-```
-
-### Backend
-```bash
-cd istaroth
-source env/bin/activate
-source .env
-python -m istaroth.services.backend --host 0.0.0.0 --port 8000
-```
+See the [Web UI section](README.md#web-ui) in the README for environment setup and how to launch the backend and frontend.
 
 ## LangSmith Tracing
 The RAG pipeline supports LangSmith tracing for debugging and monitoring. Required environment variables:
