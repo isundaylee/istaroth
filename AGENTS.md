@@ -87,4 +87,5 @@ Tracing is automatically enabled when all required environment variables are set
 
 ## Development Conventions
 - ALWAYS invoke mypy as `env/bin/mypy`
-- ALWAYS invoke python as `env/bin/python`; you can source `.source_me` to get env vars if needed.
+- ALWAYS activate the `env/` virtualenv before running commands.
+- you can source `.source_me` to get env vars if needed.

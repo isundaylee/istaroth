@@ -40,7 +40,7 @@ _COMMON_FIELD_MAPPINGS = {
     "ILHDNJDDEOP": "id",
     "CBBBCAKOFGO": "descTextMapHash",
     "MMOEEOFGHHG": "titleTextMapHash",
-    "HCJHEADFCAO": "chapterId",
+    "IBNCKLKHAKG": "chapterId",
     "GFLHMKOOHHA": "subQuests",
     "IBEGAHMEABP": "talks",
     "KCMPGABPPOD": "subId",

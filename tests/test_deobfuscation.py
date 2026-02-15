@@ -24,6 +24,7 @@ def test_deobfuscate_quest_data(data_repo: repo.DataRepo) -> None:
     assert deobfuscated_data["descTextMapHash"] == 911637991
     assert deobfuscated_data["titleTextMapHash"] == 492421553
     assert deobfuscated_data["chapterId"] == 1101
+    assert deobfuscated_data["resId"] == 1004
     assert len(deobfuscated_data["subQuests"]) > 0
     assert deobfuscated_data["subQuests"][0]["subId"] == 100000
     assert deobfuscated_data["subQuests"][0]["order"] == 3
