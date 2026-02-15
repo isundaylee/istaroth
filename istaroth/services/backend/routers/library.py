@@ -21,8 +21,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-_SNIPPET_CHUNK_CONTEXT = 0
-
 
 def _format_snippet(content: str) -> str:
     return content.replace("\r\n", " ").replace("\n", " ")
@@ -183,7 +181,7 @@ async def retrieve_library(
     request: models.LibraryRetrieveRequest,
     document_store_set: DocumentStoreSet,
 ) -> models.LibraryRetrieveResponse:
-    """Retrieve library documents using BM25 keyword search only."""
+    """Retrieve library documents using BM25 or hybrid semantic search."""
     try:
         language_enum = localization.Language(request.language.upper())
     except ValueError:
@@ -200,9 +198,14 @@ async def retrieve_library(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    retrieve_output = document_store.retrieve_bm25(
-        request.query, k=request.k, chunk_context=_SNIPPET_CHUNK_CONTEXT
-    )
+    if request.semantic:
+        retrieve_output = document_store.retrieve(
+            request.query, k=request.k, chunk_context=request.chunk_context
+        )
+    else:
+        retrieve_output = document_store.retrieve_bm25(
+            request.query, k=request.k, chunk_context=request.chunk_context
+        )
 
     results = _build_retrieve_results(text_set_obj, retrieve_output)
     return models.LibraryRetrieveResponse(query=request.query, results=results)

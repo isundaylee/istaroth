@@ -367,7 +367,7 @@
           "library"
         ],
         "summary": "Retrieve Library",
-        "description": "Retrieve library documents using BM25 keyword search only.",
+        "description": "Retrieve library documents using BM25 or hybrid semantic search.",
         "operationId": "retrieve_library_api_library_retrieve_post",
         "requestBody": {
           "content": {
@@ -701,6 +701,16 @@
           "k": {
             "type": "integer",
             "title": "K"
+          },
+          "semantic": {
+            "type": "boolean",
+            "title": "Semantic",
+            "default": false
+          },
+          "chunk_context": {
+            "type": "integer",
+            "title": "Chunk Context",
+            "default": 0
           }
         },
         "type": "object",
@@ -710,7 +720,7 @@
           "k"
         ],
         "title": "LibraryRetrieveRequest",
-        "description": "Request model for BM25-only library retrieval endpoint."
+        "description": "Request model for library retrieval endpoint."
       },
       "LibraryRetrieveResponse": {
         "properties": {
@@ -732,7 +742,7 @@
           "results"
         ],
         "title": "LibraryRetrieveResponse",
-        "description": "Response model for BM25-only library retrieval endpoint."
+        "description": "Response model for library retrieval endpoint."
       },
       "LibraryRetrieveResult": {
         "properties": {

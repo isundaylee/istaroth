@@ -178,7 +178,7 @@ export interface paths {
         put?: never;
         /**
          * Retrieve Library
-         * @description Retrieve library documents using BM25 keyword search only.
+         * @description Retrieve library documents using BM25 or hybrid semantic search.
          */
         post: operations["retrieve_library_api_library_retrieve_post"];
         delete?: never;
@@ -323,7 +323,7 @@ export interface components {
         };
         /**
          * LibraryRetrieveRequest
-         * @description Request model for BM25-only library retrieval endpoint.
+         * @description Request model for library retrieval endpoint.
          */
         LibraryRetrieveRequest: {
             /** Language */
@@ -332,10 +332,20 @@ export interface components {
             query: string;
             /** K */
             k: number;
+            /**
+             * Semantic
+             * @default false
+             */
+            semantic: boolean;
+            /**
+             * Chunk Context
+             * @default 0
+             */
+            chunk_context: number;
         };
         /**
          * LibraryRetrieveResponse
-         * @description Response model for BM25-only library retrieval endpoint.
+         * @description Response model for library retrieval endpoint.
          */
         LibraryRetrieveResponse: {
             /** Query */

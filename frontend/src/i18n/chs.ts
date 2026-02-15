@@ -107,6 +107,7 @@ export const chs = {
     placeholder: '输入文本以查找相关文档',
     submitButton: '搜索',
     submitting: '搜索中...',
+    semantic: '语义搜索',
     noResults: '未找到相关文档',
     errors: {
       unknown: '发生未知错误',

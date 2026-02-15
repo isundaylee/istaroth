@@ -50,6 +50,7 @@ function RetrievePage() {
   const [results, setResults] = useState<LibraryRetrieveResponse['results']>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [semantic, setSemantic] = useState(false)
   const activeRequestIdRef = useRef(0)
 
   const urlQuery = useMemo(() => {
@@ -71,7 +72,9 @@ function RetrievePage() {
       const reqBody: LibraryRetrieveRequest = {
         language: language.toUpperCase(),
         query: trimmed,
-        k: 10
+        k: 10,
+        semantic,
+        chunk_context: 0
       }
       const res = await fetch('/api/library/retrieve', {
         method: 'POST',
@@ -204,6 +207,15 @@ function RetrievePage() {
                 {loading ? t('retrieve.submitting') : t('retrieve.submitButton')}
               </button>
             </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={semantic}
+                onChange={(e) => { setSemantic(e.target.checked); setSubmittedQuery(null) }}
+                disabled={loading}
+              />
+              {t('retrieve.semantic')}
+            </label>
           </form>
 
           {error && <ErrorDisplay error={error} />}

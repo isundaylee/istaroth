@@ -107,6 +107,7 @@ export const eng = {
     placeholder: 'Enter text to find related documents',
     submitButton: 'Search',
     submitting: 'Searching...',
+    semantic: 'Semantic search',
     noResults: 'No documents found',
     errors: {
       unknown: 'An unknown error occurred',
