@@ -19,7 +19,7 @@ function Navigation() {
     <nav
       style={{
         backgroundColor: '#fff',
-        borderRadius: '8px',
+        borderRadius: 'var(--radius-md)',
         padding: '0.75rem 1.5rem',
         marginBottom: '1.5rem',
         display: 'flex',
@@ -42,7 +42,7 @@ function Navigation() {
                 color: active ? '#007bff' : '#666',
                 backgroundColor: active ? '#e7f3ff' : 'transparent',
                 border: 'none',
-                borderRadius: '4px',
+                borderRadius: 'var(--radius-md)',
                 padding: '0.5rem 1.75rem',
                 fontSize: '1rem',
                 fontWeight: active ? '600' : 'normal',

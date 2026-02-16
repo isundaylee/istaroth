@@ -15,7 +15,7 @@ function LibraryHeader({ title, backPath, backText }: LibraryHeaderProps) {
   const baseStyle: React.CSSProperties = {
     padding: '0.5rem 1rem',
     border: '1px solid #ddd',
-    borderRadius: '4px',
+    borderRadius: 'var(--radius-md)',
     backgroundColor: 'white',
     cursor: 'pointer',
     transition: 'all 0.2s ease',

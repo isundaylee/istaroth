@@ -13,7 +13,7 @@ function Card({
 }: CardProps) {
   const baseStyles: CSSProperties = {
     backgroundColor: '#f8f9fa',
-    borderRadius: '8px',
+    borderRadius: 'var(--radius-md)',
     boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
     padding: '0.75rem 1rem',
     margin: '1rem 0',

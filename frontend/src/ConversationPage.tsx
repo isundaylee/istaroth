@@ -134,7 +134,7 @@ function ConversationPage() {
               }}>
                 <div style={{
                   border: '1px solid #ddd',
-                  borderRadius: '4px',
+                  borderRadius: 'var(--radius-md)',
                   padding: '1rem',
                   backgroundColor: 'white',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
@@ -148,7 +148,7 @@ function ConversationPage() {
                       width: '50vw',
                       maxWidth: '400px',
                       height: 'auto',
-                      borderRadius: '4px',
+                      borderRadius: 'var(--radius-md)',
                       display: 'block',
                       marginBottom: '0.75rem'
                     }}

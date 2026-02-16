@@ -36,7 +36,7 @@ function NotFoundPage() {
                 backgroundColor: '#007bff',
                 color: 'white',
                 textDecoration: 'none',
-                borderRadius: '4px',
+                borderRadius: 'var(--radius-md)',
                 transition: 'background-color 0.2s'
               }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0056b3'}

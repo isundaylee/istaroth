@@ -397,7 +397,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
                 transition: 'all 0.15s ease',
                 textDecoration: 'none',
                 padding: '2px 4px',
-                borderRadius: '3px',
+                borderRadius: 'var(--radius-sm)',
                 backgroundColor: isHovered || stickyCitation === citationId ? 'rgba(52, 152, 219, 0.15)' : 'transparent'
               }}
             >
@@ -507,7 +507,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
                   style={{
                     marginBottom: '0.25rem',
                     padding: '0',
-                    borderRadius: '4px',
+                    borderRadius: 'var(--radius-sm)',
                     transition: 'background-color 0.15s ease',
                     display: 'flex',
                     alignItems: 'center',
@@ -547,7 +547,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
                         fontSize: '0.8rem',
                         cursor: 'pointer',
                         padding: '2px 6px',
-                        borderRadius: '3px',
+                        borderRadius: 'var(--radius-sm)',
                         transition: 'background-color 0.15s ease',
                         flexShrink: 0
                       }}

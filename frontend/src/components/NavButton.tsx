@@ -13,7 +13,7 @@ function NavButton({ onClick, label, title, marginTop }: NavButtonProps) {
   const baseStyle: React.CSSProperties = {
     padding: '0.75rem 1rem',
     border: '1px solid #ddd',
-    borderRadius: '4px',
+    borderRadius: 'var(--radius-md)',
     backgroundColor: 'white',
     cursor: 'pointer',
     width: '100%',

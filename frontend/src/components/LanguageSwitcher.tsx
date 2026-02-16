@@ -16,7 +16,7 @@ function LanguageButton({ label, isActive, onClick }: LanguageButtonProps) {
         background: isActive ? '#007bff' : 'transparent',
         color: isActive ? 'white' : '#666',
         border: '1px solid #ddd',
-        borderRadius: '4px',
+        borderRadius: 'var(--radius-md)',
         padding: '0.25rem 0.5rem',
         cursor: 'pointer',
         fontSize: '0.8rem',

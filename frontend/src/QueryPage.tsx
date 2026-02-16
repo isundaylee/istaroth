@@ -33,7 +33,7 @@ function QueryPage() {
             <img
               src="/istaroth-logo.png"
               alt="Istaroth Logo"
-              style={{ width: '300px', height: '300px', borderRadius: '12px', margin: '0 auto 20px auto', display: 'block' }}
+              style={{ width: '300px', height: '300px', margin: '0 auto 20px auto', display: 'block' }}
             />
             <div style={{ marginTop: '20px' }}>
               <a
@@ -49,7 +49,7 @@ function QueryPage() {
                   textDecoration: 'none',
                   padding: '6px 12px',
                   border: '1px solid #d1d9e0',
-                  borderRadius: '5px',
+                  borderRadius: 'var(--radius-md)',
                   backgroundColor: '#f6f8fa',
                   transition: 'all 0.2s ease'
                 }}

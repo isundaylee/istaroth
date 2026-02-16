@@ -87,7 +87,7 @@ function LibraryCategoriesPage() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        borderRadius: '12px',
+                        borderRadius: 'var(--radius-md)',
                         minHeight: '80px'
                       }}
                     >
