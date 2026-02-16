@@ -109,6 +109,8 @@ export const chs = {
     submitButton: '搜索',
     submitting: '搜索中...',
     semantic: '语义搜索',
+    searchModeBm25: '仅关键词',
+    searchModeSemantic: '语义',
     noResults: '未找到相关文档',
     errors: {
       unknown: '发生未知错误',

@@ -7,6 +7,7 @@ import PageCard from './components/PageCard'
 import PageTitle from './components/PageTitle'
 import Card from './components/Card'
 import TextInput from './components/TextInput'
+import Select from './components/Select'
 import Button from './components/Button'
 import ErrorDisplay from './components/ErrorDisplay'
 import { buildUrlWithLanguage } from './utils/language'
@@ -207,6 +208,16 @@ function RetrievePage() {
                 placeholder={t('retrieve.placeholder')}
                 disabled={loading}
               />
+              <Select
+                value={formParams.semantic ? 'semantic' : 'bm25'}
+                onChange={(e) =>
+                  setFormParams({ ...formParams, semantic: e.target.value === 'semantic' })
+                }
+                disabled={loading}
+              >
+                <option value="bm25">{t('retrieve.searchModeBm25')}</option>
+                <option value="semantic">{t('retrieve.searchModeSemantic')}</option>
+              </Select>
               <Button
                 type="submit"
                 disabled={loading || !formParams.query.trim()}
@@ -214,15 +225,6 @@ function RetrievePage() {
                 {loading ? t('retrieve.submitting') : t('retrieve.submitButton')}
               </Button>
             </div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
-              <input
-                type="checkbox"
-                checked={formParams.semantic}
-                onChange={(e) => setFormParams({ ...formParams, semantic: e.target.checked })}
-                disabled={loading}
-              />
-              {t('retrieve.semantic')}
-            </label>
           </form>
 
           {error && <ErrorDisplay error={error} />}

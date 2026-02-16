@@ -109,6 +109,8 @@ export const eng = {
     submitButton: 'Search',
     submitting: 'Searching...',
     semantic: 'Semantic search',
+    searchModeBm25: 'Keyword',
+    searchModeSemantic: 'Semantic',
     noResults: 'No documents found',
     errors: {
       unknown: 'An unknown error occurred',
