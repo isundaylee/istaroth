@@ -21,7 +21,7 @@ function Navigation() {
         backgroundColor: '#fff',
         borderRadius: 'var(--radius-md)',
         padding: '0.75rem 1.5rem',
-        marginBottom: '1.5rem',
+        marginBottom: '1.25rem',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
