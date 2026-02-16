@@ -45,60 +45,48 @@ function LibraryCategoriesPage() {
             {t('library.title')}
           </PageTitle>
 
-          <div>
-            <div
-              className="category-grid"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: '1rem',
-                maxWidth: '100%'
-              }}
-            >
-              {categories.map((category) => (
-                  <div
-                    key={category}
-                    onClick={() => navigate(`/library/${encodeURIComponent(category)}`)}
-                    onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
-                      const card = e.currentTarget.querySelector('.card') as HTMLElement
-                      if (card) {
-                        card.style.backgroundColor = '#f0f0f0'
-                        card.style.transform = 'translateY(-2px)'
-                      }
-                    }}
-                    onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
-                      const card = e.currentTarget.querySelector('.card') as HTMLElement
-                      if (card) {
-                        card.style.backgroundColor = '#f8f9fa'
-                        card.style.transform = 'translateY(0)'
-                      }
-                    }}
-                    style={{
-                      minHeight: '80px'
-                    }}
-                  >
-                    <Card
-                      style={{
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        padding: '1rem 1.5rem',
-                        margin: 0,
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: 'var(--radius-md)',
-                        minHeight: '80px'
-                      }}
-                    >
-                      <h3 style={{ margin: 0, textAlign: 'center', fontSize: 'var(--font-base)', color: '#2c3e50' }}>
-                        {translateCategory(category)}
-                      </h3>
-                    </Card>
-                  </div>
-                ))}
+          <div
+            className="category-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+              gap: '1rem'
+            }}
+          >
+            {categories.map((category) => (
+              <div
+                key={category}
+                onClick={() => navigate(`/library/${encodeURIComponent(category)}`)}
+                onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
+                  const card = e.currentTarget.querySelector('.card') as HTMLElement
+                  if (card) {
+                    card.style.backgroundColor = '#f0f0f0'
+                    card.style.transform = 'translateY(-2px)'
+                  }
+                }}
+                onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
+                  const card = e.currentTarget.querySelector('.card') as HTMLElement
+                  if (card) {
+                    card.style.backgroundColor = '#f8f9fa'
+                    card.style.transform = 'translateY(0)'
+                  }
+                }}
+              >
+                <Card
+                  style={{
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    padding: '1rem',
+                    margin: 0
+                  }}
+                >
+                  <p style={{ margin: 0, wordBreak: 'break-word' }}>
+                    {translateCategory(category)}
+                  </p>
+                </Card>
               </div>
-            </div>
+            ))}
+          </div>
         </PageCard>
       </main>
     </>

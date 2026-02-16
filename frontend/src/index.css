@@ -380,10 +380,6 @@ body {
     font-size: var(--font-sm) !important;
   }
 
-  .category-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-
   /* Make back button wrap below title on mobile */
   .library-header {
     flex-direction: column !important;
@@ -407,11 +403,5 @@ body {
   [data-citation-container] li > span {
     font-size: var(--font-sm) !important;
     line-height: 1.4 !important;
-  }
-}
-
-@media (min-width: 600px) {
-  .category-grid {
-    grid-template-columns: repeat(3, 1fr) !important;
   }
 }
