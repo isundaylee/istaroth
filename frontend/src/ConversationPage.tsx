@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import html2canvas from 'html2canvas'
 import { useT } from './contexts/LanguageContext'
+import { useFooter } from './contexts/FooterContext'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import QueryForm from './QueryForm'
@@ -34,23 +35,39 @@ export async function conversationPageLoader({ params, request }: LoaderFunction
 function ConversationPage() {
   const t = useT()
   const { conversation } = useLoaderData() as LoaderData
+  const { setExtraContent } = useFooter()
   const [exporting, setExporting] = useState(false)
   const [exportedImage, setExportedImage] = useState<string | null>(null)
   const [copyButtonText, setCopyButtonText] = useState('')
 
   useEffect(() => {
+    const formatDate = (timestamp: number) =>
+      new Date(timestamp * 1000).toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    const content = (
+      <>
+        {t('conversation.metadata.conversation')} #{conversation.uuid}
+        {' · '}
+        {formatDate(conversation.created_at)}
+        {' · '}
+        {conversation.language}
+        {' · '}
+        {conversation.model}
+        {conversation.generation_time_seconds != null && ` · ${conversation.generation_time_seconds.toFixed(2)}${t('conversation.metadata.seconds')}`}
+      </>
+    )
+    setExtraContent(content)
+    return () => setExtraContent(null)
+  }, [conversation, setExtraContent, t])
+
+  useEffect(() => {
     setCopyButtonText(t('conversation.shareLink'))
   }, [t])
-
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
 
   const copyCurrentUrl = () => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -181,16 +198,6 @@ function ConversationPage() {
               <CitationRenderer content={conversation.answer} />
             </div>
           </Card>
-
-          <div className="conversation-footer">
-            <div className="conversation-meta">
-              <p>{t('conversation.metadata.conversation')} #{conversation.uuid}</p>
-              <p>{t('conversation.metadata.time')}: {formatDate(conversation.created_at)}</p>
-              <p>{t('conversation.metadata.language')}: {conversation.language}</p>
-              <p>{t('conversation.metadata.model')}: {conversation.model}</p>
-              {conversation.generation_time_seconds && <p>{t('conversation.metadata.generationTime')}: {conversation.generation_time_seconds.toFixed(2)}{t('conversation.metadata.seconds')}</p>}
-            </div>
-          </div>
         </div>
       </main>
     </>

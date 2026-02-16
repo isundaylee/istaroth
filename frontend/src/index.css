@@ -230,22 +230,9 @@ body {
   border-radius: var(--radius-md);
 }
 
-.conversation-meta p {
-  margin: 0.2rem 0;
-  font-size: var(--font-sm);
-  color: #666;
-}
-
 .conversation-content {
   max-width: 800px;
   margin: 0 auto;
-}
-
-.conversation-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-top: 1rem;
 }
 
 /* Answer section styles - these are shared across components */
