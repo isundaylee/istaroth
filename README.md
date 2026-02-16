@@ -21,15 +21,7 @@ Special thanks to Dimbreath for his wonderful work on AnimeGameData!
 
 ### Checkpoint
 
-A checkpoint currently mainly consists of the vectorstore and various other data stores containing cleaned game texts. You can either grab a pre-trained checkpoint from the [release page](https://github.com/isundaylee/istaroth/releases), or follow the sections below to train your own. If you grab a pre-trained checkpoint, be sure to use it with the corresponding Git commit hash.
-
-#### Checkpoint Training
-
-- Set some env vars:
-    - `export AGD_PATH="/path/to/AnimeGameData"`
-    - `export AGD_LANGUAGE="CHS"` (or `ENG` for English)
-- Process AGD data: `scripts/agd_tools.py generate-all /path/to/text/files/output` to extract and clean text files
-- Build a checkpoint: `scripts/rag_tools.py build /path/to/text/files/output /path/to/checkpoint/output`
+A checkpoint currently mainly consists of the vectorstore and various other data stores containing cleaned game texts. You can either grab a pre-trained checkpoint from the [release page](https://github.com/isundaylee/istaroth/releases), or build your own following the instructions in [DEVELOPMENT.md](DEVELOPMENT.md). If you grab a pre-trained checkpoint, be sure to use it with the corresponding Git commit hash.
 
 ## Web UI
 
