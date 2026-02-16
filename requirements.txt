@@ -18,8 +18,12 @@ annotated-doc==0.0.4
     # via fastapi
 annotated-types==0.7.0
     # via pydantic
+anthropic==0.46.0
+    # via marker-pdf
 anyio==4.12.0
     # via
+    #   anthropic
+    #   google-genai
     #   httpx
     #   mcp
     #   openai
@@ -45,6 +49,8 @@ beartype==0.22.7
     # via
     #   py-key-value-aio
     #   py-key-value-shared
+beautifulsoup4==4.14.3
+    # via markdownify
 build==1.3.0
     # via
     #   chromadb
@@ -70,7 +76,10 @@ chromadb==1.3.5
 click==8.3.1
     # via
     #   -r requirements.in
+    #   marker-pdf
+    #   pdftext
     #   pip-tools
+    #   surya-ocr
     #   typer
     #   uvicorn
 cohere==5.20.0
@@ -91,6 +100,8 @@ distlib==0.4.0
     # via virtualenv
 distro==1.9.0
     # via
+    #   anthropic
+    #   google-genai
     #   openai
     #   posthog
 dnspython==2.8.0
@@ -101,6 +112,8 @@ docutils==0.22.3
     # via rich-rst
 durationpy==0.10
     # via kubernetes
+einops==0.8.2
+    # via surya-ocr
 email-validator==2.3.0
     # via pydantic
 exceptiongroup==1.3.1
@@ -120,7 +133,10 @@ filelock==3.20.0
     #   transformers
     #   virtualenv
 filetype==1.2.0
-    # via langchain-google-genai
+    # via
+    #   langchain-google-genai
+    #   marker-pdf
+    #   surya-ocr
 flatbuffers==25.9.23
     # via onnxruntime
 frozenlist==1.8.0
@@ -131,15 +147,20 @@ fsspec==2025.10.0
     # via
     #   huggingface-hub
     #   torch
+ftfy==6.3.1
+    # via marker-pdf
 google-ai-generativelanguage==0.9.0
     # via langchain-google-genai
 google-api-core[grpc]==2.28.1
     # via google-ai-generativelanguage
-google-auth==2.43.0
+google-auth[requests]==2.43.0
     # via
     #   google-ai-generativelanguage
     #   google-api-core
+    #   google-genai
     #   kubernetes
+google-genai==1.55.0
+    # via marker-pdf
 googleapis-common-protos==1.72.0
     # via
     #   google-api-core
@@ -155,6 +176,7 @@ grpcio==1.76.0
     #   google-ai-generativelanguage
     #   google-api-core
     #   grpcio-status
+    #   marker-pdf
     #   opentelemetry-exporter-otlp-proto-grpc
 grpcio-status==1.76.0
     # via google-api-core
@@ -170,9 +192,11 @@ httptools==0.7.1
     # via uvicorn
 httpx==0.28.1
     # via
+    #   anthropic
     #   chromadb
     #   cohere
     #   fastmcp
+    #   google-genai
     #   langgraph-sdk
     #   langsmith
     #   mcp
@@ -217,7 +241,9 @@ jieba==0.42.1
 jinja2==3.1.6
     # via torch
 jiter==0.12.0
-    # via openai
+    # via
+    #   anthropic
+    #   openai
 joblib==1.5.2
     # via scikit-learn
 jsonpatch==1.33
@@ -288,6 +314,12 @@ mako==1.3.10
     # via alembic
 markdown-it-py==4.0.0
     # via rich
+markdown2==2.5.4
+    # via marker-pdf
+markdownify==1.2.2
+    # via marker-pdf
+marker-pdf==1.10.2
+    # via -r requirements.in
 markupsafe==3.0.3
     # via
     #   jinja2
@@ -322,13 +354,14 @@ networkx==3.6
     # via torch
 nodeenv==1.9.1
     # via pre-commit
-numpy==2.3.5
+numpy==2.4.2
     # via
     #   -r requirements.in
     #   chromadb
     #   faiss-cpu
     #   langchain-community
     #   onnxruntime
+    #   opencv-python-headless
     #   rank-bm25
     #   scikit-learn
     #   scipy
@@ -337,12 +370,15 @@ oauthlib==3.3.1
     # via requests-oauthlib
 onnxruntime==1.23.2
     # via chromadb
-openai==2.8.1
+openai==1.109.1
     # via
     #   -r requirements.in
     #   langchain-openai
+    #   marker-pdf
 openapi-pydantic==0.5.1
     # via fastmcp
+opencv-python-headless==4.11.0.86
+    # via surya-ocr
 opentelemetry-api==1.38.0
     # via
     #   chromadb
@@ -389,20 +425,29 @@ pathspec==0.12.1
     # via mypy
 pathvalidate==3.3.1
     # via py-key-value-aio
-pillow==12.0.0
-    # via sentence-transformers
+pdftext==0.6.3
+    # via marker-pdf
+pillow==10.4.0
+    # via
+    #   marker-pdf
+    #   sentence-transformers
+    #   surya-ocr
 pip-tools==7.5.2
     # via -r requirements.in
 platformdirs==4.5.0
     # via
     #   fastmcp
+    #   surya-ocr
     #   virtualenv
 pluggy==1.6.0
     # via pytest
 posthog==5.4.0
     # via chromadb
 pre-commit==4.5.0
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   marker-pdf
+    #   surya-ocr
 propcache==0.4.1
     # via
     #   aiohttp
@@ -439,10 +484,12 @@ pycparser==2.23
 pydantic[email]==2.12.5
     # via
     #   -r requirements.in
+    #   anthropic
     #   chromadb
     #   cohere
     #   fastapi
     #   fastmcp
+    #   google-genai
     #   langchain
     #   langchain-classic
     #   langchain-cohere
@@ -450,10 +497,13 @@ pydantic[email]==2.12.5
     #   langchain-google-genai
     #   langgraph
     #   langsmith
+    #   marker-pdf
     #   mcp
     #   openai
     #   openapi-pydantic
+    #   pdftext
     #   pydantic-settings
+    #   surya-ocr
 pydantic-core==2.41.5
     # via
     #   cohere
@@ -461,17 +511,20 @@ pydantic-core==2.41.5
 pydantic-settings==2.12.0
     # via
     #   langchain-community
+    #   marker-pdf
     #   mcp
+    #   pdftext
+    #   surya-ocr
 pygments==2.19.2
     # via
     #   pytest
     #   rich
 pyjwt[crypto]==2.10.1
     # via mcp
-pymupdf==1.27.1
-    # via pymupdf4llm
-pymupdf4llm==0.3.4
-    # via -r requirements.in
+pypdfium2==4.30.0
+    # via
+    #   pdftext
+    #   surya-ocr
 pyperclip==1.11.0
     # via fastmcp
 pypika==0.48.9
@@ -489,7 +542,9 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.2.1
     # via
     #   fastmcp
+    #   marker-pdf
     #   pydantic-settings
+    #   surya-ocr
     #   uvicorn
 python-multipart==0.0.20
     # via mcp
@@ -507,19 +562,24 @@ pyyaml==6.0.3
     #   uvicorn
 rank-bm25==0.2.2
     # via -r requirements.in
+rapidfuzz==3.14.3
+    # via marker-pdf
 referencing==0.36.2
     # via
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
-regex==2025.11.3
+regex==2024.11.6
     # via
+    #   marker-pdf
     #   tiktoken
     #   transformers
 requests==2.32.5
     # via
     #   cohere
     #   google-api-core
+    #   google-auth
+    #   google-genai
     #   huggingface-hub
     #   jsonschema-path
     #   kubernetes
@@ -557,6 +617,7 @@ safetensors==0.7.0
 scikit-learn==1.7.2
     # via
     #   -r requirements.in
+    #   marker-pdf
     #   sentence-transformers
 scipy==1.16.3
     # via
@@ -570,10 +631,16 @@ shellingham==1.5.4
 six==1.17.0
     # via
     #   kubernetes
+    #   markdownify
     #   posthog
     #   python-dateutil
 sniffio==1.3.1
-    # via openai
+    # via
+    #   anthropic
+    #   google-genai
+    #   openai
+soupsieve==2.8.3
+    # via beautifulsoup4
 sqlalchemy[asyncio]==2.0.44
     # via
     #   -r requirements.in
@@ -586,17 +653,18 @@ starlette==0.50.0
     # via
     #   fastapi
     #   mcp
+surya-ocr==0.17.1
+    # via marker-pdf
 sympy==1.14.0
     # via
     #   onnxruntime
     #   torch
 tabulate==0.9.0
-    # via
-    #   -r requirements.in
-    #   pymupdf4llm
+    # via -r requirements.in
 tenacity==9.1.2
     # via
     #   chromadb
+    #   google-genai
     #   langchain-community
     #   langchain-core
 threadpoolctl==3.6.0
@@ -613,19 +681,24 @@ tokenizers==0.22.1
 torch==2.9.1
     # via
     #   -r requirements.in
+    #   marker-pdf
     #   sentence-transformers
+    #   surya-ocr
 tqdm==4.67.1
     # via
     #   -r requirements.in
     #   chromadb
     #   huggingface-hub
+    #   marker-pdf
     #   openai
     #   sentence-transformers
     #   transformers
 transformers==4.57.3
     # via
     #   -r requirements.in
+    #   marker-pdf
     #   sentence-transformers
+    #   surya-ocr
 typer==0.20.0
     # via chromadb
 types-pyyaml==6.0.12.20250915
@@ -643,11 +716,14 @@ typing-extensions==4.15.0
     #   aiosignal
     #   aiosqlite
     #   alembic
+    #   anthropic
     #   anyio
+    #   beautifulsoup4
     #   chromadb
     #   cohere
     #   exceptiongroup
     #   fastapi
+    #   google-genai
     #   grpcio
     #   huggingface-hub
     #   langchain-core
@@ -693,11 +769,14 @@ virtualenv==20.35.4
     # via pre-commit
 watchfiles==1.1.1
     # via uvicorn
+wcwidth==0.6.0
+    # via ftfy
 websocket-client==1.9.0
     # via kubernetes
 websockets==15.0.1
     # via
     #   fastmcp
+    #   google-genai
     #   uvicorn
 wheel==0.45.1
     # via pip-tools
