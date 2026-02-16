@@ -99,12 +99,12 @@ export const eng = {
 
   navigation: {
     home: 'Q&A',
-    retrieve: 'Retrieve',
+    retrieve: 'Text Retrieval',
     library: 'Library'
   },
 
   retrieve: {
-    title: 'Keyword Retrieval',
+    title: 'Text Retrieval',
     placeholder: 'Enter text to find related documents',
     submitButton: 'Search',
     submitting: 'Searching...',

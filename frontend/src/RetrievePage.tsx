@@ -197,9 +197,7 @@ function RetrievePage() {
       <Navigation />
       <main className="main">
         <PageCard>
-          <PageTitle>
-            {t('retrieve.title')}
-          </PageTitle>
+          <PageTitle>{t('retrieve.title')}</PageTitle>
           <form onSubmit={handleSubmit} className="query-form">
             <div className="input-row">
               <TextInput

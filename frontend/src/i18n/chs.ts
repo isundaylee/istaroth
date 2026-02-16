@@ -99,12 +99,12 @@ export const chs = {
 
   navigation: {
     home: '问答',
-    retrieve: '检索',
+    retrieve: '文本检索',
     library: '图书馆'
   },
 
   retrieve: {
-    title: '关键词检索',
+    title: '文本检索',
     placeholder: '输入文本以查找相关文档',
     submitButton: '搜索',
     submitting: '搜索中...',
