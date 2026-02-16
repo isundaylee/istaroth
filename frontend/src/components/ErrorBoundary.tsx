@@ -16,7 +16,7 @@ function ErrorBoundaryContent() {
     message = error
   }
 
-  return <ErrorDisplay error={message} fullPage={true} showBackLink={true} />
+  return <ErrorDisplay error={message} fullPage={true} />
 }
 
 function ErrorBoundary() {

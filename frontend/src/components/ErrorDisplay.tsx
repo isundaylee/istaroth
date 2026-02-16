@@ -1,19 +1,14 @@
 import { useT } from '../contexts/LanguageContext'
 import Navigation from './Navigation'
-import { AppLink } from './AppLink'
 
 interface ErrorDisplayProps {
   error: string
   fullPage?: boolean
-  showBackLink?: boolean
-  backLinkTo?: string
 }
 
 function ErrorDisplay({
   error,
-  fullPage = false,
-  showBackLink = false,
-  backLinkTo = '/'
+  fullPage = false
 }: ErrorDisplayProps) {
   const t = useT()
 
@@ -21,11 +16,6 @@ function ErrorDisplay({
     <div className="error">
       <h3>{t('common.error')}</h3>
       <p>{error}</p>
-      {showBackLink && (
-        <AppLink to={backLinkTo} className="back-link">
-          {t('common.back')}
-        </AppLink>
-      )}
     </div>
   )
 
