@@ -10,6 +10,7 @@ import { preprocessCitationsForDisplay, formatCitationId, parseCitationId } from
 
 interface CitationRendererProps {
   content: string
+  children?: (props: { answer: React.ReactNode; citationList: React.ReactNode }) => React.ReactNode
 }
 
 type CachedCitation = CitationResponse | { error: string }
@@ -22,7 +23,7 @@ interface CitationContentData {
   chunkIndexWithPrefix?: string
 }
 
-function CitationRenderer({ content }: CitationRendererProps) {
+function CitationRenderer({ content, children }: CitationRendererProps) {
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
   const [stickyCitation, setStickyCitation] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false)
@@ -439,8 +440,8 @@ function CitationRenderer({ content }: CitationRendererProps) {
   const displayedCitation = stickyCitation || hoveredCitation
   const isSticky = stickyCitation !== null
 
-  return (
-    <div style={{ position: 'relative' }} data-citation-container>
+  const answer = (
+    <>
       {displayedCitation && (
         <CitationPopup
           ref={popupRef}
@@ -464,108 +465,114 @@ function CitationRenderer({ content }: CitationRendererProps) {
           }}
         />
       )}
-
       <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>{processedContent}</ReactMarkdown>
+    </>
+  )
 
-      {/* Citation list at the end */}
-      {uniqueCitedWorks.length > 0 && (
+  const citationList = uniqueCitedWorks.length > 0 && (
+    <>
+      <h3 style={{ marginBottom: '0.75rem' }}>{t('citation.list.title')}</h3>
+      <ul style={{
+        listStyle: 'none',
+        padding: 0,
+        margin: 0
+      }}>
+        {uniqueCitedWorks.map((fileId, index) => {
+          const title = getCitedWorkTitle(fileId)
+          const isLoading = loadingCitations.has(formatCitationId(fileId, 0))
+          const fileInfo = getCitedWorkInfo(fileId)
+
+          const handleLibraryLinkClick = (e: React.MouseEvent<HTMLElement>) => {
+            e.preventDefault()
+            e.stopPropagation()
+            if (fileInfo) {
+              const url = buildLibraryFilePath(fileInfo)
+              window.open(url, '_blank', 'noopener,noreferrer')
+            }
+          }
+
+          return (
+            <li
+              key={fileId}
+              style={{
+                marginBottom: '0.25rem',
+                padding: '0',
+                borderRadius: 'var(--radius-sm)',
+                transition: 'background-color 0.15s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                minWidth: 0
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f5f5f5'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent'
+              }}
+            >
+              <span
+                  style={{
+                    color: '#5594d9',
+                    textDecoration: 'none',
+                    fontSize: 'var(--font-base)',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  flex: 1,
+                  minWidth: 0,
+                  wordBreak: 'break-all',
+                  overflowWrap: 'anywhere'
+                }}
+                onClick={(e) => handleCitationListClick(e, formatCitationId(fileId, 0))}
+              >
+                {isLoading ? t('citation.loading') : `${index + 1}. ${title}`}
+              </span>
+              {fileInfo && (
+                <a
+                  href={buildLibraryFilePath(fileInfo)}
+                  onClick={handleLibraryLinkClick}
+                      style={{
+                        color: '#888',
+                        textDecoration: 'none',
+                        fontSize: 'var(--font-base)',
+                    cursor: 'pointer',
+                    padding: '2px 6px',
+                    borderRadius: 'var(--radius-sm)',
+                    transition: 'background-color 0.15s ease',
+                    flexShrink: 0
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#e0e0e0'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent'
+                  }}
+                  title={t('citation.openInLibrary')}
+                >
+                  📚
+                </a>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </>
+  )
+
+  if (children) {
+    return <div style={{ position: 'relative' }}>{children({ answer, citationList: citationList ?? null })}</div>
+  }
+
+  return (
+    <div style={{ position: 'relative' }} data-citation-container>
+      {answer}
+      {citationList && (
         <div style={{
           marginTop: '1rem',
           paddingTop: '0.75rem',
           borderTop: '1px solid #e0e0e0'
         }}>
-          <h4 style={{
-            fontSize: 'var(--font-base)',
-            fontWeight: 600,
-            marginBottom: '1rem',
-            color: '#333'
-          }}>
-            {t('citation.list.title')}
-          </h4>
-          <ul style={{
-            listStyle: 'none',
-            padding: 0,
-            margin: 0
-          }}>
-            {uniqueCitedWorks.map((fileId, index) => {
-              const title = getCitedWorkTitle(fileId)
-              const isLoading = loadingCitations.has(formatCitationId(fileId, 0))
-              const fileInfo = getCitedWorkInfo(fileId)
-
-              const handleLibraryLinkClick = (e: React.MouseEvent<HTMLElement>) => {
-                e.preventDefault()
-                e.stopPropagation()
-                if (fileInfo) {
-                  const url = buildLibraryFilePath(fileInfo)
-                  window.open(url, '_blank', 'noopener,noreferrer')
-                }
-              }
-
-              return (
-                <li
-                  key={fileId}
-                  style={{
-                    marginBottom: '0.25rem',
-                    padding: '0',
-                    borderRadius: 'var(--radius-sm)',
-                    transition: 'background-color 0.15s ease',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    minWidth: 0
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f5f5f5'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent'
-                  }}
-                >
-                  <span
-                    style={{
-                      color: '#5594d9',
-                      textDecoration: 'none',
-                      fontSize: 'var(--font-sm)',
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      flex: 1,
-                      minWidth: 0,
-                      wordBreak: 'break-all',
-                      overflowWrap: 'anywhere'
-                    }}
-                    onClick={(e) => handleCitationListClick(e, formatCitationId(fileId, 0))}
-                  >
-                    {isLoading ? t('citation.loading') : `${index + 1}. ${title}`}
-                  </span>
-                  {fileInfo && (
-                    <a
-                      href={buildLibraryFilePath(fileInfo)}
-                      onClick={handleLibraryLinkClick}
-                      style={{
-                        color: '#888',
-                        textDecoration: 'none',
-                        fontSize: 'var(--font-sm)',
-                        cursor: 'pointer',
-                        padding: '2px 6px',
-                        borderRadius: 'var(--radius-sm)',
-                        transition: 'background-color 0.15s ease',
-                        flexShrink: 0
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#e0e0e0'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent'
-                      }}
-                      title={t('citation.openInLibrary')}
-                    >
-                      📚
-                    </a>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
+          {citationList}
         </div>
       )}
     </div>

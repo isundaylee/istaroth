@@ -3,7 +3,7 @@ import { ReactNode, CSSProperties } from 'react'
 interface CardProps {
   children: ReactNode
   style?: CSSProperties
-  borderColor?: 'green' | 'blue' | 'none'
+  borderColor?: 'green' | 'blue' | 'yellow' | 'none'
 }
 
 function Card({
@@ -19,9 +19,14 @@ function Card({
     margin: '1rem 0',
   }
 
-  const borderStyles: CSSProperties = borderColor !== 'none' ? {
-    borderLeft: `3px solid ${borderColor === 'green' ? '#28a745' : '#3498db'}`
-  } : {}
+  const borderColors: Record<string, string> = {
+    green: '#28a745',
+    blue: '#3498db',
+    yellow: '#f5d76e'
+  }
+  const borderStyles: CSSProperties = borderColor !== 'none' && borderColor in borderColors
+    ? { borderLeft: `3px solid ${borderColors[borderColor]}` }
+    : {}
 
   const combinedStyles = {
     ...baseStyles,

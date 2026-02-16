@@ -380,7 +380,7 @@ body {
 
   /* Citation list mobile styles */
   [data-citation-container] ul {
-    font-size: var(--font-sm) !important;
+    font-size: var(--font-base) !important;
   }
 
   [data-citation-container] li {
@@ -388,7 +388,7 @@ body {
   }
 
   [data-citation-container] li > span {
-    font-size: var(--font-sm) !important;
+    font-size: var(--font-base) !important;
     line-height: 1.4 !important;
   }
 }

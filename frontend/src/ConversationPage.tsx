@@ -119,85 +119,93 @@ function ConversationPage() {
 
         <div className="conversation-content">
           <Card borderColor="green">
-            <h3>
-              {t('conversation.question')}: <span style={{ fontWeight: 'normal' }}>{conversation.question}</span>
-            </h3>
+            <h3 style={{ margin: 0 }}>{conversation.question}</h3>
           </Card>
 
-          <Card borderColor="blue">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h3>{t('conversation.answer')}:</h3>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={copyCurrentUrl} className="share-button">
-                  {copyButtonText}
-                </button>
-                <button
-                  onClick={exportPageAsPNG}
-                  className="export-button"
-                  disabled={exporting}
-                >
-                  {exporting ? t('conversation.exporting') : t('conversation.export')}
-                </button>
-              </div>
-            </div>
-
-            {exportedImage && (
-              <div style={{
-                marginTop: '1rem',
-                marginBottom: '1rem',
-                display: 'flex',
-                justifyContent: 'center'
-              }}>
-                <div style={{
-                  border: '1px solid #ddd',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '1rem',
-                  backgroundColor: 'white',
-                  boxShadow: 'var(--shadow)',
-                  display: 'inline-block',
-                  textAlign: 'center'
-                }}>
-                  <img
-                    src={exportedImage}
-                    alt={t('conversation.exportImage.alt')}
-                    style={{
-                      width: '50vw',
-                      maxWidth: '400px',
-                      height: 'auto',
-                      borderRadius: 'var(--radius-md)',
-                      display: 'block',
-                      marginBottom: '0.75rem'
-                    }}
-                  />
-                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                    <button
-                      onClick={() => {
-                        const link = document.createElement('a')
-                        link.download = `istaroth-conversation-${conversation.uuid}-${Date.now()}.png`
-                        link.href = exportedImage
-                        link.click()
-                      }}
-                      className="share-button"
-                      style={{ fontSize: 'var(--font-sm)', padding: '0.25rem 0.5rem' }}
-                    >
-                      {t('common.download')}
-                    </button>
-                    <button
-                      onClick={() => setExportedImage(null)}
-                      className="export-button"
-                      style={{ fontSize: 'var(--font-sm)', padding: '0.25rem 0.5rem' }}
-                    >
-                      {t('common.close')}
-                    </button>
+          <CitationRenderer content={conversation.answer}>
+            {({ answer, citationList }) => (
+              <>
+                <Card borderColor="blue">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <h3>{t('conversation.answer')}</h3>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button onClick={copyCurrentUrl} className="share-button">
+                        {copyButtonText}
+                      </button>
+                      <button
+                        onClick={exportPageAsPNG}
+                        className="export-button"
+                        disabled={exporting}
+                      >
+                        {exporting ? t('conversation.exporting') : t('conversation.export')}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
 
-            <div className="answer">
-              <CitationRenderer content={conversation.answer} />
-            </div>
-          </Card>
+                  {exportedImage && (
+                    <div style={{
+                      marginTop: '1rem',
+                      marginBottom: '1rem',
+                      display: 'flex',
+                      justifyContent: 'center'
+                    }}>
+                      <div style={{
+                        border: '1px solid #ddd',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '1rem',
+                        backgroundColor: 'white',
+                        boxShadow: 'var(--shadow)',
+                        display: 'inline-block',
+                        textAlign: 'center'
+                      }}>
+                        <img
+                          src={exportedImage}
+                          alt={t('conversation.exportImage.alt')}
+                          style={{
+                            width: '50vw',
+                            maxWidth: '400px',
+                            height: 'auto',
+                            borderRadius: 'var(--radius-md)',
+                            display: 'block',
+                            marginBottom: '0.75rem'
+                          }}
+                        />
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                          <button
+                            onClick={() => {
+                              const link = document.createElement('a')
+                              link.download = `istaroth-conversation-${conversation.uuid}-${Date.now()}.png`
+                              link.href = exportedImage
+                              link.click()
+                            }}
+                            className="share-button"
+                            style={{ fontSize: 'var(--font-sm)', padding: '0.25rem 0.5rem' }}
+                          >
+                            {t('common.download')}
+                          </button>
+                          <button
+                            onClick={() => setExportedImage(null)}
+                            className="export-button"
+                            style={{ fontSize: 'var(--font-sm)', padding: '0.25rem 0.5rem' }}
+                          >
+                            {t('common.close')}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="answer">{answer}</div>
+                </Card>
+
+                {citationList && (
+                  <div data-citation-container>
+                    <Card borderColor="yellow">{citationList}</Card>
+                  </div>
+                )}
+              </>
+            )}
+          </CitationRenderer>
         </div>
       </main>
     </>
