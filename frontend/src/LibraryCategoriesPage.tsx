@@ -36,7 +36,7 @@ function LibraryCategoriesPage() {
   }
 
   return (
-    <div className="app">
+    <>
       <Navigation />
       <main className="main">
         <PageCard>
@@ -100,7 +100,7 @@ function LibraryCategoriesPage() {
             </div>
         </PageCard>
       </main>
-    </div>
+    </>
   )
 }
 

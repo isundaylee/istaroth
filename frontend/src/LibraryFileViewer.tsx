@@ -68,7 +68,7 @@ function LibraryFileViewer() {
   }
 
   return (
-    <div className="app">
+    <>
       <Navigation />
       <main className="main">
         <PageCard>
@@ -99,7 +99,7 @@ function LibraryFileViewer() {
           )}
         </PageCard>
       </main>
-    </div>
+    </>
   )
 }
 

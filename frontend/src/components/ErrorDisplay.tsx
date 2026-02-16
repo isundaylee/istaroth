@@ -31,12 +31,12 @@ function ErrorDisplay({
 
   if (fullPage) {
     return (
-      <div className="app">
+      <>
         <Navigation />
         <main className="main">
           {errorContent}
         </main>
-      </div>
+      </>
     )
   }
 

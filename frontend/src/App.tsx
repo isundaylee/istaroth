@@ -15,8 +15,10 @@ function RootLayout() {
   return (
     <LanguageProvider>
       <DocumentTitle />
-      <Outlet />
-      <Footer />
+      <div className="app">
+        <Outlet />
+        <Footer />
+      </div>
       <ScrollRestoration  />
     </LanguageProvider>
   )

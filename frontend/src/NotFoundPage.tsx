@@ -8,7 +8,7 @@ function NotFoundPage() {
   const t = useT()
 
   return (
-    <div className="app">
+    <>
       <main className="main">
         <div style={{
           display: 'flex',
@@ -47,7 +47,7 @@ function NotFoundPage() {
           </div>
         </Card>
       </main>
-    </div>
+    </>
   )
 }
 

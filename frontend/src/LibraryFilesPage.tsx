@@ -44,7 +44,7 @@ function LibraryFilesPage() {
   }
 
   return (
-    <div className="app">
+    <>
       <Navigation />
       <main className="main">
         <PageCard>
@@ -105,7 +105,7 @@ function LibraryFilesPage() {
           )}
         </PageCard>
       </main>
-    </div>
+    </>
   )
 }
 

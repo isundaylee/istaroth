@@ -20,9 +20,7 @@ function Footer() {
 
   return (
     <footer style={{
-      maxWidth: '800px',
-      margin: '1rem auto 1rem',
-      padding: '0 15px',
+      marginTop: '1rem',
       textAlign: 'center',
       fontSize: '0.75rem',
       color: '#999',

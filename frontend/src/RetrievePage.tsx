@@ -190,7 +190,7 @@ function RetrievePage() {
   }, [results, submittedParams, loading, language, t])
 
   return (
-    <div className="app">
+    <>
       <Navigation />
       <main className="main">
         <PageCard>
@@ -230,7 +230,7 @@ function RetrievePage() {
           {resultsContent}
         </PageCard>
       </main>
-    </div>
+    </>
   )
 }
 

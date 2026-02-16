@@ -92,7 +92,7 @@ function ConversationPage() {
   }
 
   return (
-    <div className="app">
+    <>
       <Navigation />
       <main className="main">
 
@@ -194,7 +194,7 @@ function ConversationPage() {
           </div>
         </div>
       </main>
-    </div>
+    </>
   )
 }
 

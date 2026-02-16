@@ -8,7 +8,7 @@ function QueryPage() {
   const t = useT()
 
   return (
-    <div className="app">
+    <>
       <Navigation />
       <main className="main">
 
@@ -16,7 +16,6 @@ function QueryPage() {
 
         <div style={{
           textAlign: 'center',
-          marginBottom: '40px'
         }}>
           <PageCard>
             <PageTitle>
@@ -72,7 +71,7 @@ function QueryPage() {
           </PageCard>
         </div>
       </main>
-    </div>
+    </>
   )
 }
 
