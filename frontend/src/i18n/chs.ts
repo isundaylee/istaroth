@@ -148,6 +148,8 @@ export const chs = {
       invalidCategory: '无效分类'
     },
     noFileName: '未命名',
+    filterPlaceholder: '按标题筛选...',
+    noFilterResults: '没有匹配的文档',
     previous: '上一篇',
     next: '下一篇'
   }

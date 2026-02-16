@@ -148,6 +148,8 @@ export const eng = {
       invalidCategory: 'Invalid category'
     },
     noFileName: 'Untitled',
+    filterPlaceholder: 'Filter by title...',
+    noFilterResults: 'No documents match your filter',
     previous: 'Previous',
     next: 'Next'
   }

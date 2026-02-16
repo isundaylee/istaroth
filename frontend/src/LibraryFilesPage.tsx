@@ -37,6 +37,11 @@ function LibraryFilesPage() {
   const t = useT()
   const navigate = useAppNavigate()
   const { files, category } = useLoaderData() as LoaderData
+  const [filter, setFilter] = React.useState('')
+
+  const filteredFiles = files.filter((file) =>
+    (file.title || '').toLowerCase().includes(filter.toLowerCase())
+  )
 
   const translateCategory = (category: string): string => {
     const translationKey = `library.categories.${category}`
@@ -62,6 +67,29 @@ function LibraryFilesPage() {
           )}
 
           {files.length > 0 && (
+            <>
+            <input
+              type="text"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder={t('library.filterPlaceholder')}
+              style={{
+                width: '100%',
+                padding: '0.6rem 1rem',
+                marginBottom: '1rem',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                fontSize: '0.95rem',
+                boxSizing: 'border-box',
+                outline: 'none'
+              }}
+            />
+
+            {filteredFiles.length === 0 ? (
+              <Card style={{ margin: '1rem 0' }}>
+                <p>{t('library.noFilterResults')}</p>
+              </Card>
+            ) : (
             <div
               style={{
                 display: 'grid',
@@ -69,7 +97,7 @@ function LibraryFilesPage() {
                 gap: '1rem'
               }}
             >
-              {files.map((file) => (
+              {filteredFiles.map((file) => (
                 <div
                   key={file.id}
                   onClick={() => category && navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(file.id)}`)}
@@ -103,6 +131,8 @@ function LibraryFilesPage() {
                 </div>
               ))}
             </div>
+            )}
+            </>
           )}
         </PageCard>
       </main>
