@@ -112,8 +112,11 @@ def test_text_dir(tmp_path: pathlib.Path) -> pathlib.Path:
         ),
     }
 
+    # Create files in category subdirectory
+    category_dir = data_dir / "agd_readable"
+    category_dir.mkdir()
     for filename, content in documents.items():
-        (data_dir / filename).write_text(content, encoding="utf-8")
+        (category_dir / filename).write_text(content, encoding="utf-8")
 
     (data_dir / "metadata.json").write_text(
         json.dumps({"language": localization.Language.CHS.value})
@@ -122,7 +125,15 @@ def test_text_dir(tmp_path: pathlib.Path) -> pathlib.Path:
     # Create manifest directory required by rag_tools
     manifest_dir = data_dir / "manifest"
     manifest_dir.mkdir()
-    manifest_data = [{"relative_path": filename} for filename in documents.keys()]
+    manifest_data = [
+        {
+            "category": "agd_readable",
+            "title": filename.replace(".txt", "").replace("_", " ").title(),
+            "id": idx,
+            "relative_path": f"agd_readable/{filename}",
+        }
+        for idx, filename in enumerate(documents.keys())
+    ]
     (manifest_dir / "test.json").write_text(
         json.dumps(manifest_data, indent=2, ensure_ascii=False)
     )
