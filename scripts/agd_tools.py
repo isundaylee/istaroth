@@ -492,8 +492,8 @@ def generate_all(
     click.echo(f"Text map usage stats written to {unused_stats_path}")
 
     # Write manifest
-    manifest.write_manifest(output_dir, manifest_list)
-    click.echo(f"Manifest written to {output_dir / 'manifest.json'}")
+    manifest_path = manifest.write_manifest(output_dir, manifest_list, name="agd")
+    click.echo(f"Manifest written to {manifest_path}")
 
     if total_error > 0:
         click.echo(f"\nDetailed errors written to {errors_file_path}")

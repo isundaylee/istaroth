@@ -1,12 +1,12 @@
 """Text set for accessing text files organized by category."""
 
 import functools
-import json
 import pathlib
 
 import attrs
 
 from istaroth.agd import localization
+from istaroth.text import manifest as text_manifest
 from istaroth.text import types as text_types
 
 
@@ -69,23 +69,10 @@ class TextSet:
     text_path: pathlib.Path
     language: localization.Language
 
-    @property
-    def _manifest_path(self) -> pathlib.Path:
-        """Get manifest file path."""
-        return self.text_path / "manifest.json"
-
-    @staticmethod
-    def _load_manifest_from_path(
-        manifest_path: pathlib.Path,
-    ) -> tuple[text_types.TextMetadata, ...]:
-        """Load manifest from JSON file."""
-        manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
-        return tuple(text_types.TextMetadata.from_dict(item) for item in manifest_data)
-
     @functools.cached_property
     def _manifest(self) -> tuple[text_types.TextMetadata, ...]:
-        """Load manifest from JSON file."""
-        return self._load_manifest_from_path(self._manifest_path)
+        """Load and merge all manifest files from the manifest directory."""
+        return text_manifest.load_manifest_dir(self.text_path)
 
     @functools.cached_property
     def _manifest_by_relative_path(self) -> dict[str, text_types.TextMetadata]:

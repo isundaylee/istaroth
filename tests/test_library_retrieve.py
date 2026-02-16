@@ -23,8 +23,9 @@ def _create_text_set(tmp_path: pathlib.Path) -> text_set.TextSet:
         id=1,
         relative_path="agd_book/book_1.txt",
     )
-    manifest_path = text_path / "manifest.json"
-    manifest_path.write_text(json.dumps([metadata.to_dict()]))
+    manifest_dir = text_path / "manifest"
+    manifest_dir.mkdir()
+    (manifest_dir / "test.json").write_text(json.dumps([metadata.to_dict()]))
     return text_set.TextSet(text_path=text_path, language=localization.Language.ENG)
 
 

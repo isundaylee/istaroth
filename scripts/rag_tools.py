@@ -26,21 +26,17 @@ from istaroth.rag import (
     retrieval_diff,
 )
 from istaroth.rag.eval import dataset
+from istaroth.text import manifest
 
 logger = logging.getLogger(__name__)
 
 
 def _get_files_to_process(text_path: pathlib.Path) -> list[pathlib.Path]:
-    """Get a list of .txt files to process from the manifest file."""
+    """Get a list of .txt files to process from the manifest directory."""
     assert text_path.is_dir(), f"Path {text_path} must be a directory"
-    manifest_path = text_path / "manifest.json"
-    if not manifest_path.exists():
-        raise FileNotFoundError(f"Manifest file not found: {manifest_path}")
-    manifest_data = json.loads(manifest_path.read_text(encoding="utf-8"))
     files = []
-    for entry in manifest_data:
-        relative_path = entry["relative_path"]
-        file_path = text_path / relative_path
+    for item in manifest.load_manifest_dir(text_path):
+        file_path = text_path / item.relative_path
         if not file_path.exists():
             logger.warning("File from manifest does not exist: %s", file_path)
             continue
