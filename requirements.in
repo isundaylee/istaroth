@@ -10,6 +10,9 @@ tokenizers
 torch
 transformers
 
+# TPS (third-party source) extraction
+pymupdf4llm
+
 # Application dependencies (non-ML)
 aiosqlite
 alembic
