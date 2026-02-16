@@ -5,6 +5,7 @@ import Navigation from './components/Navigation'
 import Card from './components/Card'
 import PageCard from './components/PageCard'
 import PageTitle from './components/PageTitle'
+import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import type { LibraryCategoriesResponse } from './types/api'
@@ -18,7 +19,7 @@ export async function libraryCategoriesPageLoader({ request }: LoaderFunctionArg
 
   const res = await fetch(`/api/library/categories?language=${language}`)
   if (!res.ok) {
-    throw new Response('Failed to load categories', { status: res.status })
+    throw new Response(translate(language, 'library.errors.loadFailed'), { status: res.status })
   }
   const data = (await res.json()) as LibraryCategoriesResponse
   return { categories: data.categories }

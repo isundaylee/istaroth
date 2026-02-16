@@ -5,6 +5,7 @@ import Navigation from './components/Navigation'
 import Card from './components/Card'
 import PageCard from './components/PageCard'
 import LibraryHeader from './components/LibraryHeader'
+import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import type { LibraryFilesResponse, LibraryFileInfo } from './types/api'
@@ -17,7 +18,7 @@ interface LoaderData {
 export async function libraryFilesPageLoader({ params, request }: LoaderFunctionArgs): Promise<LoaderData> {
   const { category } = params
   if (!category) {
-    throw new Response('Invalid category', { status: 400 })
+    throw new Response(translate(getLanguageFromUrl(request.url), 'library.errors.invalidCategory'), { status: 400 })
   }
 
   const language = getLanguageFromUrl(request.url)
@@ -26,7 +27,7 @@ export async function libraryFilesPageLoader({ params, request }: LoaderFunction
     `/api/library/files/${encodeURIComponent(category)}?language=${language}`
   )
   if (!res.ok) {
-    throw new Response('Failed to load files', { status: res.status })
+    throw new Response(translate(language, 'library.errors.loadFailed'), { status: res.status })
   }
   const data = (await res.json()) as LibraryFilesResponse
   return { files: data.files, category }

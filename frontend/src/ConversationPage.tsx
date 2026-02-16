@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import html2canvas from 'html2canvas'
 import { useT } from './contexts/LanguageContext'
+import { translate } from './i18n'
+import { getLanguageFromUrl } from './utils/language'
 import QueryForm from './QueryForm'
 import Card from './components/Card'
 import Navigation from './components/Navigation'
@@ -13,16 +15,17 @@ interface LoaderData {
   conversation: ConversationResponse
 }
 
-export async function conversationPageLoader({ params }: LoaderFunctionArgs): Promise<LoaderData> {
+export async function conversationPageLoader({ params, request }: LoaderFunctionArgs): Promise<LoaderData> {
+  const language = getLanguageFromUrl(request.url)
   const { id } = params
   if (!id) {
-    throw new Response('Invalid conversation ID', { status: 400 })
+    throw new Response(translate(language, 'conversation.errors.invalidId'), { status: 400 })
   }
 
   const res = await fetch(`/api/conversations/${id}`)
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}))
-    throw new Response(errorData.error || 'Failed to load conversation', { status: res.status })
+    throw new Response(errorData.error || translate(language, 'conversation.errors.loadFailed'), { status: res.status })
   }
 
   const conversationData = (await res.json()) as ConversationResponse

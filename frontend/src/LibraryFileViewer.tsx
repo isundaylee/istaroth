@@ -6,6 +6,7 @@ import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
 import LibraryHeader from './components/LibraryHeader'
 import NavButton from './components/NavButton'
+import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import type { LibraryFileResponse, LibraryFilesResponse, LibraryFileInfo } from './types/api'
@@ -21,7 +22,7 @@ interface LoaderData {
 export async function libraryFileViewerLoader({ params, request }: LoaderFunctionArgs): Promise<LoaderData> {
   const { category, id } = params
   if (!category || !id) {
-    throw new Response('Invalid params', { status: 400 })
+    throw new Response(translate(getLanguageFromUrl(request.url), 'library.errors.invalidCategory'), { status: 400 })
   }
 
   const language = getLanguageFromUrl(request.url)
@@ -32,7 +33,7 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
   ])
 
   if (!fileRes.ok) {
-    throw new Response('Failed to load file', { status: fileRes.status })
+    throw new Response(translate(language, 'library.errors.loadFailed'), { status: fileRes.status })
   }
 
   const fileData = (await fileRes.json()) as LibraryFileResponse

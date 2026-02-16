@@ -8,7 +8,8 @@ export const eng = {
     copied: 'Copied',
     copyFailed: 'Copy failed',
     close: 'Close',
-    download: 'Download'
+    download: 'Download',
+    unexpectedError: 'An unexpected error occurred'
   },
 
   meta: {

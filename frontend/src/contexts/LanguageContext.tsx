@@ -1,6 +1,6 @@
 import { createContext, useContext, useCallback, ReactNode, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { translations, Language, TranslationKey } from '../i18n'
+import { translations, translate, Language, TranslationKey } from '../i18n'
 import { getLanguageFromUrl, buildUrlWithLanguage } from '../utils/language'
 
 interface LanguageContextType {
@@ -52,21 +52,6 @@ export function useTranslation() {
 
 // Helper hook for getting nested translation values
 export function useT() {
-  const { t } = useTranslation()
-
-  return useCallback(function translate(path: string): string {
-    const keys = path.split('.')
-    let result: any = t
-
-    for (const key of keys) {
-      if (result && typeof result === 'object' && key in result) {
-        result = result[key]
-      } else {
-        console.warn(`Translation key not found: ${path}`)
-        return path // Return the path as fallback
-      }
-    }
-
-    return typeof result === 'string' ? result : path
-  }, [t])
+  const { language } = useTranslation()
+  return useCallback((path: string): string => translate(language, path), [language])
 }

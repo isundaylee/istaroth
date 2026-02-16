@@ -1,11 +1,12 @@
 import { useRouteError, isRouteErrorResponse } from 'react-router-dom'
-import { LanguageProvider } from '../contexts/LanguageContext'
+import { LanguageProvider, useT } from '../contexts/LanguageContext'
 import ErrorDisplay from './ErrorDisplay'
 
 function ErrorBoundaryContent() {
   const error = useRouteError()
+  const t = useT()
 
-  let message = 'An unexpected error occurred'
+  let message = t('common.unexpectedError')
 
   if (isRouteErrorResponse(error)) {
     message = typeof error.data === 'string' ? error.data : error.statusText || message

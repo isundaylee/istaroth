@@ -13,3 +13,19 @@ export type NestedKeyOf<ObjectType extends object> = {
 }[keyof ObjectType & (string | number)]
 
 export type TranslationPath = NestedKeyOf<TranslationKey>
+
+export function translate(language: Language, path: string): string {
+  const keys = path.split('.')
+  let result: any = translations[language]
+
+  for (const key of keys) {
+    if (result && typeof result === 'object' && key in result) {
+      result = result[key]
+    } else {
+      console.warn(`Translation key not found: ${path}`)
+      return path
+    }
+  }
+
+  return typeof result === 'string' ? result : path
+}
