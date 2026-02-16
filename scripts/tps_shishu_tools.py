@@ -26,10 +26,9 @@ def main() -> None:
 @main.command()
 @click.argument("pdf_path", type=click.Path(exists=True, path_type=pathlib.Path))
 @click.argument("output", type=click.Path(path_type=pathlib.Path))
-@click.option("--progress/--no-progress", default=True, help="Show conversion progress")
-def extract(pdf_path: pathlib.Path, output: pathlib.Path, progress: bool) -> None:
+def extract(pdf_path: pathlib.Path, output: pathlib.Path) -> None:
     """Convert PDF to markdown."""
-    md_text = extraction.pdf_to_markdown(pdf_path, show_progress=progress)
+    md_text = extraction.pdf_to_markdown(pdf_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(md_text, encoding="utf-8")
     click.echo(f"Wrote {len(md_text):,} chars to {output}")

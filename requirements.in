@@ -11,7 +11,7 @@ torch
 transformers
 
 # TPS (third-party source) extraction
-pymupdf4llm
+marker-pdf
 
 # Application dependencies (non-ML)
 aiosqlite
