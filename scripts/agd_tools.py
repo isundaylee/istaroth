@@ -427,8 +427,12 @@ def generate_all(
     # the pre-computed mapping from parent memory
     multiprocessing.set_start_method("fork", force=True)
 
+    # Create stats directory for AGD-specific output files
+    stats_dir = output_dir / "stats" / "agd"
+    stats_dir.mkdir(parents=True, exist_ok=True)
+
     # Open errors file for writing
-    errors_file_path = output_dir / "errors.info"
+    errors_file_path = stats_dir / "errors.info"
     with (
         errors_file_path.open("w", encoding="utf-8") as errors_file,
         multiprocessing.Pool(processes=processes) as pool,
@@ -464,7 +468,7 @@ def generate_all(
     click.echo("\n" + summary_table)
 
     # Write summary table to file
-    summary_table_path = output_dir / "summary_table.txt"
+    summary_table_path = stats_dir / "summary_table.txt"
     with summary_table_path.open("w", encoding="utf-8") as f:
         f.write(summary_table)
     click.echo(f"Summary table written to {summary_table_path}")
@@ -486,7 +490,7 @@ def generate_all(
     unused_stats_data = all_tracker_stats.to_dict(
         text_map_tracker, talk_tracker, readables_tracker
     )
-    unused_stats_path = output_dir / "unused_stats.json"
+    unused_stats_path = stats_dir / "unused_stats.json"
     with unused_stats_path.open("w", encoding="utf-8") as f:
         json.dump(unused_stats_data, f, indent=2, ensure_ascii=False)
     click.echo(f"Text map usage stats written to {unused_stats_path}")
