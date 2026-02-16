@@ -263,7 +263,7 @@ body {
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: var(--font-xs);
+  font-size: var(--font-sm);
   transition: background-color 0.2s;
 }
 
