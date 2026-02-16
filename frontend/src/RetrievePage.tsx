@@ -12,6 +12,12 @@ import { buildLibraryFilePath } from './utils/library'
 import type { LibraryRetrieveRequest, LibraryRetrieveResponse } from './types/api'
 
 const QUERY_PARAM = 'q'
+const SEMANTIC_PARAM = 'semantic'
+
+interface SearchParams {
+  query: string
+  semantic: boolean
+}
 
 const escapeRegExp = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -44,36 +50,46 @@ function RetrievePage() {
   const t = useT()
   const { language } = useTranslation()
   const location = useLocation()
-  const [query, setQuery] = useState('')
-  const [submittedQuery, setSubmittedQuery] = useState<string | null>(null)
+  const [formParams, setFormParams] = useState<SearchParams>({ query: '', semantic: false })
+  const [submittedParams, setSubmittedParams] = useState<SearchParams | null>(null)
   const [initialQuerySubmitted, setInitialQuerySubmitted] = useState(false)
   const [results, setResults] = useState<LibraryRetrieveResponse['results']>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [semantic, setSemantic] = useState(false)
   const activeRequestIdRef = useRef(0)
 
-  const urlQuery = useMemo(() => {
+  const urlParams = useMemo((): SearchParams => {
     const params = new URLSearchParams(location.search)
-    return params.get(QUERY_PARAM)
+    return {
+      query: params.get(QUERY_PARAM) ?? '',
+      semantic: params.get(SEMANTIC_PARAM) === '1'
+    }
   }, [location.search])
 
-  const runSearch = async (value: string) => {
-    const trimmed = value.trim()
+  const writeParamsToUrl = (params: SearchParams) => {
+    const urlSearchParams = new URLSearchParams(location.search)
+    urlSearchParams.set(QUERY_PARAM, params.query)
+    urlSearchParams.set(SEMANTIC_PARAM, params.semantic ? '1' : '0')
+    const nextUrl = buildUrlWithLanguage(location.pathname, `?${urlSearchParams.toString()}`, language)
+    window.history.replaceState(null, '', nextUrl)
+  }
+
+  const runSearch = async (params: SearchParams) => {
+    const trimmed = params.query.trim()
     if (!trimmed) return
 
     setLoading(true)
     setError(null)
     const requestId = activeRequestIdRef.current + 1
     activeRequestIdRef.current = requestId
-    setSubmittedQuery(trimmed)
+    setSubmittedParams({ query: trimmed, semantic: params.semantic })
 
     try {
       const reqBody: LibraryRetrieveRequest = {
         language: language.toUpperCase(),
         query: trimmed,
         k: 10,
-        semantic,
+        semantic: params.semantic,
         chunk_context: 0
       }
       const res = await fetch('/api/library/retrieve', {
@@ -107,18 +123,11 @@ function RetrievePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const trimmed = query.trim()
-    if (!trimmed) return
+    const params: SearchParams = { query: formParams.query.trim(), semantic: formParams.semantic }
+    if (!params.query || (params.query === submittedParams?.query && params.semantic === submittedParams?.semantic)) return
 
-    if (trimmed === submittedQuery) {
-      return
-    }
-
-    const params = new URLSearchParams(location.search)
-    params.set(QUERY_PARAM, trimmed)
-    const nextUrl = buildUrlWithLanguage(location.pathname, `?${params.toString()}`, language)
-    window.history.replaceState(null, '', nextUrl)
-    await runSearch(trimmed)
+    writeParamsToUrl(params)
+    await runSearch(params)
   }
 
   useEffect(() => {
@@ -128,21 +137,20 @@ function RetrievePage() {
     if (loading) {
       return
     }
-    if (!urlQuery) {
+    if (!urlParams.query) {
       activeRequestIdRef.current += 1
       setResults([])
       setError(null)
       setInitialQuerySubmitted(true)
       return
     }
-    setQuery(urlQuery)
-    setSubmittedQuery(urlQuery)
+    setFormParams(urlParams)
     setInitialQuerySubmitted(true)
-    runSearch(urlQuery)
-  }, [urlQuery, language, loading, initialQuerySubmitted])
+    runSearch(urlParams)
+  }, [initialQuerySubmitted, loading])
 
   const resultsContent = useMemo(() => {
-    if (!submittedQuery) {
+    if (!submittedParams || loading) {
       return null
     }
     if (results.length === 0) {
@@ -171,7 +179,7 @@ function RetrievePage() {
                   {result.file_info.title || t('library.noFileName')}
                 </AppLink>
                 <p style={{ margin: 0, color: '#5a6c7d', lineHeight: '1.6' }}>
-                  {highlightSnippet(result.snippet, submittedQuery ?? '')}
+                  {highlightSnippet(result.snippet, submittedParams.query)}
                 </p>
               </div>
             </Card>
@@ -179,7 +187,7 @@ function RetrievePage() {
         })}
       </div>
     )
-  }, [results, urlQuery, location.search, language, t])
+  }, [results, submittedParams, loading, language, t])
 
   return (
     <div className="app">
@@ -193,15 +201,15 @@ function RetrievePage() {
             <div className="input-row">
               <input
                 type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                value={formParams.query}
+                onChange={(e) => setFormParams({ ...formParams, query: e.target.value })}
                 placeholder={t('retrieve.placeholder')}
                 disabled={loading}
                 className="question-input"
               />
               <button
                 type="submit"
-                disabled={loading || !query.trim()}
+                disabled={loading || !formParams.query.trim()}
                 className="submit-button"
               >
                 {loading ? t('retrieve.submitting') : t('retrieve.submitButton')}
@@ -210,8 +218,8 @@ function RetrievePage() {
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
               <input
                 type="checkbox"
-                checked={semantic}
-                onChange={(e) => { setSemantic(e.target.checked); setSubmittedQuery(null) }}
+                checked={formParams.semantic}
+                onChange={(e) => setFormParams({ ...formParams, semantic: e.target.checked })}
                 disabled={loading}
               />
               {t('retrieve.semantic')}
