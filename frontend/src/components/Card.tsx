@@ -20,7 +20,7 @@ function Card({
   }
 
   const borderStyles: CSSProperties = borderColor !== 'none' ? {
-    borderLeft: `4px solid ${borderColor === 'green' ? '#28a745' : '#3498db'}`
+    borderLeft: `3px solid ${borderColor === 'green' ? '#28a745' : '#3498db'}`
   } : {}
 
   const combinedStyles = {
