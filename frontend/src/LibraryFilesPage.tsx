@@ -3,6 +3,7 @@ import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import { useT } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import Card from './components/Card'
+import TextInput from './components/TextInput'
 import PageCard from './components/PageCard'
 import LibraryHeader from './components/LibraryHeader'
 import { translate } from './i18n'
@@ -68,21 +69,11 @@ function LibraryFilesPage() {
 
           {files.length > 0 && (
             <>
-            <input
-              type="text"
+            <TextInput
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               placeholder={t('library.filterPlaceholder')}
-              style={{
-                width: '100%',
-                padding: '0.6rem 1rem',
-                marginBottom: '1rem',
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                fontSize: '0.95rem',
-                boxSizing: 'border-box',
-                outline: 'none'
-              }}
+              style={{ width: '100%', marginBottom: '1rem' }}
             />
 
             {filteredFiles.length === 0 ? (

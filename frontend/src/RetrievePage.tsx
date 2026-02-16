@@ -6,6 +6,8 @@ import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
 import PageTitle from './components/PageTitle'
 import Card from './components/Card'
+import TextInput from './components/TextInput'
+import Button from './components/Button'
 import ErrorDisplay from './components/ErrorDisplay'
 import { buildUrlWithLanguage } from './utils/language'
 import { buildLibraryFilePath } from './utils/library'
@@ -199,21 +201,18 @@ function RetrievePage() {
           </PageTitle>
           <form onSubmit={handleSubmit} className="query-form">
             <div className="input-row">
-              <input
-                type="text"
+              <TextInput
                 value={formParams.query}
                 onChange={(e) => setFormParams({ ...formParams, query: e.target.value })}
                 placeholder={t('retrieve.placeholder')}
                 disabled={loading}
-                className="question-input"
               />
-              <button
+              <Button
                 type="submit"
                 disabled={loading || !formParams.query.trim()}
-                className="submit-button"
               >
                 {loading ? t('retrieve.submitting') : t('retrieve.submitButton')}
-              </button>
+              </Button>
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
               <input

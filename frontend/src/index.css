@@ -32,62 +32,62 @@ body {
   align-items: stretch;
 }
 
-.question-input {
+.text-input {
   flex: 1;
-  padding: 12px 16px;
-  border: 2px solid #e1e1e1;
-  border-radius: 4px;
-  font-size: 1rem;
+  padding: 0.6rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
   min-width: 250px;
 }
 
-.question-input:focus {
+.text-input:focus {
   outline: none;
   border-color: #3498db;
 }
 
-.question-input:disabled {
+.text-input:disabled {
   background-color: #f8f8f8;
   color: #999;
 }
 
-.model-select {
-  padding: 12px 16px;
-  border: 2px solid #e1e1e1;
-  border-radius: 4px;
-  font-size: 1rem;
+.select {
+  padding: 0.6rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.95rem;
   background-color: white;
   min-width: 180px;
   cursor: pointer;
 }
 
-.model-select:focus {
+.select:focus {
   outline: none;
   border-color: #3498db;
 }
 
-.model-select:disabled {
+.select:disabled {
   background-color: #f8f8f8;
   color: #999;
   cursor: not-allowed;
 }
 
-.submit-button {
-  padding: 12px 24px;
+.button {
+  padding: 0.6rem 1.5rem;
   background-color: #3498db;
   color: white;
   border: none;
-  border-radius: 4px;
-  font-size: 1rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
-.submit-button:hover:not(:disabled) {
+.button:hover:not(:disabled) {
   background-color: #2980b9;
 }
 
-.submit-button:disabled {
+.button:disabled {
   background-color: #bdc3c7;
   cursor: not-allowed;
 }
@@ -316,11 +316,11 @@ body {
     flex-direction: column;
   }
 
-  .question-input {
+  .text-input {
     min-width: auto;
   }
 
-  .model-select {
+  .select {
     min-width: auto;
   }
 

@@ -1,8 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import { useAppNavigate } from './hooks/useAppNavigate'
-import type { QueryRequest, QueryResponse, ErrorResponse, ModelsResponse, ExampleQuestionResponse } from './types/api'
+import TextInput from './components/TextInput'
+import Select from './components/Select'
+import Button from './components/Button'
 import ErrorDisplay from './components/ErrorDisplay'
+import type { QueryRequest, QueryResponse, ErrorResponse, ModelsResponse, ExampleQuestionResponse } from './types/api'
 
 interface QueryFormProps {
   currentQuestion?: string
@@ -146,20 +149,17 @@ function QueryForm({ currentQuestion }: QueryFormProps = {}) {
     <>
       <form onSubmit={handleSubmit} className="query-form">
         <div className="input-row">
-          <input
+          <TextInput
             ref={inputRef}
-            type="text"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder={exampleLoading ? t('query.exampleLoading') : exampleQuestion || t('query.placeholder')}
             disabled={loading}
-            className="question-input"
           />
-          <select
+          <Select
             value={selectedModel}
             onChange={(e) => setSelectedModel(e.target.value)}
             disabled={loading || modelsLoading}
-            className="model-select"
           >
             {modelsLoading ? (
               <option value="">{t('common.loading')}</option>
@@ -170,14 +170,13 @@ function QueryForm({ currentQuestion }: QueryFormProps = {}) {
                 </option>
               ))
             )}
-          </select>
-          <button
+          </Select>
+          <Button
             type="submit"
             disabled={loading || (!question.trim() && !exampleQuestion) || availableModels.length === 0}
-            className="submit-button"
           >
             {loading ? t('query.submitting') : t('query.submitButton')}
-          </button>
+          </Button>
         </div>
       </form>
 
