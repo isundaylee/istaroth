@@ -134,7 +134,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
           background: 'white',
           border: '1px solid #ddd',
           borderRadius: isFullscreen ? '0' : 'var(--radius-md)',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          boxShadow: 'var(--shadow)',
           width: isFullscreen ? '100vw' : 'auto',
           maxWidth: isFullscreen ? '800px' : undefined,
           height: isFullscreen ? '100vh' : 'auto',

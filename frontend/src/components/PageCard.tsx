@@ -12,7 +12,7 @@ function PageCard({ children, style = {} }: PageCardProps) {
       style={{
         backgroundColor: 'white',
         borderRadius: 'var(--radius-md)',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+        boxShadow: 'var(--shadow)',
         padding: '30px',
         margin: '0',
         ...style
