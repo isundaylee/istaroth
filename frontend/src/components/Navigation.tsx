@@ -20,7 +20,7 @@ function Navigation() {
       style={{
         backgroundColor: '#fff',
         borderRadius: 'var(--radius-md)',
-        padding: '0.75rem 1.5rem',
+        padding: '0.5rem 1rem',
         marginBottom: '1.25rem',
         display: 'flex',
         justifyContent: 'space-between',
@@ -30,7 +30,7 @@ function Navigation() {
         gap: '0.75rem'
       }}
     >
-      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
         {navLinks.map(({ path, key }) => {
           const active = isActive(path)
           return (
@@ -43,7 +43,7 @@ function Navigation() {
                 backgroundColor: active ? '#e7f3ff' : 'transparent',
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
-                padding: '0.5rem 1.75rem',
+                padding: '0.3rem 1rem',
                 fontSize: '1rem',
                 fontWeight: active ? '600' : 'normal',
                 transition: 'all 0.2s',
