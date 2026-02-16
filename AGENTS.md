@@ -102,7 +102,7 @@ This project uses `bd` for task tracking.
 
 ## Landing the Plane (Session Completion)
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds. NOTE that you should only do this after the user tells you that it's done/finished.
 
 **MANDATORY WORKFLOW:**
 

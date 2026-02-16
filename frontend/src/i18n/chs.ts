@@ -115,6 +115,10 @@ export const chs = {
     }
   },
 
+  footer: {
+    checkpointVersion: '文本数据版本'
+  },
+
   library: {
     title: '图书馆',
     placeholder: '图书馆功能即将推出...',

@@ -155,6 +155,16 @@ class DocumentStoreSet:
         """Available languages."""
         return list(self._stores.keys())
 
+    def get_checkpoint_versions(self) -> dict[localization.Language, str | None]:
+        """Read checkpoint versions from .release tag files."""
+        versions: dict[localization.Language, str | None] = {}
+        for language, checkpoint_path in self._checkpoint_paths.items():
+            tag_file = checkpoint_path.parent / f"{checkpoint_path.name}.release"
+            versions[language] = (
+                tag_file.read_text().strip() if tag_file.exists() else None
+            )
+        return versions
+
     def get_text_set(self, language: localization.Language) -> text_set.TextSet:
         """Get TextSet for a language."""
         if language not in self._checkpoint_paths:

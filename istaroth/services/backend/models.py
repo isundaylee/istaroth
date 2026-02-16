@@ -196,3 +196,9 @@ class LibraryRetrieveResponse(BaseModel):
 
     query: str
     results: list[LibraryRetrieveResult]
+
+
+class VersionResponse(BaseModel):
+    """Response model for version endpoint."""
+
+    checkpoint_versions: dict[str, str | None]

@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration } from 'react-router-dom'
 import { LanguageProvider } from './contexts/LanguageContext'
 import DocumentTitle from './components/DocumentTitle'
+import Footer from './components/Footer'
 import ErrorBoundary from './components/ErrorBoundary'
 import QueryPage from './QueryPage'
 import RetrievePage from './RetrievePage'
@@ -15,6 +16,7 @@ function RootLayout() {
     <LanguageProvider>
       <DocumentTitle />
       <Outlet />
+      <Footer />
       <ScrollRestoration  />
     </LanguageProvider>
   )

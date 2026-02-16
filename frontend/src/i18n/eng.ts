@@ -115,6 +115,10 @@ export const eng = {
     }
   },
 
+  footer: {
+    checkpointVersion: 'Text Data Version'
+  },
+
   library: {
     title: 'Library',
     placeholder: 'Library feature coming soon...',

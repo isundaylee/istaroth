@@ -221,3 +221,6 @@ istaroth.code-workspace
 # Helm local values files
 helm/*/values-local.yaml
 **/values-local.yaml
+
+# Beads
+.beads/.migration-hint-ts
