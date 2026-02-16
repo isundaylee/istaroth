@@ -22,7 +22,7 @@ function QueryPage() {
               {t('query.title')}
             </PageTitle>
             <p style={{
-              fontSize: '1.1rem',
+              fontSize: 'var(--font-base)',
               color: '#5a6c7d',
               lineHeight: '1.6',
               maxWidth: '600px',
@@ -44,7 +44,7 @@ function QueryPage() {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
-                  fontSize: '0.85rem',
+                  fontSize: 'var(--font-sm)',
                   color: '#0366d6',
                   textDecoration: 'none',
                   padding: '6px 12px',

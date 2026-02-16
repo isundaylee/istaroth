@@ -30,7 +30,7 @@ function NavButton({ onClick, label, title, marginTop }: NavButtonProps) {
   }
 
   const labelStyle: React.CSSProperties = {
-    fontSize: '0.875rem',
+    fontSize: 'var(--font-sm)',
     color: '#666',
     marginBottom: '0.25rem'
   }

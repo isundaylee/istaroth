@@ -20,7 +20,7 @@ function LibraryHeader({ title, backPath, backText }: LibraryHeaderProps) {
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     whiteSpace: 'nowrap',
-    fontSize: '0.9rem',
+    fontSize: 'var(--font-sm)',
     minWidth: 'fit-content'
   }
 

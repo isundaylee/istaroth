@@ -19,7 +19,7 @@ function LanguageButton({ label, isActive, onClick }: LanguageButtonProps) {
         borderRadius: 'var(--radius-md)',
         padding: '0.25rem 0.5rem',
         cursor: 'pointer',
-        fontSize: '0.8rem',
+        fontSize: 'var(--font-sm)',
         fontWeight: isActive ? 'bold' : 'normal',
         transition: 'all 0.2s'
       }}
@@ -59,7 +59,7 @@ function LanguageSwitcher() {
       display: 'flex',
       alignItems: 'center',
       gap: '0.5rem',
-      fontSize: '0.9rem'
+      fontSize: 'var(--font-sm)'
     }}>
       {languages.map(({ lang, label }) => (
         <LanguageButton

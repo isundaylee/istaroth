@@ -173,7 +173,7 @@ function RetrievePage() {
                 <AppLink
                   to={linkPath}
                   style={{
-                    fontSize: '1.1rem',
+                    fontSize: 'var(--font-base)',
                     fontWeight: 600,
                     color: '#2c3e50',
                     textDecoration: 'none'

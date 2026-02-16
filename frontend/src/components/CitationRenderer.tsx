@@ -475,7 +475,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
           borderTop: '1px solid #e0e0e0'
         }}>
           <h4 style={{
-            fontSize: '1rem',
+            fontSize: 'var(--font-base)',
             fontWeight: 600,
             marginBottom: '1rem',
             color: '#333'
@@ -525,7 +525,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
                     style={{
                       color: '#5594d9',
                       textDecoration: 'none',
-                      fontSize: '0.9rem',
+                      fontSize: 'var(--font-sm)',
                       fontWeight: 500,
                       cursor: 'pointer',
                       flex: 1,
@@ -544,7 +544,7 @@ function CitationRenderer({ content }: CitationRendererProps) {
                       style={{
                         color: '#888',
                         textDecoration: 'none',
-                        fontSize: '0.8rem',
+                        fontSize: 'var(--font-sm)',
                         cursor: 'pointer',
                         padding: '2px 6px',
                         borderRadius: 'var(--radius-sm)',

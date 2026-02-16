@@ -162,14 +162,14 @@ function ConversationPage() {
                         link.click()
                       }}
                       className="share-button"
-                      style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
+                      style={{ fontSize: 'var(--font-xs)', padding: '0.25rem 0.5rem' }}
                     >
                       {t('common.download')}
                     </button>
                     <button
                       onClick={() => setExportedImage(null)}
                       className="export-button"
-                      style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
+                      style={{ fontSize: 'var(--font-xs)', padding: '0.25rem 0.5rem' }}
                     >
                       {t('common.close')}
                     </button>

@@ -19,7 +19,7 @@ function NotFoundPage() {
         </div>
         <Card>
           <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-            <h1 style={{ fontSize: '4rem', margin: '0', color: '#666' }}>{t('notFound.title')}</h1>
+            <h1 style={{ fontSize: 'var(--font-hero)', margin: '0', color: '#666' }}>{t('notFound.title')}</h1>
             <PageTitle as="h2">
               {t('notFound.heading')}
             </PageTitle>

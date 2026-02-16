@@ -22,7 +22,7 @@ function Footer() {
     <footer style={{
       marginTop: '1rem',
       textAlign: 'center',
-      fontSize: '0.75rem',
+      fontSize: 'var(--font-xs)',
       color: '#999',
     }}>
       {versionText}

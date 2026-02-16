@@ -44,7 +44,7 @@ function Navigation() {
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
                 padding: '0.3rem 1rem',
-                fontSize: '1rem',
+                fontSize: 'var(--font-base)',
                 fontWeight: active ? '600' : 'normal',
                 transition: 'all 0.2s',
                 cursor: 'pointer',

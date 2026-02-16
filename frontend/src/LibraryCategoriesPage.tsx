@@ -91,7 +91,7 @@ function LibraryCategoriesPage() {
                         minHeight: '80px'
                       }}
                     >
-                      <h3 style={{ margin: 0, textAlign: 'center', fontSize: '1.1rem', color: '#2c3e50' }}>
+                      <h3 style={{ margin: 0, textAlign: 'center', fontSize: 'var(--font-base)', color: '#2c3e50' }}>
                         {translateCategory(category)}
                       </h3>
                     </Card>
