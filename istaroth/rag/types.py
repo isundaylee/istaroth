@@ -1,10 +1,19 @@
 """Type definitions for RAG (Retrieval-Augmented Generation) module."""
 
+from __future__ import annotations
+
+import collections
+import logging
 import os
-from typing import Any, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
 
 import attrs
 from langchain_core.documents import Document
+
+if TYPE_CHECKING:
+    from istaroth.rag import text_set as text_set_mod
+
+logger = logging.getLogger(__name__)
 
 
 class DocumentMetadata(TypedDict):
@@ -71,9 +80,36 @@ class RetrieveOutput:
         """Total number of documents in the results."""
         return sum(len(docs) for _, docs in self.results)
 
-    def to_langsmith_output(self, formatted_output: str | None) -> dict[str, Any]:
+    def get_category_breakdown(
+        self, text_set: text_set_mod.TextSet
+    ) -> dict[str, int]:
+        """Compute result count per text category using the manifest.
+
+        Returns a dict mapping category value to number of result groups,
+        sorted by count descending.
+        """
+        counts: dict[str, int] = collections.Counter()
+        for _, docs in self.results:
+            if not docs:
+                continue
+            path = docs[0].metadata["path"]
+            item = text_set.get_manifest_item_by_relative_path(path)
+            if item is not None:
+                counts[item.category.value] += 1
+            else:
+                counts["unknown"] += 1
+        return dict(sorted(counts.items(), key=lambda x: x[1], reverse=True))
+
+    def to_langsmith_output(
+        self,
+        formatted_output: str | None,
+        text_set: text_set_mod.TextSet,
+    ) -> dict[str, Any]:
+        category_breakdown = self.get_category_breakdown(text_set)
+        logger.info("Retrieve category breakdown: %s", category_breakdown)
         return {
             "total_documents": self.total_documents,
+            "category_breakdown": category_breakdown,
             "formatted_output": formatted_output,
         }
 

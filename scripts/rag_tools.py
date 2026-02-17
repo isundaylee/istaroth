@@ -150,7 +150,7 @@ def retrieve(
         formatted_output = output_rendering.render_retrieve_output(
             retrieve_output.results, text_set=ts
         )
-        rt.end(outputs=retrieve_output.to_langsmith_output(formatted_output))
+        rt.end(outputs=retrieve_output.to_langsmith_output(formatted_output, text_set=ts))
 
         if save is not None:
             save_path = save / (
@@ -170,7 +170,7 @@ def retrieve(
 def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
     """Evaluate retrieval on a fixed dataset and save into the output path."""
 
-    store, _, _ = _load_store()
+    store, _, ts = _load_store()
 
     for query in dataset.RETRIEVAL_QUESTIONS:
         with ls.trace(
@@ -179,7 +179,7 @@ def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
             inputs={"query": query, "k": k, "chunk_context": chunk_context},
         ) as rt:
             retrieve_output = store.retrieve(query, k=k, chunk_context=chunk_context)
-            rt.end(outputs=retrieve_output.to_langsmith_output(None))
+            rt.end(outputs=retrieve_output.to_langsmith_output(None, text_set=ts))
 
             query_hash = hashlib.md5(query.encode()).hexdigest()
             output.mkdir(parents=True, exist_ok=True)
