@@ -31,6 +31,12 @@ class TextCategory(Enum):
 
     TPS_SHISHU = "tps_shishu"
 
+    def get_note(self) -> str | None:
+        """Return an optional caveat note for this category."""
+        return {
+            TextCategory.TPS_SHISHU: "以下内容来自第三方非官方资料（诗漱原神世界观手册），并非游戏内官方文本，仅供参考",
+        }.get(self)
+
 
 def _validate_relative_path(
     instance: TextMetadata, attribute: attrs.Attribute, value: str

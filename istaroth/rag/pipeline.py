@@ -9,7 +9,14 @@ from langchain_core.runnables import RunnableConfig
 
 from istaroth import langsmith_utils, llm_manager
 from istaroth.agd import localization
-from istaroth.rag import document_store, output_rendering, prompt_set, tracing, types
+from istaroth.rag import (
+    document_store,
+    output_rendering,
+    prompt_set,
+    text_set,
+    tracing,
+    types,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,12 +31,14 @@ class RAGPipeline:
         *,
         llm: language_models.BaseLanguageModel,
         preprocessing_llm: language_models.BaseLanguageModel,
+        text_set: text_set.TextSet,
     ):
         """Initialize RAG pipeline with language-specific prompts and preprocessing LLM."""
         self._document_store = document_store
         self._language = language
         self._llm = llm
         self._preprocessing_llm = preprocessing_llm
+        self._text_set = text_set
 
         # Get language-specific prompts
         self._prompt_set = prompt_set.get_rag_prompts(language)
@@ -123,7 +132,8 @@ class RAGPipeline:
             {
                 "user_question": question,
                 "retrieved_context": output_rendering.render_retrieve_output(
-                    combined_retrieve_output.results
+                    combined_retrieve_output.results,
+                    text_set=self._text_set,
                 ),
             },
             config=config,

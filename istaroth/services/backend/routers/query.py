@@ -59,6 +59,7 @@ async def query(
     try:
         language_enum = localization.Language(request.language)
         selected_store = document_store_set.get_store(language_enum)
+        selected_text_set = document_store_set.get_text_set(language_enum)
         language_name = request.language.upper()
     except (ValueError, KeyError) as e:
         raise HTTPException(status_code=400, detail=repr(e))
@@ -72,6 +73,7 @@ async def query(
             preprocessing_llm=llm_manager.get_llm(
                 os.environ.get("ISTAROTH_PREPROCESSING_MODEL", "gemini-2.5-flash-lite")
             ),
+            text_set=selected_text_set,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=repr(e))

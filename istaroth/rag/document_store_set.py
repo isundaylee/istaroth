@@ -54,6 +54,9 @@ class DocumentStoreSet:
 
     _stores: dict[localization.Language, document_store.DocumentStore] = attrs.field()
     _checkpoint_paths: dict[localization.Language, pathlib.Path] = attrs.field()
+    _text_sets: dict[localization.Language, text_set.TextSet] = attrs.field(
+        factory=dict, init=False
+    )
 
     @classmethod
     def from_env(cls) -> "DocumentStoreSet":
@@ -147,16 +150,18 @@ class DocumentStoreSet:
             )
             return cls(stores, checkpoint_paths)
 
-    def get_store(
-        self, language: localization.Language
-    ) -> document_store.DocumentStore:
-        """Get document store for language."""
+    def _validate_language(self, language: localization.Language) -> None:
         if language not in self._stores:
             available = ", ".join(lang.name for lang in self._stores.keys())
             raise KeyError(
                 f"Language '{language.name}' not available. Available languages: {available}"
             )
 
+    def get_store(
+        self, language: localization.Language
+    ) -> document_store.DocumentStore:
+        """Get document store for language."""
+        self._validate_language(language)
         return self._stores[language]
 
     @property
@@ -175,13 +180,11 @@ class DocumentStoreSet:
         return versions
 
     def get_text_set(self, language: localization.Language) -> text_set.TextSet:
-        """Get TextSet for a language."""
-        if language not in self._checkpoint_paths:
-            available = ", ".join(lang.name for lang in self._checkpoint_paths.keys())
-            raise KeyError(
-                f"Language '{language.name}' not available. Available languages: {available}"
+        """Get TextSet for a language (cached)."""
+        if language not in self._text_sets:
+            self._validate_language(language)
+            checkpoint_path = self._checkpoint_paths[language]
+            self._text_sets[language] = text_set.TextSet(
+                text_path=checkpoint_path / "text", language=language
             )
-
-        checkpoint_path = self._checkpoint_paths[language]
-        text_path = checkpoint_path / "text"
-        return text_set.TextSet(text_path=text_path, language=language)
+        return self._text_sets[language]

@@ -8,7 +8,7 @@ from langchain_core.tools import BaseTool, Tool
 from pydantic import BaseModel, Field
 
 from istaroth.agd import localization
-from istaroth.rag import document_store, output_rendering
+from istaroth.rag import document_store, output_rendering, text_set
 
 logger = logging.getLogger(__name__)
 
@@ -44,21 +44,23 @@ class DocumentRetrievalTool(BaseTool):
     def __init__(
         self,
         document_store: document_store.DocumentStore,
+        text_set: text_set.TextSet,
         *,
         language: localization.Language = localization.Language.ENG,
     ):
         """Initialize with document store and language."""
         super().__init__()
         self._document_store = document_store
+        self._text_set = text_set
         self._language = language
 
     def _run(self, query: str, k: int = 5, chunk_context: int = 5) -> str:
         """Execute document retrieval."""
-        # Retrieve documents
         return output_rendering.render_retrieve_output(
             self._document_store.retrieve(
                 query, k=k, chunk_context=chunk_context
-            ).results
+            ).results,
+            text_set=self._text_set,
         )
 
     async def _arun(self, query: str, k: int = 5, chunk_context: int = 5) -> str:
@@ -68,8 +70,9 @@ class DocumentRetrievalTool(BaseTool):
 
 def get_default_tools(
     document_store: document_store.DocumentStore,
+    text_set: text_set.TextSet,
     *,
     language: localization.Language = localization.Language.ENG,
 ) -> list[BaseTool]:
     """Get default tools for reasoning."""
-    return [DocumentRetrievalTool(document_store, language=language)]
+    return [DocumentRetrievalTool(document_store, text_set, language=language)]

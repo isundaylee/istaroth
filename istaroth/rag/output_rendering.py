@@ -1,7 +1,18 @@
+from istaroth.rag import text_set
 from istaroth.rag.document_store import Document
 
 
-def render_retrieve_output(r: list[tuple[float, list[Document]]]) -> str:
+def _get_file_note(ts: text_set.TextSet, path: str) -> str | None:
+    """Look up the category note for a file via the manifest."""
+    metadata = ts.get_manifest_item_by_relative_path(path)
+    if metadata is None:
+        raise ValueError(f"No manifest entry for retrieved document path: {path}")
+    return metadata.category.get_note()
+
+
+def render_retrieve_output(
+    r: list[tuple[float, list[Document]]], *, text_set: text_set.TextSet
+) -> str:
     if not r:
         return "未找到相关文档。"
 
@@ -19,6 +30,9 @@ def render_retrieve_output(r: list[tuple[float, list[Document]]]) -> str:
             f"文件ID: {file_id}, "
             f"文件片段序号: ck{chunk_start} 到 ck{chunk_end}):\n"
         )
+
+        if note := _get_file_note(text_set, file_docs[0].metadata["path"]):
+            parts.append(f"# 【注意：{note}】\n")
 
         last_chunk_index: int | None = None
         for doc in file_docs:

@@ -24,6 +24,7 @@ from istaroth.rag import (
     output_rendering,
     pipeline,
     retrieval_diff,
+    text_set,
 )
 from istaroth.rag.eval import dataset
 from istaroth.text import manifest
@@ -44,16 +45,19 @@ def _get_files_to_process(text_path: pathlib.Path) -> list[pathlib.Path]:
     return files
 
 
-def _load_store() -> tuple[document_store.DocumentStore, localization.Language]:
+def _load_store() -> (
+    tuple[document_store.DocumentStore, localization.Language, text_set.TextSet]
+):
     """Load document store using default language from env config."""
     store_set = document_store_set.DocumentStoreSet.from_env()
     languages = store_set.available_languages
     assert languages, "No document stores configured in ISTAROTH_DOCUMENT_STORE_SET."
     language = languages[0]
     store = store_set.get_store(language)
+    ts = store_set.get_text_set(language)
     if store.num_documents > 0:
         logger.info("Loaded store with %d existing documents", store.num_documents)
-    return store, language
+    return store, language, ts
 
 
 @click.group()
@@ -130,7 +134,7 @@ def retrieve(
         "chain",
         inputs={"query": query, "k": k, "chunk_context": chunk_context},
     ) as rt:
-        store, _ = _load_store()
+        store, _, ts = _load_store()
 
         if store.num_documents == 0:
             logger.error("No documents in store. Use 'add-documents' command first.")
@@ -144,7 +148,7 @@ def retrieve(
             return
 
         formatted_output = output_rendering.render_retrieve_output(
-            retrieve_output.results
+            retrieve_output.results, text_set=ts
         )
         rt.end(outputs=retrieve_output.to_langsmith_output(formatted_output))
 
@@ -166,7 +170,7 @@ def retrieve(
 def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
     """Evaluate retrieval on a fixed dataset and save into the output path."""
 
-    store, _ = _load_store()
+    store, _, _ = _load_store()
 
     for query in dataset.RETRIEVAL_QUESTIONS:
         with ls.trace(
@@ -190,7 +194,7 @@ def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
 @click.option("--chunk-context", default=10)
 def query(question: str, *, k: int, chunk_context: int) -> None:
     """Answer a question using RAG pipeline."""
-    store, language = _load_store()
+    store, language, ts = _load_store()
 
     if store.num_documents == 0:
         logger.error("No documents in store.")
@@ -207,6 +211,7 @@ def query(question: str, *, k: int, chunk_context: int) -> None:
         language=language,
         llm=lm.get_default_llm(),
         preprocessing_llm=lm.get_llm("gemini-2.5-flash-lite"),
+        text_set=ts,
     )
 
     answer = rag.answer(question, k=k, chunk_context=chunk_context)

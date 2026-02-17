@@ -23,6 +23,7 @@ try:
     _mcp_language_str = os.environ["ISTAROTH_MCP_LANGUAGE"]
     _mcp_language = localization.Language(_mcp_language_str.upper())
     _store = _store_set.get_store(_mcp_language)
+    _text_set = _store_set.get_text_set(_mcp_language)
 except Exception as e:
     raise RuntimeError(
         f"Failed to initialize document store: {e} from \n\n{"".join(traceback.format_exc())}"
@@ -154,7 +155,7 @@ def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
                         f"查询 '{query}' 检索到 {len(retrieve_output.results)} 个文件：",
                         "",
                         output_rendering.render_retrieve_output(
-                            retrieve_output.results
+                            retrieve_output.results, text_set=_text_set
                         ),
                         "",
                         "=" * 60,
