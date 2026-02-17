@@ -80,9 +80,7 @@ class RetrieveOutput:
         """Total number of documents in the results."""
         return sum(len(docs) for _, docs in self.results)
 
-    def get_category_breakdown(
-        self, text_set: text_set_mod.TextSet
-    ) -> dict[str, int]:
+    def get_category_breakdown(self, text_set: text_set_mod.TextSet) -> dict[str, int]:
         """Compute result count per text category using the manifest.
 
         Returns a dict mapping category value to number of result groups,

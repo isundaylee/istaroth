@@ -165,7 +165,11 @@ def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
                     ]
                 )
 
-            rt.end(outputs=retrieve_output.to_langsmith_output(formatted_output, text_set=_text_set))
+            rt.end(
+                outputs=retrieve_output.to_langsmith_output(
+                    formatted_output, text_set=_text_set
+                )
+            )
 
         return formatted_output
     except Exception as e:

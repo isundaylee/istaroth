@@ -9,9 +9,10 @@ import type { QueryRequest, QueryResponse, ErrorResponse, ModelsResponse, Exampl
 
 interface QueryFormProps {
   currentQuestion?: string
+  onSubmitStart?: () => void
 }
 
-function QueryForm({ currentQuestion }: QueryFormProps = {}) {
+function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
   const navigate = useAppNavigate()
   const t = useT()
   const { language } = useTranslation()
@@ -110,6 +111,7 @@ function QueryForm({ currentQuestion }: QueryFormProps = {}) {
 
     setLoading(true)
     setError(null)
+    onSubmitStart?.()
 
     try {
       const req_body: QueryRequest = {
@@ -175,7 +177,10 @@ function QueryForm({ currentQuestion }: QueryFormProps = {}) {
             type="submit"
             disabled={loading || (!question.trim() && !exampleQuestion) || availableModels.length === 0}
           >
-            {loading ? t('query.submitting') : t('query.submitButton')}
+            <span className="button-text-sizer">
+              <span className={loading ? 'button-text-active' : 'button-text-hidden'}><span className="loading-ellipsis">{t('query.submitting')}</span></span>
+              <span className={loading ? 'button-text-hidden' : 'button-text-active'}>{t('query.submitButton')}</span>
+            </span>
           </Button>
         </div>
       </form>

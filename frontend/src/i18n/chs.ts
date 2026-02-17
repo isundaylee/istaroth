@@ -23,7 +23,7 @@ export const chs = {
     placeholder: '请输入关于原神背景故事的问题...',
     exampleLoading: '正在加载示例问题...',
     submitButton: '提问',
-    submitting: '回答中...',
+    submitting: '回答中',
     models: {
       'gemini-2_5-flash-lite': '超快速 (gemini-2.5-flash-lite)',
       'gemini-2_5-flash': '快速 (gemini-2.5-flash)',

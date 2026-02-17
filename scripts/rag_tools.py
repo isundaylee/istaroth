@@ -150,7 +150,9 @@ def retrieve(
         formatted_output = output_rendering.render_retrieve_output(
             retrieve_output.results, text_set=ts
         )
-        rt.end(outputs=retrieve_output.to_langsmith_output(formatted_output, text_set=ts))
+        rt.end(
+            outputs=retrieve_output.to_langsmith_output(formatted_output, text_set=ts)
+        )
 
         if save is not None:
             save_path = save / (

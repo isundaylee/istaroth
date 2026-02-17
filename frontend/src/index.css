@@ -140,6 +140,35 @@ body {
   padding: 0;
 }
 
+.button-text-sizer {
+  display: inline-grid;
+}
+
+.button-text-sizer > span {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.button-text-hidden {
+  visibility: hidden;
+}
+
+.loading-ellipsis::after {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  text-align: left;
+  animation: ellipsis 1.5s steps(4, end) infinite;
+}
+
+@keyframes ellipsis {
+  0%  { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
 .answer p {
   margin-bottom: 16px;
 }

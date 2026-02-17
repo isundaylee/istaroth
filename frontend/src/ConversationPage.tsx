@@ -36,9 +36,14 @@ function ConversationPage() {
   const t = useT()
   const { conversation } = useLoaderData() as LoaderData
   const { setExtraContent } = useFooter()
+  const [submittingNew, setSubmittingNew] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [exportedImage, setExportedImage] = useState<string | null>(null)
   const [copyButtonText, setCopyButtonText] = useState('')
+
+  useEffect(() => {
+    setSubmittingNew(false)
+  }, [conversation])
 
   useEffect(() => {
     const formatDate = (timestamp: number) =>
@@ -115,8 +120,9 @@ function ConversationPage() {
       <Navigation />
       <main className="main">
 
-        <QueryForm currentQuestion={conversation.question} />
+        <QueryForm currentQuestion={conversation.question} onSubmitStart={() => setSubmittingNew(true)} />
 
+        {!submittingNew &&
         <div className="conversation-content">
           <Card borderColor="green">
             <h3 style={{ margin: 0 }}>{conversation.question}</h3>
@@ -206,7 +212,7 @@ function ConversationPage() {
               </>
             )}
           </CitationRenderer>
-        </div>
+        </div>}
       </main>
     </>
   )

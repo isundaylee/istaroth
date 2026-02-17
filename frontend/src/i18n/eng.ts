@@ -23,7 +23,7 @@ export const eng = {
     placeholder: 'Enter your question about Genshin Impact lore...',
     exampleLoading: 'Loading example question...',
     submitButton: 'Ask',
-    submitting: 'Answering...',
+    submitting: 'Answering',
     models: {
       'gemini-2_5-flash-lite': 'Ultra Fast (gemini-2.5-flash-lite)',
       'gemini-2_5-flash': 'Fast (gemini-2.5-flash)',
