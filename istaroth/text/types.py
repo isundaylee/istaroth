@@ -25,6 +25,8 @@ class TextCategory(Enum):
     AGD_TALK = "agd_talk"
     AGD_ARTIFACT_SET = "agd_artifact_set"
 
+    TPS_SHISHU = "tps_shishu"
+
 
 def _validate_relative_path(
     instance: TextMetadata, attribute: attrs.Attribute, value: str

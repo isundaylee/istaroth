@@ -16,9 +16,14 @@ The `-f` flag forces regeneration by deleting existing output directories.
 ### TPS - Shishu (Shishu lore manual)
 
 ```bash
-python scripts/tps_shishu_tools.py extract manual.pdf out/manual.md
-python scripts/tps_shishu_tools.py split-chapters out/manual.md out/chapters
+# Step 1: Extract PDF to markdown (can run on a separate machine with GPU)
+python scripts/tps_shishu_tools.py extract manual.pdf tmp/manual.md
+
+# Step 2: Split chapters and write manifest
+python scripts/tps_shishu_tools.py generate tmp/manual.md text/chs/
 ```
+
+The `-f` flag on `generate` forces regeneration by deleting the existing `tps_shishu/` directory.
 
 ## Checkpoint Training
 

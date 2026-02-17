@@ -11,6 +11,7 @@ Special thanks to Dimbreath for his wonderful work on AnimeGameData!
 - Character stories
 - Character voicelines
 - Material texts
+- Shishu (诗漱) lore manual (third-party)
 
 ## Getting Started
 
