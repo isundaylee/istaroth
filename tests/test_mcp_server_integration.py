@@ -7,6 +7,7 @@ and exercises tools over the MCP protocol.
 import os
 import pathlib
 import re
+import sys
 
 import pytest
 import pytest_asyncio
@@ -23,7 +24,7 @@ _PROJECT_ROOT = pathlib.Path(__file__).parent.parent
 async def mcp_client(built_checkpoint_dir: pathlib.Path):
     """Launch the MCP server once and share across all tests in the session."""
     transport = StdioTransport(
-        command=str(_PROJECT_ROOT / "env" / "bin" / "python"),
+        command=sys.executable,
         args=[str(_PROJECT_ROOT / "scripts" / "mcp_server.py")],
         env={
             **os.environ,
