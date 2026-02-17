@@ -8,6 +8,7 @@ Example - run stages individually:
 """
 
 import pathlib
+import shutil
 import sys
 
 import click
@@ -39,6 +40,8 @@ def extract(pdf_path: pathlib.Path, output: pathlib.Path) -> None:
 @click.argument("out_dir", type=click.Path(path_type=pathlib.Path))
 def split_chapters(md_path: pathlib.Path, out_dir: pathlib.Path) -> None:
     """Split markdown into one file per heading."""
+    shutil.rmtree(out_dir)
+    out_dir.mkdir()
     n = split.split_markdown_by_headings(md_path, out_dir)
     click.echo(f"Wrote {n} files to {out_dir}")
 
