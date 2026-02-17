@@ -17,8 +17,14 @@ Special thanks to Dimbreath for his wonderful work on AnimeGameData!
 
 ### Python Environment Setup
 
-- Clone repository and install dependencies: `pip install -r requirements.txt`
-- Install pre-commit hooks (if you plan on doing development): `pre-commit install`
+Requires **Python 3.12** (see `.python-version`).
+
+```bash
+python3.12 -m venv env
+source env/bin/activate
+pip install -r requirements.txt
+pre-commit install  # if you plan on doing development
+```
 
 ### Checkpoint
 

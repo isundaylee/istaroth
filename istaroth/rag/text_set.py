@@ -1,4 +1,10 @@
-"""Text set for accessing text files organized by category."""
+"""Catalog of complete, unchunked text files organized by category.
+
+Unlike DocumentStore which chunks and indexes files for similarity search,
+TextSet provides direct access to whole source files via a manifest of
+TextMetadata entries (category, title, id, relative_path). Both operate on
+the same underlying text files; a DocumentStoreSet exposes both views.
+"""
 
 import functools
 import pathlib
@@ -64,7 +70,12 @@ def get_category_from_filename(filename: str) -> str:
 
 @attrs.define
 class TextSet:
-    """Set of text files organized by category for a language."""
+    """Manifest-indexed collection of complete text files for one language.
+
+    Provides lookup and content access by category/id or relative path, backed
+    by JSON manifest files on disk. No search capability — for retrieval, use
+    the companion DocumentStore which chunks and embeds the same source files.
+    """
 
     text_path: pathlib.Path
     language: localization.Language

@@ -1,4 +1,9 @@
-"""Document store set for multiple languages."""
+"""Multi-language container exposing both DocumentStore and TextSet views.
+
+A DocumentStoreSet holds one DocumentStore and one TextSet per language, all
+built from the same checkpoint directory. DocumentStore provides chunked
+hybrid search; TextSet provides manifest-based catalog access to complete files.
+"""
 
 import logging
 import os
@@ -41,7 +46,11 @@ def _parse_external_chroma_servers() -> dict[localization.Language, tuple[str, i
 
 @attrs.define
 class DocumentStoreSet:
-    """Set of document stores for different languages."""
+    """Per-language registry of DocumentStore (search) and TextSet (catalog).
+
+    Initialized from checkpoint paths via ``from_env()``. Use ``get_store()``
+    for hybrid retrieval and ``get_text_set()`` for browsing / citation access.
+    """
 
     _stores: dict[localization.Language, document_store.DocumentStore] = attrs.field()
     _checkpoint_paths: dict[localization.Language, pathlib.Path] = attrs.field()

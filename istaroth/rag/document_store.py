@@ -1,4 +1,10 @@
-"""Document store and embedding utilities for RAG pipeline."""
+"""Chunked document store with hybrid (vector + BM25) retrieval for RAG.
+
+Unlike TextSet which provides organized access to complete, unchunked source
+files for browsing and citations, DocumentStore splits text files into
+overlapping chunks and indexes them for similarity search. Both operate on
+the same underlying text files; a DocumentStoreSet exposes both views.
+"""
 
 import hashlib
 import json
@@ -191,7 +197,16 @@ def chunk_documents(
 
 @attrs.define
 class DocumentStore:
-    """A document store using ChromaDB for vector similarity search."""
+    """Hybrid retrieval store over chunked documents.
+
+    Chunks source text files and indexes them in both a vector store (ChromaDB)
+    and a BM25 keyword store, enabling hybrid search with reciprocal rank fusion.
+    Documents are keyed by file_id (MD5 of relative path) and chunk_index.
+
+    Contrast with TextSet, which provides direct access to complete, unchunked
+    files organized by category and metadata — useful for library browsing and
+    citation lookups rather than similarity search.
+    """
 
     _vector_store: vector_store.VectorStore
     _bm25_store: _BM25Store
