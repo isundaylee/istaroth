@@ -18,6 +18,9 @@ dev = [
     "mypy",
 ]
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
 [tool.mypy]
 python_version = "3.12"
 files = ["istaroth", "scripts", "tests"]

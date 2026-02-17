@@ -45,5 +45,6 @@ mypy
 pip-tools
 pre-commit
 pytest
+pytest-asyncio
 types-tabulate
 types-tqdm
