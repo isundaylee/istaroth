@@ -142,7 +142,8 @@ export const chs = {
       agd_subtitle: '字幕',
       agd_talk_group: '对话组',
       agd_talk: '对话',
-      agd_voiceline: '语音台词'
+      agd_voiceline: '语音台词',
+      tps_shishu: '诗漱原神世界观手册'
     },
     errors: {
       loadFailed: '加载失败',
