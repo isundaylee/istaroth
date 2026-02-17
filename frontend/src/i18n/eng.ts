@@ -142,7 +142,8 @@ export const eng = {
       agd_subtitle: 'Subtitles',
       agd_talk_group: 'Talk Groups',
       agd_talk: 'Talks',
-      agd_voiceline: 'Voicelines'
+      agd_voiceline: 'Voicelines',
+      tps_shishu: 'Shishu Lore Manual'
     },
     errors: {
       loadFailed: 'Failed to load',

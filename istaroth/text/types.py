@@ -9,7 +9,11 @@ import attrs
 
 
 class TextCategory(Enum):
-    """Enum for text categories."""
+    """Enum for text categories.
+
+    When adding a new value, also add a display name in the frontend i18n files:
+    frontend/src/i18n/chs.ts and frontend/src/i18n/eng.ts (library.categories).
+    """
 
     AGD_READABLE = "agd_readable"
     AGD_BOOK = "agd_book"
