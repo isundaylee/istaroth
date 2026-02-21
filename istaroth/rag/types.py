@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import collections
 import logging
-import os
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, Protocol, TypedDict
 
 import attrs
 from langchain_core.documents import Document
@@ -115,7 +114,6 @@ class RetrieveOutput:
         """Convert RetrieveOutput to dictionary for serialization."""
         return {
             "query": self.query.to_dict(),
-            "env": {k: v for k, v in os.environ.items() if k.startswith("ISTAROTH_")},
             "results": [
                 {
                     "score": score,
@@ -212,3 +210,22 @@ class CombinedRetrieveOutput:
     def total_documents(self) -> int:
         """Total number of documents in the results."""
         return sum(len(docs) for _, docs in self.results)
+
+
+class Retriever(Protocol):
+    """Protocol for retrieval backends (DocumentStore or remote retrieval client)."""
+
+    def retrieve(self, query: str, *, k: int, chunk_context: int) -> RetrieveOutput: ...
+
+    def retrieve_bm25(
+        self, query: str, *, k: int, chunk_context: int
+    ) -> RetrieveOutput: ...
+
+    def get_file_chunks(self, file_id: str) -> list[Document] | None: ...
+
+    def get_chunk(self, file_id: str, chunk_index: int) -> Document | None: ...
+
+    def get_file_chunk_count(self, file_id: str) -> int | None: ...
+
+    @property
+    def num_documents(self) -> int: ...

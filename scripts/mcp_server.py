@@ -19,7 +19,10 @@ from istaroth.rag import document_store_set, output_rendering
 mcp: FastMCP = FastMCP("istaroth")
 
 try:
-    _store_set = document_store_set.DocumentStoreSet.from_env()
+    if os.getenv("ISTAROTH_RETRIEVAL_SERVICE_URL"):
+        _store_set = document_store_set.DocumentStoreSet.from_retrieval_service()
+    else:
+        _store_set = document_store_set.DocumentStoreSet.from_env()
     _mcp_language_str = os.environ["ISTAROTH_MCP_LANGUAGE"]
     _mcp_language = localization.Language(_mcp_language_str.upper())
     _store = _store_set.get_store(_mcp_language)

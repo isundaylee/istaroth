@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-retrieval
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}-retrieval
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: retrieval
+    {{- with .Values.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  type: {{ .Values.retrieval.service.type }}
+  ports:
+  - port: {{ .Values.retrieval.service.port }}
+    targetPort: {{ .Values.retrieval.service.port }}
+    protocol: TCP
+    name: http
+  selector:
+    app.kubernetes.io/name: {{ .Release.Name }}-retrieval
+    app.kubernetes.io/instance: {{ .Release.Name }}

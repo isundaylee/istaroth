@@ -5,6 +5,7 @@ import datetime
 import hashlib
 import json
 import logging
+import os
 import pathlib
 import shutil
 import sys
@@ -25,6 +26,7 @@ from istaroth.rag import (
     pipeline,
     retrieval_diff,
     text_set,
+    types,
 )
 from istaroth.rag.eval import dataset
 from istaroth.text import manifest
@@ -45,9 +47,7 @@ def _get_files_to_process(text_path: pathlib.Path) -> list[pathlib.Path]:
     return files
 
 
-def _load_store() -> (
-    tuple[document_store.DocumentStore, localization.Language, text_set.TextSet]
-):
+def _load_store() -> tuple[types.Retriever, localization.Language, text_set.TextSet]:
     """Load document store using default language from env config."""
     store_set = document_store_set.DocumentStoreSet.from_env()
     languages = store_set.available_languages
@@ -160,7 +160,11 @@ def retrieve(
                 + utils.make_safe_filename_part(query, max_length=50)
                 + ".txt"
             )
-            save_path.write_text(json.dumps(retrieve_output.to_dict()))
+            data = retrieve_output.to_dict()
+            data["env"] = {
+                k: v for k, v in os.environ.items() if k.startswith("ISTAROTH_")
+            }
+            save_path.write_text(json.dumps(data))
 
         print(formatted_output)
 
@@ -185,9 +189,11 @@ def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
 
             query_hash = hashlib.md5(query.encode()).hexdigest()
             output.mkdir(parents=True, exist_ok=True)
-            (output / f"{query_hash}.json").write_text(
-                json.dumps(retrieve_output.to_dict())
-            )
+            data = retrieve_output.to_dict()
+            data["env"] = {
+                k: v for k, v in os.environ.items() if k.startswith("ISTAROTH_")
+            }
+            (output / f"{query_hash}.json").write_text(json.dumps(data))
 
 
 @cli.command()

@@ -1,6 +1,7 @@
 """FastAPI dependency injection for shared resources."""
 
 import logging
+import os
 from typing import Annotated, AsyncGenerator
 
 from fastapi import Depends
@@ -26,15 +27,24 @@ def init_resources() -> None:
 
     # Initialize database connection (migrations are now handled by initContainer)
     logger.info("Initializing database connection")
-    # Create async engine and session factory for application use
     _async_db_session_factory = database.get_async_session_factory(
         database.create_async_engine()
     )
     logger.info("Database connection initialized successfully")
 
-    # Load document store set from environment
-    logger.info("Loading document store set from environment")
-    _document_store_set = document_store_set.DocumentStoreSet.from_env()
+    # Load document store set -- use retrieval service if configured
+    if os.getenv("ISTAROTH_RETRIEVAL_SERVICE_URL"):
+        logger.info(
+            "Using remote retrieval service at %s",
+            os.environ["ISTAROTH_RETRIEVAL_SERVICE_URL"],
+        )
+        _document_store_set = (
+            document_store_set.DocumentStoreSet.from_retrieval_service()
+        )
+    else:
+        logger.info("Loading document store set locally from environment")
+        _document_store_set = document_store_set.DocumentStoreSet.from_env()
+
     logger.info(
         "Document store set loaded %d languages: %s",
         len(_document_store_set.available_languages),

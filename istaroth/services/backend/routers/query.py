@@ -71,7 +71,7 @@ async def query(
             language_enum,
             llm=llm_manager.get_llm(request.model),
             preprocessing_llm=llm_manager.get_llm(
-                os.environ.get("ISTAROTH_PREPROCESSING_MODEL", "gemini-2.5-flash-lite")
+                os.environ.get("ISTAROTH_PREPROCESSING_MODEL", "gemini-2.5-flash-lite"),
             ),
             text_set=selected_text_set,
         )

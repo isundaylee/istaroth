@@ -17,6 +17,18 @@ services:
     env_file:
       - env.docker-compose
 
+  retrieval:
+    pull_policy: always
+    image: isundaylee/istaroth:latest
+    command: ["python", "-m", "istaroth.services.retrieval"]
+    depends_on:
+      checkpoint-download:
+        condition: service_completed_successfully
+    volumes:
+      - ./data:/data
+    env_file:
+      - env.docker-compose
+
   istaroth:
     pull_policy: always
     image: isundaylee/istaroth:latest
@@ -26,10 +38,14 @@ services:
         condition: service_completed_successfully
       checkpoint-download:
         condition: service_completed_successfully
+      retrieval:
+        condition: service_started
     volumes:
       - ./data:/data
     env_file:
       - env.docker-compose
+    environment:
+      - ISTAROTH_RETRIEVAL_SERVICE_URL=http://retrieval:8002
 
   frontend:
     pull_policy: always

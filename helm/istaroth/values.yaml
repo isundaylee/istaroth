@@ -17,11 +17,11 @@ backend:
 
   resources:
     limits:
-      cpu: 6
-      memory: 6Gi
+      cpu: 2
+      memory: 2Gi
     requests:
-      cpu: 1
-      memory: 1Gi
+      cpu: 500m
+      memory: 512Mi
 
   # Environment variables - supports both direct values and valueFrom references
   # Add deployment-specific environment variables here
@@ -109,11 +109,11 @@ mcp:
 
   resources:
     limits:
-      cpu: 6
-      memory: 3Gi
-    requests:
-      cpu: 1
+      cpu: 2
       memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 256Mi
 
   # Extra environment variables for MCP pods
   env: []
@@ -180,6 +180,36 @@ labels: {}
 
 # Additional annotations
 annotations: {}
+
+# Retrieval microservice configuration (uses backend.image)
+retrieval:
+  service:
+    type: ClusterIP
+    port: 8002
+
+  resources:
+    limits:
+      cpu: 4
+      memory: 4Gi
+    requests:
+      cpu: 1
+      memory: 2Gi
+
+  env: []
+
+  probes:
+    liveness:
+      httpGet:
+        path: /health
+        port: 8002
+      initialDelaySeconds: 120
+      periodSeconds: 30
+    readiness:
+      httpGet:
+        path: /health
+        port: 8002
+      initialDelaySeconds: 60
+      periodSeconds: 10
 
 # Embedding microservice configuration (uses backend.image)
 embedding:

@@ -27,6 +27,8 @@ data:
   ISTAROTH_EMBEDDING_SERVICE_URL: "http://{{ .Release.Name }}-embedding:{{ .Values.embedding.service.port }}"
   {{- end }}
 
+  ISTAROTH_RETRIEVAL_SERVICE_URL: "http://{{ .Release.Name }}-retrieval:{{ .Values.retrieval.service.port }}"
+
   {{- $chromaServers := list }}
   {{- range $lang, $config := .Values.languages }}
     {{- if $config.useChroma }}

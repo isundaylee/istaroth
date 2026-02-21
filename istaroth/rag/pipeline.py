@@ -10,7 +10,6 @@ from langchain_core.runnables import RunnableConfig
 from istaroth import langsmith_utils, llm_manager
 from istaroth.agd import localization
 from istaroth.rag import (
-    document_store,
     output_rendering,
     prompt_set,
     text_set,
@@ -25,7 +24,7 @@ class RAGPipeline:
 
     def __init__(
         self,
-        document_store: document_store.DocumentStore,
+        retriever: types.Retriever,
         language: localization.Language,
         *,
         llm: language_models.BaseLanguageModel,
@@ -33,7 +32,7 @@ class RAGPipeline:
         text_set: text_set.TextSet,
     ):
         """Initialize RAG pipeline with language-specific prompts and preprocessing LLM."""
-        self._document_store = document_store
+        self._retriever = retriever
         self._language = language
         self._llm = llm
         self._preprocessing_llm = preprocessing_llm
@@ -86,7 +85,7 @@ class RAGPipeline:
         retrieve_outputs = []
         total_documents = 0
         for i, query in enumerate(retrieval_queries):
-            retrieve_output = self._document_store.retrieve(
+            retrieve_output = self._retriever.retrieve(
                 query, k=k, chunk_context=chunk_context
             )
             retrieve_outputs.append(retrieve_output)
@@ -120,7 +119,7 @@ class RAGPipeline:
                 "retrieval_queries": retrieval_queries,
                 "k": k,
                 "model": llm_manager.get_model_name(self._llm),
-                "num_documents": self._document_store.num_documents,
+                "num_documents": self._retriever.num_documents,
                 "num_retrieved": len(combined_retrieve_output.results),
                 "retrieval_scores": [
                     score for score, _ in combined_retrieve_output.results
