@@ -1,6 +1,8 @@
 # Multi-stage build for Istaroth MCP server
 FROM python:3.12-slim AS builder
 
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
 # Install system dependencies for building Python packages
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -11,14 +13,14 @@ RUN apt-get update && apt-get install -y \
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Upgrade pip and install pip-tools (cache this layer)
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel pip-tools
+# Layer 1: Heavy ML packages (only rebuilds when ML deps change)
+COPY requirements-ml.txt /tmp/
+RUN uv pip install --no-cache -r /tmp/requirements-ml.txt \
+    --find-links https://download.pytorch.org/whl/cpu
 
-# Copy and install all dependencies
-COPY requirements.txt /tmp/
-RUN pip install --no-cache-dir \
-    --find-links https://download.pytorch.org/whl/cpu \
-    -r /tmp/requirements.txt
+# Layer 2: App packages (rebuilds more often, but fast)
+COPY requirements-app.txt /tmp/
+RUN uv pip install --no-cache -r /tmp/requirements-app.txt
 
 # Final stage
 FROM python:3.12-slim

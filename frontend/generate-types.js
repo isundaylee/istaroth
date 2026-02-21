@@ -21,7 +21,7 @@ function generateTypes() {
   if (!existsSync(OPENAPI_SPEC_PATH)) {
     console.error('❌ OpenAPI spec not found at:', OPENAPI_SPEC_PATH);
     console.error('   Run the backend OpenAPI generation script first:');
-    console.error('   PYTHONPATH=. env/bin/python scripts/generate_openapi.py');
+    console.error('   PYTHONPATH=. uv run python scripts/generate_openapi.py');
     process.exit(1);
   }
 

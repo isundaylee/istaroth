@@ -32,7 +32,7 @@ WORK_ROOT=/root/checkpoint-build
 DATA_ROOT=/dev/shm/checkpoint-build
 ssh -p $REMOTE_PORT root@$REMOTE_HOST "mkdir -p $WORK_ROOT $DATA_ROOT && ([[ -d $WORK_ROOT/istaroth ]] || (cd $WORK_ROOT && git clone https://github.com/isundaylee/istaroth.git istaroth))"
 ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd $WORK_ROOT/istaroth && git fetch origin main && git reset --hard origin/main"
-ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd $WORK_ROOT/istaroth && ([[ -d env ]] || python3 -m venv env) && env/bin/pip install -r requirements.txt"
+ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd $WORK_ROOT/istaroth && (command -v uv >/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh) && uv sync --no-default-groups --group ml"
 ssh -p $REMOTE_PORT root@$REMOTE_HOST "rm -rf $DATA_ROOT/text $DATA_ROOT/checkpoint"
 
 # Compress the folder $TEXT_PATH into a tar.gz file locally
@@ -42,7 +42,7 @@ scp -P $REMOTE_PORT $TEXT_PATH/text.tar.gz root@$REMOTE_HOST:$DATA_ROOT/text/
 ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd $DATA_ROOT/text && tar -xzf text.tar.gz && rm text.tar.gz"
 
 # Build the checkpoint (text+checkpoint on ram-disk)
-ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd $WORK_ROOT/istaroth && env/bin/python3 scripts/rag_tools.py build $DATA_ROOT/text $DATA_ROOT/checkpoint"
+ssh -p $REMOTE_PORT root@$REMOTE_HOST "cd $WORK_ROOT/istaroth && uv run python3 scripts/rag_tools.py build $DATA_ROOT/text $DATA_ROOT/checkpoint"
 
 rm -rf $CHECKPOINT_PATH
 scp -P $REMOTE_PORT -r root@$REMOTE_HOST:$DATA_ROOT/checkpoint/ $CHECKPOINT_PATH

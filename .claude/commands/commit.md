@@ -9,6 +9,6 @@ Stage and commit changes made in the current working directory.
 
 **Process:**
 1. Run `git status` and `git diff` to review changes
-2. Run pre-commit checks (`env/bin/pre-commit run --all-files`)
+2. Run pre-commit checks (`.venv/bin/pre-commit run --all-files`)
 3. Stage all relevant changes with `git add`
 4. Create commit with descriptive message ending with Claude attribution

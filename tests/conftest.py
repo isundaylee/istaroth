@@ -5,6 +5,7 @@ import os
 import pathlib
 import shutil
 import subprocess
+import sys
 
 import pytest
 
@@ -40,7 +41,7 @@ def run_rag_tools(*args: str) -> subprocess.CompletedProcess[str]:
     """Run rag_tools script with given arguments."""
     script_path = _PROJECT_ROOT / "scripts" / "rag_tools.py"
     return subprocess.run(
-        ["python", str(script_path), *args],
+        [sys.executable, str(script_path), *args],
         capture_output=True,
         text=True,
         cwd=str(_PROJECT_ROOT),
@@ -131,7 +132,13 @@ def built_checkpoint_dir(
     env = {**os.environ, "ISTAROTH_TRAINING_DEVICE": "cpu"}
     script_path = _PROJECT_ROOT / "scripts" / "rag_tools.py"
     result = subprocess.run(
-        ["python", str(script_path), "build", str(test_text_dir), str(checkpoint_dir)],
+        [
+            sys.executable,
+            str(script_path),
+            "build",
+            str(test_text_dir),
+            str(checkpoint_dir),
+        ],
         capture_output=True,
         text=True,
         cwd=str(_PROJECT_ROOT),

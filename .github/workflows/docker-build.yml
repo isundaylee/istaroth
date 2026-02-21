@@ -44,8 +44,9 @@ jobs:
             - 'scripts/**'
             - 'migrations/**'
             - 'alembic.ini'
-            - 'requirements.in'
-            - 'requirements.txt'
+            - 'uv.lock'
+            - 'requirements-ml.txt'
+            - 'requirements-app.txt'
             - 'pyproject.toml'
             - 'Dockerfile'
             - '.github/workflows/docker-build.yml'
@@ -67,6 +68,14 @@ jobs:
 
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Verify Docker export freshness
+      run: |
+        uv export --frozen --only-group ml --no-hashes --no-emit-project | diff - requirements-ml.txt
+        uv export --frozen --no-group dev --no-group ml --no-hashes --no-emit-project | diff - requirements-app.txt
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3

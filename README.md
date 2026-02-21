@@ -17,13 +17,18 @@ Special thanks to Dimbreath for his wonderful work on AnimeGameData!
 
 ### Python Environment Setup
 
-Requires **Python 3.12** (see `.python-version`).
+Requires **Python 3.12** (see `.python-version`) and [uv](https://docs.astral.sh/uv/).
 
 ```bash
-python3.12 -m venv env
-source env/bin/activate
-pip install -r requirements.txt
-pre-commit install  # if you plan on doing development
+uv sync              # creates .venv and installs all dependencies
+pre-commit install   # if you plan on doing development
+```
+
+After changing dependencies, regenerate the Docker export files:
+
+```bash
+uv export --frozen --only-group ml --no-hashes --no-emit-project -o requirements-ml.txt
+uv export --frozen --no-group dev --no-group ml --no-hashes --no-emit-project -o requirements-app.txt
 ```
 
 ### Checkpoint
@@ -51,9 +56,8 @@ npm run dev -- --host  # Port 5173
 **Backend:**
 
 ```bash
-source env/bin/activate
 source .env.web
-python -m istaroth.services.backend --host 0.0.0.0 --port 8000
+uv run python -m istaroth.services.backend --host 0.0.0.0 --port 8000
 ```
 
 ## MCP Server

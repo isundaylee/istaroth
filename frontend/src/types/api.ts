@@ -5,7 +5,7 @@
  * DO NOT manually edit these types - they are kept in sync with the backend.
  *
  * To update types:
- * 1. Run: PYTHONPATH=. env/bin/python scripts/generate_openapi.py
+ * 1. Run: PYTHONPATH=. uv run python scripts/generate_openapi.py
  * 2. Run: npm run generate-types
  */
 
