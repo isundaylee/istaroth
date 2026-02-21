@@ -13,11 +13,12 @@ from typing import ClassVar, Self, cast
 import attrs
 import chromadb
 import langsmith as ls
+from langchain_core import embeddings as lc_embeddings
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 
 from istaroth import utils
-from istaroth.rag import types
+from istaroth.rag import remote_embeddings, types
 
 logger = logging.getLogger(__name__)
 
@@ -42,13 +43,23 @@ def get_vector_store_type_from_env() -> VectorStoreType:
 
 
 @functools.cache
-def _create_embeddings() -> HuggingFaceEmbeddings:
-    """Create HuggingFace embeddings instance."""
+def _create_local_embeddings() -> HuggingFaceEmbeddings:
+    """Create local HuggingFace embeddings instance."""
     return HuggingFaceEmbeddings(
         model_name="BAAI/bge-m3",
         model_kwargs={"device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")},
         encode_kwargs={"normalize_embeddings": True},
     )
+
+
+@functools.cache
+def _create_embeddings() -> lc_embeddings.Embeddings:
+    """Create embeddings, using remote service if ISTAROTH_EMBEDDING_SERVICE_URL is set."""
+    if url := os.getenv("ISTAROTH_EMBEDDING_SERVICE_URL"):
+        logger.info("Using remote embedding service at %s", url)
+        return remote_embeddings.RemoteEmbeddings(url)
+    logger.info("Using local HuggingFace embeddings model")
+    return _create_local_embeddings()
 
 
 class VectorStore(abc.ABC):
@@ -88,7 +99,7 @@ class ChromaBaseVectorStore(VectorStore):
 
     COLLECTION_NAME: ClassVar[str] = "istaroth_documents"
 
-    _embeddings: HuggingFaceEmbeddings = attrs.field()
+    _embeddings: lc_embeddings.Embeddings = attrs.field()
     _client: chromadb.ClientAPI = attrs.field()
     _collection: chromadb.Collection = attrs.field()
 

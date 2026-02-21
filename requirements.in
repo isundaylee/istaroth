@@ -23,6 +23,7 @@ click
 fastapi
 fastmcp
 greenlet
+httpx
 jieba
 langchain
 langchain-cohere

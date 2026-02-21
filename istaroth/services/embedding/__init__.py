@@ -1,0 +1,1 @@
+"""Embedding microservice for Istaroth."""

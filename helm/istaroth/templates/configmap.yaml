@@ -23,6 +23,10 @@ data:
   ISTAROTH_DOCUMENT_STORE_SET: {{ join "," $stores | quote }}
   {{- end }}
 
+  {{- if .Values.embedding.enabled }}
+  ISTAROTH_EMBEDDING_SERVICE_URL: "http://{{ .Release.Name }}-embedding:{{ .Values.embedding.service.port }}"
+  {{- end }}
+
   {{- $chromaServers := list }}
   {{- range $lang, $config := .Values.languages }}
     {{- if $config.useChroma }}

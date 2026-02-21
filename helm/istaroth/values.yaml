@@ -181,6 +181,38 @@ labels: {}
 # Additional annotations
 annotations: {}
 
+# Embedding microservice configuration (uses backend.image)
+embedding:
+  enabled: true
+
+  service:
+    type: ClusterIP
+    port: 8001
+
+  resources:
+    limits:
+      cpu: 4
+      memory: 4Gi
+    requests:
+      cpu: 1
+      memory: 2Gi
+
+  env: []
+
+  probes:
+    liveness:
+      httpGet:
+        path: /health
+        port: 8001
+      initialDelaySeconds: 60
+      periodSeconds: 30
+    readiness:
+      httpGet:
+        path: /health
+        port: 8001
+      initialDelaySeconds: 30
+      periodSeconds: 10
+
 # Chroma services configuration (when using separate Chroma server pod)
 chroma:
   # Chroma container image
