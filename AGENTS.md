@@ -88,8 +88,8 @@ See the [Web UI section](README.md#web-ui) in the README for environment setup a
 ## LangSmith Tracing
 The RAG pipeline supports LangSmith tracing for debugging and monitoring. Required environment variables:
 - `LANGSMITH_API_KEY`: Your LangSmith API key
-- `LANGCHAIN_PROJECT`: Project name (e.g., "istaroth-rag")
-- `LANGCHAIN_TRACING_V2`: Set to "true" to enable tracing
+- `LANGSMITH_PROJECT`: Project name (e.g., "istaroth-rag")
+- `LANGSMITH_TRACING`: Set to "true" to enable tracing
 
 Optional environment variables:
 - `LANGSMITH_ENDPOINT`: Custom LangSmith endpoint (defaults to https://api.smith.langchain.com)

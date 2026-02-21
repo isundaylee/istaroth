@@ -14,7 +14,6 @@ from istaroth.rag import (
     output_rendering,
     prompt_set,
     text_set,
-    tracing,
     types,
 )
 
