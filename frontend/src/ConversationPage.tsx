@@ -46,6 +46,10 @@ function ConversationPage() {
   }, [conversation])
 
   useEffect(() => {
+    if (submittingNew) {
+      setExtraContent(null)
+      return
+    }
     const formatDate = (timestamp: number) =>
       new Date(timestamp * 1000).toLocaleString('zh-CN', {
         year: 'numeric',
@@ -68,7 +72,7 @@ function ConversationPage() {
     )
     setExtraContent(content)
     return () => setExtraContent(null)
-  }, [conversation, setExtraContent, t])
+  }, [conversation, setExtraContent, t, submittingNew])
 
   useEffect(() => {
     setCopyButtonText(t('conversation.shareLink'))
