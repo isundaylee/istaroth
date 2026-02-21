@@ -11,7 +11,7 @@ This project uses uv for dependency management:
 - Run `uv lock` to update the lockfile (`uv.lock`)
 - Run `uv sync` to install/sync dependencies into `.venv/`
 - After changing dependencies, regenerate Docker export files:
-  `uv export --frozen --only-group ml --no-hashes --no-emit-project -o requirements-ml.txt && uv export --frozen --no-group dev --no-group ml --no-hashes --no-emit-project -o requirements-app.txt`
+  `uv export --frozen --only-group ml --no-hashes --no-emit-project > requirements-ml.txt && uv export --frozen --no-group dev --no-group ml --no-hashes --no-emit-project > requirements-app.txt`
 
 ### Code Quality
 Pre-commit hooks are configured with:
