@@ -37,18 +37,27 @@ backend:
     # Create a SealedSecret that generates a Secret named: {release-name}-secret
 
   probes:
+    startup:
+      httpGet:
+        path: /api/models
+        port: 8000
+      periodSeconds: 5
+      timeoutSeconds: 5
+      failureThreshold: 36
     liveness:
       httpGet:
         path: /api/models
         port: 8000
-      initialDelaySeconds: 30
-      periodSeconds: 10
+      periodSeconds: 30
+      timeoutSeconds: 5
+      failureThreshold: 3
     readiness:
       httpGet:
         path: /api/models
         port: 8000
-      initialDelaySeconds: 5
-      periodSeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
 
 # Frontend configuration
 frontend:
@@ -73,19 +82,27 @@ frontend:
   env: {}
 
   probes:
+    startup:
+      httpGet:
+        path: /
+        port: 8080
+      periodSeconds: 5
+      timeoutSeconds: 5
+      failureThreshold: 36
     liveness:
       httpGet:
         path: /
         port: 8080
-      initialDelaySeconds: 10
-      periodSeconds: 10
-      failureThreshold: 20
+      periodSeconds: 30
+      timeoutSeconds: 5
+      failureThreshold: 3
     readiness:
       httpGet:
         path: /
         port: 8080
-      initialDelaySeconds: 5
-      periodSeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
 
 # MCP server configuration (no MCP resources are created if languages is empty)
 mcp:
@@ -119,18 +136,24 @@ mcp:
   env: []
 
   probes:
+    startup:
+      tcpSocket:
+        port: 8000
+      periodSeconds: 5
+      timeoutSeconds: 5
+      failureThreshold: 36
     liveness:
       tcpSocket:
         port: 8000
+      periodSeconds: 30
+      timeoutSeconds: 5
       failureThreshold: 3
-      timeoutSeconds: 30
-      periodSeconds: 60
     readiness:
       tcpSocket:
         port: 8000
+      periodSeconds: 10
+      timeoutSeconds: 5
       failureThreshold: 3
-      timeoutSeconds: 30
-      periodSeconds: 60
 
 # Language configurations
 languages:
@@ -198,18 +221,27 @@ retrieval:
   env: []
 
   probes:
+    startup:
+      httpGet:
+        path: /health
+        port: 8002
+      periodSeconds: 5
+      timeoutSeconds: 5
+      failureThreshold: 36
     liveness:
       httpGet:
         path: /health
         port: 8002
-      initialDelaySeconds: 120
       periodSeconds: 30
+      timeoutSeconds: 5
+      failureThreshold: 3
     readiness:
       httpGet:
         path: /health
         port: 8002
-      initialDelaySeconds: 60
       periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
 
 # Embedding microservice configuration (uses backend.image)
 embedding:
@@ -230,18 +262,27 @@ embedding:
   env: []
 
   probes:
+    startup:
+      httpGet:
+        path: /health
+        port: 8001
+      periodSeconds: 5
+      timeoutSeconds: 5
+      failureThreshold: 36
     liveness:
       httpGet:
         path: /health
         port: 8001
-      initialDelaySeconds: 60
       periodSeconds: 30
+      timeoutSeconds: 5
+      failureThreshold: 3
     readiness:
       httpGet:
         path: /health
         port: 8001
-      initialDelaySeconds: 30
       periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
 
 # Chroma services configuration (when using separate Chroma server pod)
 chroma:

@@ -117,6 +117,10 @@ spec:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+        {{- with .Values.retrieval.probes.startup }}
+        startupProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         {{- with .Values.retrieval.probes.liveness }}
         livenessProbe:
           {{- toYaml . | nindent 10 }}

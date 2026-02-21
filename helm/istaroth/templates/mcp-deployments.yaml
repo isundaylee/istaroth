@@ -86,6 +86,10 @@ spec:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+        {{- with $mcp.probes.startup }}
+        startupProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         {{- with $mcp.probes.liveness }}
         livenessProbe:
           {{- toYaml . | nindent 10 }}

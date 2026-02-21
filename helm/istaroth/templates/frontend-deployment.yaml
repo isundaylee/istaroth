@@ -48,6 +48,10 @@ spec:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+        {{- with .Values.frontend.probes.startup }}
+        startupProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         {{- with .Values.frontend.probes.liveness }}
         livenessProbe:
           {{- toYaml . | nindent 10 }}

@@ -94,19 +94,24 @@ spec:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+        startupProbe:
+          tcpSocket:
+            port: 8000
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 36
         livenessProbe:
           tcpSocket:
             port: 8000
+          periodSeconds: 30
+          timeoutSeconds: 5
           failureThreshold: 3
-          timeoutSeconds: 30
-          periodSeconds: 60
         readinessProbe:
           tcpSocket:
             port: 8000
-          failureThreshold: 3
-          timeoutSeconds: 30
           periodSeconds: 10
-          initialDelaySeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
         {{- with $.Values.containerSecurityContext }}
         securityContext:
           {{- toYaml . | nindent 10 }}

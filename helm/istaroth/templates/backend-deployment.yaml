@@ -95,6 +95,10 @@ spec:
         resources:
           {{- toYaml . | nindent 10 }}
         {{- end }}
+        {{- with .Values.backend.probes.startup }}
+        startupProbe:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
         {{- with .Values.backend.probes.liveness }}
         livenessProbe:
           {{- toYaml . | nindent 10 }}
