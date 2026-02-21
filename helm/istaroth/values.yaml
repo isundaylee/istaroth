@@ -21,7 +21,7 @@ backend:
       memory: 2Gi
     requests:
       cpu: 500m
-      memory: 512Mi
+      memory: 1Gi
 
   # Environment variables - supports both direct values and valueFrom references
   # Add deployment-specific environment variables here
@@ -110,10 +110,10 @@ mcp:
   resources:
     limits:
       cpu: 2
-      memory: 1Gi
+      memory: 2Gi
     requests:
       cpu: 500m
-      memory: 256Mi
+      memory: 1Gi
 
   # Extra environment variables for MCP pods
   env: []
