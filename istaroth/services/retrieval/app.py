@@ -85,12 +85,14 @@ def create_app() -> FastAPI:
         store = _get_store(request.language)
         chunks = store.get_file_chunks(request.file_id)
         return {
-            "chunks": [
-                {"page_content": doc.page_content, "metadata": doc.metadata}
-                for doc in chunks
-            ]
-            if chunks is not None
-            else None
+            "chunks": (
+                [
+                    {"page_content": doc.page_content, "metadata": doc.metadata}
+                    for doc in chunks
+                ]
+                if chunks is not None
+                else None
+            )
         }
 
     @app.post("/get_chunk")
@@ -98,9 +100,11 @@ def create_app() -> FastAPI:
         store = _get_store(request.language)
         chunk = store.get_chunk(request.file_id, request.chunk_index)
         return {
-            "chunk": {"page_content": chunk.page_content, "metadata": chunk.metadata}
-            if chunk is not None
-            else None
+            "chunk": (
+                {"page_content": chunk.page_content, "metadata": chunk.metadata}
+                if chunk is not None
+                else None
+            )
         }
 
     @app.post("/get_file_chunk_count")
