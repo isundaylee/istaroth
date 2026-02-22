@@ -37,28 +37,7 @@ A checkpoint currently mainly consists of the vectorstore and various other data
 
 ## Web UI
 
-You can either download a checkpoint from the [release page](https://github.com/isundaylee/istaroth/releases) or train your own as described above. After obtaining a checkpoint (e.g., extracted to `tmp/checkpoints/chs`), configure your environment:
-
-```bash
-cp .env.common.example .env.common
-cp .env.web.example .env.web
-# Edit .env.common and .env.web to set your environment variables
-```
-
-**Frontend:**
-
-```bash
-cd frontend
-npm install  # First time only
-npm run dev -- --host  # Port 5173
-```
-
-**Backend:**
-
-```bash
-source .env.common && source .env.web
-uv run python -m istaroth.services.backend --host 0.0.0.0 --port 8000
-```
+See [DEVELOPMENT.md](DEVELOPMENT.md#docker-compose-dev) for instructions on launching the web UI via Docker Compose.
 
 ## MCP Server
 
