@@ -1,67 +1,111 @@
+x-backend-common: &backend-common
+  image: python:3.12-slim
+  working_dir: /app
+  volumes:
+    - ../../tmp/checkpoints:/data/checkpoints
+    - ./data:/data/state
+    - ../../istaroth:/app/istaroth:ro
+    - ../../scripts:/app/scripts:ro
+    - ../../migrations:/app/migrations:ro
+    - ../../alembic.ini:/app/alembic.ini:ro
+    - backend-venv:/app/.venv
+    - hf-cache:/root/.cache/huggingface
+  env_file:
+    - ../../.env.common
+    - ../../.env.web
+  environment:
+    - PATH=/app/.venv/bin:/usr/local/bin:/usr/bin:/bin
+    - ISTAROTH_DOCUMENT_STORE_SET=CHS:/data/checkpoints/chs
+    - ISTAROTH_DATABASE_URI=sqlite+aiosqlite:////data/state/web.sqlite
+    - ISTAROTH_TRAINING_DEVICE=cpu
+
 services:
-  checkpoint-download:
-    pull_policy: always
-    image: isundaylee/istaroth:latest
-    command: ["python", "scripts/checkpoint_tools.py", "download", "chs", "/data/checkpoint_web/chs"]
+  backend-deps:
+    <<: *backend-common
+    image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+    command: ["uv", "sync", "--frozen", "--no-group", "dev", "--group", "ml"]
     volumes:
-      - ./data:/data
-    env_file:
-      - env.docker-compose
+      - ../../pyproject.toml:/app/pyproject.toml:ro
+      - ../../uv.lock:/app/uv.lock:ro
+      - backend-venv:/app/.venv
+      - uv-cache:/root/.cache/uv
 
   db-migrate:
-    pull_policy: always
-    image: isundaylee/istaroth:latest
+    <<: *backend-common
     command: ["alembic", "upgrade", "head"]
-    volumes:
-      - ./data:/data
-    env_file:
-      - env.docker-compose
+    depends_on:
+      backend-deps:
+        condition: service_completed_successfully
 
   retrieval:
-    pull_policy: always
-    image: isundaylee/istaroth:latest
+    <<: *backend-common
     command: ["python", "-m", "istaroth.services.retrieval"]
     depends_on:
-      checkpoint-download:
+      backend-deps:
         condition: service_completed_successfully
-    volumes:
-      - ./data:/data
-    env_file:
-      - env.docker-compose
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/docs')"]
+      interval: 10s
+      timeout: 5s
+      start_period: 3600s
+      retries: 3
 
   istaroth:
-    pull_policy: always
-    image: isundaylee/istaroth:latest
-    command: ["python", "-m", "istaroth.services.backend"]
+    <<: *backend-common
+    command: ["python", "-m", "istaroth.services.backend", "--reload"]
     depends_on:
+      backend-deps:
+        condition: service_completed_successfully
       db-migrate:
         condition: service_completed_successfully
-      checkpoint-download:
-        condition: service_completed_successfully
       retrieval:
-        condition: service_started
+        condition: service_healthy
     volumes:
-      - ./data:/data
-    env_file:
-      - env.docker-compose
+      - ../../tmp/checkpoints:/data/checkpoints
+      - ./data:/data/state
+      - ../../istaroth:/app/istaroth
+      - ../../scripts:/app/scripts
+      - ../../migrations:/app/migrations
+      - ../../alembic.ini:/app/alembic.ini
+      - backend-venv:/app/.venv
     environment:
+      - PATH=/app/.venv/bin:/usr/local/bin:/usr/bin:/bin
+      - ISTAROTH_DOCUMENT_STORE_SET=CHS:/data/checkpoints/chs
+      - ISTAROTH_DATABASE_URI=sqlite+aiosqlite:////data/state/web.sqlite
       - ISTAROTH_RETRIEVAL_SERVICE_URL=http://retrieval:8002
 
   frontend:
-    pull_policy: always
-    image: isundaylee/istaroth-frontend:latest
+    image: node:18-alpine
+    working_dir: /app
+    command: ["sh", "-c", "npm run dev -- --host 0.0.0.0 --port ${CONDUCTOR_PORT:-5173}"]
     depends_on:
-      - istaroth
-
-  nginx:
-    image: nginx:alpine
-    depends_on:
-      - istaroth
-      - frontend
+      frontend-deps:
+        condition: service_completed_successfully
+      istaroth:
+        condition: service_started
     ports:
-      - "80:80"
+      - "${CONDUCTOR_PORT:-5173}:${CONDUCTOR_PORT:-5173}"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../../frontend:/app
+      - frontend-node-modules:/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_PROXY_TARGET=http://istaroth:8000
+
+  frontend-deps:
+    image: node:18-alpine
+    working_dir: /app
+    command: ["npm", "ci"]
+    volumes:
+      - ../../frontend:/app
+      - frontend-node-modules:/app/node_modules
 
 volumes:
-  istaroth-models:
+  backend-venv:
+  frontend-node-modules:
+  uv-cache:
+    external: true
+    name: uv-cache
+  hf-cache:
+    external: true
+    name: hf-cache
