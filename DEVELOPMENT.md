@@ -61,7 +61,7 @@ Runs all services in Docker with source code mounted from the host for live-relo
 docker volume create uv-cache
 docker volume create hf-cache
 
-# Make sure .env.common and .env.web are set up (see "Web UI" in README)
+# Make sure .env.common and .env.web are set up (copy from .env.*.example)
 cd docker-compose/web
 docker compose up     # first run installs deps automatically
 ```
