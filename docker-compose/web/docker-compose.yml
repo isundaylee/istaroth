@@ -2,7 +2,7 @@ x-backend-common: &backend-common
   image: python:3.12-slim
   working_dir: /app
   volumes:
-    - ../../tmp/checkpoints:/data/checkpoints
+    - checkpoints:/data/checkpoints
     - ./data:/data/state
     - ../../istaroth:/app/istaroth:ro
     - ../../scripts:/app/scripts:ro
@@ -20,6 +20,22 @@ x-backend-common: &backend-common
     - ISTAROTH_TRAINING_DEVICE=cpu
 
 services:
+  seed-checkpoints:
+    image: python:3.12-slim
+    volumes:
+      - ../../tmp/checkpoints:/src/checkpoints:ro
+      - checkpoints:/data/checkpoints
+    command: >-
+      sh -c '
+        if [ -z "$$(ls -A /data/checkpoints 2>/dev/null)" ]; then
+          echo "Seeding checkpoints volume from host...";
+          cp -a /src/checkpoints/. /data/checkpoints/;
+          echo "Done.";
+        else
+          echo "Checkpoints volume already populated, skipping seed.";
+        fi
+      '
+
   backend-deps:
     <<: *backend-common
     image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
@@ -43,6 +59,8 @@ services:
     depends_on:
       backend-deps:
         condition: service_completed_successfully
+      seed-checkpoints:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/docs')"]
       interval: 10s
@@ -61,7 +79,7 @@ services:
       retrieval:
         condition: service_healthy
     volumes:
-      - ../../tmp/checkpoints:/data/checkpoints
+      - checkpoints:/data/checkpoints
       - ./data:/data/state
       - ../../istaroth:/app/istaroth
       - ../../scripts:/app/scripts
@@ -101,6 +119,7 @@ services:
       - frontend-node-modules:/app/node_modules
 
 volumes:
+  checkpoints:
   backend-venv:
   frontend-node-modules:
   uv-cache:
