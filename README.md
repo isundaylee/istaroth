@@ -56,7 +56,7 @@ npm run dev -- --host  # Port 5173
 **Backend:**
 
 ```bash
-source .env.web
+source .env.common && source .env.web
 uv run python -m istaroth.services.backend --host 0.0.0.0 --port 8000
 ```
 
