@@ -9,6 +9,7 @@ x-backend-common: &backend-common
     - ../../migrations:/app/migrations:ro
     - ../../alembic.ini:/app/alembic.ini:ro
     - backend-venv:/app/.venv
+    - uv-cache:/root/.cache/uv:ro
     - hf-cache:/root/.cache/huggingface
   env_file:
     - ../../.env.common
@@ -40,6 +41,8 @@ services:
     <<: *backend-common
     image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
     command: ["uv", "sync", "--frozen", "--no-group", "dev", "--group", "ml"]
+    environment:
+      - UV_LINK_MODE=symlink
     volumes:
       - ../../pyproject.toml:/app/pyproject.toml:ro
       - ../../uv.lock:/app/uv.lock:ro
@@ -86,6 +89,7 @@ services:
       - ../../migrations:/app/migrations
       - ../../alembic.ini:/app/alembic.ini
       - backend-venv:/app/.venv
+      - uv-cache:/root/.cache/uv:ro
     environment:
       - PATH=/app/.venv/bin:/usr/local/bin:/usr/bin:/bin
       - ISTAROTH_DOCUMENT_STORE_SET=CHS:/data/checkpoints/chs
