@@ -213,10 +213,10 @@ retrieval:
   resources:
     limits:
       cpu: 4
-      memory: 4Gi
+      memory: 6Gi
     requests:
       cpu: 1
-      memory: 2Gi
+      memory: 4Gi
 
   env: []
 
@@ -239,47 +239,6 @@ retrieval:
       httpGet:
         path: /health
         port: 8002
-      periodSeconds: 10
-      timeoutSeconds: 5
-      failureThreshold: 3
-
-# Embedding microservice configuration (uses backend.image)
-embedding:
-  enabled: true
-
-  service:
-    type: ClusterIP
-    port: 8001
-
-  resources:
-    limits:
-      cpu: 4
-      memory: 4Gi
-    requests:
-      cpu: 1
-      memory: 2Gi
-
-  env: []
-
-  probes:
-    startup:
-      httpGet:
-        path: /health
-        port: 8001
-      periodSeconds: 5
-      timeoutSeconds: 5
-      failureThreshold: 36
-    liveness:
-      httpGet:
-        path: /health
-        port: 8001
-      periodSeconds: 30
-      timeoutSeconds: 5
-      failureThreshold: 3
-    readiness:
-      httpGet:
-        path: /health
-        port: 8001
       periodSeconds: 10
       timeoutSeconds: 5
       failureThreshold: 3
