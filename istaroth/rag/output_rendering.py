@@ -2,7 +2,7 @@ from istaroth.rag import text_set
 from istaroth.rag.document_store import Document
 
 
-def _get_file_note(ts: text_set.TextSet, path: str) -> str | None:
+def _get_file_note(ts: text_set.TextSet, path: str) -> str:
     """Look up the category note for a file via the manifest."""
     metadata = ts.get_manifest_item_by_relative_path(path)
     if metadata is None:
@@ -31,8 +31,9 @@ def render_retrieve_output(
             f"文件片段序号: ck{chunk_start} 到 ck{chunk_end}):\n"
         )
 
-        if note := _get_file_note(text_set, file_docs[0].metadata["path"]):
-            parts.append(f"# 【注意：{note}】\n")
+        parts.append(
+            f"# 【注意：{_get_file_note(text_set, file_docs[0].metadata['path'])}】\n"
+        )
 
         last_chunk_index: int | None = None
         for doc in file_docs:

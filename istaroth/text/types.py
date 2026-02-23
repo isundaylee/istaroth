@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any
+from typing import Any, assert_never
 
 import attrs
 
@@ -31,11 +31,29 @@ class TextCategory(Enum):
 
     TPS_SHISHU = "tps_shishu"
 
-    def get_note(self) -> str | None:
-        """Return an optional caveat note for this category."""
-        return {
-            TextCategory.TPS_SHISHU: "以下内容来自第三方非官方资料（诗漱原神世界观手册），并非游戏内官方文本。在引用这些内容时，你必须在回答中明确告知用户该信息来源于非官方资料，仅供参考",
-        }.get(self)
+    def get_note(self) -> str:
+        """Return a source provenance note for this category."""
+        match self:
+            case (
+                TextCategory.AGD_READABLE
+                | TextCategory.AGD_BOOK
+                | TextCategory.AGD_WEAPON
+                | TextCategory.AGD_WINGS
+                | TextCategory.AGD_COSTUME
+                | TextCategory.AGD_QUEST
+                | TextCategory.AGD_CHARACTER_STORY
+                | TextCategory.AGD_SUBTITLE
+                | TextCategory.AGD_MATERIAL_TYPE
+                | TextCategory.AGD_VOICELINE
+                | TextCategory.AGD_TALK_GROUP
+                | TextCategory.AGD_TALK
+                | TextCategory.AGD_ARTIFACT_SET
+            ):
+                return "以下内容属于游戏内官方文本语料库"
+            case TextCategory.TPS_SHISHU:
+                return "以下内容来自第三方非官方资料（诗漱原神世界观手册），并非游戏内官方文本。在引用这些内容时，你必须在回答中明确告知用户该信息来源于非官方资料，仅供参考"
+            case _:
+                assert_never(self)
 
 
 def _validate_relative_path(
