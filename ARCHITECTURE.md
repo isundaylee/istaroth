@@ -106,13 +106,12 @@ Istaroth is a **Retrieval-Augmented Generation (RAG) system** for Genshin Impact
 - **Deduplication**: Merge overlapping chunks in results
 
 **Query Flow**:
-1. Detect language (CHS/ENG)
-2. Route to appropriate document store
-3. **Query transformation** (optional): Generate multiple semantic variations
-4. **Hybrid retrieval**: Vector search (BAAI/bge-m3) + BM25 keyword search
-5. **Reranking**: Fuse results using RRF or Cohere Rerank API
-6. Expand context by fetching adjacent chunks
-7. Return ranked results with metadata
+1. Select language-specific document store (CHS/ENG)
+2. **Query transformation** (optional): Generate multiple semantic variations
+3. **Hybrid retrieval**: Vector search (BAAI/bge-m3) + BM25 keyword search
+4. **Reranking**: Fuse results using RRF or Cohere Rerank API
+5. Expand context by fetching adjacent chunks
+6. Return ranked results with metadata
 
 ---
 
