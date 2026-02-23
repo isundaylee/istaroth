@@ -102,6 +102,11 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
     fetchModels()
   }, [])
 
+  // Reset loading state when the question prop changes (e.g. after navigating to a new conversation)
+  useEffect(() => {
+    setLoading(false)
+  }, [currentQuestion])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -134,15 +139,17 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
       if (res.ok) {
         const response = data as QueryResponse
         // Clear the form and redirect to conversation page
+        // Don't reset loading here — the dots animation stays visible until the
+        // component unmounts (front page) or currentQuestion changes (conversation page).
         setQuestion('')
         navigate(`/conversation/${response.conversation_uuid}`)
       } else {
         const errorData = data as ErrorResponse
         setError(errorData.error || t('query.errors.unknown'))
+        setLoading(false)
       }
     } catch (err) {
       setError(t('query.errors.noConnection'))
-    } finally {
       setLoading(false)
     }
   }
