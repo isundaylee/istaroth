@@ -98,8 +98,8 @@ Optional environment variables:
 Tracing is automatically enabled when all required environment variables are set.
 
 ## Development Conventions
-- ALWAYS invoke mypy as `.venv/bin/mypy`
-- ALWAYS invoke python as `.venv/bin/python` or `uv run python`
+- ALWAYS invoke mypy as `uv run mypy`
+- ALWAYS invoke python as `uv run python`
 - The `.venv/` virtualenv is managed by uv; run `uv sync` to create/update it. You can source `.env` to get env vars if needed.
 
 ## Task Tracking
