@@ -6,6 +6,13 @@ from pathlib import Path
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
 _H2_RE = re.compile(r"^#{1,2}\s+(.+)$")
 
+_HEADING_SPAN_RE = re.compile(
+    r"^(#{1,6}\s+)<span id=\"page-\d+-\d+\"></span>", re.MULTILINE
+)
+_FOOTNOTE_DEF_RE = re.compile(r"<span id=\"page-\d+-\d+\"></span><sup>(\d+)</sup>\s*")
+_INLINE_REF_RE = re.compile(r"\[(\d+)\]\(#page-\d+-\d+\)")
+_STANDALONE_SPAN_RE = re.compile(r"<span id=\"page-\d+-\d+\"></span>")
+
 _SENTINEL_START = "提瓦特基本设定"
 _SENTINEL_END = "其他内容"
 
@@ -13,6 +20,14 @@ _SENTINEL_END = "其他内容"
 def _clean_title(raw: str) -> str:
     """Strip HTML tags and collapse whitespace from a heading title."""
     return re.sub(r"\s+", " ", _HTML_TAG_RE.sub("", raw)).strip()
+
+
+def _clean_body(text: str) -> str:
+    """Convert PDF page-anchor spans to clean markdown footnotes."""
+    text = _HEADING_SPAN_RE.sub(r"\1", text)
+    text = _FOOTNOTE_DEF_RE.sub(lambda m: f"[^{m.group(1)}]: ", text)
+    text = _INLINE_REF_RE.sub(lambda m: f"[^{m.group(1)}]", text)
+    return _STANDALONE_SPAN_RE.sub("", text)
 
 
 def _find_heading(headings: list[tuple[int, str]], needle: str) -> int:
@@ -41,7 +56,7 @@ def split_markdown_by_headings(md_path: str | Path) -> list[tuple[str, str]]:
     main_headings = headings[start_i:end_i]
 
     chapters: list[tuple[str, str]] = [
-        ("前言", "\n".join(lines[: headings[start_i][0]])),
+        ("前言", _clean_body("\n".join(lines[: headings[start_i][0]]))),
     ]
     for idx, (line_idx, title) in enumerate(main_headings):
         end_line = (
@@ -49,7 +64,9 @@ def split_markdown_by_headings(md_path: str | Path) -> list[tuple[str, str]]:
             if idx + 1 < len(main_headings)
             else headings[end_i][0]
         )
-        chapters.append((title, "\n".join(lines[line_idx:end_line])))
-    chapters.append((_SENTINEL_END, "\n".join(lines[headings[end_i][0] :])))
+        chapters.append((title, _clean_body("\n".join(lines[line_idx:end_line]))))
+    chapters.append(
+        (_SENTINEL_END, _clean_body("\n".join(lines[headings[end_i][0] :])))
+    )
 
     return chapters
