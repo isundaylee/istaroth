@@ -1,6 +1,6 @@
 # Istaroth System Architecture
 
-Istaroth is a **Retrieval-Augmented Generation (RAG) system** for Genshin Impact lore, providing multi-language vector search over game text documents with web and MCP interfaces.
+Istaroth is a **Retrieval-Augmented Generation (RAG) system** for Genshin Impact lore. It retrieves relevant documents from multi-language vector databases and generates natural language answers using LLMs, accessible via web and MCP interfaces.
 
 ---
 
@@ -19,13 +19,15 @@ Istaroth is a **Retrieval-Augmented Generation (RAG) system** for Genshin Impact
 ├────────────────────────┬────────────────────────────────┤
 │  Web Backend           │  MCP Server                    │
 │  (FastAPI)             │  (FastMCP)                     │
+│  • /api/query          │  • retrieve() tool             │
+│    (retrieve + LLM)    │    (retrieve only)             │
 │  Port: 8000            │  stdio                         │
 └────────────────────────┴────────────────────────────────┘
                            ▼
 ┌─────────────────────────────────────────────────────────┐
-│                    RAG CORE                              │
-│  • DocumentStoreSet (multi-language)                    │
-│  • ChromaDB vector search                               │
+│                    RAG PIPELINE                          │
+│  • Retrieval: DocumentStoreSet + ChromaDB               │
+│  • Generation: LLM (Gemini/Claude/etc.)                 │
 │  • Context expansion & chunking                         │
 └─────────────────────────────────────────────────────────┘
                            ▼
@@ -48,13 +50,14 @@ Istaroth is a **Retrieval-Augmented Generation (RAG) system** for Genshin Impact
 **Purpose**: Serves the React frontend and provides REST API for web clients.
 
 **Key Endpoints**:
-- `POST /api/query` - Submit a question, retrieve relevant documents
-- `GET/POST /api/conversations` - Manage conversation history
-- `GET /api/library` - Browse categorized game text
-- `GET /api/citations` - Retrieve source documents by ID
-- `GET /api/examples` - Fetch example questions
+- `POST /api/query` — Submit a question, retrieve relevant documents, generate answer via LLM
+- `GET/POST /api/conversations` — Manage conversation history
+- `GET /api/library` — Browse categorized game text
+- `GET /api/citations` — Retrieve source documents by ID
+- `GET /api/examples` — Fetch example questions
 
 **Features**:
+- **RAG question answering**: Retrieval + LLM generation pipeline
 - **Multi-language support**: CHS/ENG query processing
 - **Conversation persistence**: PostgreSQL storage
 - **Citation tracking**: Returns source file IDs and chunks
@@ -66,13 +69,12 @@ Istaroth is a **Retrieval-Augmented Generation (RAG) system** for Genshin Impact
 
 **Framework**: FastMCP
 **Transport**: stdio
-**Purpose**: Exposes Istaroth's RAG capabilities to MCP-compatible AI tools (Claude Code, etc.)
+**Purpose**: Exposes Istaroth's retrieval capabilities to MCP-compatible AI tools (Claude Code, etc.) — provides document retrieval only, not answer generation.
 
 **MCP Tools**:
 1. **`retrieve(query, k, context)`**
    - Semantic search over game text
    - Returns top-k relevant chunks with metadata
-   - Language detection (CHS/ENG)
 
 2. **`get_file_content(file_id, chunks)`**
    - Fetch full or partial document content
@@ -93,11 +95,11 @@ Istaroth is a **Retrieval-Augmented Generation (RAG) system** for Genshin Impact
 
 ---
 
-## RAG Core Components
+## RAG Pipeline
 
-### DocumentStoreSet (`istaroth/rag/document_store_set.py`)
+### Retrieval Layer
 
-**Purpose**: Multi-language document store abstraction.
+**DocumentStoreSet** (`istaroth/rag/document_store_set.py`) — Multi-language document store abstraction.
 
 **Key Features**:
 - **Language-specific stores**: Separate ChromaDB collections for CHS/ENG
@@ -105,13 +107,28 @@ Istaroth is a **Retrieval-Augmented Generation (RAG) system** for Genshin Impact
 - **Context expansion**: Retrieve neighboring chunks for better context
 - **Deduplication**: Merge overlapping chunks in results
 
-**Query Flow**:
+**Retrieval Flow**:
 1. Select language-specific document store (CHS/ENG)
 2. **Query transformation** (optional): Generate multiple semantic variations
 3. **Hybrid retrieval**: Vector search (BAAI/bge-m3) + BM25 keyword search
 4. **Reranking**: Fuse results using RRF or Cohere Rerank API
 5. Expand context by fetching adjacent chunks
 6. Return ranked results with metadata
+
+---
+
+### Generation Layer
+
+**RAGPipeline** (`istaroth/rag/pipeline.py`) — Combines retrieval with LLM-based answer generation.
+
+**Process**:
+1. Retrieve relevant documents using DocumentStoreSet
+2. Format documents with citations and metadata
+3. Construct prompt with retrieved context
+4. Generate natural language answer via LLM (Gemini/Claude/GPT)
+5. Return answer with source citations
+
+**Supported LLMs**: Gemini (default), Claude, OpenAI GPT, configurable via `ISTAROTH_AVAILABLE_MODELS`
 
 ---
 
@@ -222,12 +239,13 @@ docker-compose up -d
 
 ## Technology Stack
 
-| Component         | Technology           | Purpose                      |
-|-------------------|----------------------|------------------------------|
-| Frontend          | React + Vite         | Web UI                       |
-| Backend API       | FastAPI              | REST endpoints               |
-| MCP Server        | FastMCP              | AI tool integration          |
-| Vector DB         | ChromaDB             | Semantic search              |
-| Embeddings        | BAAI/bge-m3          | Multilingual text embeddings |
-| Conversation DB   | PostgreSQL           | Chat history                 |
-| Orchestration     | Docker Compose / K8s | Deployment                   |
+| Component         | Technology              | Purpose                      |
+|-------------------|-------------------------|------------------------------|
+| Frontend          | React + Vite            | Web UI                       |
+| Backend API       | FastAPI                 | REST endpoints               |
+| MCP Server        | FastMCP                 | AI tool integration          |
+| Vector DB         | ChromaDB                | Semantic search              |
+| Embeddings        | BAAI/bge-m3             | Multilingual text embeddings |
+| LLMs              | Gemini / Claude / GPT   | Answer generation            |
+| Conversation DB   | PostgreSQL              | Chat history                 |
+| Orchestration     | Docker Compose / K8s    | Deployment                   |
