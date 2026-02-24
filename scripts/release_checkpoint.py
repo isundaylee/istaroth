@@ -4,10 +4,8 @@
 import datetime
 import glob
 import pathlib
-import re
 import subprocess
 import sys
-import urllib.parse
 
 import click
 
@@ -97,48 +95,6 @@ def _create_and_push_git_tag(tag: str, commit_hash: str) -> None:
     subprocess.run(["git", "push", "origin", tag], check=True)
 
 
-def _update_docker_entrypoint(tag: str, checkpoint_files: list[pathlib.Path]) -> None:
-    """Update the default checkpoint URL in docker-entrypoint.sh."""
-    # Determine the main checkpoint file (prefer chs.tar.gz, then first alphabetically)
-    chs_checkpoints = [f for f in checkpoint_files if f.name == "chs.tar.gz"]
-    if not chs_checkpoints:
-        click.echo(f"⚠️  No chs.tar.gz checkpoint found, skipping URL update")
-        return
-
-    [main_checkpoint] = chs_checkpoints
-
-    docker_entrypoint = pathlib.Path("scripts/docker-entrypoint.sh")
-    if not docker_entrypoint.exists():
-        click.echo(f"⚠️  {docker_entrypoint} not found, skipping URL update")
-        return
-
-    # Create the new URL - need to URL encode the tag for GitHub releases
-    encoded_tag = urllib.parse.quote(tag, safe="")
-    new_url = f"https://github.com/isundaylee/istaroth/releases/download/{encoded_tag}/{main_checkpoint.name}"
-
-    # Read the current content
-    content = docker_entrypoint.read_text()
-
-    # Pattern to match the ISTAROTH_CHECKPOINT_URL line
-    pattern = r'ISTAROTH_CHECKPOINT_URL="\${ISTAROTH_CHECKPOINT_URL:-[^}]+}"'
-    replacement = f'ISTAROTH_CHECKPOINT_URL="${{ISTAROTH_CHECKPOINT_URL:-{new_url}}}"'
-
-    # Check if pattern exists
-    if not re.search(pattern, content):
-        click.echo(
-            "⚠️  Could not find ISTAROTH_CHECKPOINT_URL pattern in docker-entrypoint.sh"
-        )
-        return
-
-    # Update the content
-    new_content = re.sub(pattern, replacement, content)
-
-    # Write back to file
-    docker_entrypoint.write_text(new_content)
-    click.echo(f"✅ Updated docker-entrypoint.sh with new checkpoint URL")
-    click.echo(f"   New URL: {new_url}")
-
-
 @click.command()
 @click.argument("checkpoints")
 def main(
@@ -148,9 +104,6 @@ def main(
 
     This script creates a GitHub release with the format 'checkpoint/YYYYMMDD-[commit_hash]'
     and uploads checkpoint files as release assets.
-
-    It also updates the docker-entrypoint.sh file to point to the new checkpoint
-    URL if chs.tar.gz is included in the checkpoint files.
 
     CHECKPOINTS supports shell expansion patterns.
 
@@ -215,15 +168,6 @@ def main(
         click.echo(f"Error output: {e.stderr}", err=True)
         sys.exit(1)
 
-    # Update docker-entrypoint.sh only if chs.tar.gz is included
-    checkpoint_names = [f.name for f in checkpoint_files]
-    if "chs.tar.gz" in checkpoint_names:
-        click.echo("\n🐳 Updating docker-entrypoint.sh...")
-        _update_docker_entrypoint(tag, checkpoint_files)
-    else:
-        click.echo(
-            "\nℹ️  Skipping docker-entrypoint.sh update (chs.tar.gz not included)"
-        )
 
 
 if __name__ == "__main__":
