@@ -175,5 +175,34 @@ def download(language: str, target_path: pathlib.Path, release: str):
     download_checkpoint(localization.Language(language.upper()), target_path, release)
 
 
+@cli.command()
+@click.argument("checkpoints_dir", type=pathlib.Path)
+@click.option("--keep", required=True, help="Release directory name to keep")
+def cleanup(checkpoints_dir: pathlib.Path, keep: str):
+    """Remove old checkpoint versions, keeping only the specified release."""
+    if not checkpoints_dir.is_dir():
+        logger.warning(
+            "Checkpoints directory %s does not exist, nothing to clean", checkpoints_dir
+        )
+        return
+
+    keep_dir = checkpoints_dir / keep
+    if not keep_dir.is_dir():
+        raise click.ClickException(
+            f"Checkpoint to keep does not exist: {keep_dir}. "
+            "Refusing to clean up to avoid deleting all checkpoints."
+        )
+
+    for entry in sorted(checkpoints_dir.iterdir()):
+        if entry.name == keep:
+            continue
+        if entry.is_dir():
+            logger.info("Removing old checkpoint directory: %s", entry)
+            shutil.rmtree(entry)
+        else:
+            logger.info("Removing stale file: %s", entry)
+            entry.unlink()
+
+
 if __name__ == "__main__":
     cli()
