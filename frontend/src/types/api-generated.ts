@@ -187,6 +187,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/short-urls/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Resolve Short Url
+         * @description Resolve a short URL slug to its target path.
+         */
+        get: operations["resolve_short_url_api_short_urls__slug__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/version": {
         parameters: {
             query?: never;
@@ -286,6 +306,8 @@ export interface components {
             created_at: number;
             /** Generation Time Seconds */
             generation_time_seconds: number;
+            /** Short Slug */
+            short_slug: string;
         };
         /**
          * ExampleQuestionResponse
@@ -421,6 +443,18 @@ export interface components {
             answer: string;
             /** Conversation Uuid */
             conversation_uuid: string;
+            /** Short Slug */
+            short_slug: string;
+        };
+        /**
+         * ShortURLResponse
+         * @description Response model for short URL resolution.
+         */
+        ShortURLResponse: {
+            /** Slug */
+            slug: string;
+            /** Target Path */
+            target_path: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -430,6 +464,10 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
         };
         /**
          * VersionResponse
@@ -719,6 +757,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LibraryRetrieveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_short_url_api_short_urls__slug__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShortURLResponse"];
                 };
             };
             /** @description Validation Error */

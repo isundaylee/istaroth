@@ -7,6 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import QueryPage from './QueryPage'
 import RetrievePage from './RetrievePage'
 import ConversationPage, { conversationPageLoader } from './ConversationPage'
+import ShortURLRedirect, { shortURLLoader } from './ShortURLRedirect'
 import LibraryCategoriesPage, { libraryCategoriesPageLoader } from './LibraryCategoriesPage'
 import LibraryFilesPage, { libraryFilesPageLoader } from './LibraryFilesPage'
 import LibraryFileViewer, { libraryFileViewerLoader } from './LibraryFileViewer'
@@ -33,6 +34,7 @@ const router = createBrowserRouter([
     children: [
       { path: "/", element: <QueryPage /> },
       { path: "/retrieve", element: <RetrievePage /> },
+      { path: "/s/:slug", element: <ShortURLRedirect />, loader: shortURLLoader, errorElement: <ErrorBoundary /> },
       { path: "/conversation/:id", element: <ConversationPage />, loader: conversationPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/library", element: <LibraryCategoriesPage />, loader: libraryCategoriesPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/library/:category", element: <LibraryFilesPage />, loader: libraryFilesPageLoader, errorElement: <ErrorBoundary /> },

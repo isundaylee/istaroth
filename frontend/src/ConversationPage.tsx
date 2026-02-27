@@ -60,7 +60,7 @@ function ConversationPage() {
       })
     const content = (
       <>
-        {t('conversation.metadata.conversation')} #{conversation.uuid}
+        {t('conversation.metadata.conversation')} #{conversation.short_slug}
         {' · '}
         {formatDate(conversation.created_at)}
         {' · '}
@@ -79,7 +79,8 @@ function ConversationPage() {
   }, [t])
 
   const copyCurrentUrl = () => {
-    navigator.clipboard.writeText(window.location.href).then(() => {
+    const shortUrl = `${window.location.origin}/s/${conversation.short_slug}`
+    navigator.clipboard.writeText(shortUrl).then(() => {
       setCopyButtonText(t('common.copied'))
       setTimeout(() => setCopyButtonText(t('conversation.shareLink')), 2000)
     }).catch(() => {
@@ -184,7 +185,7 @@ function ConversationPage() {
                           <button
                             onClick={() => {
                               const link = document.createElement('a')
-                              link.download = `istaroth-conversation-${conversation.uuid}-${Date.now()}.png`
+                              link.download = `istaroth-conversation-${conversation.short_slug}-${Date.now()}.png`
                               link.href = exportedImage
                               link.click()
                             }}

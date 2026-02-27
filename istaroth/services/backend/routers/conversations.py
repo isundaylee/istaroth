@@ -32,6 +32,14 @@ async def get_conversation(
     if not conversation:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
+    short_url_stmt = select(db_models.ShortURL).where(
+        db_models.ShortURL.target_path == f"/conversation/{conversation_uuid}"
+    )
+    short_url_result = await db_session.execute(short_url_stmt)
+    short_url = short_url_result.scalar_one_or_none()
+    if not short_url:
+        raise AssertionError(f"No short URL found for conversation {conversation_uuid}")
+
     return models.ConversationResponse(
         uuid=conversation.uuid,
         question=conversation.question,
@@ -44,4 +52,5 @@ async def get_conversation(
         generation_time_seconds=conversation.generation_time_seconds
         or 0.0,  # Handle Optional[float]
         language=conversation.language,
+        short_slug=short_url.slug,
     )

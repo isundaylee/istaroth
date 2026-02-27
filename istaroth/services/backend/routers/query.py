@@ -6,10 +6,11 @@ import os
 import time
 
 from fastapi import APIRouter, HTTPException
+from sqlalchemy.exc import IntegrityError
 
 from istaroth.agd import localization
 from istaroth.rag import pipeline
-from istaroth.services.backend import db_models, models
+from istaroth.services.backend import db_models, models, slugs
 from istaroth.services.backend.dependencies import (
     DBSession,
     DocumentStoreSet,
@@ -27,8 +28,8 @@ async def _save_conversation(
     request: models.QueryRequest,
     answer: str,
     generation_time: float,
-) -> str:
-    """Save conversation to database and return the conversation ID."""
+) -> tuple[str, str]:
+    """Save conversation to database and return (uuid, short_slug)."""
     conversation = db_models.Conversation(
         question=request.question,
         answer=answer,
@@ -42,8 +43,23 @@ async def _save_conversation(
 
     # Refresh to get the generated UUID after commit
     await db_session.refresh(conversation)
-    logger.info("Conversation saved to database with UUID: %s", conversation.uuid)
-    return conversation.uuid
+    conversation_uuid = conversation.uuid
+    logger.info("Conversation saved to database with UUID: %s", conversation_uuid)
+
+    for _ in range(5):
+        slug = slugs.generate_slug()
+        db_session.add(
+            db_models.ShortURL(
+                slug=slug,
+                target_path=f"/conversation/{conversation_uuid}",
+            )
+        )
+        try:
+            await db_session.commit()
+            return conversation_uuid, slug
+        except IntegrityError:
+            await db_session.rollback()
+    raise RuntimeError("Failed to generate a unique short URL slug after 5 attempts")
 
 
 @router.post("/api/query", response_model=models.QueryResponse)
@@ -97,7 +113,7 @@ async def query(
     logger.info("Query completed in %.2f seconds", generation_time)
 
     # Save conversation to database
-    conversation_uuid = await _save_conversation(
+    conversation_uuid, short_slug = await _save_conversation(
         db_session, request, answer, generation_time
     )
 
@@ -107,4 +123,5 @@ async def query(
         answer=answer,
         conversation_uuid=conversation_uuid,
         language=language_name,
+        short_slug=short_slug,
     )
