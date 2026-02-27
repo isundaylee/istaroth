@@ -4,7 +4,7 @@ import datetime
 import uuid
 from typing import Optional
 
-from sqlalchemy import DateTime, Float, Integer, String, Text
+from sqlalchemy import DateTime, Float, Index, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -43,3 +43,21 @@ class Conversation(Base):
     generation_time_seconds: Mapped[Optional[float]] = mapped_column(
         Float, nullable=True
     )
+
+
+class ShortURL(Base):
+    """SQLAlchemy model for generic short URL mappings."""
+
+    __tablename__ = "short_urls"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    slug: Mapped[str] = mapped_column(String(16), unique=True, nullable=False)
+    target_path: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.datetime.now(datetime.timezone.utc).replace(
+            tzinfo=None
+        ),
+    )
+
+    __table_args__ = (Index("ix_short_urls_slug", "slug"),)

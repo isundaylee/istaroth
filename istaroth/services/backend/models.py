@@ -44,6 +44,7 @@ class QueryResponse(BaseModel):
     question: str
     answer: str
     conversation_uuid: str
+    short_slug: str
 
 
 class ConversationResponse(BaseModel):
@@ -57,6 +58,14 @@ class ConversationResponse(BaseModel):
     k: int
     created_at: float  # Unix timestamp as float
     generation_time_seconds: float
+    short_slug: str
+
+
+class ShortURLResponse(BaseModel):
+    """Response model for short URL resolution."""
+
+    slug: str
+    target_path: str
 
 
 class ErrorResponse(BaseModel):

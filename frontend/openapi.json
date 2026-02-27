@@ -403,6 +403,49 @@
         }
       }
     },
+    "/api/short-urls/{slug}": {
+      "get": {
+        "tags": [
+          "short-urls"
+        ],
+        "summary": "Resolve Short Url",
+        "description": "Resolve a short URL slug to its target path.",
+        "operationId": "resolve_short_url_api_short_urls__slug__get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShortURLResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/version": {
       "get": {
         "tags": [
@@ -581,6 +624,10 @@
           "generation_time_seconds": {
             "type": "number",
             "title": "Generation Time Seconds"
+          },
+          "short_slug": {
+            "type": "string",
+            "title": "Short Slug"
           }
         },
         "type": "object",
@@ -592,7 +639,8 @@
           "model",
           "k",
           "created_at",
-          "generation_time_seconds"
+          "generation_time_seconds",
+          "short_slug"
         ],
         "title": "ConversationResponse",
         "description": "Response model for conversation retrieval."
@@ -857,6 +905,10 @@
           "conversation_uuid": {
             "type": "string",
             "title": "Conversation Uuid"
+          },
+          "short_slug": {
+            "type": "string",
+            "title": "Short Slug"
           }
         },
         "type": "object",
@@ -864,10 +916,30 @@
           "language",
           "question",
           "answer",
-          "conversation_uuid"
+          "conversation_uuid",
+          "short_slug"
         ],
         "title": "QueryResponse",
         "description": "Response model for query endpoint."
+      },
+      "ShortURLResponse": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "target_path": {
+            "type": "string",
+            "title": "Target Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "target_path"
+        ],
+        "title": "ShortURLResponse",
+        "description": "Response model for short URL resolution."
       },
       "ValidationError": {
         "properties": {
@@ -892,6 +964,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",

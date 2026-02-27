@@ -9,6 +9,7 @@ from istaroth.services.backend.routers import (
     library,
     models,
     query,
+    short_urls,
     version,
 )
 
@@ -28,6 +29,7 @@ def create_app() -> FastAPI:
     app.include_router(examples.router, tags=["examples"])
     app.include_router(citations.router, tags=["citations"])
     app.include_router(library.router, tags=["library"])
+    app.include_router(short_urls.router, tags=["short-urls"])
     app.include_router(version.router, tags=["version"])
 
     return app
