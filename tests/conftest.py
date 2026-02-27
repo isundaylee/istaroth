@@ -101,7 +101,9 @@ def test_text_dir(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
     for filename, content in documents.items():
         (category_dir / filename).write_text(content, encoding="utf-8")
 
-    (data_dir / "metadata.json").write_text(
+    stats_agd_dir = data_dir / "stats" / "agd"
+    stats_agd_dir.mkdir(parents=True)
+    (stats_agd_dir / "metadata.json").write_text(
         json.dumps({"language": localization.Language.CHS.value})
     )
 

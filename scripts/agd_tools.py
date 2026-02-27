@@ -334,14 +334,16 @@ def generate_all(
             shutil.rmtree(agd_stats)
         if (agd_manifest := output_dir / "manifest" / "agd.json").exists():
             agd_manifest.unlink()
-        if (metadata_path := output_dir / "metadata.json").exists():
-            metadata_path.unlink()
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create stats directory for AGD-specific output files
+    stats_dir = output_dir / "stats" / "agd"
+    stats_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate and write metadata.json
     istaroth_path = pathlib.Path(__file__).parent.parent
     metadata = _generate_metadata(data_repo, istaroth_path)
-    metadata_path = output_dir / "metadata.json"
+    metadata_path = stats_dir / "metadata.json"
     with metadata_path.open("w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
     click.echo(f"Metadata written to {metadata_path}")
@@ -437,10 +439,6 @@ def generate_all(
     # Explicitly set start method to 'fork' to ensure child processes inherit
     # the pre-computed mapping from parent memory
     multiprocessing.set_start_method("fork", force=True)
-
-    # Create stats directory for AGD-specific output files
-    stats_dir = output_dir / "stats" / "agd"
-    stats_dir.mkdir(parents=True, exist_ok=True)
 
     # Open errors file for writing
     errors_file_path = stats_dir / "errors.info"

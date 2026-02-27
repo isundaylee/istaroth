@@ -93,7 +93,7 @@ def build(text_path: pathlib.Path, checkpoint_path: pathlib.Path, force: bool) -
         logger.error("No files found in manifest to process.")
         sys.exit(1)
 
-    metadata = json.loads((text_path / "metadata.json").read_text())
+    metadata = json.loads((text_path / "stats" / "agd" / "metadata.json").read_text())
 
     match localization.Language(metadata["language"]):
         case localization.Language.CHS:
