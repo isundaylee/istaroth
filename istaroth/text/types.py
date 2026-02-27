@@ -31,6 +31,11 @@ class TextCategory(Enum):
 
     TPS_SHISHU = "tps_shishu"
 
+    @property
+    def is_agd(self) -> bool:
+        """Return True if this category is sourced from AGD game data."""
+        return self.value.startswith("agd_")
+
     def get_note(self) -> str:
         """Return a source provenance note for this category."""
         match self:

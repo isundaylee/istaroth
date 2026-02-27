@@ -322,9 +322,20 @@ def generate_all(
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
-    # Create output directory
+    # Create output directory, deleting only AGD-owned content on --force
+    # to avoid wiping unrelated folders (e.g. tps_shishu).
     if force and output_dir.exists():
-        shutil.rmtree(output_dir)
+        for tc in text_types.TextCategory:
+            if not tc.is_agd:
+                continue
+            if (agd_dir := output_dir / tc.value).exists():
+                shutil.rmtree(agd_dir)
+        if (agd_stats := output_dir / "stats" / "agd").exists():
+            shutil.rmtree(agd_stats)
+        if (agd_manifest := output_dir / "manifest" / "agd.json").exists():
+            agd_manifest.unlink()
+        if (metadata_path := output_dir / "metadata.json").exists():
+            metadata_path.unlink()
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate and write metadata.json
