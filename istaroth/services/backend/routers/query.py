@@ -39,26 +39,27 @@ async def _save_conversation(
         generation_time_seconds=generation_time,
     )
     db_session.add(conversation)
-    await db_session.commit()
-
-    # Refresh to get the generated UUID after commit
-    await db_session.refresh(conversation)
+    await db_session.flush()
     conversation_uuid = conversation.uuid
-    logger.info("Conversation saved to database with UUID: %s", conversation_uuid)
+    logger.info("Conversation flushed with UUID: %s", conversation_uuid)
 
     for _ in range(5):
         slug = slugs.generate_slug()
-        db_session.add(
-            db_models.ShortURL(
-                slug=slug,
-                target_path=f"/conversation/{conversation_uuid}",
-            )
-        )
         try:
-            await db_session.commit()
-            return conversation_uuid, slug
+            async with db_session.begin_nested():
+                db_session.add(
+                    db_models.ShortURL(
+                        slug=slug,
+                        target_path=f"/conversation/{conversation_uuid}",
+                    )
+                )
+                await db_session.flush()
         except IntegrityError:
-            await db_session.rollback()
+            continue
+        await db_session.commit()
+        return conversation_uuid, slug
+
+    await db_session.rollback()
     raise RuntimeError("Failed to generate a unique short URL slug after 5 attempts")
 
 
