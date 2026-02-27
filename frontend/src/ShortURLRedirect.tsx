@@ -1,7 +1,7 @@
 import { redirect, type LoaderFunctionArgs } from 'react-router-dom'
 import type { ShortURLResponse } from './types/api'
 
-export async function shortURLLoader({ params }: LoaderFunctionArgs): Promise<never> {
+export async function shortURLLoader({ params }: LoaderFunctionArgs): Promise<Response> {
   const { slug } = params
   if (!slug) {
     throw new Response('Invalid short URL', { status: 400 })
