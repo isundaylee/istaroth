@@ -27,4 +27,6 @@ async def resolve_short_url(
     if not short_url:
         raise HTTPException(status_code=404, detail="Short URL not found")
 
-    return models.ShortURLResponse(slug=short_url.slug, target_path=short_url.target_path)
+    return models.ShortURLResponse(
+        slug=short_url.slug, target_path=short_url.target_path
+    )
