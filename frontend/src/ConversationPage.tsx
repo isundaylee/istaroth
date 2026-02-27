@@ -60,7 +60,7 @@ function ConversationPage() {
       })
     const content = (
       <>
-        {t('conversation.metadata.conversation')} #{conversation.short_slug}
+        {t('conversation.metadata.conversation')} {conversation.short_slug}
         {' · '}
         {formatDate(conversation.created_at)}
         {' · '}
