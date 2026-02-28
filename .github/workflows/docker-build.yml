@@ -141,6 +141,10 @@ jobs:
           type=raw,value=latest,enable={{is_default_branch}}
           type=raw,value=${{ needs.generate-tag.outputs.timestamp_tag }}
 
+    - name: Read Node.js version from .nvmrc
+      id: node-version
+      run: echo "version=$(cat frontend/.nvmrc)" >> $GITHUB_OUTPUT
+
     - name: Build and push frontend Docker image
       uses: docker/build-push-action@v5
       with:
@@ -152,3 +156,5 @@ jobs:
         cache-from: type=registry,ref=isundaylee/istaroth-frontend:cache
         cache-to: type=registry,ref=isundaylee/istaroth-frontend:cache,mode=max
         platforms: linux/amd64,linux/arm64
+        build-args: |
+          NODE_VERSION=${{ steps.node-version.outputs.version }}

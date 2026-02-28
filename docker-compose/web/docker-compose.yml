@@ -97,6 +97,7 @@ services:
       - ISTAROTH_RETRIEVAL_SERVICE_URL=http://retrieval:8002
 
   frontend:
+    # Keep in sync with frontend/.nvmrc
     image: node:18-alpine
     working_dir: /app
     command: ["sh", "-c", "npm run dev -- --host 0.0.0.0 --port ${CONDUCTOR_PORT:-5173}"]
@@ -115,6 +116,7 @@ services:
       - VITE_API_PROXY_TARGET=http://istaroth:8000
 
   frontend-deps:
+    # Keep in sync with frontend/.nvmrc
     image: node:18-alpine
     working_dir: /app
     command: ["npm", "ci"]
