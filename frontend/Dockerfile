@@ -1,5 +1,6 @@
 # Multi-stage build for React frontend
-FROM node:18-alpine AS builder
+ARG NODE_VERSION=18
+FROM node:${NODE_VERSION}-alpine AS builder
 
 # Set working directory
 WORKDIR /app
