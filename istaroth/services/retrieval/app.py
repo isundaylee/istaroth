@@ -1,13 +1,18 @@
 """FastAPI retrieval microservice that serves hybrid (vector + BM25) search."""
 
 import logging
+import os
+import time
+from contextlib import asynccontextmanager
 from typing import Any
 
+import prometheus_client
 import pydantic
 from fastapi import FastAPI, HTTPException
 
 from istaroth.agd import localization
 from istaroth.rag import document_store_set, types
+from istaroth.services.common import http_metrics_middleware, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -56,28 +61,49 @@ def _get_store(language_str: str) -> types.Retriever:
         )
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    prometheus_client.start_http_server(
+        int(os.environ.get("ISTAROTH_RETRIEVAL_METRICS_PORT", "9102"))
+    )
+    yield
+
+
 def create_app() -> FastAPI:
     """Create the retrieval service FastAPI application."""
     app = FastAPI(
         title="Istaroth Retrieval Service",
         description="Microservice for hybrid (vector + BM25) document retrieval",
         version="1.0.0",
+        lifespan=_lifespan,
+    )
+
+    app.add_middleware(
+        http_metrics_middleware.HTTPMetricsMiddleware, service="retrieval"
     )
 
     @app.post("/retrieve")
     def retrieve(request: _RetrieveRequest) -> dict[str, Any]:
         store = _get_store(request.language)
+        start = time.perf_counter()
         output = store.retrieve(
             request.query, k=request.k, chunk_context=request.chunk_context
         )
+        metrics.retrieval_duration_seconds.labels(
+            operation="retrieve", language=request.language
+        ).observe(time.perf_counter() - start)
         return output.to_dict()
 
     @app.post("/retrieve_bm25")
     def retrieve_bm25(request: _RetrieveRequest) -> dict[str, Any]:
         store = _get_store(request.language)
+        start = time.perf_counter()
         output = store.retrieve_bm25(
             request.query, k=request.k, chunk_context=request.chunk_context
         )
+        metrics.retrieval_duration_seconds.labels(
+            operation="retrieve_bm25", language=request.language
+        ).observe(time.perf_counter() - start)
         return output.to_dict()
 
     @app.post("/get_file_chunks")

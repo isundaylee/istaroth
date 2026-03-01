@@ -17,6 +17,7 @@ from istaroth.services.backend.dependencies import (
     LLMManager,
 )
 from istaroth.services.backend.utils import handle_unexpected_exception
+from istaroth.services.common import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +111,9 @@ async def query(
         ),
     )
     generation_time = time.perf_counter() - start_time
+    metrics.rag_pipeline_duration_seconds.labels(
+        model=request.model, language=language_name
+    ).observe(generation_time)
 
     logger.info("Query completed in %.2f seconds", generation_time)
 

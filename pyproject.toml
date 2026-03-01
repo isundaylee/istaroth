@@ -30,6 +30,7 @@ dependencies = [
     "marker-pdf",
     "mcp",
     "openai",
+    "prometheus-client",
     "psycopg2-binary",
     "pydantic",
     "rank-bm25",

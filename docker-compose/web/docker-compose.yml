@@ -64,6 +64,8 @@ services:
         condition: service_completed_successfully
       seed-checkpoints:
         condition: service_completed_successfully
+    ports:
+      - "9102:9102"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/docs')"]
       interval: 10s
@@ -90,6 +92,8 @@ services:
       - ../../alembic.ini:/app/alembic.ini
       - backend-venv:/app/.venv
       - uv-cache:/root/.cache/uv:ro
+    ports:
+      - "9100:9100"
     environment:
       - PATH=/app/.venv/bin:/usr/local/bin:/usr/bin:/bin
       - ISTAROTH_DOCUMENT_STORE_SET=CHS:/data/checkpoints/chs

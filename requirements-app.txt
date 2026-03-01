@@ -441,6 +441,8 @@ platformdirs==4.9.2
     #   surya-ocr
 posthog==5.4.0
     # via chromadb
+prometheus-client==0.24.1
+    # via istaroth
 propcache==0.4.1
     # via
     #   aiohttp

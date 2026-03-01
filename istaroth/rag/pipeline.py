@@ -1,6 +1,7 @@
 """RAG pipeline for end-to-end question answering."""
 
 import logging
+import time
 import typing
 
 import attrs
@@ -15,6 +16,7 @@ from istaroth.rag import (
     text_set,
     types,
 )
+from istaroth.services.common import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -72,9 +74,15 @@ class RAGPipeline:
     @langsmith_utils.traceable(name="pipeline_query")
     def answer(self, question: str, *, k: int, chunk_context: int) -> str:
         """Answer question with source documents using the specified LLM."""
+        model = llm_manager.get_model_name(self._llm)
+        language = self._language.value
 
         # Preprocess the question into multiple retrieval queries
+        preprocess_start = time.perf_counter()
         retrieval_queries = self._preprocess_question(question)
+        metrics.rag_pipeline_stage_preprocessing_duration_seconds.observe(
+            time.perf_counter() - preprocess_start
+        )
         logger.info(
             "Preprocessed question into %d queries: %s",
             len(retrieval_queries),
@@ -84,6 +92,7 @@ class RAGPipeline:
         # Retrieve documents for each query
         retrieve_outputs = []
         total_documents = 0
+        retrieval_start = time.perf_counter()
         for i, query in enumerate(retrieval_queries):
             retrieve_output = self._retriever.retrieve(
                 query, k=k, chunk_context=chunk_context
@@ -96,6 +105,9 @@ class RAGPipeline:
                 query,
                 retrieve_output.total_documents,
             )
+        metrics.rag_pipeline_stage_retrieval_duration_seconds.labels(
+            model=model, language=language
+        ).observe(time.perf_counter() - retrieval_start)
 
         # Combine all retrieval outputs with deduplication
         combined_retrieve_output = types.CombinedRetrieveOutput.from_multiple_outputs(
@@ -118,7 +130,7 @@ class RAGPipeline:
                 "question": question,
                 "retrieval_queries": retrieval_queries,
                 "k": k,
-                "model": llm_manager.get_model_name(self._llm),
+                "model": model,
                 "num_documents": self._retriever.num_documents,
                 "num_retrieved": len(combined_retrieve_output.results),
                 "retrieval_scores": [
@@ -126,6 +138,7 @@ class RAGPipeline:
                 ],
             }
         }
+        gen_start = time.perf_counter()
         response = chain.invoke(
             {
                 "user_question": question,
@@ -136,6 +149,9 @@ class RAGPipeline:
             },
             config=config,
         )
+        metrics.rag_pipeline_stage_generation_duration_seconds.labels(
+            model=model, language=language
+        ).observe(time.perf_counter() - gen_start)
 
         # Extract answer text
         return llm_manager.extract_text_from_response(response)
