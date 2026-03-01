@@ -23,6 +23,9 @@ backend:
       cpu: 500m
       memory: 1Gi
 
+  metrics:
+    port: 9100
+
   # Environment variables - supports both direct values and valueFrom references
   # Add deployment-specific environment variables here
   env: []
@@ -217,6 +220,9 @@ retrieval:
     requests:
       cpu: 1
       memory: 4Gi
+
+  metrics:
+    port: 9102
 
   env: []
 

@@ -24,6 +24,9 @@ spec:
         app.kubernetes.io/component: backend
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.backend.metrics.port | quote }}
+        prometheus.io/path: "/metrics"
         {{- with .Values.annotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -80,6 +83,9 @@ spec:
         ports:
         - containerPort: 8000
           name: http
+          protocol: TCP
+        - containerPort: {{ .Values.backend.metrics.port }}
+          name: metrics
           protocol: TCP
         env:
         {{- toYaml .Values.backend.env | nindent 8 }}

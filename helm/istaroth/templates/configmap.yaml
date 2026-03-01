@@ -24,6 +24,8 @@ data:
   {{- end }}
 
   ISTAROTH_RETRIEVAL_SERVICE_URL: "http://{{ .Release.Name }}-retrieval:{{ .Values.retrieval.service.port }}"
+  ISTAROTH_METRICS_PORT: {{ .Values.backend.metrics.port | quote }}
+  ISTAROTH_RETRIEVAL_METRICS_PORT: {{ .Values.retrieval.metrics.port | quote }}
 
   {{- $chromaServers := list }}
   {{- range $lang, $config := .Values.languages }}

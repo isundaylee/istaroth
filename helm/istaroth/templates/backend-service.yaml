@@ -20,6 +20,10 @@ spec:
     targetPort: 8000
     protocol: TCP
     name: backend
+  - port: {{ .Values.backend.metrics.port }}
+    targetPort: {{ .Values.backend.metrics.port }}
+    protocol: TCP
+    name: metrics
   selector:
     app.kubernetes.io/name: {{ .Release.Name }}-backend
     app.kubernetes.io/instance: {{ .Release.Name }}

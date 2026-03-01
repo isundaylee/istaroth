@@ -16,6 +16,10 @@ spec:
     targetPort: {{ .Values.retrieval.service.port }}
     protocol: TCP
     name: http
+  - port: {{ .Values.retrieval.metrics.port }}
+    targetPort: {{ .Values.retrieval.metrics.port }}
+    protocol: TCP
+    name: metrics
   selector:
     app.kubernetes.io/name: {{ .Release.Name }}-retrieval
     app.kubernetes.io/instance: {{ .Release.Name }}
