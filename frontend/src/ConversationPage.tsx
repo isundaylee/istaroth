@@ -125,7 +125,7 @@ function ConversationPage() {
       <Navigation />
       <main className="main">
 
-        <QueryForm currentQuestion={conversation.question} onSubmitStart={() => setSubmittingNew(true)} />
+        <QueryForm key={conversation.uuid} currentQuestion={conversation.question} onSubmitStart={() => setSubmittingNew(true)} />
 
         {!submittingNew &&
         <div className="conversation-content">
