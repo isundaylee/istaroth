@@ -22,7 +22,7 @@ from istaroth.services.common import http_metrics_middleware
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     prometheus_client.start_http_server(
-        int(os.environ.get("ISTAROTH_METRICS_PORT", "9100"))
+        int(os.environ.get("ISTAROTH_METRICS_PORT", "8090"))
     )
     yield
 
