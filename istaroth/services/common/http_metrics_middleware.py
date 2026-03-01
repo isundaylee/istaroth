@@ -20,10 +20,12 @@ class HTTPMetricsMiddleware(BaseHTTPMiddleware):
         start = time.perf_counter()
         response = await call_next(request)
         duration = time.perf_counter() - start
+        route = request.scope.get("route")
+        path = route.path if route else "/no_matching_route"
         labels = {
             "service": self._service,
             "method": request.method,
-            "path": request.url.path,
+            "path": path,
             "status": str(response.status_code),
         }
         metrics.http_requests_total.labels(**labels).inc()
