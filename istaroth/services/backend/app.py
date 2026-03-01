@@ -1,5 +1,9 @@
 """FastAPI application for the Istaroth RAG backend."""
 
+import os
+from contextlib import asynccontextmanager
+
+import prometheus_client
 from fastapi import FastAPI
 
 from istaroth.services.backend.routers import (
@@ -12,6 +16,15 @@ from istaroth.services.backend.routers import (
     short_urls,
     version,
 )
+from istaroth.services.common import http_metrics_middleware
+
+
+@asynccontextmanager
+async def _lifespan(app: FastAPI):
+    prometheus_client.start_http_server(
+        int(os.environ.get("ISTAROTH_METRICS_PORT", "9100"))
+    )
+    yield
 
 
 def create_app() -> FastAPI:
@@ -20,7 +33,10 @@ def create_app() -> FastAPI:
         title="Istaroth Web API",
         description="API for the Istaroth Web",
         version="1.0.0",
+        lifespan=_lifespan,
     )
+
+    app.add_middleware(http_metrics_middleware.HTTPMetricsMiddleware, service="backend")
 
     # Include routers (routes define full paths)
     app.include_router(query.router, tags=["query"])
