@@ -19,11 +19,11 @@ function NotFoundPage() {
         </div>
         <Card>
           <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-            <h1 style={{ fontSize: 'var(--font-hero)', margin: '0', color: '#666' }}>{t('notFound.title')}</h1>
+            <h1 style={{ fontSize: 'var(--font-hero)', margin: '0', color: 'var(--color-text-secondary)' }}>{t('notFound.title')}</h1>
             <PageTitle as="h2">
               {t('notFound.heading')}
             </PageTitle>
-            <p style={{ margin: '1rem 0', color: '#666' }}>
+            <p style={{ margin: '1rem 0', color: 'var(--color-text-secondary)' }}>
               {t('notFound.message')}
             </p>
             <AppLink
@@ -33,14 +33,14 @@ function NotFoundPage() {
                 display: 'inline-block',
                 marginTop: '1rem',
                 padding: '0.5rem 1rem',
-                backgroundColor: '#007bff',
+                backgroundColor: 'var(--color-primary-link)',
                 color: 'white',
                 textDecoration: 'none',
                 borderRadius: 'var(--radius-md)',
                 transition: 'background-color 0.2s'
               }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0056b3'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#007bff'}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-link-hover)'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-link)'}
             >
               {t('notFound.backButton')}
             </AppLink>

@@ -16,7 +16,7 @@ function PageTitle({ children, as: Component = 'h1', rightElement }: PageTitlePr
       <Component style={{
         margin: 0,
         fontSize: 'var(--font-xl)',
-        color: '#2c3e50',
+        color: 'var(--color-heading)',
         textAlign: 'center'
       }}>
         {children}

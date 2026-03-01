@@ -10,7 +10,7 @@ function PageCard({ children, style = {} }: PageCardProps) {
   return (
     <Card
       style={{
-        backgroundColor: 'white',
+        backgroundColor: 'var(--color-surface)',
         borderRadius: 'var(--radius-md)',
         boxShadow: 'var(--shadow)',
         padding: '30px',

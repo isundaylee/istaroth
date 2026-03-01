@@ -23,6 +23,16 @@ repos:
 
   - repo: local
     hooks:
+      - id: no-hardcoded-colors-frontend
+        name: No hardcoded colors in frontend
+        description: Use CSS variables instead of hardcoded hex color values in frontend source
+        entry: '''#[0-9a-fA-F]{3,6}[^0-9a-fA-F]'''
+        language: pygrep
+        files: ^frontend/src/.*\.(tsx|ts)$
+        exclude: ^frontend/src/types/api-generated\.ts$
+
+  - repo: local
+    hooks:
       - id: eslint-frontend
         name: eslint (frontend)
         entry: bash -c 'cd frontend && npx eslint src/'

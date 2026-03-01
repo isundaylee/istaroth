@@ -23,7 +23,7 @@ function QueryPage() {
             </PageTitle>
             <p style={{
               fontSize: 'var(--font-base)',
-              color: '#5a6c7d',
+              color: 'var(--color-text-subtle)',
               lineHeight: '1.6',
               maxWidth: '600px',
               margin: '0 auto 25px auto'
@@ -45,21 +45,21 @@ function QueryPage() {
                   alignItems: 'center',
                   gap: '6px',
                   fontSize: 'var(--font-sm)',
-                  color: '#0366d6',
+                  color: 'var(--color-github-text)',
                   textDecoration: 'none',
                   padding: '6px 12px',
-                  border: '1px solid #d1d9e0',
+                  border: '1px solid var(--color-github-border)',
                   borderRadius: 'var(--radius-md)',
-                  backgroundColor: '#f6f8fa',
+                  backgroundColor: 'var(--color-github-bg)',
                   transition: 'all 0.2s ease'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#e1e4e8'
-                  e.currentTarget.style.borderColor = '#c1c8cd'
+                  e.currentTarget.style.backgroundColor = 'var(--color-github-hover-bg)'
+                  e.currentTarget.style.borderColor = 'var(--color-github-hover-border)'
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f6f8fa'
-                  e.currentTarget.style.borderColor = '#d1d9e0'
+                  e.currentTarget.style.backgroundColor = 'var(--color-github-bg)'
+                  e.currentTarget.style.borderColor = 'var(--color-github-border)'
                 }}
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">

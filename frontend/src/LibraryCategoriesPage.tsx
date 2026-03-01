@@ -60,14 +60,14 @@ function LibraryCategoriesPage() {
                 onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                   const card = e.currentTarget.querySelector('.card') as HTMLElement
                   if (card) {
-                    card.style.backgroundColor = '#f0f0f0'
+                    card.style.backgroundColor = 'var(--color-surface-active)'
                     card.style.transform = 'translateY(-2px)'
                   }
                 }}
                 onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
                   const card = e.currentTarget.querySelector('.card') as HTMLElement
                   if (card) {
-                    card.style.backgroundColor = '#f8f9fa'
+                    card.style.backgroundColor = 'var(--color-surface-secondary)'
                     card.style.transform = 'translateY(0)'
                   }
                 }}

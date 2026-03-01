@@ -12,7 +12,7 @@ function Card({
   borderColor = 'none'
 }: CardProps) {
   const baseStyles: CSSProperties = {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: 'var(--color-surface-secondary)',
     borderRadius: 'var(--radius-md)',
     boxShadow: 'var(--shadow)',
     padding: '0.75rem 1rem',
@@ -20,9 +20,9 @@ function Card({
   }
 
   const borderColors: Record<string, string> = {
-    green: '#28a745',
-    blue: '#3498db',
-    yellow: '#f5d76e'
+    green: 'var(--color-card-border-green)',
+    blue: 'var(--color-card-border-blue)',
+    yellow: 'var(--color-card-border-yellow)'
   }
   const borderStyles: CSSProperties = borderColor !== 'none' && borderColor in borderColors
     ? { borderLeft: `3px solid ${borderColors[borderColor]}` }

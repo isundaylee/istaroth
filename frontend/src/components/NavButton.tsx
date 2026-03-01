@@ -12,9 +12,9 @@ function NavButton({ onClick, label, title, marginTop }: NavButtonProps) {
 
   const baseStyle: React.CSSProperties = {
     padding: '0.75rem 1rem',
-    border: '1px solid #ddd',
+    border: '1px solid var(--color-border)',
     borderRadius: 'var(--radius-md)',
-    backgroundColor: 'white',
+    backgroundColor: 'var(--color-surface)',
     cursor: 'pointer',
     width: '100%',
     textAlign: 'left',
@@ -25,13 +25,13 @@ function NavButton({ onClick, label, title, marginTop }: NavButtonProps) {
   }
 
   const hoverStyle: React.CSSProperties = {
-    backgroundColor: '#fafafa',
-    borderColor: '#ccc'
+    backgroundColor: 'var(--color-surface-hover)',
+    borderColor: 'var(--color-border)'
   }
 
   const labelStyle: React.CSSProperties = {
     fontSize: 'var(--font-sm)',
-    color: '#666',
+    color: 'var(--color-text-secondary)',
     marginBottom: '0.25rem'
   }
 

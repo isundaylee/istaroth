@@ -25,7 +25,7 @@ function Footer() {
       marginTop: '1rem',
       textAlign: 'center',
       fontSize: 'var(--font-xs)',
-      color: '#999',
+      color: 'var(--color-text-muted)',
       lineHeight: 1.5
     }}>
       {extraContent && <div style={{ marginBottom: versionText ? '0.35rem' : 0 }}>{extraContent}</div>}
