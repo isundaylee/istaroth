@@ -283,6 +283,20 @@ function CitationRenderer({ content, children }: CitationRendererProps) {
     setIsFullscreen(false)
   }, [])
 
+  // Close sticky popup when clicking outside
+  useEffect(() => {
+    if (!stickyCitation) return
+
+    const handleMouseDown = (e: MouseEvent) => {
+      if (popupRef.current?.contains(e.target as Node)) return
+      if ((e.target as HTMLElement).closest?.('[data-citation-id]')) return
+      handleCloseSticky()
+    }
+
+    document.addEventListener('mousedown', handleMouseDown)
+    return () => document.removeEventListener('mousedown', handleMouseDown)
+  }, [stickyCitation, handleCloseSticky])
+
   const handleToggleFullscreen = useCallback(() => {
     setIsFullscreen(!isFullscreen)
   }, [isFullscreen])
