@@ -24,7 +24,7 @@ backend:
       memory: 1Gi
 
   metrics:
-    port: 9100
+    port: 8090
 
   # Environment variables - supports both direct values and valueFrom references
   # Add deployment-specific environment variables here
@@ -222,7 +222,7 @@ retrieval:
       memory: 4Gi
 
   metrics:
-    port: 9102
+    port: 8092
 
   env: []
 

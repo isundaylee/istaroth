@@ -64,7 +64,7 @@ def _get_store(language_str: str) -> types.Retriever:
 @asynccontextmanager
 async def _lifespan(app: FastAPI):
     prometheus_client.start_http_server(
-        int(os.environ.get("ISTAROTH_RETRIEVAL_METRICS_PORT", "9102"))
+        int(os.environ.get("ISTAROTH_RETRIEVAL_METRICS_PORT", "8092"))
     )
     yield
 
