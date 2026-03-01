@@ -1,0 +1,8 @@
+{
+    "scripts": {
+        "setup": "ln -s \"$CONDUCTOR_ROOT_PATH/.env.common\" .\nln -s \"$CONDUCTOR_ROOT_PATH/.env.mcp\" .\nln -s \"$CONDUCTOR_ROOT_PATH/.env.web\" .\nln -s \"$CONDUCTOR_ROOT_PATH/tmp\" .",
+        "run": "(export COMPOSE_PROJECT_NAME=conductor-$CONDUCTOR_WORKSPACE_NAME && cd docker-compose/web && docker compose up)",
+        "archive": "docker compose -p \"conductor-$CONDUCTOR_WORKSPACE_NAME\" down --volumes --remove-orphans"
+    },
+    "runScriptMode": "concurrent"
+}
