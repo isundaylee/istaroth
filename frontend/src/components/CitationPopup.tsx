@@ -19,23 +19,23 @@ const MainLoadButton = ({ onClick, disabled = false, loading = false, children }
     style={{
       width: '100%',
       padding: '6px 12px',
-      background: '#f8f9fa',
-      border: '1px solid #dee2e6',
+      background: 'var(--color-surface-secondary)',
+      border: '1px solid var(--color-border-subtle)',
       borderRadius: 'var(--radius-md)',
       cursor: disabled || loading ? 'default' : 'pointer',
       fontSize: 'var(--font-sm)',
-      color: '#495057',
+      color: 'var(--color-text)',
       transition: 'background-color 0.15s ease',
       opacity: disabled || loading ? 0.6 : 1
     }}
     onMouseEnter={(e) => {
       if (!disabled && !loading) {
-        e.currentTarget.style.backgroundColor = '#e9ecef'
+        e.currentTarget.style.backgroundColor = 'var(--color-surface-active)'
       }
     }}
     onMouseLeave={(e) => {
       if (!disabled && !loading) {
-        e.currentTarget.style.backgroundColor = '#f8f9fa'
+        e.currentTarget.style.backgroundColor = 'var(--color-surface-secondary)'
       }
     }}
   >
@@ -131,8 +131,8 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
         ref={ref}
         style={{
           position: 'fixed',
-          background: 'white',
-          border: '1px solid #ddd',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
           borderRadius: isFullscreen ? '0' : 'var(--radius-md)',
           boxShadow: 'var(--shadow)',
           width: isFullscreen ? '100vw' : 'auto',
@@ -152,7 +152,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
         <div
           style={{
             padding: '12px 16px',
-            background: '#3498db',
+            background: 'var(--color-primary)',
             color: 'white',
             fontWeight: 600,
             fontSize: 'var(--font-sm)',
@@ -277,7 +277,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
           }}>
             {/* Load previous button */}
             {onLoadChunk && chunks && chunks.length > 0 && chunks[0].chunk_index > 0 && (
-              <div style={{ padding: '8px 16px', borderBottom: '1px solid #eee', flexShrink: 0 }}>
+              <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--color-border-light)', flexShrink: 0 }}>
                 <MainLoadButton
                   onClick={() => {
                     const firstChunk = chunks[0]
@@ -302,9 +302,9 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
                 overflowY: 'auto',
                 fontSize: 'var(--font-sm)',
                 lineHeight: 1.6,
-                color: '#333',
+                color: 'var(--color-text)',
                 scrollbarWidth: 'thin',
-                scrollbarColor: '#3498db transparent',
+                scrollbarColor: 'var(--color-primary) transparent',
                 flex: isFullscreen ? 1 : 1
               }}
               className="citation-popup-content"
@@ -320,10 +320,10 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
                     <div style={{ marginBottom: index < chunks.length - 1 || hasGap ? '16px' : '0' }}>
                       <div style={{
                         fontSize: 'var(--font-xs)',
-                        color: '#666',
+                        color: 'var(--color-text-secondary)',
                         marginBottom: '4px',
                         fontWeight: chunk.chunk_index === currentChunkIndex ? 'bold' : 'normal',
-                        background: '#e3f2fd',
+                        background: 'var(--color-citation-label-bg)',
                         padding: '4px 8px',
                         borderRadius: 'var(--radius-sm)',
                         textAlign: 'right',
@@ -334,7 +334,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
                         <span>
                           {chunk.chunk_index === currentChunkIndex && (
                             <span style={{
-                              color: '#1976d2',
+                              color: 'var(--color-primary-dark)',
                               fontSize: 'var(--font-xs)',
                               fontWeight: 'normal',
                               marginRight: '8px'
@@ -354,7 +354,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
                     {hasGap && onLoadChunk && (
                       <div style={{
                         margin: '16px 0',
-                        color: '#999'
+                        color: 'var(--color-text-muted)'
                       }}>
                         {(() => {
                           const gapSize = nextChunkNum! - currentChunkNum - 1
@@ -447,7 +447,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
 
             {/* Load next button */}
             {onLoadChunk && chunks && chunks.length > 0 && chunks[chunks.length - 1].chunk_index < chunks[chunks.length - 1].total_chunks - 1 && (
-              <div style={{ padding: '8px 16px', borderTop: '1px solid #eee', flexShrink: 0 }}>
+              <div style={{ padding: '8px 16px', borderTop: '1px solid var(--color-border-light)', flexShrink: 0 }}>
                 <MainLoadButton
                   onClick={() => {
                     const lastChunk = chunks[chunks.length - 1]
@@ -471,10 +471,10 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
               overflowY: 'auto',
               fontSize: 'var(--font-sm)',
               lineHeight: 1.6,
-              color: '#333',
+              color: 'var(--color-text)',
               whiteSpace: 'pre-wrap',
               scrollbarWidth: 'thin',
-              scrollbarColor: '#3498db transparent',
+              scrollbarColor: 'var(--color-primary) transparent',
               boxSizing: 'border-box'
             }}
             className="citation-popup-content"

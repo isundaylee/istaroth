@@ -40,7 +40,7 @@ const highlightSnippet = (snippet: string, query: string): React.ReactNode => {
       ? (
         <span
           key={`${part}-${index}`}
-          style={{ backgroundColor: 'rgba(52, 152, 219, 0.50)' }}
+          style={{ backgroundColor: 'var(--color-highlight-bg)' }}
         >
           {part}
         </span>
@@ -175,13 +175,13 @@ function RetrievePage() {
                   style={{
                     fontSize: 'var(--font-base)',
                     fontWeight: 600,
-                    color: '#2c3e50',
+                    color: 'var(--color-heading)',
                     textDecoration: 'none'
                   }}
                 >
                   {result.file_info.title || t('library.noFileName')}
                 </AppLink>
-                <p style={{ margin: 0, color: '#5a6c7d', lineHeight: '1.6' }}>
+                <p style={{ margin: 0, color: 'var(--color-text-subtle)', lineHeight: '1.6' }}>
                   {highlightSnippet(result.snippet, submittedParams.query)}
                 </p>
               </div>

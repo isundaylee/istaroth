@@ -97,6 +97,11 @@ export const eng = {
     openInLibrary: 'Open in library'
   },
 
+  theme: {
+    toggleDark: 'Switch to dark mode',
+    toggleLight: 'Switch to light mode'
+  },
+
   navigation: {
     home: 'Q&A',
     retrieve: 'Text Retrieval',

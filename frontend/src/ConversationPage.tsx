@@ -103,7 +103,7 @@ function ConversationPage() {
         scale: 2,
         scrollX: 0,
         scrollY: 0,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim(),
         x: -20,
         y: -20,
         width: element.scrollWidth + 40,
@@ -161,10 +161,10 @@ function ConversationPage() {
                       justifyContent: 'center'
                     }}>
                       <div style={{
-                        border: '1px solid #ddd',
+                        border: '1px solid var(--color-border)',
                         borderRadius: 'var(--radius-md)',
                         padding: '1rem',
-                        backgroundColor: 'white',
+                        backgroundColor: 'var(--color-surface)',
                         boxShadow: 'var(--shadow)',
                         display: 'inline-block',
                         textAlign: 'center'

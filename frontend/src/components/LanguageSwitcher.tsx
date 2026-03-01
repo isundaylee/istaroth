@@ -13,9 +13,9 @@ function LanguageButton({ label, isActive, onClick }: LanguageButtonProps) {
     <button
       onClick={onClick}
       style={{
-        background: isActive ? '#007bff' : 'transparent',
-        color: isActive ? 'white' : '#666',
-        border: '1px solid #ddd',
+        background: isActive ? 'var(--color-primary-link)' : 'transparent',
+        color: isActive ? 'white' : 'var(--color-text-secondary)',
+        border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius-md)',
         padding: '0.25rem 0.5rem',
         cursor: 'pointer',
@@ -25,7 +25,7 @@ function LanguageButton({ label, isActive, onClick }: LanguageButtonProps) {
       }}
       onMouseOver={(e) => {
         if (!isActive) {
-          e.currentTarget.style.backgroundColor = '#f8f9fa'
+          e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)'
         }
       }}
       onMouseOut={(e) => {

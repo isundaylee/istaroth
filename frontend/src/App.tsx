@@ -1,6 +1,7 @@
 import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration } from 'react-router-dom'
 import { LanguageProvider } from './contexts/LanguageContext'
 import { FooterProvider } from './contexts/FooterContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 import DocumentTitle from './components/DocumentTitle'
 import Footer from './components/Footer'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -16,6 +17,7 @@ import NotFoundPage from './NotFoundPage'
 function RootLayout() {
   return (
     <LanguageProvider>
+      <ThemeProvider>
       <FooterProvider>
         <DocumentTitle />
         <div className="app">
@@ -24,6 +26,7 @@ function RootLayout() {
         </div>
         <ScrollRestoration />
       </FooterProvider>
+      </ThemeProvider>
     </LanguageProvider>
   )
 }

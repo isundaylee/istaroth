@@ -406,14 +406,14 @@ function CitationRenderer({ content, children }: CitationRendererProps) {
               onMouseEnter={(e) => handleCitationHover(e, citationId)}
               onClick={(e) => handleCitationClick(e, citationId)}
               style={{
-                color: stickyCitation === citationId ? '#2c7cd6' : '#5594d9',
+                color: stickyCitation === citationId ? 'var(--color-primary-link)' : 'var(--color-citation-link)',
                 fontWeight: 500,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
                 textDecoration: 'none',
                 padding: '2px 4px',
                 borderRadius: 'var(--radius-sm)',
-                backgroundColor: isHovered || stickyCitation === citationId ? 'rgba(52, 152, 219, 0.15)' : 'transparent'
+                backgroundColor: isHovered || stickyCitation === citationId ? 'var(--color-citation-link-hover-bg)' : 'transparent'
               }}
             >
               [{children}]
@@ -519,7 +519,7 @@ function CitationRenderer({ content, children }: CitationRendererProps) {
                 minWidth: 0
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#f5f5f5'
+                e.currentTarget.style.backgroundColor = 'var(--color-surface-secondary)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent'
@@ -527,7 +527,7 @@ function CitationRenderer({ content, children }: CitationRendererProps) {
             >
               <span
                   style={{
-                    color: '#5594d9',
+                    color: 'var(--color-citation-link)',
                     textDecoration: 'none',
                     fontSize: 'var(--font-base)',
                   fontWeight: 500,
@@ -546,7 +546,7 @@ function CitationRenderer({ content, children }: CitationRendererProps) {
                   href={buildLibraryFilePath(fileInfo)}
                   onClick={handleLibraryLinkClick}
                       style={{
-                        color: '#888',
+                        color: 'var(--color-citation-lib-link)',
                         textDecoration: 'none',
                         fontSize: 'var(--font-base)',
                     cursor: 'pointer',
@@ -556,7 +556,7 @@ function CitationRenderer({ content, children }: CitationRendererProps) {
                     flexShrink: 0
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#e0e0e0'
+                    e.currentTarget.style.backgroundColor = 'var(--color-citation-lib-hover)'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent'
@@ -584,7 +584,7 @@ function CitationRenderer({ content, children }: CitationRendererProps) {
         <div style={{
           marginTop: '1rem',
           paddingTop: '0.75rem',
-          borderTop: '1px solid #e0e0e0'
+          borderTop: '1px solid var(--color-border-divider)'
         }}>
           {citationList}
         </div>

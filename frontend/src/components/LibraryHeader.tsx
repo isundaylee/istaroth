@@ -14,9 +14,9 @@ function LibraryHeader({ title, backPath, backText }: LibraryHeaderProps) {
 
   const baseStyle: React.CSSProperties = {
     padding: '0.5rem 1rem',
-    border: '1px solid #ddd',
+    border: '1px solid var(--color-border)',
     borderRadius: 'var(--radius-md)',
-    backgroundColor: 'white',
+    backgroundColor: 'var(--color-surface)',
     cursor: 'pointer',
     transition: 'all 0.2s ease',
     whiteSpace: 'nowrap',
@@ -25,8 +25,8 @@ function LibraryHeader({ title, backPath, backText }: LibraryHeaderProps) {
   }
 
   const hoverStyle: React.CSSProperties = {
-    backgroundColor: '#fafafa',
-    borderColor: '#ccc'
+    backgroundColor: 'var(--color-surface-hover)',
+    borderColor: 'var(--color-border)'
   }
 
   const backButton = (

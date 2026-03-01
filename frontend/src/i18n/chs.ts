@@ -97,6 +97,11 @@ export const chs = {
     openInLibrary: '在图书馆中打开'
   },
 
+  theme: {
+    toggleDark: '切换到深色模式',
+    toggleLight: '切换到浅色模式'
+  },
+
   navigation: {
     home: '问答',
     retrieve: '文本检索',
