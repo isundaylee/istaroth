@@ -21,9 +21,7 @@ def setup_tracing(service_name: str) -> None:
         return
 
     provider = sdk_trace.TracerProvider(
-        resource=resources.Resource.create(
-            {"service.name": service_name}
-        )
+        resource=resources.Resource.create({"service.name": service_name})
     )
     provider.add_span_processor(
         sdk_trace_export.BatchSpanProcessor(
@@ -40,3 +38,8 @@ def instrument_fastapi_app(app: fastapi.FastAPI) -> None:
     """Instrument a FastAPI app instance with OTel middleware if tracing is enabled."""
     if os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT"):
         fastapi_instrumentation.FastAPIInstrumentor().instrument_app(app)
+
+
+def get_tracer(name: str) -> trace.Tracer:
+    """Return an OTel tracer for the given instrumentation name."""
+    return trace.get_tracer(name)

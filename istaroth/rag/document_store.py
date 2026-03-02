@@ -18,6 +18,7 @@ import jieba
 import langsmith as ls
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from opentelemetry import trace
 from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
@@ -26,6 +27,7 @@ from istaroth.langsmith_utils import traceable
 from istaroth.rag import query_transform, rerank, types, vector_store
 
 logger = logging.getLogger(__name__)
+_tracer = trace.get_tracer(__name__)
 
 
 def _chinese_tokenizer(text: str) -> list[str]:
@@ -338,8 +340,10 @@ class DocumentStore:
         self, query: str, *, k: int, chunk_context: int
     ) -> types.RetrieveOutput:
         """Search using hybrid vector + BM25 retrieval with reciprocal rank fusion."""
-        # Transform the query into multiple queries
-        queries = self._query_transformer.transform(query)
+        with _tracer.start_as_current_span("query_transform") as span:
+            span.set_attribute("query", query)
+            queries = self._query_transformer.transform(query)
+            span.set_attribute("num_queries", len(queries))
 
         logger.info("Transformed query '%s' into: %r", query, queries)
 
@@ -350,19 +354,38 @@ class DocumentStore:
         # Get vector store results for all queries.
         for transformed_query in queries:
             weights.append(1.0)
-            all_results.append(self._vector_store.search(transformed_query, k * 2))
+            with _tracer.start_as_current_span("vector_search") as span:
+                span.set_attribute("query", transformed_query)
+                span.set_attribute("k", k * 2)
+                vs_results = self._vector_store.search(transformed_query, k * 2)
+                span.set_attribute("num_results", len(vs_results))
+            all_results.append(vs_results)
 
         # Only get BM25 results for the original query (with scaled up weight).
         weights.append(float(len(queries)))
-        all_results.append(self._bm25_store.search(queries[0], k * 2))
+        with _tracer.start_as_current_span("bm25_search") as span:
+            span.set_attribute("query", queries[0])
+            span.set_attribute("k", k * 2)
+            bm25_results = self._bm25_store.search(queries[0], k * 2)
+            span.set_attribute("num_results", len(bm25_results))
+        all_results.append(bm25_results)
 
         # Combine all results using reciprocal rank fusion with equal weights
-        fused_results = self._reranker.rerank(query, all_results, weights)
+        with _tracer.start_as_current_span("rerank") as span:
+            span.set_attribute("query", query)
+            span.set_attribute("num_result_lists", len(all_results))
+            fused_results = self._reranker.rerank(query, all_results, weights)
+            span.set_attribute("num_fused_results", len(fused_results))
         langsmith_utils.log_scored_docs("reranked_docs", fused_results)
 
-        return self._select_scored_documents(
-            query, fused_results, k=k, chunk_context=chunk_context
-        )
+        with _tracer.start_as_current_span("select_documents") as span:
+            span.set_attribute("k", k)
+            span.set_attribute("chunk_context", chunk_context)
+            result = self._select_scored_documents(
+                query, fused_results, k=k, chunk_context=chunk_context
+            )
+            span.set_attribute("num_results", len(result.results))
+        return result
 
     async def aretrieve(
         self, query: str, *, k: int, chunk_context: int
