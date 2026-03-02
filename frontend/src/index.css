@@ -134,6 +134,11 @@
   box-sizing: border-box;
 }
 
+html {
+  /* Prevent horizontal layout shift when scrollbar appears/disappears (Safari) */
+  overflow-y: scroll;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   background-color: var(--color-bg);
