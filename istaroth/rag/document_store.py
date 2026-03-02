@@ -356,7 +356,7 @@ class DocumentStore:
         """Async hybrid vector + BM25 retrieval with parallel search execution."""
         with _tracer.start_as_current_span("query_transform") as span:
             span.set_attribute("query", query)
-            queries = self._query_transformer.transform(query)
+            queries = await asyncio.to_thread(self._query_transformer.transform, query)
             span.set_attribute("num_queries", len(queries))
 
         logger.info("Transformed query '%s' into: %r", query, queries)
@@ -388,7 +388,9 @@ class DocumentStore:
         with _tracer.start_as_current_span("rerank") as span:
             span.set_attribute("query", query)
             span.set_attribute("num_result_lists", len(all_results))
-            fused_results = self._reranker.rerank(query, all_results, weights)
+            fused_results = await asyncio.to_thread(
+                self._reranker.rerank, query, all_results, weights
+            )
             span.set_attribute("num_fused_results", len(fused_results))
         langsmith_utils.log_scored_docs("reranked_docs", fused_results)
 
