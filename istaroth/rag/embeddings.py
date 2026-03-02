@@ -23,9 +23,7 @@ def create_embeddings() -> lc_embeddings.Embeddings:
             logger.info("Using local HuggingFace embeddings")
             return HuggingFaceEmbeddings(
                 model_name="BAAI/bge-m3",
-                model_kwargs={
-                    "device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")
-                },
+                model_kwargs={"device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")},
                 encode_kwargs={"normalize_embeddings": True},
             )
         case "deepinfra":
