@@ -6,6 +6,7 @@ import click
 import uvicorn
 
 from istaroth.rag import document_store_set
+from istaroth.services.common import tracing
 from istaroth.services.retrieval import app
 
 
@@ -25,11 +26,14 @@ def main(host: str, port: int, log_level: str) -> None:
     logger = logging.getLogger(__name__)
     logger.info("Starting Istaroth retrieval service on %s:%d", host, port)
 
+    tracing.setup_tracing("istaroth-retrieval")
+
     logger.info("Loading document store set from environment...")
     app._store_set = document_store_set.DocumentStoreSet.from_env()
     logger.info("Document store set loaded successfully")
 
     fastapi_app = app.create_app()
+    tracing.instrument_fastapi_app(fastapi_app)
     uvicorn.run(fastapi_app, host=host, port=port, log_level=log_level)
 
 

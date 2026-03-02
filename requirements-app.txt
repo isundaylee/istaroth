@@ -33,6 +33,8 @@ anyio==4.12.1
     #   sse-starlette
     #   starlette
     #   watchfiles
+asgiref==3.11.1
+    # via opentelemetry-instrumentation-asgi
 asyncpg==0.31.0
     # via istaroth
 attrs==25.4.0
@@ -392,12 +394,29 @@ opentelemetry-api==1.39.1
     #   chromadb
     #   fastmcp
     #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-instrumentation
+    #   opentelemetry-instrumentation-asgi
+    #   opentelemetry-instrumentation-fastapi
+    #   opentelemetry-instrumentation-httpx
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
 opentelemetry-exporter-otlp-proto-common==1.39.1
     # via opentelemetry-exporter-otlp-proto-grpc
 opentelemetry-exporter-otlp-proto-grpc==1.39.1
-    # via chromadb
+    # via
+    #   chromadb
+    #   istaroth
+opentelemetry-instrumentation==0.60b1
+    # via
+    #   opentelemetry-instrumentation-asgi
+    #   opentelemetry-instrumentation-fastapi
+    #   opentelemetry-instrumentation-httpx
+opentelemetry-instrumentation-asgi==0.60b1
+    # via opentelemetry-instrumentation-fastapi
+opentelemetry-instrumentation-fastapi==0.60b1
+    # via istaroth
+opentelemetry-instrumentation-httpx==0.60b1
+    # via istaroth
 opentelemetry-proto==1.39.1
     # via
     #   opentelemetry-exporter-otlp-proto-common
@@ -405,9 +424,20 @@ opentelemetry-proto==1.39.1
 opentelemetry-sdk==1.39.1
     # via
     #   chromadb
+    #   istaroth
     #   opentelemetry-exporter-otlp-proto-grpc
 opentelemetry-semantic-conventions==0.60b1
-    # via opentelemetry-sdk
+    # via
+    #   opentelemetry-instrumentation
+    #   opentelemetry-instrumentation-asgi
+    #   opentelemetry-instrumentation-fastapi
+    #   opentelemetry-instrumentation-httpx
+    #   opentelemetry-sdk
+opentelemetry-util-http==0.60b1
+    # via
+    #   opentelemetry-instrumentation-asgi
+    #   opentelemetry-instrumentation-fastapi
+    #   opentelemetry-instrumentation-httpx
 orjson==3.11.7
     # via
     #   chromadb
@@ -426,6 +456,7 @@ packaging==26.0
     #   langsmith
     #   marshmallow
     #   onnxruntime
+    #   opentelemetry-instrumentation
     #   transformers
 pathable==0.5.0
     # via jsonschema-path
@@ -745,6 +776,10 @@ websockets==15.0.1
     #   fastmcp
     #   google-genai
     #   uvicorn
+wrapt==1.17.3
+    # via
+    #   opentelemetry-instrumentation
+    #   opentelemetry-instrumentation-httpx
 xxhash==3.6.0
     # via
     #   langgraph

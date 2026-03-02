@@ -275,6 +275,11 @@ chroma:
     - name: RUST_BACKTRACE
       value: "1"
 
+# Tracing configuration
+tracing:
+  # Set to OTLP gRPC endpoint (e.g., "http://alloy:4317") to enable tracing; leave empty to disable
+  otlpEndpoint: ""
+
 # Extra manifests (e.g., for SealedSecrets)
 extraManifests: []
   # Example: To inject a SealedSecret, add it to extraManifests like this:

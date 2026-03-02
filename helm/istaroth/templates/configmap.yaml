@@ -40,3 +40,7 @@ data:
   {{- if $chromaServers }}
   ISTAROTH_EXTERNAL_CHROMA_SERVERS: {{ join "," $chromaServers | quote }}
   {{- end }}
+
+  {{- if .Values.tracing.otlpEndpoint }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.tracing.otlpEndpoint | quote }}
+  {{- end }}

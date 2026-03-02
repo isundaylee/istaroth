@@ -8,12 +8,16 @@ import uvicorn
 
 from istaroth.services.backend import app as app_module
 from istaroth.services.backend import dependencies
+from istaroth.services.common import tracing
 
 
 def _create_app_factory() -> fastapi.FastAPI:
     """Factory that initializes resources and creates the app (for uvicorn reload)."""
+    tracing.setup_tracing("istaroth-backend")
     dependencies.init_resources()
-    return app_module.create_app()
+    fastapi_app = app_module.create_app()
+    tracing.instrument_fastapi_app(fastapi_app)
+    return fastapi_app
 
 
 @click.command()
@@ -44,9 +48,12 @@ def main(host: str, port: int, reload: bool, log_level: str) -> None:
             log_level=log_level,
         )
     else:
+        tracing.setup_tracing("istaroth-backend")
         dependencies.init_resources()
+        fastapi_app = app_module.create_app()
+        tracing.instrument_fastapi_app(fastapi_app)
         uvicorn.run(
-            app_module.create_app(),
+            fastapi_app,
             host=host,
             port=port,
             log_level=log_level,
