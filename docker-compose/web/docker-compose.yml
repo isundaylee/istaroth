@@ -59,7 +59,7 @@ services:
 
   retrieval:
     <<: *backend-common
-    command: ["python", "-m", "istaroth.services.retrieval"]
+    command: ["python", "-m", "istaroth.services.retrieval", "--reload"]
     depends_on:
       backend-deps:
         condition: service_completed_successfully
@@ -69,6 +69,16 @@ services:
         condition: service_started
     ports:
       - "8092:8092"
+    volumes:
+      - checkpoints:/data/checkpoints
+      - ./data:/data/state
+      - ../../istaroth:/app/istaroth
+      - ../../scripts:/app/scripts:ro
+      - ../../migrations:/app/migrations:ro
+      - ../../alembic.ini:/app/alembic.ini:ro
+      - backend-venv:/app/.venv
+      - uv-cache:/root/.cache/uv:ro
+      - hf-cache:/root/.cache/huggingface
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/docs')"]
       interval: 10s
