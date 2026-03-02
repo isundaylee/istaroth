@@ -143,6 +143,10 @@ Istaroth is a **Retrieval-Augmented Generation (RAG) system** for Genshin Impact
 - **BM25 search**: Keyword-based retrieval for exact matches
 - Both executed in parallel, results fused
 
+**Embeddings** (`ISTAROTH_EMBEDDINGS`):
+- **local** (default): Local HuggingFace BAAI/bge-m3
+- **deepinfra**: DeepInfra-hosted BAAI/bge-m3 via OpenAI-compatible API (requires `DEEPINFRA_API_KEY`)
+
 **Reranking** (`ISTAROTH_RERANKER`):
 - **RRF** (Reciprocal Rank Fusion): Combines results by rank position
 - **Cohere Rerank v3.5**: Neural reranker for improved relevance
