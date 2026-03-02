@@ -16,11 +16,13 @@ import langsmith as ls
 from langchain_core import embeddings as lc_embeddings
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
+from opentelemetry import trace
 
 from istaroth import utils
 from istaroth.rag import types
 
 logger = logging.getLogger(__name__)
+_tracer = trace.get_tracer(__name__)
 
 
 class VectorStoreType(enum.Enum):
@@ -101,12 +103,16 @@ class ChromaBaseVectorStore(VectorStore):
             inputs={"query": query, "k": k},
         ) as rt:
             # Compute query embedding
-            query_embedding = self._embeddings.embed_query(query)
+            with _tracer.start_as_current_span("embed_query") as span:
+                span.set_attribute("query", query)
+                query_embedding = self._embeddings.embed_query(query)
 
             # Search in Chroma
-            results = self._collection.query(
-                query_embeddings=[query_embedding], n_results=k
-            )
+            with _tracer.start_as_current_span("chroma_query") as span:
+                span.set_attribute("k", k)
+                results = self._collection.query(
+                    query_embeddings=[query_embedding], n_results=k
+                )
 
             # Convert results to ScoredDocument format
             scored_docs = []
