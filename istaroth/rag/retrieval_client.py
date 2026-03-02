@@ -20,6 +20,9 @@ class RetrievalClient:
         self._base_url = base_url.rstrip("/")
         self._language = language.upper()
         self._client = httpx.Client(base_url=self._base_url, timeout=_DEFAULT_TIMEOUT)
+        self._async_client = httpx.AsyncClient(
+            base_url=self._base_url, timeout=_DEFAULT_TIMEOUT
+        )
 
     @classmethod
     def from_env(cls, language: str) -> "RetrievalClient":
@@ -32,6 +35,22 @@ class RetrievalClient:
         self, query: str, *, k: int, chunk_context: int
     ) -> types.RetrieveOutput:
         resp = self._client.post(
+            "/retrieve",
+            json={
+                "language": self._language,
+                "query": query,
+                "k": k,
+                "chunk_context": chunk_context,
+            },
+        )
+        resp.raise_for_status()
+        return types.RetrieveOutput.from_dict(resp.json())
+
+    async def aretrieve(
+        self, query: str, *, k: int, chunk_context: int
+    ) -> types.RetrieveOutput:
+        """Async version of retrieve using the async HTTP client."""
+        resp = await self._async_client.post(
             "/retrieve",
             json={
                 "language": self._language,

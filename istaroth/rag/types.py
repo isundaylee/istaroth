@@ -217,6 +217,10 @@ class Retriever(Protocol):
 
     def retrieve(self, query: str, *, k: int, chunk_context: int) -> RetrieveOutput: ...
 
+    async def aretrieve(
+        self, query: str, *, k: int, chunk_context: int
+    ) -> RetrieveOutput: ...
+
     def retrieve_bm25(
         self, query: str, *, k: int, chunk_context: int
     ) -> RetrieveOutput: ...
