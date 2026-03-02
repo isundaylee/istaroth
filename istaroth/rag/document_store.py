@@ -364,6 +364,12 @@ class DocumentStore:
             query, fused_results, k=k, chunk_context=chunk_context
         )
 
+    async def aretrieve(
+        self, query: str, *, k: int, chunk_context: int
+    ) -> types.RetrieveOutput:
+        """Async wrapper around sync retrieve for protocol compatibility."""
+        return self.retrieve(query, k=k, chunk_context=chunk_context)
+
     @traceable(name="bm25_search")
     def retrieve_bm25(
         self, query: str, *, k: int, chunk_context: int

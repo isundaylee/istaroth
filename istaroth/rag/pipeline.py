@@ -1,5 +1,6 @@
 """RAG pipeline for end-to-end question answering."""
 
+import asyncio
 import logging
 import time
 import typing
@@ -89,15 +90,24 @@ class RAGPipeline:
             retrieval_queries,
         )
 
-        # Retrieve documents for each query
-        retrieve_outputs = []
-        total_documents = 0
+        # Retrieve documents for each query in parallel
         retrieval_start = time.perf_counter()
-        for i, query in enumerate(retrieval_queries):
-            retrieve_output = self._retriever.retrieve(
-                query, k=k, chunk_context=chunk_context
+
+        async def _retrieve_all() -> list[types.RetrieveOutput]:
+            return list(
+                await asyncio.gather(
+                    *(
+                        self._retriever.aretrieve(q, k=k, chunk_context=chunk_context)
+                        for q in retrieval_queries
+                    )
+                )
             )
-            retrieve_outputs.append(retrieve_output)
+
+        retrieve_outputs = asyncio.run(_retrieve_all())
+        total_documents = 0
+        for i, (query, retrieve_output) in enumerate(
+            zip(retrieval_queries, retrieve_outputs)
+        ):
             total_documents += retrieve_output.total_documents
             logger.info(
                 "Query %d ('%s') retrieved %d documents",
