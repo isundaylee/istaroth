@@ -44,3 +44,6 @@ data:
   {{- if .Values.tracing.otlpEndpoint }}
   OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.tracing.otlpEndpoint | quote }}
   {{- end }}
+  {{- if .Values.tracing.resourceAttributes }}
+  OTEL_RESOURCE_ATTRIBUTES: {{ .Values.tracing.resourceAttributes | quote }}
+  {{- end }}

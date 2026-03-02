@@ -279,6 +279,8 @@ chroma:
 tracing:
   # Set to OTLP gRPC endpoint (e.g., "http://alloy:4317") to enable tracing; leave empty to disable
   otlpEndpoint: ""
+  # Extra OTel resource attributes (e.g., "deployment.environment=production,service.namespace=istaroth")
+  resourceAttributes: ""
 
 # Extra manifests (e.g., for SealedSecrets)
 extraManifests: []
