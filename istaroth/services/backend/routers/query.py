@@ -1,6 +1,5 @@
 """Query endpoints for the RAG pipeline."""
 
-import asyncio
 import logging
 import os
 import time
@@ -105,10 +104,8 @@ async def query(
         language_name,
     )
     start_time = time.perf_counter()
-    answer = await asyncio.to_thread(
-        lambda: rag_pipeline.answer(
-            request.question, k=request.k, chunk_context=request.chunk_context
-        ),
+    answer = await rag_pipeline.answer(
+        request.question, k=request.k, chunk_context=request.chunk_context
     )
     generation_time = time.perf_counter() - start_time
     metrics.rag_pipeline_duration_seconds.labels(

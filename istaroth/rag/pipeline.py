@@ -73,14 +73,14 @@ class RAGPipeline:
         return queries[:3]
 
     @langsmith_utils.traceable(name="pipeline_query")
-    def answer(self, question: str, *, k: int, chunk_context: int) -> str:
+    async def answer(self, question: str, *, k: int, chunk_context: int) -> str:
         """Answer question with source documents using the specified LLM."""
         model = llm_manager.get_model_name(self._llm)
         language = self._language.value
 
         # Preprocess the question into multiple retrieval queries
         preprocess_start = time.perf_counter()
-        retrieval_queries = self._preprocess_question(question)
+        retrieval_queries = await asyncio.to_thread(self._preprocess_question, question)
         metrics.rag_pipeline_stage_preprocessing_duration_seconds.observe(
             time.perf_counter() - preprocess_start
         )
@@ -92,18 +92,14 @@ class RAGPipeline:
 
         # Retrieve documents for each query in parallel
         retrieval_start = time.perf_counter()
-
-        async def _retrieve_all() -> list[types.RetrieveOutput]:
-            return list(
-                await asyncio.gather(
-                    *(
-                        self._retriever.aretrieve(q, k=k, chunk_context=chunk_context)
-                        for q in retrieval_queries
-                    )
+        retrieve_outputs = list(
+            await asyncio.gather(
+                *(
+                    self._retriever.aretrieve(q, k=k, chunk_context=chunk_context)
+                    for q in retrieval_queries
                 )
             )
-
-        retrieve_outputs = asyncio.run(_retrieve_all())
+        )
         total_documents = 0
         for i, (query, retrieve_output) in enumerate(
             zip(retrieval_queries, retrieve_outputs)
@@ -149,15 +145,17 @@ class RAGPipeline:
             }
         }
         gen_start = time.perf_counter()
-        response = chain.invoke(
-            {
-                "user_question": question,
-                "retrieved_context": output_rendering.render_retrieve_output(
-                    combined_retrieve_output.results,
-                    text_set=self._text_set,
-                ),
-            },
-            config=config,
+        response = await asyncio.to_thread(
+            lambda: chain.invoke(
+                {
+                    "user_question": question,
+                    "retrieved_context": output_rendering.render_retrieve_output(
+                        combined_retrieve_output.results,
+                        text_set=self._text_set,
+                    ),
+                },
+                config=config,
+            )
         )
         metrics.rag_pipeline_stage_generation_duration_seconds.labels(
             model=model, language=language
