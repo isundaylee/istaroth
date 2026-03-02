@@ -2,7 +2,6 @@
 
 import abc
 import enum
-import functools
 import logging
 import os
 import pathlib
@@ -15,11 +14,10 @@ import chromadb
 import langsmith as ls
 from langchain_core import embeddings as lc_embeddings
 from langchain_core.documents import Document
-from langchain_huggingface import HuggingFaceEmbeddings
 from opentelemetry import trace
 
 from istaroth import utils
-from istaroth.rag import types
+from istaroth.rag import embeddings, types
 
 logger = logging.getLogger(__name__)
 _tracer = trace.get_tracer(__name__)
@@ -42,16 +40,6 @@ def get_vector_store_type_from_env() -> VectorStoreType:
             f"Unknown vector store type: {store_type}. "
             f"Supported: {', '.join(t.value for t in VectorStoreType)}"
         )
-
-
-@functools.cache
-def _create_embeddings() -> HuggingFaceEmbeddings:
-    """Create local HuggingFace embeddings instance."""
-    return HuggingFaceEmbeddings(
-        model_name="BAAI/bge-m3",
-        model_kwargs={"device": os.getenv("ISTAROTH_TRAINING_DEVICE", "cuda")},
-        encode_kwargs={"normalize_embeddings": True},
-    )
 
 
 class VectorStore(abc.ABC):
@@ -145,7 +133,7 @@ class ChromaVectorStore(ChromaBaseVectorStore):
             f"building Chroma vector store with {len(documents)} documents"
         ):
             with utils.timer("loading vector embeddings model"):
-                embeddings = _create_embeddings()
+                emb = embeddings.create_embeddings()
 
             # Create persistent client in temporary directory
             chroma_data_dir = tempfile.mkdtemp(prefix="chroma_", dir="/tmp")
@@ -161,7 +149,7 @@ class ChromaVectorStore(ChromaBaseVectorStore):
                 metadatas = [metadata for _, metadata in documents]
 
                 # Compute embeddings
-                embeddings_list = embeddings.embed_documents(texts)
+                embeddings_list = emb.embed_documents(texts)
 
                 # Add documents in batches to avoid ChromaDB batch size limits
                 batch_size = 5000
@@ -188,7 +176,7 @@ class ChromaVectorStore(ChromaBaseVectorStore):
                         metadatas=batch_metadatas,
                     )
 
-            return cls(embeddings, client, collection, chroma_data_dir)
+            return cls(emb, client, collection, chroma_data_dir)
 
     def save(self, path: pathlib.Path) -> None:
         """Save vector store."""
@@ -206,14 +194,14 @@ class ChromaVectorStore(ChromaBaseVectorStore):
         with utils.timer(f"loading Chroma vector store from {path}"):
             # Create embeddings instance
             with utils.timer("loading vector embeddings model"):
-                embeddings = _create_embeddings()
+                emb = embeddings.create_embeddings()
 
             with utils.timer("loading Chroma index"):
                 chroma_data_dir = str(path / "chroma_index")
                 client = chromadb.PersistentClient(path=chroma_data_dir)
                 collection = client.get_collection(cls.COLLECTION_NAME)
 
-            return cls(embeddings, client, collection, chroma_data_dir)
+            return cls(emb, client, collection, chroma_data_dir)
 
 
 @attrs.define
@@ -225,7 +213,7 @@ class ChromaExternalVectorStore(ChromaBaseVectorStore):
         """Create external vector store connecting to Chroma server."""
         with utils.timer("connecting to external Chroma server"):
             with utils.timer("loading vector embeddings model"):
-                embeddings = _create_embeddings()
+                emb = embeddings.create_embeddings()
 
             # Connect to external Chroma server
             client = chromadb.HttpClient(host=host, port=port)
@@ -233,7 +221,7 @@ class ChromaExternalVectorStore(ChromaBaseVectorStore):
             # Get existing collection (assume it exists)
             collection = client.get_collection(name=cls.COLLECTION_NAME)
 
-            return cls(embeddings, client, collection)
+            return cls(emb, client, collection)
 
     @classmethod
     def build(cls, documents: list[tuple[str, types.DocumentMetadata]]) -> Self:
