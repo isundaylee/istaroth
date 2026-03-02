@@ -1,6 +1,5 @@
 """Shared OpenTelemetry tracing setup for Istaroth services."""
 
-import importlib.metadata
 import logging
 import os
 
@@ -23,10 +22,7 @@ def setup_tracing(service_name: str) -> None:
 
     provider = sdk_trace.TracerProvider(
         resource=resources.Resource.create(
-            {
-                "service.name": service_name,
-                "service.version": importlib.metadata.version("istaroth"),
-            }
+            {"service.name": service_name}
         )
     )
     provider.add_span_processor(
