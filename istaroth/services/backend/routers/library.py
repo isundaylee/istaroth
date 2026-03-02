@@ -199,7 +199,7 @@ async def retrieve_library(
         raise HTTPException(status_code=404, detail=str(e))
 
     if request.semantic:
-        retrieve_output = document_store.retrieve(
+        retrieve_output = await document_store.aretrieve(
             request.query, k=request.k, chunk_context=request.chunk_context
         )
     else:

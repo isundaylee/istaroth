@@ -83,10 +83,10 @@ def create_app() -> FastAPI:
     )
 
     @app.post("/retrieve")
-    def retrieve(request: _RetrieveRequest) -> dict[str, Any]:
+    async def retrieve(request: _RetrieveRequest) -> dict[str, Any]:
         store = _get_store(request.language)
         start = time.perf_counter()
-        output = store.retrieve(
+        output = await store.aretrieve(
             request.query, k=request.k, chunk_context=request.chunk_context
         )
         metrics.retrieval_duration_seconds.labels(

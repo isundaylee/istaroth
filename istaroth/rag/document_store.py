@@ -6,6 +6,8 @@ overlapping chunks and indexes them for similarity search. Both operate on
 the same underlying text files; a DocumentStoreSet exposes both views.
 """
 
+import asyncio
+import concurrent.futures
 import hashlib
 import json
 import logging
@@ -339,7 +341,19 @@ class DocumentStore:
     def retrieve(
         self, query: str, *, k: int, chunk_context: int
     ) -> types.RetrieveOutput:
-        """Search using hybrid vector + BM25 retrieval with reciprocal rank fusion."""
+        """Search using hybrid vector + BM25 retrieval with reciprocal rank fusion.
+
+        Sync wrapper around aretrieve for use in sync contexts.
+        """
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            return pool.submit(
+                asyncio.run, self.aretrieve(query, k=k, chunk_context=chunk_context)
+            ).result()
+
+    async def aretrieve(
+        self, query: str, *, k: int, chunk_context: int
+    ) -> types.RetrieveOutput:
+        """Async hybrid vector + BM25 retrieval with parallel search execution."""
         with _tracer.start_as_current_span("query_transform") as span:
             span.set_attribute("query", query)
             queries = self._query_transformer.transform(query)
@@ -347,30 +361,30 @@ class DocumentStore:
 
         logger.info("Transformed query '%s' into: %r", query, queries)
 
-        # Collect all results from all queries
-        weights = []
-        all_results = []
-
-        # Get vector store results for all queries.
-        for transformed_query in queries:
-            weights.append(1.0)
+        async def _vector_search(q: str) -> list[types.ScoredDocument]:
             with _tracer.start_as_current_span("vector_search") as span:
-                span.set_attribute("query", transformed_query)
+                span.set_attribute("query", q)
                 span.set_attribute("k", k * 2)
-                vs_results = self._vector_store.search(transformed_query, k * 2)
-                span.set_attribute("num_results", len(vs_results))
-            all_results.append(vs_results)
+                results = await asyncio.to_thread(self._vector_store.search, q, k * 2)
+                span.set_attribute("num_results", len(results))
+                return results
 
-        # Only get BM25 results for the original query (with scaled up weight).
-        weights.append(float(len(queries)))
-        with _tracer.start_as_current_span("bm25_search") as span:
-            span.set_attribute("query", queries[0])
-            span.set_attribute("k", k * 2)
-            bm25_results = self._bm25_store.search(queries[0], k * 2)
-            span.set_attribute("num_results", len(bm25_results))
-        all_results.append(bm25_results)
+        async def _bm25_search(q: str) -> list[types.ScoredDocument]:
+            with _tracer.start_as_current_span("bm25_search") as span:
+                span.set_attribute("query", q)
+                span.set_attribute("k", k * 2)
+                results = await asyncio.to_thread(self._bm25_store.search, q, k * 2)
+                span.set_attribute("num_results", len(results))
+                return results
 
-        # Combine all results using reciprocal rank fusion with equal weights
+        all_results = list(
+            await asyncio.gather(
+                *[_vector_search(q) for q in queries],
+                _bm25_search(queries[0]),
+            )
+        )
+        weights = [1.0] * len(queries) + [float(len(queries))]
+
         with _tracer.start_as_current_span("rerank") as span:
             span.set_attribute("query", query)
             span.set_attribute("num_result_lists", len(all_results))
@@ -386,12 +400,6 @@ class DocumentStore:
             )
             span.set_attribute("num_results", len(result.results))
         return result
-
-    async def aretrieve(
-        self, query: str, *, k: int, chunk_context: int
-    ) -> types.RetrieveOutput:
-        """Async wrapper around sync retrieve for protocol compatibility."""
-        return self.retrieve(query, k=k, chunk_context=chunk_context)
 
     @traceable(name="bm25_search")
     def retrieve_bm25(

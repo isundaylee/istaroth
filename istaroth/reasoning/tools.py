@@ -65,7 +65,14 @@ class DocumentRetrievalTool(BaseTool):
 
     async def _arun(self, query: str, k: int = 5, chunk_context: int = 5) -> str:
         """Async version."""
-        return self._run(query, k, chunk_context)
+        return output_rendering.render_retrieve_output(
+            (
+                await self._document_store.aretrieve(
+                    query, k=k, chunk_context=chunk_context
+                )
+            ).results,
+            text_set=self._text_set,
+        )
 
 
 def get_default_tools(
