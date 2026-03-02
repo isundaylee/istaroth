@@ -19,6 +19,7 @@ x-backend-common: &backend-common
     - ISTAROTH_DOCUMENT_STORE_SET=CHS:/data/checkpoints/chs
     - ISTAROTH_DATABASE_URI=sqlite+aiosqlite:////data/state/web.sqlite
     - ISTAROTH_TRAINING_DEVICE=cpu
+    - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
 
 services:
   seed-checkpoints:
@@ -64,6 +65,8 @@ services:
         condition: service_completed_successfully
       seed-checkpoints:
         condition: service_completed_successfully
+      jaeger:
+        condition: service_started
     ports:
       - "8092:8092"
     healthcheck:
@@ -83,6 +86,8 @@ services:
         condition: service_completed_successfully
       retrieval:
         condition: service_healthy
+      jaeger:
+        condition: service_started
     volumes:
       - checkpoints:/data/checkpoints
       - ./data:/data/state
@@ -99,6 +104,7 @@ services:
       - ISTAROTH_DOCUMENT_STORE_SET=CHS:/data/checkpoints/chs
       - ISTAROTH_DATABASE_URI=sqlite+aiosqlite:////data/state/web.sqlite
       - ISTAROTH_RETRIEVAL_SERVICE_URL=http://retrieval:8002
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
 
   frontend:
     # Keep in sync with frontend/.nvmrc
@@ -127,6 +133,12 @@ services:
     volumes:
       - ../../frontend:/app
       - frontend-node-modules:/app/node_modules
+
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:2.15.0
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC receiver
 
 volumes:
   checkpoints:
