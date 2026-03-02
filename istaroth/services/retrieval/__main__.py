@@ -2,40 +2,29 @@
 
 import logging
 
-import click
-import uvicorn
+import fastapi
 
 from istaroth.rag import document_store_set
-from istaroth.services.common import tracing
-from istaroth.services.retrieval import app
+from istaroth.services.common import runner, tracing
+from istaroth.services.retrieval import app as app_module
+
+_logger = logging.getLogger(__name__)
 
 
-@click.command()
-@click.option("--host", default="0.0.0.0", help="Host to bind the server to")
-@click.option("--port", default=8002, type=int, help="Port to bind the server to")
-@click.option(
-    "--log-level", default="info", help="Log level (debug, info, warning, error)"
-)
-def main(host: str, port: int, log_level: str) -> None:
-    """Run the Istaroth retrieval microservice."""
-    logging.basicConfig(
-        level=getattr(logging, log_level.upper()),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    )
-
-    logger = logging.getLogger(__name__)
-    logger.info("Starting Istaroth retrieval service on %s:%d", host, port)
-
+def _create_app_factory() -> fastapi.FastAPI:
+    """Factory that initializes resources and creates the retrieval app (for uvicorn reload)."""
     tracing.setup_tracing("istaroth-retrieval")
-
-    logger.info("Loading document store set from environment...")
-    app._store_set = document_store_set.DocumentStoreSet.from_env()
-    logger.info("Document store set loaded successfully")
-
-    fastapi_app = app.create_app()
+    _logger.info("Loading document store set from environment...")
+    app_module._store_set = document_store_set.DocumentStoreSet.from_env()
+    _logger.info("Document store set loaded successfully")
+    fastapi_app = app_module.create_app()
     tracing.instrument_fastapi_app(fastapi_app)
-    uvicorn.run(fastapi_app, host=host, port=port, log_level=log_level)
+    return fastapi_app
 
 
 if __name__ == "__main__":
-    main()
+    runner.run_service(
+        service_name="istaroth-retrieval",
+        factory_import_path="istaroth.services.retrieval.__main__:_create_app_factory",
+        default_port=8002,
+    )
