@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import asyncio
 import functools
+import inspect
 from typing import TYPE_CHECKING, Callable, ParamSpec, TypeVar, cast
 
 import langsmith as ls
@@ -17,7 +17,7 @@ def traceable(name: str) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Decorator to make a function traceable in LangSmith."""
 
     def decorator(f: Callable[P, T]) -> Callable[P, T]:
-        if asyncio.iscoroutinefunction(f):
+        if inspect.iscoroutinefunction(f):
 
             @ls.traceable(name=name)
             @functools.wraps(f)

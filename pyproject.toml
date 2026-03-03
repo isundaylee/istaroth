@@ -12,6 +12,7 @@ license = "MIT"
 dependencies = [
     "aiosqlite",
     "alembic",
+    "anyio>=4.12.1",
     "asyncpg",
     "attrs",
     "chromadb",

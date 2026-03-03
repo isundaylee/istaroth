@@ -6,8 +6,8 @@ overlapping chunks and indexes them for similarity search. Both operate on
 the same underlying text files; a DocumentStoreSet exposes both views.
 """
 
-import asyncio
 import concurrent.futures
+import functools
 import hashlib
 import json
 import logging
@@ -15,6 +15,7 @@ import pathlib
 import pickle
 from typing import cast
 
+import anyio
 import attrs
 import jieba
 import langsmith as ls
@@ -347,7 +348,10 @@ class DocumentStore:
         """
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
             return pool.submit(
-                asyncio.run, self.aretrieve(query, k=k, chunk_context=chunk_context)
+                anyio.run,
+                functools.partial(
+                    self.aretrieve, query, k=k, chunk_context=chunk_context
+                ),
             ).result()
 
     async def aretrieve(
@@ -356,40 +360,47 @@ class DocumentStore:
         """Async hybrid vector + BM25 retrieval with parallel search execution."""
         with _tracer.start_as_current_span("query_transform") as span:
             span.set_attribute("query", query)
-            queries = await asyncio.to_thread(self._query_transformer.transform, query)
+            queries = await anyio.to_thread.run_sync(
+                lambda: self._query_transformer.transform(query)
+            )
             span.set_attribute("num_queries", len(queries))
 
         logger.info("Transformed query '%s' into: %r", query, queries)
 
-        async def _vector_search(q: str) -> list[types.ScoredDocument]:
+        _all_results: dict[int, list[types.ScoredDocument]] = {}
+
+        async def _run_vector(i: int, q: str) -> None:
             with _tracer.start_as_current_span("vector_search") as span:
                 span.set_attribute("query", q)
                 span.set_attribute("k", k * 2)
-                results = await asyncio.to_thread(self._vector_store.search, q, k * 2)
+                results = await anyio.to_thread.run_sync(
+                    lambda: self._vector_store.search(q, k * 2)
+                )
                 span.set_attribute("num_results", len(results))
-                return results
+                _all_results[i] = results
 
-        async def _bm25_search(q: str) -> list[types.ScoredDocument]:
+        async def _run_bm25(i: int, q: str) -> None:
             with _tracer.start_as_current_span("bm25_search") as span:
                 span.set_attribute("query", q)
                 span.set_attribute("k", k * 2)
-                results = await asyncio.to_thread(self._bm25_store.search, q, k * 2)
+                results = await anyio.to_thread.run_sync(
+                    lambda: self._bm25_store.search(q, k * 2)
+                )
                 span.set_attribute("num_results", len(results))
-                return results
+                _all_results[i] = results
 
-        all_results = list(
-            await asyncio.gather(
-                *[_vector_search(q) for q in queries],
-                _bm25_search(queries[0]),
-            )
-        )
+        async with anyio.create_task_group() as tg:
+            for i, q in enumerate(queries):
+                tg.start_soon(_run_vector, i, q)
+            tg.start_soon(_run_bm25, len(queries), queries[0])
+        all_results = [_all_results[i] for i in range(len(queries) + 1)]
         weights = [1.0] * len(queries) + [float(len(queries))]
 
         with _tracer.start_as_current_span("rerank") as span:
             span.set_attribute("query", query)
             span.set_attribute("num_result_lists", len(all_results))
-            fused_results = await asyncio.to_thread(
-                self._reranker.rerank, query, all_results, weights
+            fused_results = await anyio.to_thread.run_sync(
+                lambda: self._reranker.rerank(query, all_results, weights)
             )
             span.set_attribute("num_fused_results", len(fused_results))
         langsmith_utils.log_scored_docs("reranked_docs", fused_results)

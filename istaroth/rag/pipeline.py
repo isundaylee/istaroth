@@ -1,10 +1,9 @@
 """RAG pipeline for end-to-end question answering."""
 
-import asyncio
 import logging
 import time
-import typing
 
+import anyio
 import attrs
 from langchain_core import language_models, prompts
 from langchain_core.runnables import RunnableConfig
@@ -80,7 +79,9 @@ class RAGPipeline:
 
         # Preprocess the question into multiple retrieval queries
         preprocess_start = time.perf_counter()
-        retrieval_queries = await asyncio.to_thread(self._preprocess_question, question)
+        retrieval_queries = await anyio.to_thread.run_sync(
+            lambda: self._preprocess_question(question)
+        )
         metrics.rag_pipeline_stage_preprocessing_duration_seconds.observe(
             time.perf_counter() - preprocess_start
         )
@@ -92,14 +93,17 @@ class RAGPipeline:
 
         # Retrieve documents for each query in parallel
         retrieval_start = time.perf_counter()
-        retrieve_outputs = list(
-            await asyncio.gather(
-                *(
-                    self._retriever.aretrieve(q, k=k, chunk_context=chunk_context)
-                    for q in retrieval_queries
-                )
+        _retrieve_outputs: dict[int, types.RetrieveOutput] = {}
+
+        async def _retrieve(i: int, q: str) -> None:
+            _retrieve_outputs[i] = await self._retriever.aretrieve(
+                q, k=k, chunk_context=chunk_context
             )
-        )
+
+        async with anyio.create_task_group() as tg:
+            for i, q in enumerate(retrieval_queries):
+                tg.start_soon(_retrieve, i, q)
+        retrieve_outputs = [_retrieve_outputs[i] for i in range(len(retrieval_queries))]
         total_documents = 0
         for i, (query, retrieve_output) in enumerate(
             zip(retrieval_queries, retrieve_outputs)
@@ -145,7 +149,7 @@ class RAGPipeline:
             }
         }
         gen_start = time.perf_counter()
-        response = await asyncio.to_thread(
+        response = await anyio.to_thread.run_sync(
             lambda: chain.invoke(
                 {
                     "user_question": question,
