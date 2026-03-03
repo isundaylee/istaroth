@@ -1,4 +1,4 @@
-name: Run Tests
+name: Type Check
 
 on:
   push:
@@ -7,11 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  mypy:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.12"]
     steps:
     - uses: actions/checkout@v4
       with:
@@ -19,7 +16,6 @@ jobs:
     - uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install ${{ matrix.python-version }}
+    - run: uv python install 3.12
     - run: uv sync
-    - run: uv run pytest -v
+    - run: uv run mypy

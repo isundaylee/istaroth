@@ -9,13 +9,14 @@ import pathlib
 import re
 import sys
 
+import fastmcp.client.client as fastmcp_client
 import pytest
 import pytest_asyncio
-
-pytestmark = pytest.mark.asyncio(loop_scope="session")
 from fastmcp import Client
 from fastmcp.client.transports import StdioTransport
 from mcp import types as mcp_types
+
+pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 _PROJECT_ROOT = pathlib.Path(__file__).parent.parent
 
@@ -69,7 +70,7 @@ async def test_get_file_content(mcp_client: Client) -> None:
     assert "片段" in text
 
 
-def _extract_text(result: mcp_types.CallToolResult) -> str:
+def _extract_text(result: fastmcp_client.CallToolResult) -> str:
     """Extract concatenated text from a CallToolResult."""
     return "".join(
         c.text for c in result.content if isinstance(c, mcp_types.TextContent)

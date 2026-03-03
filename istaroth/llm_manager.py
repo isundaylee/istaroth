@@ -78,7 +78,7 @@ def create_llm(model_name: str, **kwargs) -> language_models.BaseLanguageModel:
             f"Model '{model_name}' is not available. Available models: {', '.join(available_models)}"
         )
 
-    implied_kwargs = {"max_retries": 1}
+    implied_kwargs: dict[str, typing.Any] = {"max_retries": 1}
 
     # Google models
     if model_name.startswith("gemini-"):
