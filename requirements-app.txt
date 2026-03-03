@@ -27,6 +27,7 @@ anyio==4.12.1
     #   anthropic
     #   google-genai
     #   httpx
+    #   istaroth
     #   mcp
     #   openai
     #   py-key-value-aio

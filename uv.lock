@@ -1355,6 +1355,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
     { name = "alembic" },
+    { name = "anyio" },
     { name = "asyncpg" },
     { name = "attrs" },
     { name = "chromadb" },
@@ -1424,6 +1425,7 @@ ml = [
 requires-dist = [
     { name = "aiosqlite" },
     { name = "alembic" },
+    { name = "anyio", specifier = ">=4.12.1" },
     { name = "asyncpg" },
     { name = "attrs" },
     { name = "chromadb" },
