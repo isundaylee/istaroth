@@ -4,6 +4,7 @@ import functools
 import logging
 import os
 
+import pydantic
 from langchain_core import embeddings as lc_embeddings
 
 logger = logging.getLogger(__name__)
@@ -33,7 +34,7 @@ def create_embeddings() -> lc_embeddings.Embeddings:
             return OpenAIEmbeddings(
                 base_url="https://api.deepinfra.com/v1/openai",
                 model="BAAI/bge-m3",
-                api_key=os.environ["DEEPINFRA_API_KEY"],
+                api_key=pydantic.SecretStr(os.environ["DEEPINFRA_API_KEY"]),
                 check_embedding_ctx_length=False,
             )
         case _:

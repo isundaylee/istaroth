@@ -7,7 +7,7 @@ import os
 import pathlib
 import shutil
 import tempfile
-from typing import ClassVar, Self, cast
+from typing import Any, ClassVar, Self, cast
 
 import attrs
 import chromadb
@@ -99,14 +99,15 @@ class ChromaBaseVectorStore(VectorStore):
             with _tracer.start_as_current_span("chroma_query") as span:
                 span.set_attribute("k", k)
                 results = self._collection.query(
-                    query_embeddings=[query_embedding], n_results=k
+                    query_embeddings=cast(Any, [query_embedding]),
+                    n_results=k,
                 )
 
             # Convert results to ScoredDocument format
             scored_docs = []
-            documents = results["documents"][0]
-            metadatas = results["metadatas"][0]
-            distances = results["distances"][0]
+            documents = cast(list[list[str]], results["documents"])[0]
+            metadatas = cast(list[list[Any]], results["metadatas"])[0]
+            distances = cast(list[list[float]], results["distances"])[0]
             for i in range(len(documents)):
                 doc = Document(page_content=documents[i], metadata=metadatas[i])
                 score = distances[i]
@@ -172,8 +173,8 @@ class ChromaVectorStore(ChromaBaseVectorStore):
                     collection.add(
                         ids=batch_ids,
                         documents=batch_texts,
-                        embeddings=batch_embeddings,
-                        metadatas=batch_metadatas,
+                        embeddings=cast(Any, batch_embeddings),
+                        metadatas=cast(Any, batch_metadatas),
                     )
 
             return cls(emb, client, collection, chroma_data_dir)

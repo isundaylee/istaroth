@@ -3,8 +3,8 @@
 import logging
 import time
 
-from langchain import agents
-from langchain.agents import AgentExecutor
+from langchain_classic import agents
+from langchain_classic.agents import AgentExecutor
 from langchain_core import language_models, prompts, tools
 
 from istaroth import langsmith_utils, llm_manager
