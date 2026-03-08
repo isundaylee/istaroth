@@ -218,7 +218,7 @@ function RetrievePage() {
               </Select>
               <Button
                 type="submit"
-                disabled={loading || !formParams.query.trim()}
+                disabled={loading || !formParams.query.trim() || (formParams.query.trim() === submittedParams?.query && formParams.semantic === submittedParams?.semantic)}
               >
                 {loading ? t('retrieve.submitting') : t('retrieve.submitButton')}
               </Button>
