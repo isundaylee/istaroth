@@ -219,11 +219,22 @@ class DataRepo:
 
     @functools.lru_cache(maxsize=None)
     def load_text_map(self) -> TextMapTracker:
-        """Load TextMap file for the instance's language."""
-        file_path = self.agd_path / "TextMap" / f"TextMap{self.language_short}.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.TextMap = json.load(f)
-            return TextMapTracker(data, self.language)
+        """Load TextMap file for the instance's language, merging Medium variant if present."""
+        text_map_dir = self.agd_path / "TextMap"
+        medium_path = text_map_dir / f"TextMap_Medium{self.language_short}.json"
+        data: types.TextMap = (
+            json.loads(medium_path.read_text(encoding="utf-8"))
+            if medium_path.exists()
+            else {}
+        )
+        data.update(
+            json.loads(
+                (text_map_dir / f"TextMap{self.language_short}.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+        )
+        return TextMapTracker(data, self.language)
 
     @functools.lru_cache(maxsize=None)
     def load_npc_excel_config_data(self) -> types.NpcExcelConfigData:

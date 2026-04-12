@@ -66,6 +66,7 @@ _COMMON_FIELD_MAPPINGS = {
     "LBPGKDMGFBN": "talkId",
     "LOJEOMAPIIM": "dialogList",
     "CMKPOJOEHHA": "talkContentTextMapHash",
+    "PELBMPLIEKC": "talkRoleNameTextMapHash",
     "HJIPOJOECIF": "talkRole",
     "EOFLGOBJBCG": "configId",
     # OSRELWin6.5.0_R43466102_S43178437_D43466102
@@ -83,6 +84,7 @@ _COMMON_FIELD_MAPPINGS = {
     "AADKDKPMGNO": "talkId",
     "GALIDJOEHOC": "dialogList",
     "AIGJBMCHCJG": "talkContentTextMapHash",
+    "BMFGJJJPBBC": "talkRoleNameTextMapHash",
     "PIBKEGJOJHN": "talkRole",
     "JJCCNELFGMF": "configId",
 }
