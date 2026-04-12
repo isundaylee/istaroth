@@ -15,6 +15,7 @@ import click
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
+from istaroth import logging_utils
 from istaroth.agd import localization
 
 logger = logging.getLogger(__name__)
@@ -152,9 +153,7 @@ def download_checkpoint(
 @click.group()
 def cli():
     """Checkpoint management tools for Istaroth."""
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging_utils.setup_logging()
 
 
 @cli.command()

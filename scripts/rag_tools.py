@@ -17,7 +17,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 import langsmith as ls
 
-from istaroth import llm_manager, utils
+from istaroth import llm_manager, logging_utils, utils
 from istaroth.agd import localization
 from istaroth.rag import (
     document_store,
@@ -63,11 +63,7 @@ def _load_store() -> tuple[types.Retriever, localization.Language, text_set.Text
 @click.group()
 def cli() -> None:
     """RAG tools for document management and querying."""
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s.%(msecs)03d %(levelname)s %(name)-35s %(message)s",
-        datefmt="%Y%m%d %H:%M:%S",
-    )
+    logging_utils.setup_logging()
 
 
 @cli.command()

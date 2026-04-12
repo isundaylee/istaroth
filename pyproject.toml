@@ -60,9 +60,11 @@ ml = [
 ]
 dev = [
     {include-group = "ml"},
+    "langchain-ollama>=1.1.0",
     "memray>=1.19.1",
     "mypy",
     "pre-commit",
+    "py-spy>=0.4.1",
     "pytest",
     "pytest-asyncio",
     "types-tabulate",

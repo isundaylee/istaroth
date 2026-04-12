@@ -6,6 +6,8 @@ import logging
 import click
 import uvicorn
 
+from istaroth import logging_utils
+
 
 def run_service(
     *, service_name: str, factory_import_path: str, default_port: int
@@ -23,10 +25,7 @@ def run_service(
     )
     def _main(host: str, port: int, reload: bool, log_level: str) -> None:
         """Run the FastAPI service."""
-        logging.basicConfig(
-            level=getattr(logging, log_level.upper()),
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        )
+        logging_utils.setup_logging(level=getattr(logging, log_level.upper()))
         logging.getLogger(service_name).info(
             "Starting %s on %s:%d (reload=%s)", service_name, host, port, reload
         )
