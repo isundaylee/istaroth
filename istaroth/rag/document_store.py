@@ -57,6 +57,17 @@ def _merge_small_chunks(chunks: list[str], min_size: float) -> list[str]:
     return merged_chunks
 
 
+_CUSTOM_DICT_RELATIVE = pathlib.Path("misc/proper_nouns.txt")
+
+
+def _load_custom_jieba_dict(text_path: pathlib.Path) -> None:
+    """Load Genshin-specific proper noun dictionary into jieba if available."""
+    dict_path = text_path / _CUSTOM_DICT_RELATIVE
+    if dict_path.exists():
+        jieba.load_userdict(str(dict_path))
+        logger.info("Loaded custom jieba dictionary from %s", dict_path)
+
+
 @attrs.define
 class _BM25Store:
     """BM25 keyword search store."""
@@ -65,8 +76,11 @@ class _BM25Store:
     _documents: list[Document] = attrs.field()
 
     @classmethod
-    def build(cls, documents: list[Document]) -> "_BM25Store":
+    def build(
+        cls, documents: list[Document], *, text_path: pathlib.Path
+    ) -> "_BM25Store":
         """Build BM25 store from flattened list of documents."""
+        _load_custom_jieba_dict(text_path)
         with utils.timer(f"building BM25 store with {len(documents)} documents"):
             # Tokenize all document contents for BM25
             with utils.timer("document tokenization"):
@@ -90,6 +104,7 @@ class _BM25Store:
     @classmethod
     def load(cls, path: pathlib.Path) -> "_BM25Store":
         """Load BM25 store from disk using pickle."""
+        _load_custom_jieba_dict(path / "text")
         with utils.timer("loading BM25 store"):
             bm25_file = path / "bm25_store.pkl"
             with open(bm25_file, "rb") as f:
@@ -328,7 +343,7 @@ class DocumentStore:
         else:
             raise ValueError(f"Unknown vector store type: {store_type}")
 
-        bm25_store = _BM25Store.build(flattened_documents)
+        bm25_store = _BM25Store.build(flattened_documents, text_path=text_root)
 
         return cls(
             vs,
