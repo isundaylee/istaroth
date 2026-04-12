@@ -214,7 +214,7 @@ def query(question: str, *, k: int, chunk_context: int) -> None:
         store,
         language=language,
         llm=lm.get_default_llm(),
-        preprocessing_llm=lm.get_llm("gemini-2.5-flash-lite"),
+        preprocessing_llm=lm.get_llm("gemini-3.1-flash-lite-preview"),
         text_set=ts,
     )
 

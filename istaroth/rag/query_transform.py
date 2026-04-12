@@ -78,7 +78,7 @@ class RewriteQueryTransformer(QueryTransformer):
     def create(
         cls,
         *,
-        model: str = "gemini-2.5-flash-lite",
+        model: str = "gemini-3.1-flash-lite-preview",
         num_queries: int = 3,
     ) -> "RewriteQueryTransformer":
         """Create a RewriteQueryTransformer with Gemini LLM.

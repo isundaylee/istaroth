@@ -25,12 +25,11 @@ export const chs = {
     submitButton: '提问',
     submitting: '回答中',
     models: {
-      'gemini-2_5-flash-lite': '超快速 (gemini-2.5-flash-lite)',
-      'gemini-2_5-flash': '快速 (gemini-2.5-flash)',
+      'gemini-3_1-flash-lite-preview': '超快速 (gemini-3.1-flash-lite-preview)',
+      'gemini-3-flash-preview': '快速 (gemini-3-flash-preview)',
       'gpt-5-nano': '快速 (gpt-5-nano)',
       'gpt-5-mini': '中速 (gpt-5-mini)',
-      'gemini-2_5-pro': '慢速 (gemini-2.5-pro)',
-      'gemini-3-pro-preview': '慢速 (gemini-3-pro-preview)'
+      'gemini-3_1-pro-preview': '慢速 (gemini-3.1-pro-preview)'
     },
     errors: {
       unknown: '发生了未知错误',

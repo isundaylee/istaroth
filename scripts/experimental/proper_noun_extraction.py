@@ -137,8 +137,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Extract proper nouns from game text")
     parser.add_argument(
         "--model",
-        default="gemini-2.5-flash",
-        help="Model to use (default: gemini-2.5-flash)",
+        default="gemini-3-flash-preview",
+        help="Model to use (default: gemini-3-flash-preview)",
     )
     parser.add_argument(
         "--restart", action="store_true", help="Discard checkpoint and start fresh"

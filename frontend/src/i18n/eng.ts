@@ -25,12 +25,11 @@ export const eng = {
     submitButton: 'Ask',
     submitting: 'Answering',
     models: {
-      'gemini-2_5-flash-lite': 'Ultra Fast (gemini-2.5-flash-lite)',
-      'gemini-2_5-flash': 'Fast (gemini-2.5-flash)',
+      'gemini-3_1-flash-lite-preview': 'Ultra Fast (gemini-3.1-flash-lite-preview)',
+      'gemini-3-flash-preview': 'Fast (gemini-3-flash-preview)',
       'gpt-5-nano': 'Fast (gpt-5-nano)',
       'gpt-5-mini': 'Medium (gpt-5-mini)',
-      'gemini-2_5-pro': 'Slow (gemini-2.5-pro)',
-      'gemini-3-pro-preview': 'Slow (gemini-3-pro-preview)'
+      'gemini-3_1-pro-preview': 'Slow (gemini-3.1-pro-preview)'
     },
     errors: {
       unknown: 'An unknown error occurred',

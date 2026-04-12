@@ -9,12 +9,11 @@ from langchain_openai import chat_models as openai_llms
 
 # All technically supported models in order of decreasing speed
 _ALL_SUPPORTED_MODELS: list[str] = [
-    "gemini-2.5-flash-lite",  # Fastest
-    "gemini-2.5-flash",
+    "gemini-3.1-flash-lite-preview",  # Fastest
+    "gemini-3-flash-preview",
     "gpt-5-nano",
     "gpt-5-mini",
-    "gemini-2.5-pro",
-    "gemini-3-pro-preview",  # Slowest
+    "gemini-3.1-pro-preview",  # Slowest
 ]
 
 # Cache for available models from environment
@@ -41,7 +40,7 @@ def get_available_models() -> list[str]:
         raise ValueError(
             "ISTAROTH_AVAILABLE_MODELS environment variable is required. "
             "Set it to 'all' or a comma-separated list of model IDs, e.g., "
-            "'gemini-2.5-flash-lite,gemini-2.5-flash,gpt-5-mini'"
+            "'gemini-3.1-flash-lite-preview,gemini-3-flash-preview,gpt-5-mini'"
         )
 
     # Check for special value
@@ -101,7 +100,9 @@ class LLMManager:
         self._default_model = typing.cast(
             str,
             default_model
-            or os.environ.get("ISTAROTH_PIPELINE_MODEL", "gemini-2.5-flash-lite"),
+            or os.environ.get(
+                "ISTAROTH_PIPELINE_MODEL", "gemini-3.1-flash-lite-preview"
+            ),
         )
 
     def get_default_llm(self, **kwargs) -> language_models.BaseLanguageModel:
