@@ -27,7 +27,7 @@ def test_bm25_store_k():
     ]
 
     # Build BM25 store
-    bm25_store = _BM25Store.build(documents)
+    bm25_store = _BM25Store.build(documents, text_path=pathlib.Path("."))
 
     # Test various k values
     test_cases = [1, 3, 5, 7, 8]  # Different k values including edge cases
@@ -58,7 +58,7 @@ def test_bm25_store_k_exceeds_total():
     ]
 
     # Build BM25 store
-    bm25_store = _BM25Store.build(documents)
+    bm25_store = _BM25Store.build(documents, text_path=pathlib.Path("."))
 
     # Request more documents than available
     k = 10
@@ -76,7 +76,7 @@ def test_bm25_store_with_empty_documents():
 
     # BM25Okapi raises ZeroDivisionError with empty corpus, so we expect this
     with pytest.raises(ZeroDivisionError):
-        _BM25Store.build(documents)
+        _BM25Store.build(documents, text_path=pathlib.Path("."))
 
 
 def test_bm25_store_with_k_zero():
@@ -85,7 +85,7 @@ def test_bm25_store_with_k_zero():
         Document(page_content="Test content", metadata={"id": "1"}),
     ]
 
-    bm25_store = _BM25Store.build(documents)
+    bm25_store = _BM25Store.build(documents, text_path=pathlib.Path("."))
     results = bm25_store.search("test", k=0)
 
     # Should return empty list
