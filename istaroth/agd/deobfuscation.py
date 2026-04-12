@@ -68,6 +68,23 @@ _COMMON_FIELD_MAPPINGS = {
     "CMKPOJOEHHA": "talkContentTextMapHash",
     "HJIPOJOECIF": "talkRole",
     "EOFLGOBJBCG": "configId",
+    # OSRELWin6.5.0_R43466102_S43178437_D43466102
+    "HFIMFOOGLLF": "activityId",
+    "NFIEHACCECI": "id",
+    "AJGGCMPLKHK": "descTextMapHash",
+    "BPNEONFJEEO": "titleTextMapHash",
+    "BALAIBAGIEL": "chapterId",
+    "MEGJPCLADOG": "subQuests",
+    "NFFIGDHFAJG": "talks",
+    "KKMJBEPGLGD": "subId",
+    "DGINIFCGMGL": "order",
+    "NIBKFBCGDGM": "questId",
+    "GFFJADIFFGO": "npcId",
+    "AADKDKPMGNO": "talkId",
+    "GALIDJOEHOC": "dialogList",
+    "AIGJBMCHCJG": "talkContentTextMapHash",
+    "PIBKEGJOJHN": "talkRole",
+    "JJCCNELFGMF": "configId",
 }
 
 
