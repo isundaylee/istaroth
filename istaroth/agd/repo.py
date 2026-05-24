@@ -287,33 +287,39 @@ class DataRepo:
 
     @functools.lru_cache(maxsize=None)
     def build_quest_mapping(self) -> dict[str, str]:
-        """Build a mapping from quest ID to BinOutput/Quest file path by scanning directories."""
+        """Build a mapping from quest ID to BinOutput/Quest file path.
+
+        AGD retains stale hash-named duplicates of quests across builds, so when
+        several files share an ID the canonically-named ``{id}.json`` wins.
+        """
         quest_id_to_path: dict[str, str] = {}
 
-        # Scan Quest directory for JSON files
         for json_file in (self.agd_path / "BinOutput" / "Quest").glob("*.json"):
-            relative_path = json_file.relative_to(self.agd_path)
-            relative_path_str = relative_path.as_posix()
-
-            # Use load_quest_data to get deobfuscated data
+            relative_path_str = json_file.relative_to(self.agd_path).as_posix()
             quest_data = self.load_quest_data(relative_path_str)
-
-            assert isinstance(quest_data, dict), relative_path
+            assert isinstance(quest_data, dict), relative_path_str
             quest_id = quest_data.get("id")
-            assert isinstance(quest_id, int), relative_path
+            assert isinstance(quest_id, int), relative_path_str
 
-            # Check for duplicates
-            if quest_id in quest_id_to_path:
+            quest_id_str = str(quest_id)
+            canonical_path = f"BinOutput/Quest/{quest_id_str}.json"
+            if (existing := quest_id_to_path.get(quest_id_str)) is not None:
+                if existing == canonical_path or relative_path_str != canonical_path:
+                    logger.warning(
+                        "Duplicate quest ID %s: keeping %s, ignoring %s",
+                        quest_id_str,
+                        existing,
+                        relative_path_str,
+                    )
+                    continue
                 logger.warning(
-                    "Duplicate quest ID %s: already mapped to %s, ignoring %s",
-                    quest_id,
-                    quest_id_to_path[str(quest_id)],
+                    "Duplicate quest ID %s: replacing %s with canonical %s",
+                    quest_id_str,
+                    existing,
                     relative_path_str,
                 )
-                continue
 
-            # Store the mapping
-            quest_id_to_path[str(quest_id)] = relative_path_str
+            quest_id_to_path[quest_id_str] = relative_path_str
 
         return quest_id_to_path
 
