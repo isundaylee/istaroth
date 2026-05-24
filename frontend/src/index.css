@@ -382,6 +382,31 @@ body {
   font-style: italic;
 }
 
+.answer table {
+  border-collapse: collapse;
+  margin: 10px 0;
+  width: 100%;
+  display: block;
+  overflow-x: auto;
+}
+
+.answer th,
+.answer td {
+  border: 1px solid var(--color-border);
+  padding: 6px 12px;
+  text-align: left;
+}
+
+.answer th {
+  background-color: var(--color-surface-secondary);
+  color: var(--color-heading);
+  font-weight: 600;
+}
+
+.answer tr:nth-child(even) td {
+  background-color: var(--color-surface-secondary);
+}
+
 /* Conversation Page Styles */
 .conversation-header {
   display: flex;

@@ -1,6 +1,7 @@
 import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
+import remarkGfm from 'remark-gfm'
 import { useT } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
@@ -80,7 +81,7 @@ function LibraryFileViewer() {
           />
 
           <div className="answer">
-            <ReactMarkdown remarkPlugins={[remarkBreaks]}>{fileContent}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{fileContent}</ReactMarkdown>
           </div>
           {previousFile && (
             <NavButton
