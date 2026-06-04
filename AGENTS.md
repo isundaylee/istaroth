@@ -105,30 +105,8 @@ Tracing is automatically enabled when all required environment variables are set
 
 ## Task Tracking
 
-This project uses `bd` for task tracking.
-
-## Landing the Plane (Session Completion)
-
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds. NOTE that you should only do this after the user tells you that it's done/finished.
-
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items; amend existing commit to pick up the `.beads/issues.jsonl` change if needed.
-4. **PUSH TO REMOTE** - This is MANDATORY:
-   ```bash
-   git pull --rebase
-   bd sync
-   git push
-   git status  # MUST show "up to date with origin"
-   ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
-
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+This project tracks follow-up work in `TODO.md` at the repo root.
+- Group items under area sections (e.g. `## Text`, `## Tech Debt`); add new sections as needed.
+- One bullet per item; keep it brief but include enough context to act on later, with relevant quest/talk IDs when applicable.
+- Add items as they come up; remove a bullet when the work is done (the commit history is the record).
+- Do NOT use `bd`/beads; the `.beads/` directory is legacy and no longer maintained.
