@@ -20,11 +20,8 @@ annotated-doc==0.0.4
     #   typer
 annotated-types==0.7.0
     # via pydantic
-anthropic==0.46.0
-    # via marker-pdf
 anyio==4.12.1
     # via
-    #   anthropic
     #   google-genai
     #   httpx
     #   istaroth
@@ -53,8 +50,6 @@ bcrypt==5.0.0
     # via chromadb
 beartype==0.22.9
     # via py-key-value-aio
-beautifulsoup4==4.14.3
-    # via markdownify
 build==1.4.0
     # via chromadb
 cachetools==7.0.1
@@ -76,9 +71,6 @@ chromadb==1.5.1
 click==8.3.1
     # via
     #   istaroth
-    #   marker-pdf
-    #   pdftext
-    #   surya-ocr
     #   typer
     #   uvicorn
 cohere==5.20.6
@@ -95,17 +87,12 @@ cryptography==46.0.5
     #   google-auth
     #   pyjwt
     #   secretstorage
-cuda-bindings==12.9.4 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-cuda-pathfinder==1.3.4 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via cuda-bindings
 cyclopts==4.5.4
     # via fastmcp
 dataclasses-json==0.6.7
     # via langchain-community
 distro==1.9.0
     # via
-    #   anthropic
     #   google-genai
     #   openai
     #   posthog
@@ -128,15 +115,9 @@ fastavro==1.12.1
 fastmcp==3.0.1
     # via istaroth
 filelock==3.24.3
-    # via
-    #   huggingface-hub
-    #   torch
-    #   transformers
+    # via huggingface-hub
 filetype==1.2.0
-    # via
-    #   langchain-google-genai
-    #   marker-pdf
-    #   surya-ocr
+    # via langchain-google-genai
 flatbuffers==25.12.19
     # via onnxruntime
 frozenlist==1.8.0
@@ -144,17 +125,11 @@ frozenlist==1.8.0
     #   aiohttp
     #   aiosignal
 fsspec==2026.2.0
-    # via
-    #   huggingface-hub
-    #   torch
-ftfy==6.3.1
-    # via marker-pdf
+    # via huggingface-hub
 google-auth==2.48.0
     # via google-genai
 google-genai==1.64.0
-    # via
-    #   langchain-google-genai
-    #   marker-pdf
+    # via langchain-google-genai
 googleapis-common-protos==1.72.0
     # via opentelemetry-exporter-otlp-proto-grpc
 greenlet==3.3.2
@@ -177,7 +152,6 @@ httptools==0.7.1
     # via uvicorn
 httpx==0.28.1
     # via
-    #   anthropic
     #   chromadb
     #   cohere
     #   fastmcp
@@ -195,7 +169,6 @@ huggingface-hub==0.36.2
     # via
     #   langchain-huggingface
     #   tokenizers
-    #   transformers
 idna==3.11
     # via
     #   anyio
@@ -219,14 +192,8 @@ jeepney==0.9.0 ; sys_platform == 'linux'
     #   secretstorage
 jieba==0.42.1
     # via istaroth
-jinja2==3.1.6
-    # via torch
 jiter==0.13.0
-    # via
-    #   anthropic
-    #   openai
-joblib==1.5.3
-    # via scikit-learn
+    # via openai
 jsonpatch==1.33
     # via langchain-core
 jsonpointer==3.0.0
@@ -295,16 +262,8 @@ mako==1.3.10
     # via alembic
 markdown-it-py==4.0.0
     # via rich
-markdown2==2.5.4
-    # via marker-pdf
-markdownify==0.13.1
-    # via marker-pdf
-marker-pdf==1.6.1
-    # via istaroth
 markupsafe==3.0.3
-    # via
-    #   jinja2
-    #   mako
+    # via mako
 marshmallow==3.26.2
     # via dataclasses-json
 mcp==1.26.0
@@ -327,57 +286,12 @@ multidict==6.7.1
     #   yarl
 mypy-extensions==1.1.0
     # via typing-inspect
-networkx==3.6.1
-    # via torch
 numpy==2.4.2
     # via
     #   chromadb
     #   langchain-community
     #   onnxruntime
-    #   opencv-python-headless
     #   rank-bm25
-    #   scikit-learn
-    #   scipy
-    #   transformers
-nvidia-cublas-cu12==12.8.4.1 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via
-    #   nvidia-cudnn-cu12
-    #   nvidia-cusolver-cu12
-    #   torch
-nvidia-cuda-cupti-cu12==12.8.90 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-cuda-nvrtc-cu12==12.8.93 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-cuda-runtime-cu12==12.8.90 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-cudnn-cu12==9.10.2.21 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-cufft-cu12==11.3.3.83 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-cufile-cu12==1.13.1.3 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-curand-cu12==10.3.9.90 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-cusolver-cu12==11.7.3.90 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-cusparse-cu12==12.5.8.93 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via
-    #   nvidia-cusolver-cu12
-    #   torch
-nvidia-cusparselt-cu12==0.7.1 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-nccl-cu12==2.27.5 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-nvjitlink-cu12==12.8.93 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via
-    #   nvidia-cufft-cu12
-    #   nvidia-cusolver-cu12
-    #   nvidia-cusparse-cu12
-    #   torch
-nvidia-nvshmem-cu12==3.4.5 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-nvtx-cu12==12.8.90 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
 oauthlib==3.3.1
     # via requests-oauthlib
 onnxruntime==1.24.2
@@ -388,8 +302,6 @@ openai==2.21.0
     #   langchain-openai
 openapi-pydantic==0.5.1
     # via fastmcp
-opencv-python-headless==4.13.0.92
-    # via surya-ocr
 opentelemetry-api==1.39.1
     # via
     #   chromadb
@@ -458,19 +370,10 @@ packaging==26.0
     #   marshmallow
     #   onnxruntime
     #   opentelemetry-instrumentation
-    #   transformers
 pathable==0.5.0
     # via jsonschema-path
-pdftext==0.6.3
-    # via marker-pdf
-pillow==10.4.0
-    # via
-    #   marker-pdf
-    #   surya-ocr
 platformdirs==4.9.2
-    # via
-    #   fastmcp
-    #   surya-ocr
+    # via fastmcp
 posthog==5.4.0
     # via chromadb
 prometheus-client==0.24.1
@@ -500,7 +403,6 @@ pycparser==3.0 ; implementation_name != 'PyPy' and platform_python_implementatio
     # via cffi
 pydantic==2.12.5
     # via
-    #   anthropic
     #   chromadb
     #   cohere
     #   fastapi
@@ -514,13 +416,10 @@ pydantic==2.12.5
     #   langchain-google-genai
     #   langgraph
     #   langsmith
-    #   marker-pdf
     #   mcp
     #   openai
     #   openapi-pydantic
-    #   pdftext
     #   pydantic-settings
-    #   surya-ocr
 pydantic-core==2.41.5
     # via
     #   cohere
@@ -528,18 +427,11 @@ pydantic-core==2.41.5
 pydantic-settings==2.13.1
     # via
     #   langchain-community
-    #   marker-pdf
     #   mcp
-    #   pdftext
-    #   surya-ocr
 pygments==2.19.2
     # via rich
 pyjwt==2.11.0
     # via mcp
-pypdfium2==4.30.0
-    # via
-    #   pdftext
-    #   surya-ocr
 pyperclip==1.11.0
     # via fastmcp
 pypika==0.51.1
@@ -553,9 +445,7 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.2.1
     # via
     #   fastmcp
-    #   marker-pdf
     #   pydantic-settings
-    #   surya-ocr
     #   uvicorn
 python-multipart==0.0.22
     # via mcp
@@ -573,22 +463,16 @@ pyyaml==6.0.3
     #   langchain-classic
     #   langchain-community
     #   langchain-core
-    #   transformers
     #   uvicorn
 rank-bm25==0.2.2
     # via istaroth
-rapidfuzz==3.14.3
-    # via marker-pdf
 referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
 regex==2024.11.6
-    # via
-    #   marker-pdf
-    #   tiktoken
-    #   transformers
+    # via tiktoken
 requests==2.32.5
     # via
     #   cohere
@@ -603,7 +487,6 @@ requests==2.32.5
     #   requests-oauthlib
     #   requests-toolbelt
     #   tiktoken
-    #   transformers
 requests-oauthlib==2.0.0
     # via kubernetes
 requests-toolbelt==1.0.0
@@ -623,31 +506,19 @@ rpds-py==0.30.0
     #   referencing
 rsa==4.9.1
     # via google-auth
-safetensors==0.7.0
-    # via transformers
-scikit-learn==1.8.0
-    # via marker-pdf
-scipy==1.17.0
-    # via scikit-learn
 secretstorage==3.5.0 ; sys_platform == 'linux'
     # via keyring
-setuptools==82.0.0
-    # via torch
 shellingham==1.5.4
     # via typer
 six==1.17.0
     # via
     #   kubernetes
-    #   markdownify
     #   posthog
     #   python-dateutil
 sniffio==1.3.1
     # via
-    #   anthropic
     #   google-genai
     #   openai
-soupsieve==2.8.3
-    # via beautifulsoup4
 sqlalchemy==2.0.46
     # via
     #   alembic
@@ -661,12 +532,8 @@ starlette==0.52.1
     #   fastapi
     #   mcp
     #   sse-starlette
-surya-ocr==0.13.1
-    # via marker-pdf
 sympy==1.14.0
-    # via
-    #   onnxruntime
-    #   torch
+    # via onnxruntime
 tabulate==0.9.0
     # via istaroth
 tenacity==9.1.4
@@ -675,8 +542,6 @@ tenacity==9.1.4
     #   google-genai
     #   langchain-community
     #   langchain-core
-threadpoolctl==3.6.0
-    # via scikit-learn
 tiktoken==0.12.0
     # via langchain-openai
 tokenizers==0.22.2
@@ -684,25 +549,12 @@ tokenizers==0.22.2
     #   chromadb
     #   cohere
     #   langchain-huggingface
-    #   transformers
-torch==2.10.0
-    # via
-    #   marker-pdf
-    #   surya-ocr
 tqdm==4.67.3
     # via
     #   chromadb
     #   huggingface-hub
     #   istaroth
-    #   marker-pdf
     #   openai
-    #   transformers
-transformers==4.57.6
-    # via
-    #   marker-pdf
-    #   surya-ocr
-triton==3.6.0 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
 typer==0.24.0
     # via chromadb
 types-pyyaml==6.0.12.20250915
@@ -713,9 +565,7 @@ typing-extensions==4.15.0
     # via
     #   aiosignal
     #   alembic
-    #   anthropic
     #   anyio
-    #   beautifulsoup4
     #   chromadb
     #   cohere
     #   exceptiongroup
@@ -736,7 +586,6 @@ typing-extensions==4.15.0
     #   referencing
     #   sqlalchemy
     #   starlette
-    #   torch
     #   typing-inspect
     #   typing-inspection
 typing-inspect==0.9.0
@@ -768,8 +617,6 @@ watchfiles==1.1.1
     # via
     #   fastmcp
     #   uvicorn
-wcwidth==0.6.0
-    # via ftfy
 websocket-client==1.9.0
     # via kubernetes
 websockets==15.0.1
