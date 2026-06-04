@@ -78,6 +78,7 @@ istaroth/
 
 ## Git Workflow Best Practices
 - ALWAYS run precommit separately and added resulted changes before you offer to git commit
+- The `text/` directory is a git submodule (repo `istaroth-text`) holding the generated text corpus and manifests. Regenerated data (e.g. from `scripts/tps_shishu_tools.py`) is committed INSIDE the submodule first, then the parent repo records the pointer move with a separate `Update text` commit (`git add text && git commit -m "Update text"`). Keep submodule data commits out of code commits unless asked otherwise.
 
 ## Script Development Guidelines
 - ALWAYS include a shebang and make the script executable for files under scripts/
