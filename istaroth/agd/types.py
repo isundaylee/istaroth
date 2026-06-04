@@ -170,11 +170,26 @@ class QuestTalkItem(TypedDict):
     id: int
 
 
+class FinishCondItem(TypedDict):
+    """A sub-quest finish condition.
+
+    `damageRatio` is a misleading legacy cleartext field name (carried over from
+    the 4.8-5.8 AGD dumps that had cleartext keys); the field actually holds the
+    generic ``QUEST_CONTENT_*`` condition-type enum, not a damage ratio.
+    """
+
+    damageRatio: str
+    param: list[int]
+    count: NotRequired[int]
+    CUSTOM_paramStr: NotRequired[str]
+
+
 class SubQuestItem(TypedDict):
     """Type definition for sub-quest entries."""
 
     subId: int
     order: int
+    finishCond: NotRequired[list[FinishCondItem]]
 
 
 class QuestData(TypedDict):

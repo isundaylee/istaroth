@@ -105,6 +105,17 @@ _COMMON_FIELD_MAPPINGS = {
     "GMENEADIGBP": "talkRoleNameTextMapHash",
     "DGGDDIMMIDO": "talkRole",
     "JPCHNCNMMBE": "configId",
+    "PGELADPAKLA": "finishCond",
+    # NOTE: `damageRatio` is the (misleading) cleartext name used by the older
+    # 4.8-5.8 AGD dumps; the field is actually the generic enum `_type` reused
+    # across finishCond/failCond/guide/exec and even the talk/quest root, not a
+    # damage ratio. Kept as-is to match those cleartext dumps.
+    "MEGMIMEDODJ": "damageRatio",
+    "KFDJJBPNIHG": "param",
+    "EIOBNIHPLNG": "count",
+    # 6.x-only finishCond string param (e.g. COMPLETE_ANY_TALK's talk-id list);
+    # no cleartext lineage name exists, so use the CUSTOM_ convention.
+    "PGEONGPJEPN": "CUSTOM_paramStr",
 }
 
 
@@ -152,6 +163,16 @@ def _process_array_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [_deobfuscate_data(item, _COMMON_FIELD_MAPPINGS, {}) for item in items]
 
 
+def _process_subquest_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Process subquest items, recursing into their nested finishCond arrays."""
+    return [
+        _deobfuscate_data(
+            item, _COMMON_FIELD_MAPPINGS, {"finishCond": _process_array_items}
+        )
+        for item in items
+    ]
+
+
 def _process_dialog_list(dialogs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Process obfuscated dialog list items."""
     deobfuscated_dialogs = []
@@ -185,7 +206,7 @@ def deobfuscate_quest_data(data: dict[str, Any]) -> dict[str, Any]:
     Returns data unchanged if it doesn't contain obfuscated field names.
     """
     array_processors = {
-        "subQuests": _process_array_items,
+        "subQuests": _process_subquest_items,
         "talks": _process_array_items,
     }
     return _deobfuscate_data(data, _COMMON_FIELD_MAPPINGS, array_processors)

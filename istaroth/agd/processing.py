@@ -162,6 +162,65 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
     return types.TalkInfo(text=talk_texts)
 
 
+def _resolve_authoritative_talk(
+    talk_id: str, *, data_repo: repo.DataRepo
+) -> types.TalkInfo:
+    """Resolve a talk pointed at by an authoritative finish condition.
+
+    COMPLETE_TALK / COMPLETE_ANY_TALK name the talk that completes a step, so a
+    not-found talk is a genuine upstream data gap: surface it inline as a visible
+    placeholder rather than dropping the step or failing the whole quest. Any
+    other error (an existing talk that fails to parse) still propagates.
+    """
+    try:
+        return get_talk_info_by_id(talk_id, data_repo=data_repo)
+    except ValueError:
+        return types.TalkInfo(
+            text=[
+                types.TalkText(
+                    role="[Missing Talk]",
+                    message=f"Talk {talk_id} could not be retrieved",
+                    next_dialog_ids=[],
+                    dialog_id=0,
+                )
+            ]
+        )
+
+
+def _iter_subquest_talks(
+    subquest: types.SubQuestItem, *, data_repo: repo.DataRepo
+) -> list[tuple[str, types.TalkInfo]]:
+    """Return (talk_id, TalkInfo) for talks referenced by finish conditions.
+
+    Only the condition types that genuinely reference a talk are handled;
+    everything else is an objective step with no talk. COMPLETE_TALK and
+    COMPLETE_ANY_TALK are authoritative pointers, so a missing talk becomes a
+    placeholder; only FINISH_PLOT may point at a missing talk (a silent cutscene
+    with no talk file), which is skipped instead.
+    """
+    talks: list[tuple[str, types.TalkInfo]] = []
+    for cond in subquest.get("finishCond", []):
+        match cond.get("damageRatio"):
+            case "QUEST_CONTENT_COMPLETE_TALK":
+                talk_id = str(cond["param"][0])
+                talks.append(
+                    (talk_id, _resolve_authoritative_talk(talk_id, data_repo=data_repo))
+                )
+            case "QUEST_CONTENT_COMPLETE_ANY_TALK":
+                talks.extend(
+                    (talk_id, _resolve_authoritative_talk(talk_id, data_repo=data_repo))
+                    for talk_id in cond["CUSTOM_paramStr"].split(",")
+                )
+            case "QUEST_CONTENT_FINISH_PLOT":
+                talk_id = str(cond["param"][0])
+                try:
+                    talk_info = get_talk_info_by_id(talk_id, data_repo=data_repo)
+                except ValueError:
+                    continue
+                talks.append((talk_id, talk_info))
+    return talks
+
+
 def get_quest_info(quest_id: str, *, data_repo: repo.DataRepo) -> types.QuestInfo:
     """Retrieve quest information from quest ID."""
     # Convert quest ID to path
@@ -198,28 +257,26 @@ def get_quest_info(quest_id: str, *, data_repo: repo.DataRepo) -> types.QuestInf
                 if p is not None
             )
 
-    # Process subQuests in order (maintaining quest progression sequence)
-    subquest_talk_infos = []
-    subquest_talk_ids = set()
-
-    # Get subquests and sort by order field to maintain quest progression
-    subquests = quest_data.get("subQuests", [])
-    sorted_subquests = sorted(subquests, key=lambda x: x.get("order", 0))
-
-    for subquest in sorted_subquests:
-        sub_id = str(subquest["subId"])
+    # Place each talk at the quest step (subQuest `order`) whose finish condition
+    # points at it. The talk a step shows is the finish-condition param, NOT the
+    # subId (subId only matches the talk id by coincidence of the shared
+    # <questId><incremental> numbering, so it is an unreliable pointer).
+    # A talk may be referenced by several steps; place it at the earliest one,
+    # since later references are completion/rewind gates checking an already
+    # played talk rather than fresh playbacks.
+    placed: dict[str, tuple[int, types.TalkInfo]] = {}
+    for subquest in quest_data.get("subQuests", []):
         order_index = subquest.get("order", 0)
+        for talk_id, talk_info in _iter_subquest_talks(subquest, data_repo=data_repo):
+            if talk_id not in placed or order_index < placed[talk_id][0]:
+                placed[talk_id] = (order_index, talk_info)
 
-        try:
-            # Try to get talk info by sub_id as talk ID first
-            talk_info = get_talk_info_by_id(sub_id, data_repo=data_repo)
-            if talk_info.text:  # Only add if there's actual dialog content
-                subquest_talk_infos.append((order_index, talk_info))
-                subquest_talk_ids.add(sub_id)
-        except Exception:
-            # Most subQuests are objective steps (go here, defeat that) with no
-            # associated talk, so a miss here is expected, not a data gap.
-            continue
+    # Only keep talks with actual dialog content.
+    subquest_talk_infos = sorted(
+        ((order_index, info) for order_index, info in placed.values() if info.text),
+        key=lambda item: item[0],
+    )
+    subquest_talk_ids = {tid for tid, (_, info) in placed.items() if info.text}
 
     # Process talks to find non-subquest dialogs
     non_subquest_talk_infos = []

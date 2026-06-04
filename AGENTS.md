@@ -48,7 +48,14 @@ istaroth/
 ## Project Terminology
 - `<AGD>` is used to refer to a separate AnimeGameData path containing the actual data extracted from the game.
 
+## AGD Deobfuscation
+- Current AGD JSON uses obfuscated field names (random keys); `istaroth/agd/deobfuscation.py` maps them to cleartext per game version.
+- To determine the cleartext name for an obfuscated field, check out an older (~4.8–5.8) AnimeGameData version of the SAME file in the `<AGD>` git history — those builds had cleartext field names (e.g. `git show <5.x-commit>:BinOutput/Quest/74078.json`). 6.x onward is obfuscated.
+- Obfuscation is a global bijection within a build: one obfuscated key ↔ one cleartext name across ALL file types. So a key shared by quest and talk files resolves to the same cleartext name everywhere, and a global mapping entry is safe even if it touches multiple data types.
+- Some legacy cleartext names are misleading (e.g. the finish-condition `_type` enum is literally named `damageRatio`); keep the legacy name for consistency but note the discrepancy.
+
 ## Project Conventions
+- Parsing of a single item (a quest, talk, readable, etc.) should be STRICT by default: when the data is shaped unexpectedly, let it raise a parsing error for that one item rather than silently ignoring/falling back. The per-item failure then surfaces (and can be flagged/skipped at the batch level), instead of producing quietly-wrong output. Only tolerate a known, explicitly-justified case (e.g. a FINISH_PLOT condition that legitimately points at a silent cutscene with no talk file).
 - ALWAYS use full import path starting from istaroth.
 - ALWAYS run things from the root of the repo
 - ALWAYS write concise commit message; use bullet points when it's helpful but don't feel obligated to include multiple bullets.
@@ -89,11 +96,21 @@ See the [Web UI section](README.md#web-ui) in the README for environment setup a
 
 ## Regenerating the Text Corpus
 
-Full CHS + ENG regen (writes into the `text/` submodule; commit there first, then record the pointer move in the parent — see Git Workflow Best Practices):
+When regenerating the committed `text/` submodule, ALWAYS regenerate the ENTIRE
+corpus for both languages — never scope a `text/` regen to a single `--only`
+category. The `-f` flag wipes and rebuilds the whole output dir so every
+category stays consistent, even when a change only touched one of them. Commit
+inside `text/` first, then record the pointer move in the parent — see Git
+Workflow Best Practices.
 
 ```bash
 uv run scripts/agd_tools.py generate-all -f text/chs && AGD_LANGUAGE=ENG uv run scripts/agd_tools.py generate-all -f text/eng
 ```
+
+For ad hoc regens to a throwaway/temporary dir (e.g. to diff or sanity-check a
+change before the full run), `--only <category>` is fine and preferred — it is
+much faster and scopes output to what you're inspecting. Only the committed
+`text/` corpus must be a full regen.
 
 ## LangSmith Tracing
 The RAG pipeline supports LangSmith tracing for debugging and monitoring. Required environment variables:
