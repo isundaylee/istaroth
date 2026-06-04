@@ -7,11 +7,14 @@ Follow-up work, grouped by area. Keep bullets brief but with enough context (and
 - **Use the `COMPLETE_TALK` condition param as the authoritative talk pointer in quests.**
   `get_quest_info` (`istaroth/agd/processing.py`) currently probes every subQuest `subId` as if it were a talk file ID. The game actually names the talk inside each subQuest's `QUEST_CONTENT_COMPLETE_TALK` finish condition (first param). Of 15,161 `COMPLETE_TALK` conditions, 15,029 resolve to a real talk file; only **7,458 have param == subId** — the rest point elsewhere, so subId-probing misses them. Parsing the param resolves to 13,928 distinct talk files, incl. **178 NEW talks reached by neither `subId` nor the quest `talks[]` array**. Example: quest `73130` subId `7313003` → talk param `7313001` → `BinOutput/Talk/FreeGroup/7313001.json`; quest `73130` subId `7313005` → param `7313003`. Switching to param-based extraction would (a) recover those 178+ talks and (b) let us drop the blind subId probe that generates the ~10k false-positive `[Missing Talk]` placeholders.
 
-- **Stop emitting `[Missing Talk]` placeholders on a subId miss (quick mitigation).**
-  Independent of the above, the `except` branch added in `756bcbb` turns every failed subId→talk lookup into a rendered `[Missing Talk]` line. ~10,383 such placeholders exist across 1,736 `text/chs/agd_quest` files, but only **31 IDs / 9 files** are genuinely missing talk data; the other ~10,352 are objective-only subQuests that were never talks (`FINISH_PLOT`, `LUA_NOTIFY`, `LEAVE_SCENE`, etc.). Reverting that branch to a silent skip removes the noise without losing any coverage. Worst offenders: quests `73103` (50), `72164` (49), `70065` (42).
+- **Investigate talks appearing in incorrect quest order.** Some quests render dialogue out of narrative sequence — e.g. https://istaroth.me/library/agd_quest/74078. Likely tied to how subQuest `order` and the non-subquest `talks[]` pass interleave (subQuest talks are sorted by `order`, but the non-subquest "Additional Conversations" are appended separately with no ordering relative to them). Determine the correct ordering signal and fix the render sequence.
 
 - **Why some subId talks are absent from the quest `talks[]` array (investigated).**
   `talks[]` is NOT a superset of subId-reached talks: subId reaches ~1,659 talk files that `talks[]` omits (across 805 quests), overwhelmingly `Npc/` talks (1,427) plus `Activity`/`Gadget`/`FreeGroup`. By completion-condition type, these subId-only talks are mostly `QUEST_CONTENT_COMPLETE_TALK` (1,100), then `FINISH_PLOT` (150), `LUA_NOTIFY` (128), `(none)` (46). Confirmed real dialogue (294/300 sampled carry text; e.g. `Activity/4006411` is a Kazuha/Xinyan scene). Takeaway: `talks[]` and subId/`COMPLETE_TALK` are complementary — extraction must union both. Examples of subId-only quests: `72234`, `70823`, `73219`.
+
+## Features
+
+- **Quest hierarchy navigation.** Let users browse quests by their hierarchy (quest series/chapters → quests → talks) instead of the current flat `agd_quest` list. Surface the chapter/series grouping already present in the data (`chapterId`, `chapterTitle`) so related quests link together in the library UI.
 
 ## Tech Debt
 

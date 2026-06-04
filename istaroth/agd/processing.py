@@ -217,19 +217,9 @@ def get_quest_info(quest_id: str, *, data_repo: repo.DataRepo) -> types.QuestInf
                 subquest_talk_infos.append((order_index, talk_info))
                 subquest_talk_ids.add(sub_id)
         except Exception:
-            # Include placeholder for missing talks
-            placeholder_talk_info = types.TalkInfo(
-                text=[
-                    types.TalkText(
-                        role="[Missing Talk]",
-                        message=f"Talk {sub_id} could not be retrieved",
-                        next_dialog_ids=[],
-                        dialog_id=0,
-                    )
-                ]
-            )
-            subquest_talk_infos.append((order_index, placeholder_talk_info))
-            subquest_talk_ids.add(sub_id)
+            # Most subQuests are objective steps (go here, defeat that) with no
+            # associated talk, so a miss here is expected, not a data gap.
+            continue
 
     # Process talks to find non-subquest dialogs
     non_subquest_talk_infos = []
@@ -241,13 +231,11 @@ def get_quest_info(quest_id: str, *, data_repo: repo.DataRepo) -> types.QuestInf
         if talk_id_str in subquest_talk_ids:
             continue
 
-        try:
-            talk_info = get_talk_info_by_id(talk_id_str, data_repo=data_repo)
-            if talk_info.text:
-                non_subquest_talk_infos.append(talk_info)
-        except Exception:
-            # Skip talks that can't be loaded
-            continue
+        # These talks are explicitly declared by the quest, so they must load;
+        # a failure is a genuine data gap and should surface as a hard error.
+        talk_info = get_talk_info_by_id(talk_id_str, data_repo=data_repo)
+        if talk_info.text:
+            non_subquest_talk_infos.append(talk_info)
 
     return types.QuestInfo(
         quest_id=quest_id,

@@ -87,6 +87,14 @@ istaroth/
 
 See the [Web UI section](README.md#web-ui) in the README for environment setup and how to launch the backend and frontend.
 
+## Regenerating the Text Corpus
+
+Full CHS + ENG regen (writes into the `text/` submodule; commit there first, then record the pointer move in the parent — see Git Workflow Best Practices):
+
+```bash
+uv run scripts/agd_tools.py generate-all -f text/chs && AGD_LANGUAGE=ENG uv run scripts/agd_tools.py generate-all -f text/eng
+```
+
 ## LangSmith Tracing
 The RAG pipeline supports LangSmith tracing for debugging and monitoring. Required environment variables:
 - `LANGSMITH_API_KEY`: Your LangSmith API key
