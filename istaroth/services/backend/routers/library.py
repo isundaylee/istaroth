@@ -207,6 +207,58 @@ async def get_quest_hierarchy(
     return models.QuestHierarchyResponse.model_validate(hierarchy)
 
 
+@router.get(
+    "/api/library/quest-series/{id}",
+    response_model=models.QuestSeriesResponse,
+)
+@handle_unexpected_exception
+async def get_quest_series(
+    id: str,
+    document_store_set: DocumentStoreSet,
+    language: str = Query(..., description="Language code (CHS, ENG)"),
+) -> models.QuestSeriesResponse:
+    """Get the series (or lone chapter) enclosing a quest, for its detail-page TOC."""
+    try:
+        language_enum = localization.Language(language.upper())
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid language: {language}. Available: CHS, ENG",
+        )
+
+    try:
+        text_set_obj = document_store_set.get_text_set(language_enum)
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    # Empty (not 404) when there is no hierarchy or the quest is standalone, so
+    # the detail page can always load and simply omit the TOC.
+    hierarchy = text_set_obj.get_quest_hierarchy()
+    if hierarchy is None:
+        return models.QuestSeriesResponse()
+
+    quest_id = int(id)
+    for type_node in hierarchy["types"]:
+        for series in type_node["series"]:
+            if any(
+                quest["id"] == quest_id
+                for chapter in series["chapters"]
+                for quest in chapter["quests"]
+            ):
+                return models.QuestSeriesResponse(
+                    series=models.QuestHierarchySeries.model_validate(series)
+                )
+        for chapter in type_node["chapters"]:
+            if any(quest["id"] == quest_id for quest in chapter["quests"]):
+                return models.QuestSeriesResponse(
+                    chapter=models.QuestHierarchyChapter.model_validate(chapter)
+                )
+
+    return models.QuestSeriesResponse()
+
+
 @router.post("/api/library/retrieve", response_model=models.LibraryRetrieveResponse)
 @handle_unexpected_exception
 async def retrieve_library(

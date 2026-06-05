@@ -406,6 +406,60 @@
         }
       }
     },
+    "/api/library/quest-series/{id}": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Get Quest Series",
+        "description": "Get the series (or lone chapter) enclosing a quest, for its detail-page TOC.",
+        "operationId": "get_quest_series_api_library_quest_series__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Language code (CHS, ENG)",
+              "title": "Language"
+            },
+            "description": "Language code (CHS, ENG)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestSeriesResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/library/retrieve": {
       "post": {
         "tags": [
@@ -1094,6 +1148,33 @@
         ],
         "title": "QuestHierarchyType",
         "description": "A top-level quest type and the quests under it.\n\n``chapters`` holds chapters with no series; ``standalone_quests`` holds quests\nwith no chapter."
+      },
+      "QuestSeriesResponse": {
+        "properties": {
+          "series": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuestHierarchySeries"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "chapter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuestHierarchyChapter"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "QuestSeriesResponse",
+        "description": "The series (or lone chapter) enclosing a quest, for the detail-page TOC.\n\nBoth are null when the quest is standalone or not part of the hierarchy."
       },
       "ShortURLResponse": {
         "properties": {

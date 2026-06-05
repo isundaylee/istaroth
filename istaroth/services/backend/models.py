@@ -249,6 +249,16 @@ class QuestHierarchyResponse(BaseModel):
     types: list[QuestHierarchyType]
 
 
+class QuestSeriesResponse(BaseModel):
+    """The series (or lone chapter) enclosing a quest, for the detail-page TOC.
+
+    Both are null when the quest is standalone or not part of the hierarchy.
+    """
+
+    series: QuestHierarchySeries | None = None
+    chapter: QuestHierarchyChapter | None = None
+
+
 class VersionResponse(BaseModel):
     """Response model for version endpoint."""
 

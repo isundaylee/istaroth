@@ -187,6 +187,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/library/quest-series/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Quest Series
+         * @description Get the series (or lone chapter) enclosing a quest, for its detail-page TOC.
+         */
+        get: operations["get_quest_series_api_library_quest_series__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/library/retrieve": {
         parameters: {
             query?: never;
@@ -526,6 +546,16 @@ export interface components {
             standalone_quests: components["schemas"]["QuestHierarchyQuest"][];
         };
         /**
+         * QuestSeriesResponse
+         * @description The series (or lone chapter) enclosing a quest, for the detail-page TOC.
+         *
+         *     Both are null when the quest is standalone or not part of the hierarchy.
+         */
+        QuestSeriesResponse: {
+            series?: components["schemas"]["QuestHierarchySeries"] | null;
+            chapter?: components["schemas"]["QuestHierarchyChapter"] | null;
+        };
+        /**
          * ShortURLResponse
          * @description Response model for short URL resolution.
          */
@@ -835,6 +865,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuestHierarchyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_quest_series_api_library_quest_series__id__get: {
+        parameters: {
+            query: {
+                /** @description Language code (CHS, ENG) */
+                language: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestSeriesResponse"];
                 };
             };
             /** @description Validation Error */
