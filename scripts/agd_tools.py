@@ -587,7 +587,10 @@ def render_quest(quest_path: str) -> None:
         # Extract quest ID from path
         quest_id = pathlib.Path(quest_path).stem
         # Get quest info
-        quest_info = processing.get_quest_info(quest_id, data_repo=data_repo)
+        if (
+            quest_info := processing.get_quest_info(quest_id, data_repo=data_repo)
+        ) is None:
+            raise click.ClickException(f"Quest {quest_id} is a test/hidden quest")
 
         # Render the quest
         rendered = rendering.render_quest(

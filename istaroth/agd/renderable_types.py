@@ -30,7 +30,12 @@ class BaseRenderableType(ABC, Generic[TKey]):
 
     @abstractmethod
     def discover(self, data_repo: repo.DataRepo) -> list[TKey]:
-        """Find and return list of renderable keys for this renderable type."""
+        """Find and return list of renderable keys for this renderable type.
+
+        Should be cheap: enumerate keys (e.g. from an index/config) without
+        loading or parsing each item. Per-item work — including deciding to skip
+        an item — belongs in `process`, which runs across the worker pool.
+        """
         pass
 
     @abstractmethod
@@ -207,22 +212,19 @@ class Quests(BaseRenderableType[str]):
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all quest IDs from MainQuestExcelConfigData."""
-        main_quest_data = data_repo.load_main_quest_excel_config_data()
-
-        # Get all quest IDs from the Excel data
-        quest_ids = [str(quest_entry["id"]) for quest_entry in main_quest_data]
-
-        return sorted(quest_ids)
+        return sorted(
+            str(quest_entry["id"])
+            for quest_entry in data_repo.load_main_quest_excel_config_data()
+        )
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
     ) -> types.RenderedItem | None:
         """Process quest file into rendered content."""
-        # Get quest info using quest ID directly
-        quest_info = processing.get_quest_info(renderable_key, data_repo=data_repo)
-
-        # Skip if title starts with "test" (case-insensitive) and language is CHS
-        if text_utils.should_skip_text(quest_info.title, data_repo.language):
+        # get_quest_info returns None for test/hidden quests, which are excluded.
+        if (
+            quest_info := processing.get_quest_info(renderable_key, data_repo=data_repo)
+        ) is None:
             return None
 
         if not (quest_info.talks or quest_info.non_subquest_talks):

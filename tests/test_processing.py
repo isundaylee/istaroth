@@ -60,6 +60,7 @@ def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
     quest_id = "74078"
 
     quest_info = processing.get_quest_info(quest_id, data_repo=data_repo)
+    assert quest_info is not None
 
     # Verify we got a title
     assert quest_info.title.strip()

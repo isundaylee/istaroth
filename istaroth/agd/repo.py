@@ -195,12 +195,15 @@ class DataRepo:
     agd_path: pathlib.Path = attrs.field(converter=pathlib.Path)
     language: localization.Language
 
+    @staticmethod
+    def _language_short(language: localization.Language) -> str:
+        """Short language code used in AGD file structure (maps ENG to EN)."""
+        return "EN" if language == localization.Language.ENG else language.value
+
     @property
     def language_short(self) -> str:
         """Get the short language code used in AGD file structure (maps ENG to EN)."""
-        return (
-            "EN" if self.language == localization.Language.ENG else self.language.value
-        )
+        return self._language_short(self.language)
 
     @classmethod
     def from_env(cls) -> "DataRepo":
@@ -218,10 +221,11 @@ class DataRepo:
         return cls(agd_path, language=language)
 
     @functools.lru_cache(maxsize=None)
-    def load_text_map(self) -> TextMapTracker:
-        """Load TextMap file for the instance's language, merging Medium variant if present."""
+    def _load_text_map_for(self, language: localization.Language) -> TextMapTracker:
+        """Load the TextMap for a specific language, merging Medium variant if present."""
         text_map_dir = self.agd_path / "TextMap"
-        medium_path = text_map_dir / f"TextMap_Medium{self.language_short}.json"
+        language_short = self._language_short(language)
+        medium_path = text_map_dir / f"TextMap_Medium{language_short}.json"
         data: types.TextMap = (
             json.loads(medium_path.read_text(encoding="utf-8"))
             if medium_path.exists()
@@ -229,12 +233,25 @@ class DataRepo:
         )
         data.update(
             json.loads(
-                (text_map_dir / f"TextMap{self.language_short}.json").read_text(
+                (text_map_dir / f"TextMap{language_short}.json").read_text(
                     encoding="utf-8"
                 )
             )
         )
-        return TextMapTracker(data, self.language)
+        return TextMapTracker(data, language)
+
+    def load_text_map(self) -> TextMapTracker:
+        """Load TextMap for the instance's language, merging Medium variant if present."""
+        return self._load_text_map_for(self.language)
+
+    def load_source_text_map(self) -> TextMapTracker:
+        """Load the CHS (source) TextMap regardless of the instance's language.
+
+        Dev markers like ``$HIDDEN``/``(test)`` only exist in the CHS title text,
+        so language-independent checks (e.g. filtering test/hidden quests) must
+        consult CHS rather than the output language's text map.
+        """
+        return self._load_text_map_for(localization.Language.CHS)
 
     @functools.lru_cache(maxsize=None)
     def load_npc_excel_config_data(self) -> types.NpcExcelConfigData:
@@ -335,6 +352,7 @@ class DataRepo:
         inherit the cached results.
         """
         self.build_talk_group_mapping()
+        self.load_source_text_map()
 
     @functools.lru_cache(maxsize=None)
     def load_talk_excel_config_data(self) -> TalkTracker:

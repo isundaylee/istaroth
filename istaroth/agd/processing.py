@@ -4,7 +4,7 @@ import itertools
 import json
 import pathlib
 
-from istaroth.agd import localization, repo, talk_parsing, types
+from istaroth.agd import localization, repo, talk_parsing, text_utils, types
 
 
 def get_readable_metadata(
@@ -221,8 +221,24 @@ def _iter_subquest_talks(
     return talks
 
 
-def get_quest_info(quest_id: str, *, data_repo: repo.DataRepo) -> types.QuestInfo:
-    """Retrieve quest information from quest ID."""
+def _is_test_or_hidden_title(title_hash: int, *, data_repo: repo.DataRepo) -> bool:
+    """Whether a quest title marks a dev/test/hidden quest to exclude.
+
+    The ``$HIDDEN``/``(test)`` markers live only in the CHS (source) title text,
+    so resolve the title against the CHS text map regardless of the output
+    language; otherwise non-CHS corpora leak these quests.
+    """
+    if (
+        chs_title := data_repo.load_source_text_map().get_optional(str(title_hash))
+    ) is None:
+        return False
+    return text_utils.should_skip_text(chs_title, localization.Language.CHS)
+
+
+def get_quest_info(
+    quest_id: str, *, data_repo: repo.DataRepo
+) -> types.QuestInfo | None:
+    """Retrieve quest information from quest ID, or None for a test/hidden quest."""
     # Convert quest ID to path
     quest_path = data_repo.build_quest_mapping()[quest_id]
     quest_data = data_repo.load_quest_data(quest_path)
@@ -293,6 +309,12 @@ def get_quest_info(quest_id: str, *, data_repo: repo.DataRepo) -> types.QuestInf
         talk_info = get_talk_info_by_id(talk_id_str, data_repo=data_repo)
         if talk_info.text:
             non_subquest_talk_infos.append(talk_info)
+
+    # Exclude dev/test/hidden quests. Checked after the talks above are resolved
+    # (which marks them accessed) so this quest's dialogue is also kept out of
+    # the standalone agd_talk pass, not just out of agd_quest.
+    if _is_test_or_hidden_title(title_hash, data_repo=data_repo):
+        return None
 
     return types.QuestInfo(
         quest_id=quest_id,
