@@ -164,7 +164,7 @@ export const chs = {
       LQ: '传说任务',
       WQ: '世界任务',
       EQ: '活动任务',
-      IQ: '间章任务'
+      IQ: '每日委托'
     },
     standalone: '独立任务',
     questSeriesToc: '本系列任务'

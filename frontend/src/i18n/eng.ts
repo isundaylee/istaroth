@@ -164,7 +164,7 @@ export const eng = {
       LQ: 'Story Quests',
       WQ: 'World Quests',
       EQ: 'Event Quests',
-      IQ: 'Interlude Quests'
+      IQ: 'Daily Commissions'
     },
     standalone: 'Standalone Quests',
     questSeriesToc: 'Quests in this series'
