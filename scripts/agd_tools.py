@@ -20,7 +20,14 @@ from tqdm import tqdm
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from istaroth.agd import localization, processing, rendering, repo, types
+from istaroth.agd import (
+    localization,
+    processing,
+    quest_hierarchy,
+    rendering,
+    repo,
+    types,
+)
 from istaroth.agd.renderable_types import (
     ArtifactSets,
     BaseRenderableType,
@@ -332,6 +339,8 @@ def generate_all(
                 shutil.rmtree(agd_dir)
         if (agd_stats := output_dir / "stats" / "agd").exists():
             shutil.rmtree(agd_stats)
+        if (agd_metadata := output_dir / "metadata" / "agd").exists():
+            shutil.rmtree(agd_metadata)
         if (agd_manifest := output_dir / "manifest" / "agd.json").exists():
             agd_manifest.unlink()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -507,6 +516,26 @@ def generate_all(
     # Write manifest
     manifest_path = manifest.write_manifest(output_dir, manifest_list, name="agd")
     click.echo(f"Manifest written to {manifest_path}")
+
+    # Write the browsable quest hierarchy (only when quests were generated).
+    if quest_items := [
+        (item.id, item.title)
+        for item in manifest_list
+        if item.category == text_types.TextCategory.AGD_QUEST
+    ]:
+        metadata_dir = output_dir / "metadata" / "agd"
+        metadata_dir.mkdir(parents=True, exist_ok=True)
+        hierarchy_path = metadata_dir / "quest_hierarchy.json"
+        with hierarchy_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                quest_hierarchy.build_quest_hierarchy(
+                    quest_items, data_repo=data_repo
+                ).to_dict(),
+                f,
+                indent=2,
+                ensure_ascii=False,
+            )
+        click.echo(f"Quest hierarchy written to {hierarchy_path}")
 
     if total_error > 0:
         click.echo(f"\nDetailed errors written to {errors_file_path}")

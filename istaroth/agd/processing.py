@@ -221,6 +221,21 @@ def _iter_subquest_talks(
     return talks
 
 
+def get_chapter_title(
+    chapter: types.ChapterExcelConfigDataItem, *, data_repo: repo.DataRepo
+) -> str:
+    """Resolve a chapter's display title (chapter number joined with chapter title)."""
+    text_map = data_repo.load_text_map()
+    return " ".join(
+        p
+        for p in [
+            text_map.get_optional(str(chapter["chapterNumTextMapHash"])),
+            text_map.get_optional(str(chapter["chapterTitleTextMapHash"])),
+        ]
+        if p is not None
+    )
+
+
 def _is_test_or_hidden_title(title_hash: int, *, data_repo: repo.DataRepo) -> bool:
     """Whether a quest title marks a dev/test/hidden quest to exclude.
 
@@ -263,15 +278,7 @@ def get_quest_info(
         if (chapter := chapter_data.get(chapter_id)) is None:
             chapter_title = f"Unknown Chapter {chapter_id}"
         else:
-            # Get chapter title and number from text map
-            chapter_title = " ".join(
-                p
-                for p in [
-                    text_map.get_optional(str(chapter["chapterNumTextMapHash"])),
-                    text_map.get_optional(str(chapter["chapterTitleTextMapHash"])),
-                ]
-                if p is not None
-            )
+            chapter_title = get_chapter_title(chapter, data_repo=data_repo)
 
     # Place each talk at the quest step (subQuest `order`) whose finish condition
     # points at it. The talk a step shows is the finish-condition param, NOT the

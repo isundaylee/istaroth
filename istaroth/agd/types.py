@@ -242,6 +242,8 @@ FettersExcelConfigData: TypeAlias = list[FettersExcelConfigDataItem]
 
 class MainQuestExcelConfigDataItem(TypedDict):
     id: int
+    type: NotRequired[str]  # AQ / LQ / WQ / EQ / IQ
+    chapterId: NotRequired[int]
 
 
 MainQuestExcelConfigData: TypeAlias = list[MainQuestExcelConfigDataItem]
@@ -253,6 +255,7 @@ class ChapterExcelConfigDataItem(TypedDict):
     id: int
     chapterTitleTextMapHash: int
     chapterNumTextMapHash: int
+    groupId: NotRequired[int]  # series: groups the acts of one questline
 
 
 ChapterExcelConfigData: TypeAlias = list[ChapterExcelConfigDataItem]
@@ -339,6 +342,81 @@ class QuestInfo:
     talks: list[tuple[int, TalkInfo]]
     """List of (order_index, TalkInfo) tuples for subquest talks."""
     non_subquest_talks: list[TalkInfo]
+
+
+@attrs.define
+class QuestHierarchyQuest:
+    """A single quest leaf in the browsable quest hierarchy."""
+
+    id: int
+    title: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"id": self.id, "title": self.title}
+
+
+@attrs.define
+class QuestHierarchyChapter:
+    """One chapter (act) grouping a set of quests."""
+
+    chapter_id: int
+    chapter_title: str
+    quests: list[QuestHierarchyQuest]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "chapter_id": self.chapter_id,
+            "chapter_title": self.chapter_title,
+            "quests": [q.to_dict() for q in self.quests],
+        }
+
+
+@attrs.define
+class QuestHierarchySeries:
+    """A series (questline) grouping the chapters that share a chapter ``groupId``."""
+
+    series_id: int
+    series_title: str
+    chapters: list[QuestHierarchyChapter]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "series_id": self.series_id,
+            "series_title": self.series_title,
+            "chapters": [c.to_dict() for c in self.chapters],
+        }
+
+
+@attrs.define
+class QuestHierarchyType:
+    """A top-level quest type (AQ/LQ/WQ/EQ/IQ) and the quests under it.
+
+    ``chapters`` holds chapters that have no series; ``standalone_quests`` holds
+    quests with no chapter at all.
+    """
+
+    quest_type: str
+    series: list[QuestHierarchySeries]
+    chapters: list[QuestHierarchyChapter]
+    standalone_quests: list[QuestHierarchyQuest]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "quest_type": self.quest_type,
+            "series": [s.to_dict() for s in self.series],
+            "chapters": [c.to_dict() for c in self.chapters],
+            "standalone_quests": [q.to_dict() for q in self.standalone_quests],
+        }
+
+
+@attrs.define
+class QuestHierarchy:
+    """The full browsable quest hierarchy: type -> series -> chapter -> quest."""
+
+    types: list[QuestHierarchyType]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"types": [t.to_dict() for t in self.types]}
 
 
 @attrs.define
