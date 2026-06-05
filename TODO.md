@@ -11,6 +11,10 @@ Follow-up work, grouped by area. Keep bullets brief but with enough context (and
 - **Why some subId talks are absent from the quest `talks[]` array (investigated).**
   `talks[]` is NOT a superset of subId-reached talks: subId reaches ~1,659 talk files that `talks[]` omits (across 805 quests), overwhelmingly `Npc/` talks (1,427) plus `Activity`/`Gadget`/`FreeGroup`. By completion-condition type, these subId-only talks are mostly `QUEST_CONTENT_COMPLETE_TALK` (1,100), then `FINISH_PLOT` (150), `LUA_NOTIFY` (128), `(none)` (46). Confirmed real dialogue (294/300 sampled carry text; e.g. `Activity/4006411` is a Kazuha/Xinyan scene). Takeaway: `talks[]` and subId/`COMPLETE_TALK` are complementary — extraction must union both. Examples of subId-only quests: `72234`, `70823`, `73219`.
 
+## Frontend
+
+- **Add a filter/search box to the quest hierarchy view.** The old flat `agd_quest` list (`LibraryFilesPage`) had a client-side title filter; the new hierarchical `QuestHierarchyPage` dropped it. Add back a client-side search box that filters across the tree (e.g. match quest/series/chapter titles and surface matching quests regardless of their current drill-down position), so users can find a quest without manually drilling through type → series → chapter.
+
 ## Tech Debt
 
 - **Collect & report non-fatal parsing issues in aggregate.** Per-item parsing should stay strict for unexpected data, but some conditions are non-fatal data gaps we currently handle inline (e.g. a `COMPLETE_TALK`/`COMPLETE_ANY_TALK` param pointing at an absent talk → `[Missing Talk]` placeholder in `processing._resolve_authoritative_talk`; ~66 quests / 65 distinct dangling talk ids). Add a mechanism for each item parse to record such non-fatal issues (issue type, item id, detail) into a shared collector instead of only emitting a placeholder, then report the aggregated stats at the end of a `generate-all` run so gaps are visible/trackable rather than buried in output.
