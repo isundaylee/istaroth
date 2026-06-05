@@ -207,6 +207,48 @@ class LibraryRetrieveResponse(BaseModel):
     results: list[LibraryRetrieveResult]
 
 
+class QuestHierarchyQuest(BaseModel):
+    """A single quest leaf in the quest hierarchy."""
+
+    id: int
+    title: str
+
+
+class QuestHierarchyChapter(BaseModel):
+    """One chapter (act) grouping a set of quests."""
+
+    chapter_id: int
+    chapter_title: str
+    quests: list[QuestHierarchyQuest]
+
+
+class QuestHierarchySeries(BaseModel):
+    """A series (questline) grouping chapters that share a chapter group."""
+
+    series_id: int
+    series_title: str
+    chapters: list[QuestHierarchyChapter]
+
+
+class QuestHierarchyType(BaseModel):
+    """A top-level quest type and the quests under it.
+
+    ``chapters`` holds chapters with no series; ``standalone_quests`` holds quests
+    with no chapter.
+    """
+
+    quest_type: str
+    series: list[QuestHierarchySeries]
+    chapters: list[QuestHierarchyChapter]
+    standalone_quests: list[QuestHierarchyQuest]
+
+
+class QuestHierarchyResponse(BaseModel):
+    """Response model for the quest hierarchy endpoint."""
+
+    types: list[QuestHierarchyType]
+
+
 class VersionResponse(BaseModel):
     """Response model for version endpoint."""
 

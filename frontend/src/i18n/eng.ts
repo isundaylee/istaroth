@@ -158,6 +158,15 @@ export const eng = {
     filterPlaceholder: 'Filter by title...',
     noFilterResults: 'No documents match your filter',
     previous: 'Previous',
-    next: 'Next'
+    next: 'Next',
+    questTypes: {
+      AQ: 'Archon Quests',
+      LQ: 'Story Quests',
+      WQ: 'World Quests',
+      EQ: 'Event Quests',
+      IQ: 'Interlude Quests'
+    },
+    standalone: 'Standalone Quests',
+    questSeriesToc: 'Quests in this series'
   }
 }

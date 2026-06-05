@@ -175,6 +175,38 @@ async def get_file(
     return models.LibraryFileResponse(file_info=file_info, content=content)
 
 
+@router.get(
+    "/api/library/quest-hierarchy",
+    response_model=models.QuestHierarchyResponse,
+)
+@handle_unexpected_exception
+async def get_quest_hierarchy(
+    document_store_set: DocumentStoreSet,
+    language: str = Query(..., description="Language code (CHS, ENG)"),
+) -> models.QuestHierarchyResponse:
+    """Get the browsable quest hierarchy (type -> series -> chapter -> quest)."""
+    try:
+        language_enum = localization.Language(language.upper())
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid language: {language}. Available: CHS, ENG",
+        )
+
+    try:
+        text_set_obj = document_store_set.get_text_set(language_enum)
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    hierarchy = text_set_obj.get_quest_hierarchy()
+    if hierarchy is None:
+        raise HTTPException(status_code=404, detail="Quest hierarchy not available")
+
+    return models.QuestHierarchyResponse.model_validate(hierarchy)
+
+
 @router.post("/api/library/retrieve", response_model=models.LibraryRetrieveResponse)
 @handle_unexpected_exception
 async def retrieve_library(

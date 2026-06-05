@@ -10,6 +10,7 @@ import RetrievePage from './RetrievePage'
 import ConversationPage, { conversationPageLoader } from './ConversationPage'
 import ShortURLRedirect, { shortURLLoader } from './ShortURLRedirect'
 import LibraryCategoriesPage, { libraryCategoriesPageLoader } from './LibraryCategoriesPage'
+import QuestHierarchyPage, { questHierarchyPageLoader } from './QuestHierarchyPage'
 import LibraryFilesPage, { libraryFilesPageLoader } from './LibraryFilesPage'
 import LibraryFileViewer, { libraryFileViewerLoader } from './LibraryFileViewer'
 import NotFoundPage from './NotFoundPage'
@@ -40,6 +41,7 @@ const router = createBrowserRouter([
       { path: "/s/:slug", element: <ShortURLRedirect />, loader: shortURLLoader, errorElement: <ErrorBoundary /> },
       { path: "/conversation/:id", element: <ConversationPage />, loader: conversationPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/library", element: <LibraryCategoriesPage />, loader: libraryCategoriesPageLoader, errorElement: <ErrorBoundary /> },
+      { path: "/library/agd_quest", element: <QuestHierarchyPage />, loader: questHierarchyPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/library/:category", element: <LibraryFilesPage />, loader: libraryFilesPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/library/:category/:id", element: <LibraryFileViewer />, loader: libraryFileViewerLoader, errorElement: <ErrorBoundary /> },
       { path: "*", element: <NotFoundPage /> },

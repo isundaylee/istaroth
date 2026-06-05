@@ -167,6 +167,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/library/quest-hierarchy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Quest Hierarchy
+         * @description Get the browsable quest hierarchy (type -> series -> chapter -> quest).
+         */
+        get: operations["get_quest_hierarchy_api_library_quest_hierarchy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/library/retrieve": {
         parameters: {
             query?: never;
@@ -447,6 +467,65 @@ export interface components {
             short_slug: string;
         };
         /**
+         * QuestHierarchyChapter
+         * @description One chapter (act) grouping a set of quests.
+         */
+        QuestHierarchyChapter: {
+            /** Chapter Id */
+            chapter_id: number;
+            /** Chapter Title */
+            chapter_title: string;
+            /** Quests */
+            quests: components["schemas"]["QuestHierarchyQuest"][];
+        };
+        /**
+         * QuestHierarchyQuest
+         * @description A single quest leaf in the quest hierarchy.
+         */
+        QuestHierarchyQuest: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+        };
+        /**
+         * QuestHierarchyResponse
+         * @description Response model for the quest hierarchy endpoint.
+         */
+        QuestHierarchyResponse: {
+            /** Types */
+            types: components["schemas"]["QuestHierarchyType"][];
+        };
+        /**
+         * QuestHierarchySeries
+         * @description A series (questline) grouping chapters that share a chapter group.
+         */
+        QuestHierarchySeries: {
+            /** Series Id */
+            series_id: number;
+            /** Series Title */
+            series_title: string;
+            /** Chapters */
+            chapters: components["schemas"]["QuestHierarchyChapter"][];
+        };
+        /**
+         * QuestHierarchyType
+         * @description A top-level quest type and the quests under it.
+         *
+         *     ``chapters`` holds chapters with no series; ``standalone_quests`` holds quests
+         *     with no chapter.
+         */
+        QuestHierarchyType: {
+            /** Quest Type */
+            quest_type: string;
+            /** Series */
+            series: components["schemas"]["QuestHierarchySeries"][];
+            /** Chapters */
+            chapters: components["schemas"]["QuestHierarchyChapter"][];
+            /** Standalone Quests */
+            standalone_quests: components["schemas"]["QuestHierarchyQuest"][];
+        };
+        /**
          * ShortURLResponse
          * @description Response model for short URL resolution.
          */
@@ -724,6 +803,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LibraryFileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_quest_hierarchy_api_library_quest_hierarchy_get: {
+        parameters: {
+            query: {
+                /** @description Language code (CHS, ENG) */
+                language: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestHierarchyResponse"];
                 };
             };
             /** @description Validation Error */

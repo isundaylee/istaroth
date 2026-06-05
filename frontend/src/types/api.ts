@@ -21,6 +21,15 @@ export type CitationResponse = components['schemas']['CitationResponse']
 export type LibraryRetrieveRequest = components['schemas']['LibraryRetrieveRequest']
 export type LibraryRetrieveResponse = components['schemas']['LibraryRetrieveResponse']
 export type ShortURLResponse = components['schemas']['ShortURLResponse']
+export type LibraryCategoriesResponse = components['schemas']['LibraryCategoriesResponse']
+export type LibraryFileInfo = components['schemas']['LibraryFileInfo']
+export type LibraryFilesResponse = components['schemas']['LibraryFilesResponse']
+export type LibraryFileResponse = components['schemas']['LibraryFileResponse']
+export type QuestHierarchyResponse = components['schemas']['QuestHierarchyResponse']
+export type QuestHierarchyType = components['schemas']['QuestHierarchyType']
+export type QuestHierarchySeries = components['schemas']['QuestHierarchySeries']
+export type QuestHierarchyChapter = components['schemas']['QuestHierarchyChapter']
+export type QuestHierarchyQuest = components['schemas']['QuestHierarchyQuest']
 
 // Additional types that may not be in the OpenAPI spec but are used by the frontend
 export interface ErrorResponse {
@@ -29,25 +38,4 @@ export interface ErrorResponse {
 
 export interface ExampleQuestionRequest {
   language: string
-}
-
-// Library API types (will be in generated types after OpenAPI spec regeneration)
-export interface LibraryCategoriesResponse {
-  categories: string[]
-}
-
-export interface LibraryFileInfo {
-  category: string
-  title: string
-  id: number
-  relative_path: string
-}
-
-export interface LibraryFilesResponse {
-  files: LibraryFileInfo[]
-}
-
-export interface LibraryFileResponse {
-  file_info: LibraryFileInfo
-  content: string
 }

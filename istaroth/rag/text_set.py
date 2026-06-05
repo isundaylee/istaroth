@@ -7,7 +7,9 @@ the same underlying text files; a DocumentStoreSet exposes both views.
 """
 
 import functools
+import json
 import pathlib
+from typing import Any
 
 import attrs
 
@@ -119,3 +121,10 @@ class TextSet:
         if not file_path.exists():
             return None
         return file_path.read_text(encoding="utf-8")
+
+    def get_quest_hierarchy(self) -> dict[str, Any] | None:
+        """Return the generated quest hierarchy tree, or None if absent."""
+        path = self.text_path / "metadata" / "agd" / "quest_hierarchy.json"
+        if not path.exists():
+            return None
+        return json.loads(path.read_text(encoding="utf-8"))

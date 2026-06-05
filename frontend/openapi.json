@@ -361,6 +361,51 @@
         }
       }
     },
+    "/api/library/quest-hierarchy": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Get Quest Hierarchy",
+        "description": "Get the browsable quest hierarchy (type -> series -> chapter -> quest).",
+        "operationId": "get_quest_hierarchy_api_library_quest_hierarchy_get",
+        "parameters": [
+          {
+            "name": "language",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Language code (CHS, ENG)",
+              "title": "Language"
+            },
+            "description": "Language code (CHS, ENG)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestHierarchyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/library/retrieve": {
       "post": {
         "tags": [
@@ -921,6 +966,134 @@
         ],
         "title": "QueryResponse",
         "description": "Response model for query endpoint."
+      },
+      "QuestHierarchyChapter": {
+        "properties": {
+          "chapter_id": {
+            "type": "integer",
+            "title": "Chapter Id"
+          },
+          "chapter_title": {
+            "type": "string",
+            "title": "Chapter Title"
+          },
+          "quests": {
+            "items": {
+              "$ref": "#/components/schemas/QuestHierarchyQuest"
+            },
+            "type": "array",
+            "title": "Quests"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chapter_id",
+          "chapter_title",
+          "quests"
+        ],
+        "title": "QuestHierarchyChapter",
+        "description": "One chapter (act) grouping a set of quests."
+      },
+      "QuestHierarchyQuest": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "QuestHierarchyQuest",
+        "description": "A single quest leaf in the quest hierarchy."
+      },
+      "QuestHierarchyResponse": {
+        "properties": {
+          "types": {
+            "items": {
+              "$ref": "#/components/schemas/QuestHierarchyType"
+            },
+            "type": "array",
+            "title": "Types"
+          }
+        },
+        "type": "object",
+        "required": [
+          "types"
+        ],
+        "title": "QuestHierarchyResponse",
+        "description": "Response model for the quest hierarchy endpoint."
+      },
+      "QuestHierarchySeries": {
+        "properties": {
+          "series_id": {
+            "type": "integer",
+            "title": "Series Id"
+          },
+          "series_title": {
+            "type": "string",
+            "title": "Series Title"
+          },
+          "chapters": {
+            "items": {
+              "$ref": "#/components/schemas/QuestHierarchyChapter"
+            },
+            "type": "array",
+            "title": "Chapters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "series_id",
+          "series_title",
+          "chapters"
+        ],
+        "title": "QuestHierarchySeries",
+        "description": "A series (questline) grouping chapters that share a chapter group."
+      },
+      "QuestHierarchyType": {
+        "properties": {
+          "quest_type": {
+            "type": "string",
+            "title": "Quest Type"
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/QuestHierarchySeries"
+            },
+            "type": "array",
+            "title": "Series"
+          },
+          "chapters": {
+            "items": {
+              "$ref": "#/components/schemas/QuestHierarchyChapter"
+            },
+            "type": "array",
+            "title": "Chapters"
+          },
+          "standalone_quests": {
+            "items": {
+              "$ref": "#/components/schemas/QuestHierarchyQuest"
+            },
+            "type": "array",
+            "title": "Standalone Quests"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quest_type",
+          "series",
+          "chapters",
+          "standalone_quests"
+        ],
+        "title": "QuestHierarchyType",
+        "description": "A top-level quest type and the quests under it.\n\n``chapters`` holds chapters with no series; ``standalone_quests`` holds quests\nwith no chapter."
       },
       "ShortURLResponse": {
         "properties": {

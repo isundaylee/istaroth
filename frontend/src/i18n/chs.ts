@@ -158,6 +158,15 @@ export const chs = {
     filterPlaceholder: '按标题筛选...',
     noFilterResults: '没有匹配的文档',
     previous: '上一篇',
-    next: '下一篇'
+    next: '下一篇',
+    questTypes: {
+      AQ: '魔神任务',
+      LQ: '传说任务',
+      WQ: '世界任务',
+      EQ: '活动任务',
+      IQ: '间章任务'
+    },
+    standalone: '独立任务',
+    questSeriesToc: '本系列任务'
   }
 }
