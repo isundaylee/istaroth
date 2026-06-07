@@ -382,6 +382,8 @@ class QuestInfo:
     steps: list[QuestStep]
     """Talk and objective steps interleaved by subQuest ``order``."""
     non_subquest_talks: list[TalkInfo]
+    associated_free_talks: list[TalkInfo]
+    """FreeGroup "free talks" attached to this quest by talkId numbering."""
 
 
 @attrs.define

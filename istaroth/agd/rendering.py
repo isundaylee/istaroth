@@ -541,6 +541,17 @@ def render_quest(
 
             content_lines.extend(_render_talk_content(talk, language))
 
+    # Render FreeGroup "free talks" attached to this quest by talkId numbering.
+    if quest.associated_free_talks:
+        content_lines.append("\n## Associated Free Talks\n")
+        content_lines.append("*Free talks linked to this quest by talk id.*\n")
+
+        for i, talk in enumerate(quest.associated_free_talks, 1):
+            if len(quest.associated_free_talks) > 1:
+                content_lines.append(f"\n### Free Talk {i}\n")
+
+            content_lines.extend(_render_talk_content(talk, language))
+
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(

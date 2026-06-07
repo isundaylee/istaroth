@@ -25,6 +25,19 @@ logger = logging.getLogger(__name__)
 TalkGroupType: TypeAlias = Literal["ActivityGroup", "GadgetGroup", "NpcGroup"]
 
 
+def _free_group_quest_id(talk_id: str) -> str:
+    """Owning quest id for a FreeGroup talk, inferred from its talkId numbering.
+
+    FreeGroup talkIds follow ``<questId><index>``; dropping the trailing two-digit
+    index yields the quest id, except for the ``<questId>99<index>`` ambient-talk
+    bucket where two more digits are dropped.
+    """
+    base = talk_id[:-2]
+    if len(base) >= 6 and base.endswith("99"):
+        base = base[:-2]
+    return base
+
+
 class _TalkSignature(NamedTuple):
     """Content fingerprint of a talk file used to resolve talkId collisions."""
 
@@ -50,10 +63,13 @@ class TalkParser:
         pathlib.Path("BinOutput/Talk/BlossomGroup/5900009.json"),
     ]
 
-    # FreeGroup holds Lua-invoked "free talk" orphans that reuse other talks'
-    # ids with no quest linkage in the data; excluded wholesale until they are
-    # handled separately (see the free-talk-orphan TODO).
-    _EXCLUDE_DIRECTORIES: ClassVar[set[str]] = {"BlossomGroup", "FreeGroup"}
+    _EXCLUDE_DIRECTORIES: ClassVar[set[str]] = {"BlossomGroup"}
+
+    # FreeGroup holds Lua-invoked "free talks" with no reference-graph linkage in
+    # the dump. They are not registered as resolvable talkIds (their ids collide
+    # with other talks); instead each is attached to its owning quest by the
+    # talkId-numbering heuristic and rendered in a separate quest section.
+    _FREE_GROUP_DIRECTORY: ClassVar[str] = "FreeGroup"
 
     _GROUP_DIRECTORIES: ClassVar[set[str]] = {
         "ActivityGroup",
@@ -73,6 +89,11 @@ class TalkParser:
         # talkId -> candidate file paths; collapsed to one path after the scan.
         self._talk_candidates: dict[str, list[str]] = collections.defaultdict(list)
 
+        # questId -> FreeGroup talk paths, attached by the talkId-numbering
+        # heuristic; collected as (talkId, path) then sorted by talkId below.
+        _free_group: dict[str, list[tuple[int, str]]] = collections.defaultdict(list)
+        self.free_group_quest_to_paths = dict[str, list[str]]()
+
         invalid_paths = dict[pathlib.Path, str]()
 
         # Scan Talk directory and all subdirectories for JSON files
@@ -90,6 +111,8 @@ class TalkParser:
             try:
                 if subdir in self._EXCLUDE_DIRECTORIES:
                     continue
+                elif subdir == self._FREE_GROUP_DIRECTORY:
+                    self._handle_free_group_file(relative_path, data, _free_group)
                 elif subdir in self._GROUP_DIRECTORIES:
                     self._handle_talk_group_file(
                         relative_path, cast(TalkGroupType, relative_path.parts[2]), data
@@ -110,6 +133,11 @@ class TalkParser:
             raise ValueError(
                 f"{len(invalid_paths)} invalid talk file paths: {invalid_paths}"
             )
+
+        for quest_id, talks in _free_group.items():
+            self.free_group_quest_to_paths[quest_id] = [
+                path for _, path in sorted(talks)
+            ]
 
         self._resolve_talk_candidates(data_repo, self._init_dialog_map(talk_excel_data))
 
@@ -151,6 +179,18 @@ class TalkParser:
         self, relative_path: pathlib.Path, talk_data: dict[str, Any]
     ) -> None:
         self._talk_candidates[str(talk_data["talkId"])].append(relative_path.as_posix())
+
+    @staticmethod
+    def _handle_free_group_file(
+        relative_path: pathlib.Path,
+        talk_data: dict[str, Any],
+        free_group: dict[str, list[tuple[int, str]]],
+    ) -> None:
+        """Attach a FreeGroup talk to its owning quest by talkId numbering."""
+        talk_id = int(talk_data["talkId"])
+        free_group[_free_group_quest_id(str(talk_id))].append(
+            (talk_id, relative_path.as_posix())
+        )
 
     @staticmethod
     def _init_dialog_map(talk_excel_data: types.TalkExcelConfigData) -> dict[str, int]:

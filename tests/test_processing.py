@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 
-from istaroth.agd import localization, processing, repo
+from istaroth.agd import localization, processing, repo, talk_parsing
 
 
 def test_book100_metadata(data_repo: repo.DataRepo) -> None:
@@ -86,6 +86,34 @@ def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
     # Non-subquest talks may or may not exist
     # If they exist, verify they also have content
     for talk_info in quest_info.non_subquest_talks:
+        assert len(talk_info.text) > 0
+        for talk_text in talk_info.text:
+            assert talk_text.role.strip()
+            assert talk_text.message.strip()
+
+
+@pytest.mark.parametrize(
+    "talk_id, expected_quest_id",
+    [
+        ("7407804", "74078"),  # 7-digit: drop trailing index
+        ("1000401", "10004"),
+        ("602708", "6027"),  # 6-digit
+        ("100089906", "10008"),  # 9-digit "99" ambient bucket: drop 4
+        ("402217", "4022"),
+    ],
+)
+def test_free_group_quest_id(talk_id: str, expected_quest_id: str) -> None:
+    """The talkId-numbering heuristic maps a FreeGroup talk to its quest."""
+    assert talk_parsing._free_group_quest_id(talk_id) == expected_quest_id
+
+
+def test_quest_10008_associated_free_talks(data_repo: repo.DataRepo) -> None:
+    """FreeGroup "free talks" are attached to their owning quest."""
+    quest_info = processing.get_quest_info("10008", data_repo=data_repo)
+    assert quest_info is not None
+
+    assert quest_info.associated_free_talks
+    for talk_info in quest_info.associated_free_talks:
         assert len(talk_info.text) > 0
         for talk_text in talk_info.text:
             assert talk_text.role.strip()

@@ -307,6 +307,11 @@ class DataRepo:
         return self._get_talk_parser().talk_group_id_to_path
 
     @functools.lru_cache(maxsize=None)
+    def build_free_group_mapping(self) -> dict[str, list[str]]:
+        """questId -> FreeGroup talk file paths attached by the id heuristic."""
+        return self._get_talk_parser().free_group_quest_to_paths
+
+    @functools.lru_cache(maxsize=None)
     def build_quest_mapping(self) -> dict[str, str]:
         """Build a mapping from quest ID to BinOutput/Quest file path.
 

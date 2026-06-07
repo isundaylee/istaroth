@@ -449,6 +449,14 @@ def get_quest_info(
     if _is_test_or_hidden_title(title_hash, data_repo=data_repo):
         return None
 
+    # FreeGroup "free talks" attached to this quest by talkId numbering (paths
+    # arrive pre-sorted by talkId); rendered in a separate section.
+    associated_free_talks = [
+        info
+        for path in data_repo.build_free_group_mapping().get(quest_id, [])
+        if (info := get_talk_info(path, data_repo=data_repo)).text
+    ]
+
     return types.QuestInfo(
         quest_id=quest_id,
         title=quest_title,
@@ -456,6 +464,7 @@ def get_quest_info(
         description=description,
         steps=steps,
         non_subquest_talks=non_subquest_talk_infos,
+        associated_free_talks=associated_free_talks,
     )
 
 

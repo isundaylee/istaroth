@@ -164,4 +164,5 @@ This project tracks follow-up work in `TODO.md` at the repo root.
 - Group items under area sections (e.g. `## Text`, `## Tech Debt`); add new sections as needed.
 - One bullet per item; keep it brief but include enough context to act on later, with relevant quest/talk IDs when applicable.
 - Add items as they come up; remove a bullet when the work is done (the commit history is the record).
+- Before committing, check whether the change completes or obsoletes any `TODO.md` item and remove that bullet in the same commit.
 - Do NOT use `bd`/beads; the `.beads/` directory is legacy and no longer maintained.
