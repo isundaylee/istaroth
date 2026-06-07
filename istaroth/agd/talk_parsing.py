@@ -2,17 +2,36 @@
 
 from __future__ import annotations
 
+import collections
 import logging
 import pathlib
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypeAlias, assert_never, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+    Literal,
+    NamedTuple,
+    TypeAlias,
+    assert_never,
+    cast,
+)
 
 if TYPE_CHECKING:
-    from istaroth.agd import repo
+    from istaroth.agd import repo, types
 
 logger = logging.getLogger(__name__)
 
 
 TalkGroupType: TypeAlias = Literal["ActivityGroup", "GadgetGroup", "NpcGroup"]
+
+
+class _TalkSignature(NamedTuple):
+    """Content fingerprint of a talk file used to resolve talkId collisions."""
+
+    dialogs: tuple[tuple[int, int], ...]
+    """The (dialog id, content hash) sequence, for byte-identity checks."""
+    text_ids: frozenset[int]
+    """Dialog ids whose content hash resolves to real text."""
 
 
 class TalkParser:
@@ -31,7 +50,10 @@ class TalkParser:
         pathlib.Path("BinOutput/Talk/BlossomGroup/5900009.json"),
     ]
 
-    _EXCLUDE_DIRECTORIES: ClassVar[set[str]] = {"BlossomGroup"}
+    # FreeGroup holds Lua-invoked "free talk" orphans that reuse other talks'
+    # ids with no quest linkage in the data; excluded wholesale until they are
+    # handled separately (see the free-talk-orphan TODO).
+    _EXCLUDE_DIRECTORIES: ClassVar[set[str]] = {"BlossomGroup", "FreeGroup"}
 
     _GROUP_DIRECTORIES: ClassVar[set[str]] = {
         "ActivityGroup",
@@ -40,11 +62,16 @@ class TalkParser:
         "StoryboardGroup",
     }
 
-    def __init__(self, data_repo: repo.DataRepo) -> None:
+    def __init__(
+        self, data_repo: repo.DataRepo, talk_excel_data: types.TalkExcelConfigData
+    ) -> None:
         self.agd_path = data_repo.agd_path
 
         self.talk_id_to_path = dict[str, str]()
         self.talk_group_id_to_path = dict[tuple[TalkGroupType, str], str]()
+
+        # talkId -> candidate file paths; collapsed to one path after the scan.
+        self._talk_candidates: dict[str, list[str]] = collections.defaultdict(list)
 
         invalid_paths = dict[pathlib.Path, str]()
 
@@ -84,6 +111,8 @@ class TalkParser:
                 f"{len(invalid_paths)} invalid talk file paths: {invalid_paths}"
             )
 
+        self._resolve_talk_candidates(data_repo, self._init_dialog_map(talk_excel_data))
+
     def _handle_talk_group_file(
         self,
         relative_path: pathlib.Path,
@@ -121,8 +150,109 @@ class TalkParser:
     def _handle_talk_file(
         self, relative_path: pathlib.Path, talk_data: dict[str, Any]
     ) -> None:
-        talk_id = str(talk_data["talkId"])
-        self.talk_id_to_path[talk_id] = relative_path.as_posix()
+        self._talk_candidates[str(talk_data["talkId"])].append(relative_path.as_posix())
+
+    @staticmethod
+    def _init_dialog_map(talk_excel_data: types.TalkExcelConfigData) -> dict[str, int]:
+        """Map talkId -> initDialog for config entries that declare one."""
+        return {
+            str(entry["id"]): init_dialog
+            for entry in talk_excel_data
+            if (init_dialog := entry.get("initDialog"))
+        }
+
+    def _resolve_talk_candidates(
+        self, data_repo: repo.DataRepo, init_dialogs: dict[str, int]
+    ) -> None:
+        """Collapse per-talkId candidate files into a single authoritative path.
+
+        Several files can share a ``talkId`` (e.g. a canonical and a hash-named
+        copy, distinct Coop hangouts reusing a local id, or the same id in
+        ``Quest`` and ``Npc``). Resolution, in order: (1) the file whose
+        ``initDialog`` dialog actually carries text, when exactly one qualifies;
+        (2) an arbitrary pick when the text-bearing files are byte-identical;
+        (3) otherwise the talkId is genuinely ambiguous and is dropped. Dialogs
+        are loaded (deobfuscated) only for colliding ids, which also warms the
+        cache for later rendering.
+        """
+        text_map = data_repo.load_text_map()
+        stats = collections.Counter[str]()
+        for talk_id, candidates in self._talk_candidates.items():
+            if len(candidates) == 1:
+                self.talk_id_to_path[talk_id] = candidates[0]
+                continue
+
+            stats["collision"] += 1
+            signatures: dict[str, _TalkSignature] = {}
+            for p in candidates:
+                if (sig := self._talk_signature(data_repo, text_map, p)) is None:
+                    logger.warning("Skipping talk file %s with no dialogList", p)
+                else:
+                    signatures[p] = sig
+            if not (usable := [p for p in candidates if p in signatures]):
+                stats["dropped"] += 1
+                continue
+
+            init_dialog = init_dialogs.get(talk_id)
+            if init_dialog is not None and (
+                len(
+                    eligible := [
+                        p for p in usable if init_dialog in signatures[p].text_ids
+                    ]
+                )
+                == 1
+            ):
+                self.talk_id_to_path[talk_id] = eligible[0]
+                stats["by_init_dialog"] += 1
+                continue
+
+            textful = [p for p in usable if signatures[p].text_ids]
+            if len({signatures[p].dialogs for p in textful}) <= 1:
+                # Byte-identical (or all empty): any copy is equivalent.
+                self.talk_id_to_path[talk_id] = min(textful or usable)
+                stats["deduped"] += 1
+                continue
+
+            stats["dropped"] += 1
+            log = logger.warning if init_dialog is not None else logger.debug
+            log(
+                "Dropping ambiguous talkId %s with conflicting content: %s",
+                talk_id,
+                sorted(usable),
+            )
+
+        if stats["collision"]:
+            logger.info(
+                "Talk collisions: %d by initDialog, %d deduped, %d dropped",
+                stats["by_init_dialog"],
+                stats["deduped"],
+                stats["dropped"],
+            )
+
+    @staticmethod
+    def _talk_signature(
+        data_repo: repo.DataRepo, text_map: repo.TextMapTracker, talk_path: str
+    ) -> _TalkSignature | None:
+        """Content signature of a candidate file, or None if it has no dialogList.
+
+        ``dialogs`` is the raw (id, content-hash) sequence for byte-identity
+        checks; ``text_ids`` are the dialog ids whose hash resolves to real text.
+        """
+        data = data_repo.load_talk_data(talk_path)
+        try:
+            dialogs = data["dialogList"]
+        except KeyError:
+            return None
+        return _TalkSignature(
+            dialogs=tuple(
+                (d["id"], d.get("talkContentTextMapHash", 0)) for d in dialogs
+            ),
+            text_ids=frozenset(
+                d["id"]
+                for d in dialogs
+                if text_map.has(str(d.get("talkContentTextMapHash", "")))
+            ),
+        )
 
     @staticmethod
     def _is_talk_file(relative_path: pathlib.Path, talk_data: Any) -> bool:

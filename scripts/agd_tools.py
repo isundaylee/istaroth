@@ -123,7 +123,7 @@ def _process_single_item(
     try:
         with (
             data_repo.load_text_map() as text_map_tracker,
-            data_repo.load_talk_excel_config_data() as talk_tracker,
+            data_repo.build_talk_tracker() as talk_tracker,
             data_repo.get_readables() as readables_tracker,
         ):
             rendered = renderable_type.process(renderable_key, data_repo)
@@ -496,7 +496,7 @@ def generate_all(
     text_map_tracker._accessed_ids.update(all_tracker_stats.accessed_text_map_ids)
     click.echo(f"Text map: {text_map_tracker.format_unused_stats()} unused")
 
-    talk_tracker = data_repo.load_talk_excel_config_data()
+    talk_tracker = data_repo.build_talk_tracker()
     talk_tracker._accessed_ids.update(all_tracker_stats.accessed_talk_ids)
     click.echo(f"Talk IDs: {talk_tracker.format_unused_stats()} unused")
 

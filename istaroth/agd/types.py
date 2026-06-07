@@ -127,6 +127,7 @@ class TalkExcelConfigDataItem(TypedDict):
     """Type definition for talk configuration entries."""
 
     id: int
+    initDialog: NotRequired[int]
 
 
 TalkExcelConfigData: TypeAlias = list[TalkExcelConfigDataItem]

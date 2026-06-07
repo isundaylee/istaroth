@@ -73,7 +73,7 @@ def get_talk_info_by_id(
 ) -> types.TalkInfo:
     """Retrieve talk information by talk ID."""
     # Get talk file path through tracker (this automatically tracks access)
-    talk_tracker = data_repo.load_talk_excel_config_data()
+    talk_tracker = data_repo.build_talk_tracker()
     talk_file_path = talk_tracker.get_talk_file_path(talk_id_str)
 
     if talk_file_path is None:

@@ -457,7 +457,7 @@ class Talks(BaseRenderableType[str]):
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all talk IDs that are not already used."""
-        talk_tracker = data_repo.load_talk_excel_config_data()
+        talk_tracker = data_repo.build_talk_tracker()
 
         # Get all talk IDs from configuration
         all_talk_ids = set(talk_tracker._talk_dict.keys())
@@ -472,7 +472,7 @@ class Talks(BaseRenderableType[str]):
     ) -> types.RenderedItem | None:
         """Process talk into rendered content."""
         # Check if talk file exists in mapping first
-        talk_tracker = data_repo.load_talk_excel_config_data()
+        talk_tracker = data_repo.build_talk_tracker()
         talk_file_path = talk_tracker.get_talk_file_path(renderable_key)
 
         # Skip if no file found in mapping

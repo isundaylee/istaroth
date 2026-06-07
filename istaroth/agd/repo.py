@@ -33,6 +33,10 @@ class IdTracker:
     def get_all_ids(self) -> set[str]:
         return self._all_ids.copy()
 
+    def has(self, key: str) -> bool:
+        """Whether key is a known ID, without tracking access."""
+        return key in self._all_ids
+
     def get_accessed_ids(self) -> set[str]:
         """Return set of accessed IDs."""
         return self._accessed_ids.copy()
@@ -342,7 +346,7 @@ class DataRepo:
 
     @functools.lru_cache(maxsize=None)
     def _get_talk_parser(self) -> talk_parsing.TalkParser:
-        return talk_parsing.TalkParser(self)
+        return talk_parsing.TalkParser(self, self.load_talk_excel_config_data())
 
     def precompute_for_fork(self) -> None:
         """Pre-compute expensive mappings in parent process for inheritance via fork.
@@ -355,8 +359,8 @@ class DataRepo:
         self.load_source_text_map()
 
     @functools.lru_cache(maxsize=None)
-    def load_talk_excel_config_data(self) -> TalkTracker:
-        """Load talk Excel configuration data as TalkTracker."""
+    def load_talk_excel_config_data(self) -> types.TalkExcelConfigData:
+        """Load and return the raw talk Excel configuration data."""
 
         def _load_talk_file(file_path: pathlib.Path) -> types.TalkExcelConfigData:
             data = json.loads(file_path.read_text(encoding="utf-8"))
@@ -368,15 +372,21 @@ class DataRepo:
             data = []
             for file_path in split_paths:
                 data.extend(_load_talk_file(file_path))
-            return TalkTracker(data, self._get_talk_parser().talk_id_to_path)
+            return data
 
         file_path = base_path / "TalkExcelConfigData.json"
         if not file_path.exists():
             raise FileNotFoundError(
                 "TalkExcelConfigData.json or TalkExcelConfigData_*.json not found"
             )
+        return _load_talk_file(file_path)
+
+    @functools.lru_cache(maxsize=None)
+    def build_talk_tracker(self) -> TalkTracker:
+        """Build the access-tracking TalkTracker with resolved talk file paths."""
         return TalkTracker(
-            _load_talk_file(file_path), self._get_talk_parser().talk_id_to_path
+            self.load_talk_excel_config_data(),
+            self._get_talk_parser().talk_id_to_path,
         )
 
     @functools.lru_cache(maxsize=None)
