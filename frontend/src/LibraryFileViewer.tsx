@@ -79,6 +79,8 @@ function LibraryFileViewer() {
   const navigate = useAppNavigate()
   const { fileContent, fileTitle, previousFile, nextFile, category, questId, questSeries } = useLoaderData() as LoaderData
 
+  const backPath = `/library/${encodeURIComponent(category)}`
+
   const translateCategory = (category: string): string => {
     const translationKey = `library.categories.${category}`
     const translated = t(translationKey)
@@ -102,7 +104,7 @@ function LibraryFileViewer() {
         <PageCard>
           <LibraryHeader
             title={fileTitle || translateCategory(category)}
-            backPath={`/library/${encodeURIComponent(category)}`}
+            backPath={backPath}
             backText={t('library.backToFiles')}
           />
 
@@ -178,6 +180,12 @@ function LibraryFileViewer() {
               marginTop={previousFile ? '1rem' : '2rem'}
             />
           )}
+          <NavButton
+            onClick={() => navigate(backPath)}
+            label={t('library.backToFiles')}
+            title={translateCategory(category)}
+            marginTop={previousFile || nextFile ? '1rem' : '2rem'}
+          />
         </PageCard>
       </main>
     </>
