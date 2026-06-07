@@ -549,9 +549,14 @@ export interface components {
          * QuestSeriesResponse
          * @description The series (or lone chapter) enclosing a quest, for the detail-page TOC.
          *
-         *     Both are null when the quest is standalone or not part of the hierarchy.
+         *     Only returned for a quest present in the hierarchy, so ``quest_type`` (the
+         *     enclosing top-level type, used to point the back button at the right type
+         *     listing) is always set. ``series`` and ``chapter`` are mutually exclusive and
+         *     both null for a standalone quest.
          */
         QuestSeriesResponse: {
+            /** Quest Type */
+            quest_type: string;
             series?: components["schemas"]["QuestHierarchySeries"] | null;
             chapter?: components["schemas"]["QuestHierarchyChapter"] | null;
         };

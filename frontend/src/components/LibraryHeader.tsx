@@ -5,9 +5,12 @@ interface LibraryHeaderProps {
   title: string
   backPath: string
   backText: string
+  // When provided, overrides navigating to backPath (e.g. to move up one
+  // in-page level instead of leaving the page).
+  onBack?: () => void
 }
 
-function LibraryHeader({ title, backPath, backText }: LibraryHeaderProps) {
+function LibraryHeader({ title, backPath, backText, onBack }: LibraryHeaderProps) {
   const navigate = useAppNavigate()
   const [isHovered, setIsHovered] = useState(false)
 
@@ -17,7 +20,7 @@ function LibraryHeader({ title, backPath, backText }: LibraryHeaderProps) {
       <h1 className="library-header__title">{title}</h1>
       <div className="library-header__actions">
         <button
-          onClick={() => navigate(backPath)}
+          onClick={() => (onBack ? onBack() : navigate(backPath))}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           style={{

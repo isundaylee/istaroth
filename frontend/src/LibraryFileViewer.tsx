@@ -79,17 +79,24 @@ function LibraryFileViewer() {
   const navigate = useAppNavigate()
   const { fileContent, fileTitle, previousFile, nextFile, category, questId, questSeries } = useLoaderData() as LoaderData
 
-  const backPath = `/library/${encodeURIComponent(category)}`
+  // Group the enclosing series' chapters (or the lone chapter) into TOC sections.
+  const series = questSeries?.series
+  const chapter = questSeries?.chapter
+
+  // For quests, return to the enclosing type listing (and its standalone view
+  // when the quest has neither series nor chapter) rather than the quest root.
+  const backPath =
+    category === QUEST_CATEGORY && questSeries?.quest_type
+      ? `/library/${QUEST_CATEGORY}?type=${encodeURIComponent(questSeries.quest_type)}${
+          !series && !chapter ? '&standalone=1' : ''
+        }`
+      : `/library/${encodeURIComponent(category)}`
 
   const translateCategory = (category: string): string => {
     const translationKey = `library.categories.${category}`
     const translated = t(translationKey)
     return translated === translationKey ? category : translated
   }
-
-  // Group the enclosing series' chapters (or the lone chapter) into TOC sections.
-  const series = questSeries?.series
-  const chapter = questSeries?.chapter
   const tocGroups = series
     ? series.chapters.map((c) => ({ title: c.chapter_title, quests: c.quests }))
     : chapter

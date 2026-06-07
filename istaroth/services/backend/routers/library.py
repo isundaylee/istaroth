@@ -233,14 +233,15 @@ async def get_quest_series(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    # Empty (not 404) when there is no hierarchy or the quest is standalone, so
-    # the detail page can always load and simply omit the TOC.
+    # 404 when there is no hierarchy or the quest is absent from it; the detail
+    # page treats the TOC as supplementary and simply omits it on failure.
     hierarchy = text_set_obj.get_quest_hierarchy()
     if hierarchy is None:
-        return models.QuestSeriesResponse()
+        raise HTTPException(status_code=404, detail="Quest hierarchy not available")
 
     quest_id = int(id)
     for type_node in hierarchy["types"]:
+        quest_type = type_node["quest_type"]
         for series in type_node["series"]:
             if any(
                 quest["id"] == quest_id
@@ -248,15 +249,21 @@ async def get_quest_series(
                 for quest in chapter["quests"]
             ):
                 return models.QuestSeriesResponse(
-                    series=models.QuestHierarchySeries.model_validate(series)
+                    quest_type=quest_type,
+                    series=models.QuestHierarchySeries.model_validate(series),
                 )
         for chapter in type_node["chapters"]:
             if any(quest["id"] == quest_id for quest in chapter["quests"]):
                 return models.QuestSeriesResponse(
-                    chapter=models.QuestHierarchyChapter.model_validate(chapter)
+                    quest_type=quest_type,
+                    chapter=models.QuestHierarchyChapter.model_validate(chapter),
                 )
+        if any(quest["id"] == quest_id for quest in type_node["standalone_quests"]):
+            return models.QuestSeriesResponse(quest_type=quest_type)
 
-    return models.QuestSeriesResponse()
+    raise HTTPException(
+        status_code=404, detail=f"Quest {quest_id} not found in hierarchy"
+    )
 
 
 @router.post("/api/library/retrieve", response_model=models.LibraryRetrieveResponse)
