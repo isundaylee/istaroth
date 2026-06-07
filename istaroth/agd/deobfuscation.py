@@ -104,6 +104,7 @@ _COMMON_FIELD_MAPPINGS = {
     "HJJLLECCCPI": "talkContentTextMapHash",
     "GMENEADIGBP": "talkRoleNameTextMapHash",
     "DGGDDIMMIDO": "talkRole",
+    "JDAPCNPEAEH": "nextDialogs",
     "JPCHNCNMMBE": "configId",
     "PGELADPAKLA": "finishCond",
     # NOTE: `damageRatio` is the (misleading) cleartext name used by the older
