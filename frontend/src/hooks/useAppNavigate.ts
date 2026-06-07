@@ -9,8 +9,8 @@ export function useAppNavigate() {
 
   return useCallback(
     (to: string, options?: NavigateOptions) => {
-      const url = buildUrlWithLanguage(to, '', language)
-      navigate(url, options)
+      const [pathname, search = ''] = to.split('?')
+      navigate(buildUrlWithLanguage(pathname, search, language), options)
     },
     [navigate, language]
   )

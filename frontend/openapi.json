@@ -1151,6 +1151,10 @@
       },
       "QuestSeriesResponse": {
         "properties": {
+          "quest_type": {
+            "type": "string",
+            "title": "Quest Type"
+          },
           "series": {
             "anyOf": [
               {
@@ -1173,8 +1177,11 @@
           }
         },
         "type": "object",
+        "required": [
+          "quest_type"
+        ],
         "title": "QuestSeriesResponse",
-        "description": "The series (or lone chapter) enclosing a quest, for the detail-page TOC.\n\nBoth are null when the quest is standalone or not part of the hierarchy."
+        "description": "The series (or lone chapter) enclosing a quest, for the detail-page TOC.\n\nOnly returned for a quest present in the hierarchy, so ``quest_type`` (the\nenclosing top-level type, used to point the back button at the right type\nlisting) is always set. ``series`` and ``chapter`` are mutually exclusive and\nboth null for a standalone quest."
       },
       "ShortURLResponse": {
         "properties": {

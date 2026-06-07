@@ -1,5 +1,5 @@
 import React from 'react'
-import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
+import { useLoaderData, useSearchParams, type LoaderFunctionArgs } from 'react-router-dom'
 import { useT } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import Card from './components/Card'
@@ -108,9 +108,17 @@ function QuestHierarchyPage() {
   const t = useT()
   const navigate = useAppNavigate()
   const { types } = useLoaderData() as LoaderData
+  const [searchParams] = useSearchParams()
 
-  const [selectedType, setSelectedType] = React.useState<QuestHierarchyType | null>(null)
-  const [showStandalone, setShowStandalone] = React.useState(false)
+  // Initial drill-down comes from the URL so the file viewer's back button can
+  // deep-link straight to a type (and its standalone list). Subsequent in-page
+  // navigation is plain state, which keeps the loader from refetching.
+  const typeParam = searchParams.get('type')
+  const initialType = typeParam ? types.find((type) => type.quest_type === typeParam) ?? null : null
+  const [selectedType, setSelectedType] = React.useState<QuestHierarchyType | null>(initialType)
+  const [showStandalone, setShowStandalone] = React.useState(
+    initialType !== null && searchParams.get('standalone') === '1'
+  )
 
   const translateQuestType = (questType: string): string => {
     const key = `library.questTypes.${questType}`
@@ -201,6 +209,18 @@ function QuestHierarchyPage() {
     )
   }
 
+  // The back button climbs the in-page drill-down one level at a time, only
+  // leaving for the library categories once at the quest root.
+  let backText = t('library.backToCategories')
+  let onBack: (() => void) | undefined
+  if (showStandalone && selectedType) {
+    backText = translateQuestType(selectedType.quest_type)
+    onBack = () => setShowStandalone(false)
+  } else if (selectedType) {
+    backText = t('library.categories.agd_quest')
+    onBack = reset
+  }
+
   return (
     <>
       <Navigation />
@@ -209,7 +229,8 @@ function QuestHierarchyPage() {
           <LibraryHeader
             title={t('library.categories.agd_quest')}
             backPath="/library"
-            backText={t('library.backToCategories')}
+            backText={backText}
+            onBack={onBack}
           />
 
           {crumbs.length > 1 && (
