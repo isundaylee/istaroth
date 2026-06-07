@@ -72,6 +72,7 @@ def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
     talk_steps = [step for step in quest_info.steps if step.talk is not None]
     assert talk_steps
     for step in talk_steps:
+        assert step.talk is not None
         assert len(step.talk.text) > 0
         for talk_text in step.talk.text:
             assert talk_text.role.strip()
