@@ -34,6 +34,17 @@ function seriesQuestCount(series: QuestHierarchySeries): number {
   return series.chapters.reduce((sum, chapter) => sum + chapter.quests.length, 0)
 }
 
+function seriesFirstQuestId(series: QuestHierarchySeries): number | null {
+  for (const chapter of series.chapters) {
+    if (chapter.quests.length > 0) return chapter.quests[0].id
+  }
+  return null
+}
+
+function chapterFirstQuestId(chapter: QuestHierarchyChapter): number | null {
+  return chapter.quests.length > 0 ? chapter.quests[0].id : null
+}
+
 function typeQuestCount(type: QuestHierarchyType): number {
   return (
     type.series.reduce((sum, series) => sum + seriesQuestCount(series), 0) +
@@ -99,8 +110,6 @@ function QuestHierarchyPage() {
   const { types } = useLoaderData() as LoaderData
 
   const [selectedType, setSelectedType] = React.useState<QuestHierarchyType | null>(null)
-  const [selectedSeries, setSelectedSeries] = React.useState<QuestHierarchySeries | null>(null)
-  const [selectedChapter, setSelectedChapter] = React.useState<QuestHierarchyChapter | null>(null)
   const [showStandalone, setShowStandalone] = React.useState(false)
 
   const translateQuestType = (questType: string): string => {
@@ -111,26 +120,11 @@ function QuestHierarchyPage() {
 
   const reset = () => {
     setSelectedType(null)
-    setSelectedSeries(null)
-    setSelectedChapter(null)
     setShowStandalone(false)
   }
 
   const openType = (type: QuestHierarchyType) => {
     setSelectedType(type)
-    setSelectedSeries(null)
-    setSelectedChapter(null)
-    setShowStandalone(false)
-  }
-
-  const openSeries = (series: QuestHierarchySeries) => {
-    setSelectedSeries(series)
-    setSelectedChapter(null)
-    setShowStandalone(false)
-  }
-
-  const openChapter = (chapter: QuestHierarchyChapter) => {
-    setSelectedChapter(chapter)
     setShowStandalone(false)
   }
 
@@ -145,12 +139,6 @@ function QuestHierarchyPage() {
   if (selectedType) {
     crumbs.push({ label: translateQuestType(selectedType.quest_type), onClick: () => openType(selectedType) })
   }
-  if (selectedSeries) {
-    crumbs.push({ label: selectedSeries.series_title, onClick: () => openSeries(selectedSeries) })
-  }
-  if (selectedChapter) {
-    crumbs.push({ label: selectedChapter.chapter_title, onClick: () => openChapter(selectedChapter) })
-  }
   if (showStandalone) {
     crumbs.push({ label: t('library.standalone'), onClick: () => undefined })
   }
@@ -164,46 +152,31 @@ function QuestHierarchyPage() {
         ))}
       </CardGrid>
     )
-  } else if (selectedChapter) {
-    content = (
-      <CardGrid>
-        {selectedChapter.quests.map((quest) => (
-          <NavCard key={quest.id} label={quest.title || t('library.noFileName')} onClick={() => openQuest(quest.id)} />
-        ))}
-      </CardGrid>
-    )
-  } else if (selectedSeries) {
-    content = (
-      <CardGrid>
-        {selectedSeries.chapters.map((chapter) => (
-          <NavCard
-            key={chapter.chapter_id}
-            label={chapter.chapter_title}
-            count={chapter.quests.length}
-            onClick={() => openChapter(chapter)}
-          />
-        ))}
-      </CardGrid>
-    )
   } else if (selectedType) {
     content = (
       <CardGrid>
-        {selectedType.series.map((series) => (
-          <NavCard
-            key={`s${series.series_id}`}
-            label={series.series_title}
-            count={seriesQuestCount(series)}
-            onClick={() => openSeries(series)}
-          />
-        ))}
-        {selectedType.chapters.map((chapter) => (
-          <NavCard
-            key={`c${chapter.chapter_id}`}
-            label={chapter.chapter_title}
-            count={chapter.quests.length}
-            onClick={() => openChapter(chapter)}
-          />
-        ))}
+        {selectedType.series.map((series) => {
+          const firstQuestId = seriesFirstQuestId(series)
+          return (
+            <NavCard
+              key={`s${series.series_id}`}
+              label={series.series_title}
+              count={seriesQuestCount(series)}
+              onClick={() => firstQuestId !== null && openQuest(firstQuestId)}
+            />
+          )
+        })}
+        {selectedType.chapters.map((chapter) => {
+          const firstQuestId = chapterFirstQuestId(chapter)
+          return (
+            <NavCard
+              key={`c${chapter.chapter_id}`}
+              label={chapter.chapter_title}
+              count={chapter.quests.length}
+              onClick={() => firstQuestId !== null && openQuest(firstQuestId)}
+            />
+          )
+        })}
         {selectedType.standalone_quests.length > 0 && (
           <NavCard
             label={t('library.standalone')}
