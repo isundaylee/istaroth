@@ -511,10 +511,13 @@ def render_quest(
         content_lines.append(f"(Quest is part of chapter: {quest.chapter_title})\n")
     content_lines.append(f"# {quest.title}\n")
 
-    # Render main quest progression talks (from subQuests)
-    for order_index, talk in quest.talks:
+    # Render main quest progression talks (from subQuests). Several talks can share
+    # one step order (a lead-in plus the talk that completes the step); each gets its
+    # own header, with lead-ins (placed via beginCond) marked as such.
+    for order_index, is_lead_in, talk in quest.talks:
         if len(quest.talks) > 1:  # Only add talk headers if there are multiple talks
-            content_lines.append(f"\n## Talk {order_index}\n")
+            suffix = " (alternative/additional)" if is_lead_in else ""
+            content_lines.append(f"\n## Talk {order_index}{suffix}\n")
 
         content_lines.extend(_render_talk_content(talk, language))
 

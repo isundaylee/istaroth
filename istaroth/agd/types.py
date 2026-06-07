@@ -165,10 +165,23 @@ class TalkData(TypedDict):
     dialogList: list[TalkDialogItem]
 
 
+class BeginCondItem(TypedDict):
+    """A quest talk's begin condition.
+
+    Unlike ``FinishCondItem`` (which uses the obfuscation-renamed ``damageRatio``
+    / ``param`` keys), begin-condition entries carry the literal ``_type`` /
+    ``_param`` keys and are left un-renamed by the deobfuscation pass.
+    """
+
+    _type: str
+    _param: list[str]
+
+
 class QuestTalkItem(TypedDict):
     """Type definition for quest talk entries."""
 
     id: int
+    beginCond: NotRequired[list[BeginCondItem]]
 
 
 class FinishCondItem(TypedDict):
@@ -340,8 +353,10 @@ class QuestInfo:
     quest_id: str
     title: str
     chapter_title: str | None
-    talks: list[tuple[int, TalkInfo]]
-    """List of (order_index, TalkInfo) tuples for subquest talks."""
+    talks: list[tuple[int, bool, TalkInfo]]
+    """List of (order_index, is_lead_in, TalkInfo) tuples for step talks. is_lead_in
+    marks a talk placed by its own beginCond (a lead-in that plays during the step
+    but doesn't complete it) rather than by a finish condition."""
     non_subquest_talks: list[TalkInfo]
 
 

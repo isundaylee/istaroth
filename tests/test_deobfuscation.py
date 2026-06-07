@@ -45,6 +45,12 @@ def test_deobfuscate_quest_data(data_repo: repo.DataRepo) -> None:
     # Nested QuestTalkItem ids.
     assert [t["id"] for t in deobfuscated_data["talks"][:2]] == [7407801, 7407802]
 
+    # QuestTalkItem.beginCond: nested items keep the literal `_type` / `_param`
+    # keys (not renamed by deobfuscation). Drives lead-in talk step placement.
+    [begin_cond] = deobfuscated_data["talks"][0]["beginCond"]
+    assert begin_cond["_type"] == "QUEST_COND_STATE_EQUAL"
+    assert begin_cond["_param"] == ["7407803", "2"]
+
     # load_quest_data returns the same structure.
     loaded_data = data_repo.load_quest_data(quest_path)
     assert loaded_data["id"] == 74078

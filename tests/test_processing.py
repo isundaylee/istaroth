@@ -69,7 +69,7 @@ def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
     assert len(quest_info.talks) > 0
 
     # Verify each talk has some dialog text
-    for order_index, talk_info in quest_info.talks:
+    for order_index, is_lead_in, talk_info in quest_info.talks:
         assert len(talk_info.text) > 0
 
         # Verify each talk has meaningful content

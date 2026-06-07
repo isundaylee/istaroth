@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
-# Global field mappings - union of all mappings used across different data types
+# Global field mappings - union of all mappings used across different data types.
+# NOTE: when adding a new field mapping here, extend tests/test_deobfuscation.py
+# to cover it.
 _COMMON_FIELD_MAPPINGS = {
     "JOLEJEFDNJJ": "id",
     "FJIMHCGKKPJ": "id",
@@ -99,6 +101,7 @@ _COMMON_FIELD_MAPPINGS = {
     "EDPMKKJIKCJ": "order",
     "LFCEBJOANIJ": "questId",
     "NJNLKKMFCDF": "npcId",
+    "KAGCBAHODIP": "beginCond",
     "KFCNJPJOJLA": "talkId",
     "IOEDPLCPFFB": "dialogList",
     "HJJLLECCCPI": "talkContentTextMapHash",

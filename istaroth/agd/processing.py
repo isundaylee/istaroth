@@ -221,6 +221,31 @@ def _iter_subquest_talks(
     return talks
 
 
+def _begin_subquest_order(
+    talk_item: types.QuestTalkItem, subid_to_order: dict[int, int]
+) -> int | None:
+    """Step order a quest talk begins at (via its ``beginCond``), or None.
+
+    A quest talk plays when ``QUEST_COND_STATE_EQUAL [subId, 2]`` holds (the named
+    subquest activated); the remaining beginCond entries are gating conditions
+    (quest vars, items, ...) that don't locate the talk. When several activation
+    conditions resolve, the talk plays once all hold, i.e. at the latest order.
+    Returns None when no activation condition resolves to a subquest of this quest
+    (e.g. a cross-quest reference), leaving the talk for non-step placement.
+    """
+    if "beginCond" not in talk_item:
+        return None
+    orders = [
+        subid_to_order[sub]
+        for cond in talk_item["beginCond"]
+        if cond["_type"] == "QUEST_COND_STATE_EQUAL"
+        and len(param := cond["_param"]) > 1
+        and param[1] == "2"
+        and (sub := int(param[0])) in subid_to_order
+    ]
+    return max(orders) if orders else None
+
+
 def get_chapter_title(
     chapter: types.ChapterExcelConfigDataItem, *, data_repo: repo.DataRepo
 ) -> str:
@@ -286,36 +311,61 @@ def get_quest_info(
     # <questId><incremental> numbering, so it is an unreliable pointer).
     # A talk may be referenced by several steps; place it at the earliest one,
     # since later references are completion/rewind gates checking an already
-    # played talk rather than fresh playbacks.
-    placed: dict[str, tuple[int, types.TalkInfo]] = {}
+    # played talk rather than fresh playbacks. `seq` records first-insertion
+    # order to keep same-step talks in their discovered sequence.
+    placed: dict[str, tuple[int, int, types.TalkInfo]] = {}
     for subquest in quest_data.get("subQuests", []):
         order_index = subquest.get("order", 0)
         for talk_id, talk_info in _iter_subquest_talks(subquest, data_repo=data_repo):
-            if talk_id not in placed or order_index < placed[talk_id][0]:
-                placed[talk_id] = (order_index, talk_info)
+            if talk_id not in placed:
+                placed[talk_id] = (order_index, len(placed), talk_info)
+            elif order_index < placed[talk_id][0]:
+                placed[talk_id] = (order_index, placed[talk_id][1], talk_info)
 
-    # Only keep talks with actual dialog content.
-    subquest_talk_infos = sorted(
-        ((order_index, info) for order_index, info in placed.values() if info.text),
-        key=lambda item: item[0],
-    )
-    subquest_talk_ids = {tid for tid, (_, info) in placed.items() if info.text}
-
-    # Process talks to find non-subquest dialogs
-    non_subquest_talk_infos = []
-
-    for talk_item in quest_data.get("talks", []):
+    # Lead-in talks play during a step but don't complete it, so finishCond never
+    # names them. Place them at the step their own `beginCond` activates on, ahead
+    # of that step's completing talk. Talks whose beginCond resolves to no subquest
+    # of this quest (e.g. cross-quest references) fall back to a separate section.
+    subid_to_order = {
+        subquest["subId"]: subquest.get("order", 0)
+        for subquest in quest_data.get("subQuests", [])
+    }
+    begin_talk_infos: list[tuple[int, int, types.TalkInfo]] = []
+    non_subquest_talk_infos: list[types.TalkInfo] = []
+    for idx, talk_item in enumerate(quest_data.get("talks", [])):
         talk_id_str = str(talk_item["id"])
 
-        # Skip if this talk is already in subquest talks
-        if talk_id_str in subquest_talk_ids:
+        # Already placed by a finish condition; keep that placement.
+        if talk_id_str in placed:
             continue
 
         # These talks are explicitly declared by the quest, so they must load;
         # a failure is a genuine data gap and should surface as a hard error.
         talk_info = get_talk_info_by_id(talk_id_str, data_repo=data_repo)
-        if talk_info.text:
+        if not talk_info.text:
+            continue
+        if (begin_order := _begin_subquest_order(talk_item, subid_to_order)) is None:
             non_subquest_talk_infos.append(talk_info)
+        else:
+            begin_talk_infos.append((begin_order, idx, talk_info))
+
+    # Order each step's talks by (order, then lead-ins before the completing talk,
+    # then discovery sequence). Lead-ins get sort-group 0, finish talks group 1.
+    subquest_talk_infos = [
+        (order_index, is_lead_in, info)
+        for order_index, _, _, is_lead_in, info in sorted(
+            [
+                (order_index, 0, idx, True, info)
+                for order_index, idx, info in begin_talk_infos
+            ]
+            + [
+                (order_index, 1, seq, False, info)
+                for order_index, seq, info in placed.values()
+                if info.text
+            ],
+            key=lambda item: item[:3],
+        )
+    ]
 
     # Exclude dev/test/hidden quests. Checked after the talks above are resolved
     # (which marks them accessed) so this quest's dialogue is also kept out of
