@@ -310,6 +310,7 @@ class LocalizedRoleNames:
     """Localized names for various talk roles."""
 
     player: str
+    mate_avatar: str
     black_screen: str
     unknown_npc: str
     unknown_role: str
