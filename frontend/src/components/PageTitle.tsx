@@ -1,17 +1,15 @@
 interface PageTitleProps {
   children: React.ReactNode
   as?: 'h1' | 'h2' | 'h3'
-  rightElement?: React.ReactNode
 }
 
-function PageTitle({ children, as: Component = 'h1', rightElement }: PageTitleProps) {
+function PageTitle({ children, as: Component = 'h1' }: PageTitleProps) {
   return (
     <div style={{
       marginBottom: '2rem',
       display: 'flex',
       justifyContent: 'center',
-      alignItems: 'center',
-      position: rightElement ? 'relative' : undefined
+      alignItems: 'center'
     }}>
       <Component style={{
         margin: 0,
@@ -21,16 +19,6 @@ function PageTitle({ children, as: Component = 'h1', rightElement }: PageTitlePr
       }}>
         {children}
       </Component>
-      {rightElement && (
-        <div style={{
-          position: 'absolute',
-          right: 0,
-          top: '50%',
-          transform: 'translateY(-50%)'
-        }}>
-          {rightElement}
-        </div>
-      )}
     </div>
   )
 }

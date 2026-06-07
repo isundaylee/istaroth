@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useAppNavigate } from '../hooks/useAppNavigate'
-import PageTitle from './PageTitle'
 
 interface LibraryHeaderProps {
   title: string
@@ -12,39 +11,29 @@ function LibraryHeader({ title, backPath, backText }: LibraryHeaderProps) {
   const navigate = useAppNavigate()
   const [isHovered, setIsHovered] = useState(false)
 
-  const baseStyle: React.CSSProperties = {
-    padding: '0.5rem 1rem',
-    border: '1px solid var(--color-border)',
-    borderRadius: 'var(--radius-md)',
-    backgroundColor: 'var(--color-surface)',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    whiteSpace: 'nowrap',
-    fontSize: 'var(--font-sm)',
-    minWidth: 'fit-content'
-  }
-
-  const hoverStyle: React.CSSProperties = {
-    backgroundColor: 'var(--color-surface-hover)',
-    borderColor: 'var(--color-border)'
-  }
-
-  const backButton = (
-    <button
-      onClick={() => navigate(backPath)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      style={{ ...baseStyle, ...(isHovered ? hoverStyle : {}) }}
-    >
-      ← {backText}
-    </button>
-  )
-
   return (
     <div className="library-header">
-      <PageTitle rightElement={backButton}>
-        {title}
-      </PageTitle>
+      <span className="library-header__spacer" aria-hidden="true" />
+      <h1 className="library-header__title">{title}</h1>
+      <div className="library-header__actions">
+        <button
+          onClick={() => navigate(backPath)}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          style={{
+            padding: '0.5rem 1rem',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-md)',
+            backgroundColor: isHovered ? 'var(--color-surface-hover)' : 'var(--color-surface)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap',
+            fontSize: 'var(--font-sm)'
+          }}
+        >
+          ← {backText}
+        </button>
+      </div>
     </div>
   )
 }
