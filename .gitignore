@@ -211,6 +211,7 @@ __marimo__/
 # Claude
 CLAUDE.local.md
 **/.claude/settings.local.json
+/.claude/scheduled_tasks.lock
 
 # VSCode
 istaroth.code-workspace
