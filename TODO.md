@@ -15,8 +15,6 @@ Follow-up work, grouped by area. Keep bullets brief but with enough context (and
 - **Why some subId talks are absent from the quest `talks[]` array (investigated).**
   `talks[]` is NOT a superset of subId-reached talks: subId reaches ~1,659 talk files that `talks[]` omits (across 805 quests), overwhelmingly `Npc/` talks (1,427) plus `Activity`/`Gadget`/`FreeGroup`. By completion-condition type, these subId-only talks are mostly `QUEST_CONTENT_COMPLETE_TALK` (1,100), then `FINISH_PLOT` (150), `LUA_NOTIFY` (128), `(none)` (46). Confirmed real dialogue (294/300 sampled carry text; e.g. `Activity/4006411` is a Kazuha/Xinyan scene). Takeaway: `talks[]` and subId/`COMPLETE_TALK` are complementary — extraction must union both. Examples of subId-only quests: `72234`, `70823`, `73219`.
 
-- **Render the quest/chapter description text.** Quest rendering currently emits only the chapter title line (`(Quest is part of chapter: …)`) and drops the chapter's poetic description/subtitle (quest `74078` "溪舟的尾波": 「顺着溪波漂流而下，荡漾在金色的余晖之中…」). Surface that description in the quest output (likely from the chapter/`ChapterExcelConfigData` data feeding the existing chapter line in `get_quest_info`).
-
 ## Frontend
 
 - **Add a filter/search box to the quest hierarchy view.** The old flat `agd_quest` list (`LibraryFilesPage`) had a client-side title filter; the new hierarchical `QuestHierarchyPage` dropped it. Add back a client-side search box that filters across the tree (e.g. match quest/series/chapter titles and surface matching quests regardless of their current drill-down position), so users can find a quest without manually drilling through type → series → chapter.
