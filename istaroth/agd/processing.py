@@ -284,15 +284,15 @@ def get_quest_info(
     quest_data = data_repo.load_quest_data(quest_path)
     text_map = data_repo.load_text_map()
 
-    # Resolve quest title from title hash, fallback to description hash
-    if (
-        title_hash := quest_data.get(
-            "titleTextMapHash", quest_data.get("descTextMapHash")
-        )
-    ) is None:
-        raise ValueError(f"Could not find title for quest {quest_data['id']}")
-
+    # Resolve quest title and poetic description from their respective hashes.
+    title_hash = quest_data["titleTextMapHash"]
     quest_title = text_map.get(str(title_hash), f"Missing title ({title_hash})")
+
+    # Surface the quest description only when it adds something beyond the title:
+    # this guard drops empty descriptions and ones that merely repeat the title.
+    description = text_map.get_optional(str(quest_data["descTextMapHash"]))
+    if description == quest_title:
+        description = None
 
     # Get chapter information
     chapter_title = None
@@ -377,6 +377,7 @@ def get_quest_info(
         quest_id=quest_id,
         title=quest_title,
         chapter_title=chapter_title,
+        description=description,
         talks=subquest_talk_infos,
         non_subquest_talks=non_subquest_talk_infos,
     )

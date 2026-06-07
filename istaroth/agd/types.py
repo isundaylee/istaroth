@@ -214,7 +214,7 @@ class QuestData(TypedDict):
 
     id: int
     descTextMapHash: int
-    titleTextMapHash: NotRequired[int]
+    titleTextMapHash: int
     chapterId: NotRequired[int]
     subQuests: list[SubQuestItem]
     talks: NotRequired[list[QuestTalkItem]]  # Optional field, not always present
@@ -353,6 +353,7 @@ class QuestInfo:
     quest_id: str
     title: str
     chapter_title: str | None
+    description: str | None
     talks: list[tuple[int, bool, TalkInfo]]
     """List of (order_index, is_lead_in, TalkInfo) tuples for step talks. is_lead_in
     marks a talk placed by its own beginCond (a lead-in that plays during the step

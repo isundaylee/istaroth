@@ -510,6 +510,8 @@ def render_quest(
     if quest.chapter_title:
         content_lines.append(f"(Quest is part of chapter: {quest.chapter_title})\n")
     content_lines.append(f"# {quest.title}\n")
+    if quest.description:
+        content_lines.append(f"{quest.description}\n")
 
     # Render main quest progression talks (from subQuests). Several talks can share
     # one step order (a lead-in plus the talk that completes the step); each gets its
