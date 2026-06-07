@@ -227,8 +227,11 @@ class Quests(BaseRenderableType[str]):
         ) is None:
             return None
 
-        if not (quest_info.talks or quest_info.non_subquest_talks):
-            # If no talks, skip rendering
+        if not (
+            any(step.talk is not None for step in quest_info.steps)
+            or quest_info.non_subquest_talks
+        ):
+            # Skip quests with no dialogue (objective-only steps don't qualify).
             return None
 
         # Render the quest

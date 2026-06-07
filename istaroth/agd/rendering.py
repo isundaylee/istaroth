@@ -513,15 +513,22 @@ def render_quest(
     if quest.description:
         content_lines.append(f"{quest.description}\n")
 
-    # Render main quest progression talks (from subQuests). Several talks can share
-    # one step order (a lead-in plus the talk that completes the step); each gets its
-    # own header, with lead-ins (placed via beginCond) marked as such.
-    for order_index, is_lead_in, talk in quest.talks:
-        if len(quest.talks) > 1:  # Only add talk headers if there are multiple talks
-            suffix = " (alternative/additional)" if is_lead_in else ""
-            content_lines.append(f"\n## Talk {order_index}{suffix}\n")
-
-        content_lines.extend(_render_talk_content(talk, language))
+    # Render quest progression steps in `order`. Talk steps show their dialogue
+    # under a `## Talk <order>` header (lead-ins placed via beginCond marked as
+    # such); non-dialogue objective steps show only their objective text under a
+    # `## Objective <order>` header. Both surface the step's objective text, when
+    # present, in parentheses above the body.
+    for step in quest.steps:
+        if step.talk is not None:
+            suffix = " (alternative/additional)" if step.is_lead_in else ""
+            content_lines.append(f"\n## Talk {step.order}{suffix}\n")
+            if step.description:
+                content_lines.append(f"({step.description})\n")
+            content_lines.extend(_render_talk_content(step.talk, language))
+        else:
+            content_lines.append(f"\n## Objective {step.order}\n")
+            if step.description:
+                content_lines.append(f"({step.description})\n")
 
     # Render non-subquest talks in a separate section
     if quest.non_subquest_talks:

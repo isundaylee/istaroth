@@ -223,6 +223,23 @@ def _iter_subquest_talks(
     return talks
 
 
+def _resolve_step_description(
+    desc_hash: int, *, data_repo: repo.DataRepo
+) -> str | None:
+    """Resolve a subQuest's objective text, or None when there is none to show.
+
+    A ``0`` hash (the step has no objective), or missing/empty text, yields None;
+    test/hidden steps are filtered against the CHS source text (like quest titles)
+    so non-CHS corpora exclude the same steps.
+    """
+    if (
+        chs := data_repo.load_source_text_map().get_optional(str(desc_hash))
+    ) is not None and text_utils.should_skip_text(chs, localization.Language.CHS):
+        return None
+    text = data_repo.load_text_map().get_optional(str(desc_hash))
+    return text if text and text.strip() else None
+
+
 def _begin_subquest_order(
     talk_item: types.QuestTalkItem, subid_to_order: dict[int, int]
 ) -> int | None:
@@ -314,15 +331,34 @@ def get_quest_info(
     # A talk may be referenced by several steps; place it at the earliest one,
     # since later references are completion/rewind gates checking an already
     # played talk rather than fresh playbacks. `seq` records first-insertion
-    # order to keep same-step talks in their discovered sequence.
-    placed: dict[str, tuple[int, int, types.TalkInfo]] = {}
+    # order to keep same-step talks in their discovered sequence. `desc` is the
+    # placing step's objective text, shown above its dialogue. A subQuest with no
+    # talk but a usable objective becomes a non-dialogue objective step.
+    placed: dict[str, tuple[int, int, str | None, types.TalkInfo]] = {}
+    order_to_desc: dict[int, str | None] = {}
+    objective_steps: list[tuple[int, int, str]] = []
     for subquest in quest_data.get("subQuests", []):
         order_index = subquest.get("order", 0)
-        for talk_id, talk_info in _iter_subquest_talks(subquest, data_repo=data_repo):
-            if talk_id not in placed:
-                placed[talk_id] = (order_index, len(placed), talk_info)
-            elif order_index < placed[talk_id][0]:
-                placed[talk_id] = (order_index, placed[talk_id][1], talk_info)
+        desc = _resolve_step_description(
+            subquest["descTextMapHash"], data_repo=data_repo
+        )
+        assert (
+            order_index not in order_to_desc
+        ), f"duplicate subQuest order {order_index} in quest {quest_id}"
+        order_to_desc[order_index] = desc
+        if subquest_talks := _iter_subquest_talks(subquest, data_repo=data_repo):
+            for talk_id, talk_info in subquest_talks:
+                if talk_id not in placed:
+                    placed[talk_id] = (order_index, len(placed), desc, talk_info)
+                elif order_index < placed[talk_id][0]:
+                    placed[talk_id] = (
+                        order_index,
+                        placed[talk_id][1],
+                        desc,
+                        talk_info,
+                    )
+        elif desc is not None:
+            objective_steps.append((order_index, len(objective_steps), desc))
 
     # Lead-in talks play during a step but don't complete it, so finishCond never
     # names them. Place them at the step their own `beginCond` activates on, ahead
@@ -332,7 +368,7 @@ def get_quest_info(
         subquest["subId"]: subquest.get("order", 0)
         for subquest in quest_data.get("subQuests", [])
     }
-    begin_talk_infos: list[tuple[int, int, types.TalkInfo]] = []
+    begin_talk_infos: list[tuple[int, int, str | None, types.TalkInfo]] = []
     non_subquest_talk_infos: list[types.TalkInfo] = []
     for idx, talk_item in enumerate(quest_data.get("talks", [])):
         talk_id_str = str(talk_item["id"])
@@ -349,21 +385,59 @@ def get_quest_info(
         if (begin_order := _begin_subquest_order(talk_item, subid_to_order)) is None:
             non_subquest_talk_infos.append(talk_info)
         else:
-            begin_talk_infos.append((begin_order, idx, talk_info))
+            begin_talk_infos.append(
+                (begin_order, idx, order_to_desc.get(begin_order), talk_info)
+            )
 
-    # Order each step's talks by (order, then lead-ins before the completing talk,
-    # then discovery sequence). Lead-ins get sort-group 0, finish talks group 1.
-    subquest_talk_infos = [
-        (order_index, is_lead_in, info)
-        for order_index, _, _, is_lead_in, info in sorted(
+    # Interleave talk and objective steps by `order`. Within one order, lead-ins
+    # (group 0) precede the completing talk (group 1). Objectives (group 2) arise
+    # only from talk-less subQuests, and `order` is unique per quest (asserted
+    # above), so an objective never shares an order with a talk.
+    steps = [
+        step
+        for _, _, _, step in sorted(
             [
-                (order_index, 0, idx, True, info)
-                for order_index, idx, info in begin_talk_infos
+                (
+                    order_index,
+                    0,
+                    idx,
+                    types.QuestStep(
+                        order=order_index,
+                        is_lead_in=True,
+                        description=desc,
+                        talk=info,
+                    ),
+                )
+                for order_index, idx, desc, info in begin_talk_infos
             ]
             + [
-                (order_index, 1, seq, False, info)
-                for order_index, seq, info in placed.values()
+                (
+                    order_index,
+                    1,
+                    seq,
+                    types.QuestStep(
+                        order=order_index,
+                        is_lead_in=False,
+                        description=desc,
+                        talk=info,
+                    ),
+                )
+                for order_index, seq, desc, info in placed.values()
                 if info.text
+            ]
+            + [
+                (
+                    order_index,
+                    2,
+                    seq,
+                    types.QuestStep(
+                        order=order_index,
+                        is_lead_in=False,
+                        description=desc,
+                        talk=None,
+                    ),
+                )
+                for order_index, seq, desc in objective_steps
             ],
             key=lambda item: item[:3],
         )
@@ -380,7 +454,7 @@ def get_quest_info(
         title=quest_title,
         chapter_title=chapter_title,
         description=description,
-        talks=subquest_talk_infos,
+        steps=steps,
         non_subquest_talks=non_subquest_talk_infos,
     )
 

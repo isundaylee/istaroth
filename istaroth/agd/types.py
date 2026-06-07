@@ -199,10 +199,16 @@ class FinishCondItem(TypedDict):
 
 
 class SubQuestItem(TypedDict):
-    """Type definition for sub-quest entries."""
+    """Type definition for sub-quest entries.
+
+    ``descTextMapHash`` is the in-game quest-tracker objective text for the step
+    (e.g. "defeat the monsters", "go to the marked location"); ``0`` when the
+    step has no player-facing objective.
+    """
 
     subId: int
     order: int
+    descTextMapHash: int
     finishCond: NotRequired[list[FinishCondItem]]
 
 
@@ -348,6 +354,24 @@ class TalkGroupInfo:
 
 
 @attrs.define
+class QuestStep:
+    """A single quest-progression step at a subQuest ``order``.
+
+    A step is either a dialogue step (``talk`` set) or a non-dialogue objective
+    (``talk`` is None, e.g. "defeat the monsters"). ``description`` is the
+    subQuest's in-game objective text (from its ``descTextMapHash``), shown for
+    both kinds when present. ``is_lead_in`` marks a talk placed by its own
+    beginCond (a lead-in that plays during the step but doesn't complete it)
+    rather than by a finish condition.
+    """
+
+    order: int
+    is_lead_in: bool
+    description: str | None
+    talk: TalkInfo | None
+
+
+@attrs.define
 class QuestInfo:
     """Quest information with associated talk dialogs."""
 
@@ -355,10 +379,8 @@ class QuestInfo:
     title: str
     chapter_title: str | None
     description: str | None
-    talks: list[tuple[int, bool, TalkInfo]]
-    """List of (order_index, is_lead_in, TalkInfo) tuples for step talks. is_lead_in
-    marks a talk placed by its own beginCond (a lead-in that plays during the step
-    but doesn't complete it) rather than by a finish condition."""
+    steps: list[QuestStep]
+    """Talk and objective steps interleaved by subQuest ``order``."""
     non_subquest_talks: list[TalkInfo]
 
 
