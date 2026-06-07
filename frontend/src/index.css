@@ -505,6 +505,33 @@ body {
   background-clip: content-box;
 }
 
+.library-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Equal-width spacer/actions keep the title centered while the button stays in flow. */
+.library-header__spacer,
+.library-header__actions {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.library-header__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.library-header__title {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--font-xl);
+  color: var(--color-heading);
+  text-align: center;
+}
+
 @media (max-width: 600px) {
   .input-row {
     flex-direction: column;
@@ -555,15 +582,18 @@ body {
     font-size: var(--font-sm) !important;
   }
 
-  /* Make back button wrap below title on mobile */
+  /* Drop the back button to its own row, centered below the title. */
   .library-header {
-    flex-direction: column !important;
-    gap: 1rem !important;
+    flex-direction: column;
   }
 
-  .library-header button {
-    position: static !important;
-    align-self: center;
+  .library-header__spacer {
+    display: none;
+  }
+
+  .library-header__actions {
+    flex: 0 0 auto;
+    justify-content: center;
   }
 
   /* Citation list mobile styles */
