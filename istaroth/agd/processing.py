@@ -122,6 +122,8 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
                 return npc_id_to_name.get(npc_id) if npc_id is not None else None
             case "TALK_ROLE_PLAYER":
                 return localized_roles.player
+            case "TALK_ROLE_MATE_AVATAR":
+                return localized_roles.mate_avatar
             case "TALK_ROLE_NEED_CLICK_BLACK_SCREEN" | "TALK_ROLE_BLACK_SCREEN":
                 return localized_roles.black_screen
             case _:
