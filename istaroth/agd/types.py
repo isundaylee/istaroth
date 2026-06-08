@@ -264,6 +264,7 @@ class MainQuestExcelConfigDataItem(TypedDict):
     id: int
     type: NotRequired[str]  # AQ / LQ / WQ / EQ / IQ
     chapterId: NotRequired[int]
+    suggestTrackMainQuestList: list[int]  # "next quest(s)" pointers
 
 
 MainQuestExcelConfigData: TypeAlias = list[MainQuestExcelConfigDataItem]
@@ -276,6 +277,7 @@ class ChapterExcelConfigDataItem(TypedDict):
     chapterTitleTextMapHash: int
     chapterNumTextMapHash: int
     groupId: NotRequired[int]  # series: groups the acts of one questline
+    beginQuestId: int  # first subquest id; // 100 is its main quest id (0 if none)
 
 
 ChapterExcelConfigData: TypeAlias = list[ChapterExcelConfigDataItem]

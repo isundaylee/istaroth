@@ -17,14 +17,64 @@ def _chapter_title(chapter_id: int, *, data_repo: repo.DataRepo) -> str:
     return processing.get_chapter_title(chapter, data_repo=data_repo)
 
 
+def _order_quests(
+    quests: list[types.QuestHierarchyQuest],
+    begin_quest_id: int,
+    *,
+    main_quests: dict[int, types.MainQuestExcelConfigDataItem],
+) -> list[types.QuestHierarchyQuest]:
+    """Order a chapter's quests by narrative sequence.
+
+    Quest ids do not track play order, so follow each quest's
+    ``suggestTrackMainQuestList`` "next quest" pointers, seeded from the
+    chapter's begin quest, taking the lowest-id branch for determinism. Quests
+    the chain never reaches (parallel/branching world quests, or chapters with
+    no begin quest) are appended in id order as a fallback.
+    """
+    by_id = {q.id: q for q in quests}
+
+    def _next(quest_id: int) -> list[int]:
+        # Every quest reached here is in by_id, which build_quest_hierarchy only
+        # populated with quests that have a MainQuest entry, so index strictly.
+        return sorted(
+            t for t in main_quests[quest_id]["suggestTrackMainQuestList"] if t in by_id
+        )
+
+    pointed = {t for quest_id in by_id for t in _next(quest_id)}
+    # Seed from the declared begin quest, then any quest no other quest points to.
+    starts = [begin_quest_id] if begin_quest_id in by_id else []
+    starts += [quest_id for quest_id in sorted(by_id) if quest_id not in pointed]
+
+    ordered: list[types.QuestHierarchyQuest] = []
+    seen: set[int] = set()
+    for start in starts:
+        current: int | None = start
+        while current is not None and current not in seen:
+            ordered.append(by_id[current])
+            seen.add(current)
+            current = next((t for t in _next(current) if t not in seen), None)
+    ordered.extend(by_id[q] for q in sorted(by_id) if q not in seen)
+    return ordered
+
+
 def _make_chapters(
-    by_chapter: dict[int, list[types.QuestHierarchyQuest]], *, data_repo: repo.DataRepo
+    by_chapter: dict[int, list[types.QuestHierarchyQuest]],
+    *,
+    main_quests: dict[int, types.MainQuestExcelConfigDataItem],
+    data_repo: repo.DataRepo,
 ) -> list[types.QuestHierarchyChapter]:
+    chapters = data_repo.load_chapter_excel_config_data()
     return [
         types.QuestHierarchyChapter(
             chapter_id=cid,
             chapter_title=_chapter_title(cid, data_repo=data_repo),
-            quests=sorted(by_chapter[cid], key=lambda q: q.id),
+            quests=_order_quests(
+                by_chapter[cid],
+                # chapter_buckets may hold ids absent from ChapterExcelConfigData
+                # (unknown chapters); those have no begin quest to seed from.
+                (chapters[cid]["beginQuestId"] if cid in chapters else 0) // 100,
+                main_quests=main_quests,
+            ),
         )
         for cid in sorted(by_chapter)
     ]
@@ -87,7 +137,9 @@ def build_quest_hierarchy(
         series_nodes = []
         for series_id in sorted(series_buckets.get(quest_type, {})):
             series_chapters = _make_chapters(
-                series_buckets[quest_type][series_id], data_repo=data_repo
+                series_buckets[quest_type][series_id],
+                main_quests=main_quests,
+                data_repo=data_repo,
             )
             # No dedicated series-name field exists, so label the series with its
             # first chapter's title (falling back to its first quest's title).
@@ -108,7 +160,9 @@ def build_quest_hierarchy(
                 quest_type=quest_type,
                 series=series_nodes,
                 chapters=_make_chapters(
-                    chapter_buckets.get(quest_type, {}), data_repo=data_repo
+                    chapter_buckets.get(quest_type, {}),
+                    main_quests=main_quests,
+                    data_repo=data_repo,
                 ),
                 standalone_quests=sorted(
                     standalone_buckets.get(quest_type, []), key=lambda q: q.id
