@@ -317,3 +317,57 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
     """
     ).strip()
     assert rendered.content == expected_content
+
+
+def test_render_talk_menu_hub_no_blowup() -> None:
+    """An "ask about X" menu whose answers loop back renders each topic once.
+
+    Mirrors the in-game shape (e.g. quest 6000): the initial menu offers only the
+    topics; each answer tail re-presents a menu that adds an exit option. Without
+    menu re-entry detection, enumerating every root-to-leaf path through the cyclic
+    hub renders each topic answer once per ordering of the topics (combinatorial
+    blow-up). Each unique line must appear exactly once, and the exit branch
+    (reachable only from a re-presented menu) must still render.
+    """
+    # 1 (menu) -> [2 (topic A), 4 (topic B)]          (no exit yet)
+    # topic A: 2 -> 3 (answer A) -> 7 (re-presented menu) -> [2, 4, 6]
+    # topic B: 4 -> 5 (answer B) -> 8 (re-presented menu) -> [2, 4, 6]
+    # exit:    6 -> 9 (goodbye)  -> end
+    talk_texts = [
+        types.TalkText(
+            role="NPC", message="Ask away", next_dialog_ids=[2, 4], dialog_id=1
+        ),
+        types.TalkText(
+            role="Player", message="Topic A?", next_dialog_ids=[3], dialog_id=2
+        ),
+        types.TalkText(
+            role="NPC", message="Answer A", next_dialog_ids=[7], dialog_id=3
+        ),
+        types.TalkText(
+            role="Player", message="Topic B?", next_dialog_ids=[5], dialog_id=4
+        ),
+        types.TalkText(
+            role="NPC", message="Answer B", next_dialog_ids=[8], dialog_id=5
+        ),
+        types.TalkText(
+            role="Player", message="Nothing", next_dialog_ids=[9], dialog_id=6
+        ),
+        types.TalkText(role="NPC", message="Goodbye", next_dialog_ids=[], dialog_id=9),
+        types.TalkText(
+            role="NPC", message="More?", next_dialog_ids=[2, 4, 6], dialog_id=7
+        ),
+        types.TalkText(
+            role="NPC", message="More?", next_dialog_ids=[2, 4, 6], dialog_id=8
+        ),
+    ]
+    rendered = rendering.render_talk(
+        types.TalkInfo(text=talk_texts),
+        talk_id="88888",
+        language=localization.Language.ENG,
+        talk_file_path="BinOutput/Talk/Quest/88888.json",
+    )
+
+    # Each unique answer line appears exactly once (no permutation blow-up), and
+    # the exit branch's content is still present.
+    for line in ("NPC: Answer A", "NPC: Answer B", "NPC: Goodbye"):
+        assert rendered.content.count(line) == 1, rendered.content

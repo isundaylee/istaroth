@@ -248,6 +248,10 @@ def _process_branch(
     """
 
     paths: list[list[int | None]] = [[di] for di in next_dialog_ids]
+    # Per-path set of dialogs already covered (walked into) on this path, seeded
+    # with the calling branch's options since those are the paths we start with.
+    # A path only follows edges to dialogs not yet in its set; see below.
+    path_offered: list[set[int]] = [set(next_dialog_ids) for _ in next_dialog_ids]
     # Path indexes for paths that have back edges (i.e. edges pointing to
     # pre-branch dialogs).
     cycle_pis = set[int]()
@@ -289,23 +293,38 @@ def _process_branch(
                 dialog_paths[None].add(pi)
                 continue
 
+            # Only follow edges to dialogs not already covered on this path. A
+            # covered target is (or will be) rendered by the path that first
+            # reached it, so re-walking it merely duplicates content -- and for an
+            # "ask about X" menu hub (whose answer tails re-offer the same options)
+            # it would enumerate every ordering of the options. This also handles
+            # decreasing menus and menus that add an exit option late: only the
+            # genuinely new options are followed. When nothing new remains, the
+            # path has looped back into already-seen content; stop here (curr_di,
+            # the answer tail, is already in ``path`` and still gets rendered).
+            uncovered = [di for di in next_dis if di not in path_offered[pi]]
+            if not uncovered:
+                cycle_pis.add(pi)
+                continue
+            path_offered[pi] |= set(uncovered)
+
             pis_to_extend = [pi]
-            for new_path_di in next_dis[1:]:
+            for _ in uncovered[1:]:
                 paths.append(path[:])
                 new_path_pi = len(paths) - 1
+                path_offered.append(set(path_offered[pi]))
                 pis_to_extend.append(new_path_pi)
                 for di in paths[new_path_pi]:
                     assert new_path_pi not in dialog_paths[di], f"Found cycle: {path}"
                     dialog_paths[di].add(new_path_pi)
 
-            for pi_to_extend, di_to_extend in zip(pis_to_extend, next_dis):
+            for pi_to_extend, di_to_extend in zip(pis_to_extend, uncovered):
                 paths[pi_to_extend].append(di_to_extend)
 
+                # A dialog already rendered by an earlier branch in this talk is a
+                # back edge out of this region; stop. (Re-entries within the region
+                # are already excluded by the ``uncovered`` filter above.)
                 if di_to_extend in rendered:
-                    cycle_pis.add(pi_to_extend)
-                    continue
-
-                if pi_to_extend in dialog_paths[di_to_extend]:
                     cycle_pis.add(pi_to_extend)
                     continue
 
