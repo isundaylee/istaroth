@@ -371,3 +371,48 @@ def test_render_talk_menu_hub_no_blowup() -> None:
     # the exit branch's content is still present.
     for line in ("NPC: Answer A", "NPC: Answer B", "NPC: Goodbye"):
         assert rendered.content.count(line) == 1, rendered.content
+
+
+def _quest_talk_step(
+    order: int, message: str, *, is_lead_in: bool = False
+) -> types.QuestStep:
+    return types.QuestStep(
+        order=order,
+        is_lead_in=is_lead_in,
+        description=None,
+        talk=types.TalkInfo(
+            text=[
+                types.TalkText(
+                    role="NPC", message=message, next_dialog_ids=[], dialog_id=1
+                )
+            ]
+        ),
+    )
+
+
+def test_render_quest_numbers_variant_talks() -> None:
+    """Multiple completing talks at one order get `(variant N)`; singletons don't."""
+    quest = types.QuestInfo(
+        quest_id="73000",
+        title="Test Quest",
+        chapter_title=None,
+        description=None,
+        steps=[
+            _quest_talk_step(1, "First branch"),
+            _quest_talk_step(1, "Second branch"),
+            _quest_talk_step(2, "Lone talk"),
+            _quest_talk_step(3, "Lead-in", is_lead_in=True),
+            _quest_talk_step(3, "Completing"),
+        ],
+        non_subquest_talks=[],
+        associated_free_talks=[],
+    )
+
+    content = rendering.render_quest(quest, localization.Language.ENG).content
+
+    assert "## Talk 1 (variant 1)" in content
+    assert "## Talk 1 (variant 2)" in content
+    assert "## Talk 2\n" in content
+    assert "(variant" not in content.split("## Talk 2")[1]
+    assert "## Talk 3 (alternative/additional)" in content
+    assert "## Talk 3\n" in content

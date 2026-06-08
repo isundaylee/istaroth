@@ -537,9 +537,23 @@ def render_quest(
     # such); non-dialogue objective steps show only their objective text under a
     # `## Objective <order>` header. Both surface the step's objective text, when
     # present, in parentheses above the body.
+    # When several completing talks finish the same subQuest `order` (alternative
+    # branches of one step), `## Talk <order>` alone would repeat; number them
+    # `(variant N)` to keep headers unique. Lead-ins keep their own suffix.
+    variants_per_order: dict[int, int] = defaultdict(int)
+    for step in quest.steps:
+        if step.talk is not None and not step.is_lead_in:
+            variants_per_order[step.order] += 1
+    variant_seen: dict[int, int] = defaultdict(int)
     for step in quest.steps:
         if step.talk is not None:
-            suffix = " (alternative/additional)" if step.is_lead_in else ""
+            if step.is_lead_in:
+                suffix = " (alternative/additional)"
+            elif variants_per_order[step.order] > 1:
+                variant_seen[step.order] += 1
+                suffix = f" (variant {variant_seen[step.order]})"
+            else:
+                suffix = ""
             content_lines.append(f"\n## Talk {step.order}{suffix}\n")
             if step.description:
                 content_lines.append(f"({step.description})\n")
