@@ -223,7 +223,7 @@ class QuestData(TypedDict):
     titleTextMapHash: int
     chapterId: NotRequired[int]
     subQuests: list[SubQuestItem]
-    talks: NotRequired[list[QuestTalkItem]]  # Optional field, not always present
+    talks: list[QuestTalkItem]
 
 
 class AvatarExcelConfigDataItem(TypedDict):

@@ -3,8 +3,26 @@
 import itertools
 import json
 import pathlib
+import typing
 
 from istaroth.agd import localization, repo, talk_parsing, text_utils, types
+
+# Priority of the signals that hint where a quest talk plays, lowest to highest.
+# FINISH_PLOT is a plot marker whose param often collides with an unrelated talk
+# id via the shared <questId><incremental> numbering, so it is least reliable.
+# COMPLETE_TALK / COMPLETE_ANY_TALK name the talk that completes a step, so they
+# are authoritative. A talk's beginCond names where it actually starts playing,
+# so it wins outright when it confirms a step that already references the talk.
+_HINT_PRIORITY_FINISH_PLOT = 1
+_HINT_PRIORITY_COMPLETE_TALK = 2
+_HINT_PRIORITY_BEGIN_COND = 3
+
+
+class _PlacementHint(typing.NamedTuple):
+    """A candidate quest step (`order`) for a talk, with its signal `priority`."""
+
+    order: int
+    priority: int
 
 
 def get_readable_metadata(
@@ -191,26 +209,35 @@ def _resolve_authoritative_talk(
 
 def _iter_subquest_talks(
     subquest: types.SubQuestItem, *, data_repo: repo.DataRepo
-) -> list[tuple[str, types.TalkInfo]]:
-    """Return (talk_id, TalkInfo) for talks referenced by finish conditions.
+) -> list[tuple[str, int, types.TalkInfo]]:
+    """Return (talk_id, hint_priority, TalkInfo) for talks referenced by finish conditions.
 
     Only the condition types that genuinely reference a talk are handled;
     everything else is an objective step with no talk. COMPLETE_TALK and
-    COMPLETE_ANY_TALK are authoritative pointers, so a missing talk becomes a
-    placeholder; only FINISH_PLOT may point at a missing talk (a silent cutscene
-    with no talk file), which is skipped instead.
+    COMPLETE_ANY_TALK name the talk that completes the step, so they are
+    authoritative pointers and a missing talk becomes a placeholder. FINISH_PLOT
+    is a plot-completion marker whose param is only sometimes a real talk id, so
+    a missing talk is skipped instead. See the ``_HINT_PRIORITY_*`` constants.
     """
-    talks: list[tuple[str, types.TalkInfo]] = []
+    talks: list[tuple[str, int, types.TalkInfo]] = []
     for cond in subquest.get("finishCond", []):
         match cond.get("damageRatio"):
             case "QUEST_CONTENT_COMPLETE_TALK":
                 talk_id = str(cond["param"][0])
                 talks.append(
-                    (talk_id, _resolve_authoritative_talk(talk_id, data_repo=data_repo))
+                    (
+                        talk_id,
+                        _HINT_PRIORITY_COMPLETE_TALK,
+                        _resolve_authoritative_talk(talk_id, data_repo=data_repo),
+                    )
                 )
             case "QUEST_CONTENT_COMPLETE_ANY_TALK":
                 talks.extend(
-                    (talk_id, _resolve_authoritative_talk(talk_id, data_repo=data_repo))
+                    (
+                        talk_id,
+                        _HINT_PRIORITY_COMPLETE_TALK,
+                        _resolve_authoritative_talk(talk_id, data_repo=data_repo),
+                    )
                     for talk_id in cond["CUSTOM_paramStr"].split(",")
                 )
             case "QUEST_CONTENT_FINISH_PLOT":
@@ -219,8 +246,20 @@ def _iter_subquest_talks(
                     talk_info = get_talk_info_by_id(talk_id, data_repo=data_repo)
                 except ValueError:
                     continue
-                talks.append((talk_id, talk_info))
+                talks.append((talk_id, _HINT_PRIORITY_FINISH_PLOT, talk_info))
     return talks
+
+
+def _is_hidden_step(desc_hash: int, *, data_repo: repo.DataRepo) -> bool:
+    """Whether a subQuest is a dev/test/hidden step (a ``$HIDDEN``/bridge marker).
+
+    Such steps carry meaningless ``order`` numbers, so a talk's ``beginCond``
+    pointing at one is an internal trigger rather than a real playback location.
+    The markers live only in the CHS (source) desc text, like quest titles.
+    """
+    return (
+        chs := data_repo.load_source_text_map().get_optional(str(desc_hash))
+    ) is not None and text_utils.should_skip_text(chs, localization.Language.CHS)
 
 
 def _resolve_step_description(
@@ -232,9 +271,7 @@ def _resolve_step_description(
     test/hidden steps are filtered against the CHS source text (like quest titles)
     so non-CHS corpora exclude the same steps.
     """
-    if (
-        chs := data_repo.load_source_text_map().get_optional(str(desc_hash))
-    ) is not None and text_utils.should_skip_text(chs, localization.Language.CHS):
+    if _is_hidden_step(desc_hash, data_repo=data_repo):
         return None
     text = data_repo.load_text_map().get_optional(str(desc_hash))
     return text if text and text.strip() else None
@@ -324,21 +361,32 @@ def get_quest_info(
         else:
             chapter_title = get_chapter_title(chapter, data_repo=data_repo)
 
-    # Place each talk at the quest step (subQuest `order`) whose finish condition
-    # points at it. The talk a step shows is the finish-condition param, NOT the
-    # subId (subId only matches the talk id by coincidence of the shared
-    # <questId><incremental> numbering, so it is an unreliable pointer).
-    # A talk may be referenced by several steps; place it at the earliest one,
-    # since later references are completion/rewind gates checking an already
-    # played talk rather than fresh playbacks. `seq` records first-insertion
-    # order to keep same-step talks in their discovered sequence. `desc` is the
-    # placing step's objective text, shown above its dialogue. A subQuest with no
-    # talk but a usable objective becomes a non-dialogue objective step.
-    placed: dict[str, tuple[int, int, str | None, types.TalkInfo]] = {}
+    # Resolve where each talk a quest declares actually plays. A talk's
+    # `beginCond` names the subQuest it starts on (its true playback location);
+    # quest `talks` entries provide it. The finish-condition param, NOT the subId,
+    # names the talk a step references (subId matches a talk id only by coincidence
+    # of the shared <questId><incremental> numbering, so it is an unreliable
+    # pointer).
+    subid_to_order = {
+        subquest["subId"]: subquest["order"] for subquest in quest_data["subQuests"]
+    }
+    talk_begin_order = {
+        str(talk_item["id"]): begin
+        for talk_item in quest_data["talks"]
+        if (begin := _begin_subquest_order(talk_item, subid_to_order)) is not None
+    }
+
+    # Collect every placement hint for every talk, from both sources, into one set.
+    # A finish condition names the step a talk COMPLETES (FINISH_PLOT /
+    # COMPLETE_TALK priority); a talk's own `beginCond` (from the quest `talks`
+    # field) names the step it STARTS playing on — its true location, hence top
+    # priority. Track hidden/test steps, whose `order` numbers are meaningless.
+    talk_hints: dict[str, list[_PlacementHint]] = {}
+    talk_infos: dict[str, types.TalkInfo] = {}
     order_to_desc: dict[int, str | None] = {}
-    objective_steps: list[tuple[int, int, str]] = []
-    for subquest in quest_data.get("subQuests", []):
-        order_index = subquest.get("order", 0)
+    hidden_orders: set[int] = set()
+    for subquest in quest_data["subQuests"]:
+        order_index = subquest["order"]
         desc = _resolve_step_description(
             subquest["descTextMapHash"], data_repo=data_repo
         )
@@ -346,48 +394,94 @@ def get_quest_info(
             order_index not in order_to_desc
         ), f"duplicate subQuest order {order_index} in quest {quest_id}"
         order_to_desc[order_index] = desc
-        if subquest_talks := _iter_subquest_talks(subquest, data_repo=data_repo):
-            for talk_id, talk_info in subquest_talks:
-                if talk_id not in placed:
-                    placed[talk_id] = (order_index, len(placed), desc, talk_info)
-                elif order_index < placed[talk_id][0]:
-                    placed[talk_id] = (
-                        order_index,
-                        placed[talk_id][1],
-                        desc,
-                        talk_info,
-                    )
-        elif desc is not None:
-            objective_steps.append((order_index, len(objective_steps), desc))
+        if _is_hidden_step(subquest["descTextMapHash"], data_repo=data_repo):
+            hidden_orders.add(order_index)
+        for talk_id, priority, talk_info in _iter_subquest_talks(
+            subquest, data_repo=data_repo
+        ):
+            talk_hints.setdefault(talk_id, []).append(
+                _PlacementHint(order_index, priority)
+            )
+            talk_infos.setdefault(talk_id, talk_info)
 
-    # Lead-in talks play during a step but don't complete it, so finishCond never
-    # names them. Place them at the step their own `beginCond` activates on, ahead
-    # of that step's completing talk. Talks whose beginCond resolves to no subquest
-    # of this quest (e.g. cross-quest references) fall back to a separate section.
-    subid_to_order = {
-        subquest["subId"]: subquest.get("order", 0)
-        for subquest in quest_data.get("subQuests", [])
+    # The orders where each talk completes a step (its finish-condition hints); a
+    # talk placed elsewhere (at a beginCond order it does not finish) is a lead-in.
+    finish_orders = {
+        talk_id: {hint.order for hint in hints} for talk_id, hints in talk_hints.items()
     }
-    begin_talk_infos: list[tuple[int, int, str | None, types.TalkInfo]] = []
+
+    # Fold every quest-declared talk into the same hint set via its beginCond.
+    # beginCond is the talk's true start, so a top-priority hint — except when it
+    # points at a hidden/test step (an internal trigger), which is ignored only if
+    # the talk has a real finishCond placement to fall back on (otherwise beginCond
+    # is the sole signal). A talk with neither a finish condition nor a usable
+    # beginCond has no anchor in this quest and is rendered in a separate section.
     non_subquest_talk_infos: list[types.TalkInfo] = []
-    for idx, talk_item in enumerate(quest_data.get("talks", [])):
-        talk_id_str = str(talk_item["id"])
-
-        # Already placed by a finish condition; keep that placement.
-        if talk_id_str in placed:
+    for talk_item in quest_data["talks"]:
+        talk_id = str(talk_item["id"])
+        # The order to anchor this talk's beginCond hint at, or None for no usable
+        # beginCond: a hidden/test trigger is ignored only when a finishCond
+        # placement can stand in for it.
+        begin_anchor = (
+            begin
+            if (begin := talk_begin_order.get(talk_id)) is not None
+            and (begin not in hidden_orders or talk_id not in finish_orders)
+            else None
+        )
+        # Already hinted by a finish condition: just add the beginCond hint (if
+        # any) and move on. Such a talk is anchored to this quest, so it must never
+        # fall through to `non_subquest_talk_infos` below.
+        if talk_id in talk_hints:
+            if begin_anchor is not None:
+                talk_hints[talk_id].append(
+                    _PlacementHint(begin_anchor, _HINT_PRIORITY_BEGIN_COND)
+                )
             continue
-
-        # These talks are explicitly declared by the quest, so they must load;
-        # a failure is a genuine data gap and should surface as a hard error.
-        talk_info = get_talk_info_by_id(talk_id_str, data_repo=data_repo)
+        # A talk the quest declares must load; a failure is a genuine data gap.
+        talk_info = get_talk_info_by_id(talk_id, data_repo=data_repo)
         if not talk_info.text:
             continue
-        if (begin_order := _begin_subquest_order(talk_item, subid_to_order)) is None:
-            non_subquest_talk_infos.append(talk_info)
+        if begin_anchor is not None:
+            talk_hints[talk_id] = [
+                _PlacementHint(begin_anchor, _HINT_PRIORITY_BEGIN_COND)
+            ]
+            talk_infos[talk_id] = talk_info
         else:
-            begin_talk_infos.append(
-                (begin_order, idx, order_to_desc.get(begin_order), talk_info)
-            )
+            non_subquest_talk_infos.append(talk_info)
+
+    # Place each talk at its highest-priority hinted step (earliest order breaks
+    # ties). A talk placed at a step it does not itself finish is a lead-in there
+    # (it plays during the step but another talk completes it). `desc` is that
+    # step's objective text. `tiebreak` orders talks sharing a step: completing
+    # talks by finishCond discovery order, lead-ins by their order in the quest
+    # `talks` field (a lead-in always has a beginCond, so it is listed there).
+    talk_order = {
+        str(talk_item["id"]): idx for idx, talk_item in enumerate(quest_data["talks"])
+    }
+    placed: dict[str, tuple[int, int, str | None, types.TalkInfo, bool]] = {}
+    for seq, (talk_id, hints) in enumerate(talk_hints.items()):
+        best = max(hints, key=lambda h: (h.priority, -h.order))
+        is_lead_in = best.order not in finish_orders.get(talk_id, frozenset())
+        placed[talk_id] = (
+            best.order,
+            talk_order[talk_id] if is_lead_in else seq,
+            order_to_desc[best.order],
+            talk_infos[talk_id],
+            is_lead_in,
+        )
+
+    # A subQuest whose objective text is usable but that no talk *completes*
+    # becomes a non-dialogue objective step — covering subQuests with no talk,
+    # ones whose only (FINISH_PLOT) talk relocated, and ones hosting only lead-ins,
+    # so the step keeps its objective line instead of vanishing with the talk.
+    owning_orders = {
+        order for order, _, _, _, is_lead_in in placed.values() if not is_lead_in
+    }
+    objective_steps = [
+        (order_index, seq, desc)
+        for seq, (order_index, desc) in enumerate(order_to_desc.items())
+        if desc is not None and order_index not in owning_orders
+    ]
 
     # Interleave talk and objective steps by `order`. Within one order, lead-ins
     # (group 0) precede the completing talk (group 1). Objectives (group 2) arise
@@ -399,30 +493,16 @@ def get_quest_info(
             [
                 (
                     order_index,
-                    0,
-                    idx,
-                    types.QuestStep(
-                        order=order_index,
-                        is_lead_in=True,
-                        description=desc,
-                        talk=info,
-                    ),
-                )
-                for order_index, idx, desc, info in begin_talk_infos
-            ]
-            + [
-                (
-                    order_index,
-                    1,
+                    0 if is_lead_in else 1,
                     seq,
                     types.QuestStep(
                         order=order_index,
-                        is_lead_in=False,
+                        is_lead_in=is_lead_in,
                         description=desc,
                         talk=info,
                     ),
                 )
-                for order_index, seq, desc, info in placed.values()
+                for order_index, seq, desc, info, is_lead_in in placed.values()
                 if info.text
             ]
             + [
