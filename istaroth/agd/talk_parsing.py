@@ -210,8 +210,9 @@ class TalkParser:
         copy, distinct Coop hangouts reusing a local id, or the same id in
         ``Quest`` and ``Npc``). Resolution, in order: (1) the file whose
         ``initDialog`` dialog actually carries text, when exactly one qualifies;
-        (2) an arbitrary pick when the text-bearing files are byte-identical;
-        (3) otherwise the talkId is genuinely ambiguous and is dropped. Dialogs
+        (2) when the text-bearing files are equivalent, the canonically-named
+        ``<talkId>.json`` copy over a hash-named one; (3) otherwise the talkId
+        is genuinely ambiguous and is dropped. Dialogs
         are loaded (deobfuscated) only for colliding ids, which also warms the
         cache for later rendering.
         """
@@ -248,8 +249,16 @@ class TalkParser:
 
             textful = [p for p in usable if signatures[p].text_ids]
             if len({signatures[p].dialogs for p in textful}) <= 1:
-                # Byte-identical (or all empty): any copy is equivalent.
-                self.talk_id_to_path[talk_id] = min(textful or usable)
+                # Equivalent content (byte-identical or all empty): prefer the
+                # canonically-named `<talkId>.json` copy over a hash-named one.
+                # They share the same (id, content-hash) signature but can come
+                # from different builds, and the hash-named copy may use a
+                # newer/unmapped obfuscation key (e.g. a missing nextDialogs),
+                # so the canonical name is the safer authoritative pick.
+                self.talk_id_to_path[talk_id] = min(
+                    textful or usable,
+                    key=lambda p: (pathlib.Path(p).stem != talk_id, p),
+                )
                 stats["deduped"] += 1
                 continue
 

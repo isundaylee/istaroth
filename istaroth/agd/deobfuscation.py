@@ -88,6 +88,7 @@ _COMMON_FIELD_MAPPINGS = {
     "AIGJBMCHCJG": "talkContentTextMapHash",
     "BMFGJJJPBBC": "talkRoleNameTextMapHash",
     "PIBKEGJOJHN": "talkRole",
+    "GBLICFDCPCK": "nextDialogs",
     "JJCCNELFGMF": "configId",
     # CNRELWin6.6.0_R44873995_S44916582_D44916582
     "LBCEBBMAHEI": "activityId",
