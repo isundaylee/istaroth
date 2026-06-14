@@ -52,6 +52,15 @@ scripts/agd_tools.py generate-all /path/to/text/files/output
 scripts/rag_tools.py build /path/to/text/files/output /path/to/checkpoint/output
 ```
 
+### Building & releasing for distribution
+
+Released checkpoints are built by the **Build and Release Checkpoint** GitHub
+Actions workflow (`.github/workflows/build-checkpoint.yml`), triggered manually
+via *workflow_dispatch*. It builds the committed `text/` corpus with the
+DeepInfra embedding backend on a standard runner (no GPU) and publishes a
+`checkpoint/YYYYMMDD-<commit>` release with `chs.tar.gz` / `eng.tar.gz` assets.
+Requires the `DEEPINFRA_API_KEY` repository secret.
+
 ## Docker Compose (Dev)
 
 Runs all services in Docker with source code mounted from the host for live-reload. No pre-built images needed — dependencies are installed into Docker volumes via `uv sync` (backend) and `npm ci` (frontend). API keys and config are read from the repo-root `.env.common` and `.env.web` files; container-specific paths (checkpoint, DB) are overridden in the compose file.

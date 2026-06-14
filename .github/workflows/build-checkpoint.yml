@@ -1,0 +1,70 @@
+name: Build and Release Checkpoint
+
+on:
+  workflow_dispatch:
+    inputs:
+      languages:
+        description: "Languages to build (space-separated)"
+        default: "chs eng"
+      release:
+        description: "Create a GitHub release with the checkpoints"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-checkpoint:
+    runs-on: ubuntu-latest
+    environment: build-checkpoint
+    steps:
+    - name: Free disk space
+      uses: jlumbroso/free-disk-space@main
+      with:
+        tool-cache: false
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v5
+
+    - name: Install dependencies
+      run: uv sync --no-default-groups
+
+    - name: Build checkpoints
+      env:
+        ISTAROTH_EMBEDDINGS: deepinfra
+        DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
+        LANGUAGES: ${{ github.event.inputs.languages || 'chs eng' }}
+      run: |
+        mkdir -p tmp/checkpoints
+        for lang in $LANGUAGES; do
+          scripts/package_checkpoint.sh "text/$lang" "tmp/checkpoints/$lang"
+        done
+
+    - name: Upload checkpoint artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: checkpoints
+        path: tmp/checkpoints/*.tar.gz
+
+    - name: Create release
+      if: ${{ github.event.inputs.release == 'true' }}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        COMMIT=$(git rev-parse HEAD)
+        TAG="checkpoint/$(date +%Y%m%d)-${COMMIT}"
+        if gh release view "$TAG" >/dev/null 2>&1; then
+          echo "Release $TAG already exists; refusing to overwrite." >&2
+          exit 1
+        fi
+        gh release create "$TAG" \
+          --title "$TAG" \
+          --notes "Automated checkpoint release for commit ${COMMIT}" \
+          --target "$COMMIT" \
+          tmp/checkpoints/*.tar.gz
