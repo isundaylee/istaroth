@@ -168,6 +168,8 @@ export const chs = {
       IQ: '每日委托'
     },
     standalone: '独立任务',
-    questSeriesToc: '本系列任务'
+    questSeriesToc: '本系列任务',
+    questSearchPlaceholder: '搜索所有类型的任务...',
+    noSearchResults: '没有匹配的任务'
   }
 }
