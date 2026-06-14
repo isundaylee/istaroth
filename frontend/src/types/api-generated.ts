@@ -453,6 +453,8 @@ export interface components {
         ModelsResponse: {
             /** Models */
             models: string[];
+            /** Default */
+            default: string;
         };
         /**
          * QueryRequest

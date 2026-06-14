@@ -17,4 +17,7 @@ router = APIRouter()
 @handle_unexpected_exception
 async def get_models() -> models.ModelsResponse:
     """Get list of available models."""
-    return models.ModelsResponse(models=llm_manager.get_available_models())
+    return models.ModelsResponse(
+        models=llm_manager.get_available_models(),
+        default=llm_manager.get_default_model(),
+    )

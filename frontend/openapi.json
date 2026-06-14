@@ -944,11 +944,16 @@
             },
             "type": "array",
             "title": "Models"
+          },
+          "default": {
+            "type": "string",
+            "title": "Default"
           }
         },
         "type": "object",
         "required": [
-          "models"
+          "models",
+          "default"
         ],
         "title": "ModelsResponse",
         "description": "Response model for available models endpoint."

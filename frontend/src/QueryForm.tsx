@@ -83,9 +83,9 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
         if (res.ok) {
           const data = await res.json() as ModelsResponse
           setAvailableModels(data.models)
-          // Set default to first model if available
+          // Pre-select the backend-provided default
           if (data.models.length > 0) {
-            setSelectedModel(data.models[0])
+            setSelectedModel(data.default)
           }
         } else {
           console.error('Failed to fetch models from server')

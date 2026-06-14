@@ -7,6 +7,9 @@ from langchain_core import language_models, messages
 from langchain_google_genai import chat_models as google_chat_models
 from langchain_openai import chat_models as openai_llms
 
+# Default model when ISTAROTH_PIPELINE_MODEL is unset
+_DEFAULT_PIPELINE_MODEL = "gemini-3.1-flash-lite-preview"
+
 # All technically supported models in order of decreasing speed
 _ALL_SUPPORTED_MODELS: list[str] = [
     "gemini-3.1-flash-lite-preview",  # Fastest
@@ -87,6 +90,17 @@ def get_available_models() -> list[str]:
     return _available_models_cache
 
 
+def get_default_model() -> str:
+    """Get the model ID to pre-select in the UI, from ISTAROTH_PIPELINE_MODEL.
+
+    Falls back to the fastest available model when the configured default is not
+    among the available models.
+    """
+    available_models = get_available_models()
+    default = os.environ.get("ISTAROTH_PIPELINE_MODEL", _DEFAULT_PIPELINE_MODEL)
+    return default if default in available_models else available_models[0]
+
+
 def create_llm(model_name: str, **kwargs) -> language_models.BaseLanguageModel:
     """Create LLM instance for the specified model name."""
     available_models = get_available_models()
@@ -118,15 +132,11 @@ def create_llm(model_name: str, **kwargs) -> language_models.BaseLanguageModel:
 class LLMManager:
     """Manager for multiple LLM instances with lazy loading and caching."""
 
-    def __init__(self, default_model: str | None = None):
+    def __init__(self):
         """Initialize LLM manager with empty cache."""
         self._llm_cache: dict[str, language_models.BaseLanguageModel] = {}
-        self._default_model = typing.cast(
-            str,
-            default_model
-            or os.environ.get(
-                "ISTAROTH_PIPELINE_MODEL", "gemini-3.1-flash-lite-preview"
-            ),
+        self._default_model = os.environ.get(
+            "ISTAROTH_PIPELINE_MODEL", _DEFAULT_PIPELINE_MODEL
         )
 
     def get_default_llm(self, **kwargs) -> language_models.BaseLanguageModel:

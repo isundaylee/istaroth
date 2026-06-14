@@ -78,6 +78,7 @@ class ModelsResponse(BaseModel):
     """Response model for available models endpoint."""
 
     models: list[str]
+    default: str
 
 
 class ExampleQuestionRequest(BaseModel):
