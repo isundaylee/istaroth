@@ -26,7 +26,8 @@ export const eng = {
     submitting: 'Answering',
     models: {
       'gemini-3_1-flash-lite-preview': 'Ultra Fast (gemini-3.1-flash-lite-preview)',
-      'gemini-3-flash-preview': 'Fast (gemini-3-flash-preview)',
+      'gemini-3-flash-preview:minimal': 'Fast (gemini-3-flash, minimal thinking)',
+      'gemini-3-flash-preview:high': 'Fast (gemini-3-flash, high thinking)',
       'gpt-5-nano': 'Fast (gpt-5-nano)',
       'gpt-5-mini': 'Medium (gpt-5-mini)',
       'gemini-3_1-pro-preview': 'Slow (gemini-3.1-pro-preview)'

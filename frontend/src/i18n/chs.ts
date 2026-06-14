@@ -26,7 +26,8 @@ export const chs = {
     submitting: '回答中',
     models: {
       'gemini-3_1-flash-lite-preview': '超快速 (gemini-3.1-flash-lite-preview)',
-      'gemini-3-flash-preview': '快速 (gemini-3-flash-preview)',
+      'gemini-3-flash-preview:minimal': '快速 (gemini-3-flash, 极简思考)',
+      'gemini-3-flash-preview:high': '快速 (gemini-3-flash, 深度思考)',
       'gpt-5-nano': '快速 (gpt-5-nano)',
       'gpt-5-mini': '中速 (gpt-5-mini)',
       'gemini-3_1-pro-preview': '慢速 (gemini-3.1-pro-preview)'

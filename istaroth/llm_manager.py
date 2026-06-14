@@ -16,8 +16,26 @@ _ALL_SUPPORTED_MODELS: list[str] = [
     "gemini-3.1-pro-preview",  # Slowest
 ]
 
-# Cache for available models from environment
-_available_models_cache: set[str] | None = None
+# Base models exposed as one selectable variant per thinking level, mapped to
+# their offered levels in order of increasing reasoning depth (and latency).
+# Models absent here still think, but use the provider default and aren't expanded.
+_GEMINI_THINKING_LEVEL_EXPANDED_MODELS: dict[str, list[str]] = {
+    "gemini-3-flash-preview": ["minimal", "high"],
+}
+
+# Cache for the expanded, speed-ordered available models from environment
+_available_models_cache: list[str] | None = None
+
+
+def _expand_models(base_models: list[str]) -> list[str]:
+    """Expand level-expanded base models into one variant per thinking level."""
+    expanded: list[str] = []
+    for model in base_models:
+        if levels := _GEMINI_THINKING_LEVEL_EXPANDED_MODELS.get(model):
+            expanded.extend(f"{model}:{level}" for level in levels)
+        else:
+            expanded.append(model)
+    return expanded
 
 
 def get_available_models() -> list[str]:
@@ -33,7 +51,7 @@ def get_available_models() -> list[str]:
     global _available_models_cache
 
     if _available_models_cache is not None:
-        return sorted(_available_models_cache)
+        return _available_models_cache
 
     models_env = os.environ.get("ISTAROTH_AVAILABLE_MODELS")
     if not models_env:
@@ -45,7 +63,8 @@ def get_available_models() -> list[str]:
 
     # Check for special value
     if models_env.strip().lower() == "all":
-        return _ALL_SUPPORTED_MODELS.copy()
+        _available_models_cache = _expand_models(_ALL_SUPPORTED_MODELS)
+        return _available_models_cache
 
     # Parse comma-separated list
     requested_models = {m.strip() for m in models_env.split(",") if m.strip()}
@@ -61,11 +80,11 @@ def get_available_models() -> list[str]:
             f"Supported models are: {', '.join(_ALL_SUPPORTED_MODELS)}"
         )
 
-    _available_models_cache = requested_models
-    # Return in speed order (preserve order from _ALL_SUPPORTED_MODELS)
-    return [
-        model for model in _ALL_SUPPORTED_MODELS if model in _available_models_cache
-    ]
+    # Cache in speed order (preserve order from _ALL_SUPPORTED_MODELS), expanded
+    _available_models_cache = _expand_models(
+        [model for model in _ALL_SUPPORTED_MODELS if model in requested_models]
+    )
+    return _available_models_cache
 
 
 def create_llm(model_name: str, **kwargs) -> language_models.BaseLanguageModel:
@@ -79,14 +98,19 @@ def create_llm(model_name: str, **kwargs) -> language_models.BaseLanguageModel:
 
     implied_kwargs: dict[str, typing.Any] = {"max_retries": 1}
 
+    # Split off an optional ":<thinking-level>" suffix (e.g. gemini-3-flash-preview:low)
+    base_model, _, thinking_level = model_name.partition(":")
+
     # Google models
-    if model_name.startswith("gemini-"):
+    if base_model.startswith("gemini-"):
+        if thinking_level and base_model in _GEMINI_THINKING_LEVEL_EXPANDED_MODELS:
+            implied_kwargs["thinking_level"] = thinking_level
         return google_chat_models.ChatGoogleGenerativeAI(
-            model=model_name, **implied_kwargs, **kwargs
+            model=base_model, **implied_kwargs, **kwargs
         )
     # OpenAI models
-    elif model_name.startswith("gpt-"):
-        return openai_llms.ChatOpenAI(model=model_name, **implied_kwargs, **kwargs)
+    elif base_model.startswith("gpt-"):
+        return openai_llms.ChatOpenAI(model=base_model, **implied_kwargs, **kwargs)
     else:
         raise ValueError(f"Unknown model provider for '{model_name}'.")
 
