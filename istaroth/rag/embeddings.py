@@ -4,10 +4,14 @@ import functools
 import logging
 import os
 
+import anyio
 import pydantic
 from langchain_core import embeddings as lc_embeddings
 
 logger = logging.getLogger(__name__)
+
+_EMBED_BATCH_SIZE = 256
+"""Texts per embedding request when building, to bound each API request."""
 
 
 @functools.cache
@@ -39,3 +43,39 @@ def create_embeddings() -> lc_embeddings.Embeddings:
             )
         case _:
             raise ValueError(f"Unknown ISTAROTH_EMBEDDINGS: {backend}")
+
+
+async def _aembed_documents_batched(
+    emb: lc_embeddings.Embeddings, texts: list[str], *, concurrency: int
+) -> list[list[float]]:
+    batches = [
+        texts[i : i + _EMBED_BATCH_SIZE]
+        for i in range(0, len(texts), _EMBED_BATCH_SIZE)
+    ]
+    results: list[list[list[float]] | None] = [None] * len(batches)
+    limiter = anyio.CapacityLimiter(concurrency)
+
+    async def _embed(idx: int, batch: list[str]) -> None:
+        async with limiter:
+            results[idx] = await emb.aembed_documents(batch)
+
+    async with anyio.create_task_group() as tg:
+        for idx, batch in enumerate(batches):
+            tg.start_soon(_embed, idx, batch)
+
+    flattened: list[list[float]] = []
+    for batch_result in results:
+        assert batch_result is not None
+        flattened.extend(batch_result)
+    return flattened
+
+
+def embed_documents_parallel(
+    emb: lc_embeddings.Embeddings, texts: list[str], *, concurrency: int
+) -> list[list[float]]:
+    """Embed documents in bounded batches with up to ``concurrency`` requests in flight."""
+    return anyio.run(
+        functools.partial(
+            _aembed_documents_batched, emb, texts, concurrency=concurrency
+        )
+    )

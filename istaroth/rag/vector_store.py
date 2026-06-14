@@ -68,7 +68,9 @@ class VectorStore(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def build(cls, documents: list[tuple[str, types.DocumentMetadata]]) -> Self:
+    def build(
+        cls, documents: list[tuple[str, types.DocumentMetadata]], *, concurrency: int
+    ) -> Self:
         """Build vector store from document tuples."""
         ...
 
@@ -127,7 +129,10 @@ class ChromaVectorStore(ChromaBaseVectorStore):
 
     @classmethod
     def build(
-        cls, documents: list[tuple[str, types.DocumentMetadata]]
+        cls,
+        documents: list[tuple[str, types.DocumentMetadata]],
+        *,
+        concurrency: int,
     ) -> "ChromaVectorStore":
         """Build vector store from document tuples."""
         with utils.timer(
@@ -149,8 +154,10 @@ class ChromaVectorStore(ChromaBaseVectorStore):
                 texts = [text for text, _ in documents]
                 metadatas = [metadata for _, metadata in documents]
 
-                # Compute embeddings
-                embeddings_list = emb.embed_documents(texts)
+                # Compute embeddings in parallel, bounded-size batches
+                embeddings_list = embeddings.embed_documents_parallel(
+                    emb, texts, concurrency=concurrency
+                )
 
                 # Add documents in batches to avoid ChromaDB batch size limits
                 batch_size = 5000
@@ -225,9 +232,11 @@ class ChromaExternalVectorStore(ChromaBaseVectorStore):
             return cls(emb, client, collection)
 
     @classmethod
-    def build(cls, documents: list[tuple[str, types.DocumentMetadata]]) -> Self:
+    def build(
+        cls, documents: list[tuple[str, types.DocumentMetadata]], *, concurrency: int
+    ) -> Self:
         """Not supported for external vector store."""
-        del documents  # Unused parameter
+        del documents, concurrency  # Unused parameters
         raise NotImplementedError(
             "build() is not supported for external Chroma store. "
             "Use create() with an API address instead."
