@@ -411,15 +411,17 @@ def _render_talk_dialogs(
         if len(branch_lines_list) == 1:
             lines.extend(branch_lines_list[0])
         else:
+            # Render each option's lines as a markdown blockquote so the grouping
+            # survives markdown rendering (leading-space indentation is stripped by
+            # markdown). Blank lines around each quote keep the labels and the
+            # convergence tail from being absorbed into a quote via markdown's lazy
+            # continuation rule.
             for i, branch_lines in enumerate(branch_lines_list, 1):
-                option_label = f"Option {i}:"
-                option_indent = "    "
-                lines.append(f"{option_indent}{option_label}")
-
-                branch_indent = "    " * 2
-                lines.extend(
-                    f"{branch_indent}{branch_line}" for branch_line in branch_lines
-                )
+                lines.append("")
+                lines.append(f"Option {i}:")
+                lines.append("")
+                lines.extend(f"> {branch_line}" for branch_line in branch_lines)
+            lines.append("")
 
     return lines
 

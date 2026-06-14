@@ -193,12 +193,17 @@ def test_render_talk_branching_convergence() -> None:
         # Talk Dialog
 
         NPC: Line 1
-            Option 1:
-                Player: Line 2a
-                NPC: Line 3a
-            Option 2:
-                Player: Line 2b
-                NPC: Line 3b
+
+        Option 1:
+
+        > Player: Line 2a
+        > NPC: Line 3a
+
+        Option 2:
+
+        > Player: Line 2b
+        > NPC: Line 3b
+
         NPC: Line 4
     """
     ).strip()
@@ -242,14 +247,21 @@ def test_render_talk_nested_branches() -> None:
         # Talk Dialog
 
         NPC: Line 1
-            Option 1:
-                Player: Line 2
-                NPC: Line 4
-            Option 2:
-                Player: Line 3
-            Option 3:
-                Player: Line 2
-                NPC: Line 5
+
+        Option 1:
+
+        > Player: Line 2
+        > NPC: Line 4
+
+        Option 2:
+
+        > Player: Line 3
+
+        Option 3:
+
+        > Player: Line 2
+        > NPC: Line 5
+
         NPC: Line 6
     """
     ).strip()
@@ -303,16 +315,23 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
         # Talk Dialog
 
         NPC: Start
-            Option 1:
-                Player: Branch 1
-            Option 2:
-                Player: Branch 2
-                NPC: Branch 2a
-                NPC: Convergence X
-            Option 3:
-                Player: Branch 2
-                NPC: Branch 2b
-                NPC: Convergence X
+
+        Option 1:
+
+        > Player: Branch 1
+
+        Option 2:
+
+        > Player: Branch 2
+        > NPC: Branch 2a
+        > NPC: Convergence X
+
+        Option 3:
+
+        > Player: Branch 2
+        > NPC: Branch 2b
+        > NPC: Convergence X
+
         NPC: Convergence Y
     """
     ).strip()
