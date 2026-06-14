@@ -4,7 +4,14 @@ import json
 import pathlib
 import typing
 
-from istaroth.agd import localization, repo, talk_parsing, text_utils, types
+from istaroth.agd import (
+    issues,
+    localization,
+    repo,
+    talk_parsing,
+    text_utils,
+    types,
+)
 
 # Priority of the signals that hint where a quest talk plays, lowest to highest.
 # FINISH_PLOT is a plot marker whose param often collides with an unrelated talk
@@ -42,10 +49,13 @@ def get_readable_metadata(
 
     title_hash = data_repo.build_localization_id_to_title_hash().get(localization_id)
     title = (
-        data_repo.load_text_map().get(str(title_hash), "Unknown Title")
-        if title_hash is not None
-        else "Unknown Title"
+        None
+        if title_hash is None
+        else data_repo.load_text_map().get_optional(str(title_hash))
     )
+    if title is None:
+        issues.record(issues.IssueType.MISSING_READABLE_TITLE, readable_id)
+        title = "Unknown Title"
 
     return types.ReadableMetadata(localization_id=localization_id, title=title)
 
@@ -132,6 +142,10 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
         # message with no role prefix.
         if role_type == "TALK_ROLE_NONE":
             return None
+        issues.record(
+            issues.IssueType.UNKNOWN_ROLE,
+            f"dialog {dialog_item['id']} role {role_type}",
+        )
         return f"{localized_roles.unknown_role} ({role_type})"
 
     # Process dialog items
@@ -139,10 +153,13 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
     for dialog_item in dialog_list:
         content_hash = str(dialog_item["talkContentTextMapHash"])
         next_dialog_ids = dialog_item.get("nextDialogs", [])
+        if (message := text_map.get_optional(content_hash)) is None:
+            issues.record(issues.IssueType.MISSING_TEXT, content_hash)
+            message = f"Missing text ({content_hash})"
         talk_texts.append(
             types.TalkText(
                 role=_get_role_name(dialog_item),
-                message=text_map.get(content_hash, f"Missing text ({content_hash})"),
+                message=message,
                 next_dialog_ids=next_dialog_ids,
                 dialog_id=dialog_item["id"],
             )
@@ -164,6 +181,7 @@ def _resolve_authoritative_talk(
     try:
         return get_talk_info_by_id(talk_id, data_repo=data_repo)
     except ValueError:
+        issues.record(issues.IssueType.MISSING_TALK, talk_id)
         return types.TalkInfo(
             text=[
                 types.TalkText(
@@ -309,7 +327,9 @@ def get_quest_info(
 
     # Resolve quest title and poetic description from their respective hashes.
     title_hash = quest_data["titleTextMapHash"]
-    quest_title = text_map.get(str(title_hash), f"Missing title ({title_hash})")
+    if (quest_title := text_map.get_optional(str(title_hash))) is None:
+        issues.record(issues.IssueType.MISSING_QUEST_TITLE, str(title_hash))
+        quest_title = f"Missing title ({title_hash})"
 
     # Surface the quest description only when it adds something beyond the title:
     # this guard drops empty descriptions and ones that merely repeat the title.
@@ -324,6 +344,7 @@ def get_quest_info(
         chapter_data = data_repo.load_chapter_excel_config_data()
 
         if (chapter := chapter_data.get(chapter_id)) is None:
+            issues.record(issues.IssueType.UNKNOWN_CHAPTER, str(chapter_id))
             chapter_title = f"Unknown Chapter {chapter_id}"
         else:
             chapter_title = get_chapter_title(chapter, data_repo=data_repo)
@@ -532,13 +553,15 @@ def get_character_story_info(
     fetter_data = data_repo.load_fetter_story_excel_config_data()
 
     # Find character name from avatar data
-    character_name = "Unknown Character"
+    character_name = None
     for avatar in avatar_data:
         if avatar["id"] == avatar_id:
-            name_hash = avatar.get("nameTextMapHash")
-            if name_hash:
-                character_name = text_map.get(str(name_hash), "Unknown Character")
+            if name_hash := avatar.get("nameTextMapHash"):
+                character_name = text_map.get_optional(str(name_hash))
             break
+    if character_name is None:
+        issues.record(issues.IssueType.UNKNOWN_CHARACTER, avatar_id_str)
+        character_name = "Unknown Character"
 
     # Collect all stories for this character
     stories = []
@@ -546,15 +569,21 @@ def get_character_story_info(
         if story["avatarId"] == avatar_id:
             # Get story title
             title_hash = story.get("storyTitleTextMapHash")
-            title = "Unknown Title"
-            if title_hash:
-                title = text_map.get(str(title_hash), "Unknown Title")
+            if (
+                title := text_map.get_optional(str(title_hash)) if title_hash else None
+            ) is None:
+                issues.record(issues.IssueType.MISSING_STORY_TITLE, str(title_hash))
+                title = "Unknown Title"
 
             # Get story content
             context_hash = story.get("storyContextTextMapHash")
-            content = "Story content not found"
-            if context_hash:
-                content = text_map.get(str(context_hash), "Story content not found")
+            if (
+                content := (
+                    text_map.get_optional(str(context_hash)) if context_hash else None
+                )
+            ) is None:
+                issues.record(issues.IssueType.MISSING_STORY_CONTENT, str(context_hash))
+                content = "Story content not found"
 
             stories.append(types.CharacterStory(title=title, content=content))
 
@@ -596,11 +625,15 @@ def get_material_info(
 
     # Get material name
     name_hash = str(material["nameTextMapHash"])
-    name = text_map.get(name_hash, "Unknown Material")
+    if (name := text_map.get_optional(name_hash)) is None:
+        issues.record(issues.IssueType.MISSING_MATERIAL_NAME, name_hash)
+        name = "Unknown Material"
 
     # Get material description
     desc_hash = str(material["descTextMapHash"])
-    description = text_map.get(desc_hash, "No description available")
+    if (description := text_map.get_optional(desc_hash)) is None:
+        issues.record(issues.IssueType.MISSING_MATERIAL_DESC, desc_hash)
+        description = "No description available"
 
     return types.MaterialInfo(
         material_id=material_id_str, name=name, description=description
@@ -619,12 +652,14 @@ def get_voiceline_info(
     fetters_data = data_repo.load_fetters_excel_config_data()
 
     # Find character name from avatar data
-    character_name = "Unknown Character"
+    character_name = None
     for avatar in avatar_data:
         if avatar["id"] == avatar_id:
-            name_hash = str(avatar["nameTextMapHash"])
-            character_name = text_map.get(name_hash, "Unknown Character")
+            character_name = text_map.get_optional(str(avatar["nameTextMapHash"]))
             break
+    if character_name is None:
+        issues.record(issues.IssueType.UNKNOWN_CHARACTER, avatar_id_str)
+        character_name = "Unknown Character"
 
     # Collect all voicelines for this character
     voicelines = {}
@@ -632,7 +667,9 @@ def get_voiceline_info(
         if fetter["avatarId"] == avatar_id:
             # Get voiceline title
             title_hash = str(fetter["voiceTitleTextMapHash"])
-            title = text_map.get(title_hash, "Unknown Title")
+            if (title := text_map.get_optional(title_hash)) is None:
+                issues.record(issues.IssueType.MISSING_VOICELINE_TITLE, title_hash)
+                title = "Unknown Title"
 
             # Get voiceline content
             content_hash = str(fetter["voiceFileTextTextMapHash"])
@@ -731,7 +768,9 @@ def get_artifact_set_info(
 
         # Get artifact name and description from text map
         name_hash = str(artifact_config["nameTextMapHash"])
-        name = text_map.get(name_hash, f"Unknown Artifact {artifact_id}")
+        if (name := text_map.get_optional(name_hash)) is None:
+            issues.record(issues.IssueType.UNKNOWN_ARTIFACT, str(artifact_id))
+            name = f"Unknown Artifact {artifact_id}"
 
         description = text_map.get(str(artifact_config["descTextMapHash"]), "")
 

@@ -6,7 +6,7 @@ from collections import defaultdict
 from typing import Iterator
 
 from istaroth import utils
-from istaroth.agd import localization, talk_parsing, text_utils, types
+from istaroth.agd import issues, localization, talk_parsing, text_utils, types
 from istaroth.text import types as text_types
 
 
@@ -403,6 +403,7 @@ def _process_branch(
             assert di is not None, "Unexpected None in path"
 
             if (text := graph.dialog_id_to_text.get(di)) is None:
+                issues.record(issues.IssueType.MISSING_DIALOG, str(di))
                 branch_lines.append(f"[Missing Dialog {di}]")
             else:
                 rendered.add(di)
@@ -450,6 +451,7 @@ def _render_talk_dialogs(
             ):
                 lines.append(line)
         else:
+            issues.record(issues.IssueType.MISSING_DIALOG, str(current_id))
             lines.append(f"[Missing Dialog {current_id}]")
             return lines
 
