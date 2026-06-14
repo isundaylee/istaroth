@@ -2,9 +2,12 @@
 """AGD tools for processing and rendering game content."""
 
 import functools
+import gc
 import json
+import logging
 import multiprocessing
 import multiprocessing.pool
+import os
 import pathlib
 import random
 import shutil
@@ -445,6 +448,12 @@ def generate_all(
     # Pre-compute expensive mappings in parent process for inheritance via fork
     data_repo.precompute_for_fork()
 
+    # Disable gc before forking: the setting is inherited by workers, so no worker
+    # pays gc-pause overhead, and gc never traverses the huge inherited caches —
+    # which would otherwise dirty copy-on-write pages and inflate memory. This is a
+    # short-lived batch process, so leaked cycles are reclaimed at exit anyway.
+    gc.disable()
+
     # Explicitly set start method to 'fork' to ensure child processes inherit
     # the pre-computed mapping from parent memory
     multiprocessing.set_start_method("fork", force=True)
@@ -543,6 +552,14 @@ def generate_all(
         # Remove empty errors file
         if errors_file_path.exists():
             errors_file_path.unlink()
+
+    # Skip interpreter teardown: with gc disabled and the large forked caches still
+    # alive, normal shutdown wastes seconds finalizing objects we're about to
+    # discard. Flush first since os._exit bypasses atexit and buffer flushing.
+    sys.stdout.flush()
+    sys.stderr.flush()
+    logging.shutdown()
+    os._exit(0)
 
 
 @cli.group(name="render")

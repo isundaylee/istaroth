@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import functools
+import itertools
 import json
 import logging
 import os
@@ -281,6 +282,45 @@ class DataRepo:
             return data  # type: ignore[return-value]
 
     @functools.lru_cache(maxsize=None)
+    def build_readable_stem_to_localization_id(self) -> dict[str, int]:
+        """Map a readable file stem to its localization id for the instance language.
+
+        Inverts the per-readable linear scan over LocalizationExcelConfigData into a
+        single pass so readable-metadata lookups become O(1). First entry wins, which
+        matches the original break-on-first-match behavior.
+        """
+        language_short = self.language_short
+        mapping: dict[str, int] = {}
+        for entry in self.load_localization_excel_config_data():
+            for path_value in entry.values():
+                if not isinstance(path_value, str):
+                    continue
+                path = pathlib.Path(path_value)
+                if (
+                    path_value.endswith(f"_{language_short}")
+                    or language_short in path.parts
+                ):
+                    mapping.setdefault(path.name, entry["id"])
+        return mapping
+
+    @functools.lru_cache(maxsize=None)
+    def build_localization_id_to_title_hash(self) -> dict[int, int]:
+        """Map a localization id to its document title hash.
+
+        Inverts the per-readable linear scan over DocumentExcelConfigData; first
+        document wins per id, matching the original break-on-first-match behavior.
+        """
+        mapping: dict[int, int] = {}
+        for doc_item in self.load_document_excel_config_data():
+            for loc_id in itertools.chain(
+                doc_item.get("CUSTOM_addlLocalID", []),
+                doc_item["questContentLocalizedId"],
+                doc_item["questIDList"],
+            ):
+                mapping.setdefault(loc_id, doc_item["titleTextMapHash"])
+        return mapping
+
+    @functools.lru_cache(maxsize=None)
     def load_material_excel_config_data(self) -> MaterialTracker:
         """Load material Excel configuration data as MaterialTracker."""
         file_path = self.agd_path / "ExcelBinOutput" / "MaterialExcelConfigData.json"
@@ -350,6 +390,21 @@ class DataRepo:
         """
         self.build_talk_group_mapping()
         self.load_source_text_map()
+
+        # Warm the quest mapping (and, transitively, the load_quest_data cache it
+        # populates) so forked workers don't each re-glob and re-parse all quests.
+        self.build_quest_mapping()
+
+        # Warm the dialog-derived mapping so forked workers inherit it instead of
+        # each re-parsing the large dialog Excel config and rebuilding it by
+        # iterating over all of it. This transitively warms
+        # load_dialog_excel_config_data too.
+        self.get_dialog_id_to_role_name_hash_mapping()
+
+        # Warm the readable-metadata lookup maps so forked workers don't each
+        # re-scan the localization/document Excel configs once per readable.
+        self.build_readable_stem_to_localization_id()
+        self.build_localization_id_to_title_hash()
 
     @functools.lru_cache(maxsize=None)
     def load_talk_excel_config_data(self) -> types.TalkExcelConfigData:
@@ -476,25 +531,6 @@ class DataRepo:
                 npc_id_to_name[npc_id] = name
 
         return npc_id_to_name
-
-    @functools.lru_cache(maxsize=None)
-    def get_gadget_role_names_mapping(self) -> dict[tuple[str, str], str]:
-        """Get cached mapping from (gadget_id, content_hash) to role name."""
-        dialog_data = self.load_dialog_excel_config_data()
-        text_map = self.load_text_map()
-
-        gadget_role_names = {}
-        for dialog_item in dialog_data:
-            talk_role = dialog_item["talkRole"]
-            if talk_role["type"] == "TALK_ROLE_GADGET":
-                gadget_id = talk_role["id"]
-                content_hash = str(dialog_item["talkContentTextMapHash"])
-                role_name_hash = str(dialog_item["talkRoleNameTextMapHash"])
-                if (name := text_map.get_optional(role_name_hash)) is not None:
-                    # Use both gadget ID and content hash as key for precise matching
-                    gadget_role_names[(gadget_id, content_hash)] = name
-
-        return gadget_role_names
 
     @functools.lru_cache(maxsize=None)
     def get_dialog_id_to_role_name_hash_mapping(self) -> dict[int, int]:

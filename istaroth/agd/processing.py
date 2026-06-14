@@ -1,6 +1,5 @@
 """Processing functions for AGD data."""
 
-import itertools
 import json
 import pathlib
 import typing
@@ -31,57 +30,22 @@ def get_readable_metadata(
     """Retrieve metadata for a readable file."""
     # Extract readable identifier from path (e.g., "Book100" or "Weapon11101" from path)
     language_short = data_repo.language_short
-    path_obj = pathlib.Path(readable_path)
-    readable_stem = path_obj.stem
+    readable_stem = pathlib.Path(readable_path).stem
     readable_id = readable_stem.removesuffix(f"_{language_short}")
 
-    # Load required data files
-    localization_data = data_repo.load_localization_excel_config_data()
-    document_data = data_repo.load_document_excel_config_data()
-    text_map = data_repo.load_text_map()
-
-    # Step 1: Find localization ID for the readable
-    for entry in localization_data:
-        # Look through all fields to find one with a path ending in the target language_short
-        for _, path_value in entry.items():
-            if not isinstance(path_value, str):
-                continue
-
-            # CHS format: ART/UI/Readable/CHS/Book711
-            # ENG format: ART/UI/Readable/EN/Book711_EN
-            path = pathlib.Path(path_value)
-            if (
-                # Is it the right readable?
-                (path.name == readable_stem)
-                # Is it the right language?
-                and (
-                    path_value.endswith(f"_{language_short}")
-                    or (language_short in path.parts)
-                )
-            ):
-                localization_id = entry["id"]
-                break
-        else:
-            continue
-        break
-    else:
+    if (
+        localization_id := data_repo.build_readable_stem_to_localization_id().get(
+            readable_stem
+        )
+    ) is None:
         raise ValueError(f"Localization ID not found for readable: {readable_id}")
 
-    # Step 2: Find document entry using localization ID
-    for doc_item in document_data:
-        if localization_id in list(
-            itertools.chain(
-                doc_item.get("CUSTOM_addlLocalID", []),
-                doc_item["questContentLocalizedId"],
-                doc_item["questIDList"],
-            )
-        ):
-            # Step 3: Get title from document's titleTextMapHash
-            title_hash = str(doc_item["titleTextMapHash"])
-            title = text_map.get(title_hash, "Unknown Title")
-            break
-    else:
-        title = f"Unknown Title"
+    title_hash = data_repo.build_localization_id_to_title_hash().get(localization_id)
+    title = (
+        data_repo.load_text_map().get(str(title_hash), "Unknown Title")
+        if title_hash is not None
+        else "Unknown Title"
+    )
 
     return types.ReadableMetadata(localization_id=localization_id, title=title)
 
