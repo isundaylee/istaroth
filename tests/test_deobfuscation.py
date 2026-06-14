@@ -102,8 +102,8 @@ def test_deobfuscate_talk_group_data(data_repo: repo.DataRepo) -> None:
 
 
 def test_deobfuscate_document_excel_config_data(data_repo: repo.DataRepo) -> None:
-    """Document Excel config is cleartext; the deobf pass must preserve the fields
-    DocumentExcelConfigDataItem exposes."""
+    """De-obfuscate DocumentExcelConfigData, covering the cleartext fields plus the
+    obfuscated page-2 localization id field."""
     deobfuscated_data = deobfuscation.deobfuscate_document_excel_config_data(
         _load_raw(data_repo, "ExcelBinOutput/DocumentExcelConfigData.json")
     )
@@ -113,10 +113,20 @@ def test_deobfuscate_document_excel_config_data(data_repo: repo.DataRepo) -> Non
     assert doc["questIDList"] == [200363]
     assert doc["questContentLocalizedId"] == [200565]
 
+    # A Paged weapon-story doc keeps its page-2 readable's localization id in an
+    # obfuscated field that rotates every build; the deobf pass must expose it as
+    # CUSTOM_addlLocalID so the second page resolves a title (issue #71). Asserting
+    # the deobfuscated output means this fails loudly on the next AGD bump if the
+    # rotated key isn't added to the mapping — the signal to add it.
+    weapon_doc = next(d for d in deobfuscated_data if d["id"] == 191431)  # 息燧之笛
+    assert weapon_doc["questContentLocalizedId"] == [291431]  # page 1 (cleartext)
+    assert weapon_doc["CUSTOM_addlLocalID"] == [291001]  # page 2 (was obfuscated)
+
     # load_document_excel_config_data returns the same structure.
+    loaded = data_repo.load_document_excel_config_data()
     assert (
-        next(
-            d for d in data_repo.load_document_excel_config_data() if d["id"] == 101733
-        )["titleTextMapHash"]
-        == 3763660007
+        next(d for d in loaded if d["id"] == 101733)["titleTextMapHash"] == 3763660007
     )
+    assert next(d for d in loaded if d["id"] == 191431)["CUSTOM_addlLocalID"] == [
+        291001
+    ]
