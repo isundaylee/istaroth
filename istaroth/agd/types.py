@@ -297,6 +297,7 @@ class ReliquaryExcelConfigDataItem(TypedDict):
     id: int
     nameTextMapHash: int
     descTextMapHash: NotRequired[int]
+    storyId: int
 
 
 class EquipAffixExcelConfigDataItem(TypedDict):

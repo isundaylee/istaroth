@@ -679,6 +679,48 @@ def get_voiceline_info(
     )
 
 
+def _get_relic_story_by_story_id(
+    story_id: int, *, data_repo: repo.DataRepo
+) -> str | None:
+    """Resolve a reliquary piece's relic story from its storyId.
+
+    Follows storyId -> DocumentExcelConfigData -> questIDList ->
+    LocalizationExcelConfigData -> readable file, returning None when the piece
+    has no story (storyId 0, no document, or no readable on disk).
+    """
+    if story_id == 0:
+        return None
+
+    if (
+        doc_item := next(
+            (
+                doc
+                for doc in data_repo.load_document_excel_config_data()
+                if doc["id"] == story_id
+            ),
+            None,
+        )
+    ) is None:
+        return None
+
+    localization_ids = set(doc_item["questIDList"])
+    language_short = data_repo.language_short
+    readables = data_repo.get_readables()
+    for entry in data_repo.load_localization_excel_config_data():
+        if entry["id"] not in localization_ids:
+            continue
+        for path_value in entry.values():
+            if not isinstance(path_value, str) or not path_value:
+                continue
+            path = pathlib.Path(path_value)
+            if (
+                path_value.endswith(f"_{language_short}")
+                or language_short in path.parts
+            ) and (content := readables.get_content(f"{path.name}.txt")) is not None:
+                return content
+    return None
+
+
 def get_artifact_set_info(
     set_id: str, *, data_repo: repo.DataRepo
 ) -> types.ArtifactSetInfo | None:
@@ -729,11 +771,16 @@ def get_artifact_set_info(
             desc_hash = str(artifact_config["descTextMapHash"])
             description = text_map.get(desc_hash, "")
 
-        # Get artifact story from Readable files
-        readables = data_repo.get_readables()
-        # Determine piece number within the set (1-5)
-        piece_num = artifact_ids.index(artifact_id) + 1
-        story = readables.get_relic_story(set_id, piece_num) or ""
+        # Resolve the relic story from the piece's storyId via the document ->
+        # localization -> readable chain, rather than assuming the story file
+        # number matches the piece's index within the set (which breaks for
+        # single-piece "prayer circlet" sets, see issue #65).
+        story = (
+            _get_relic_story_by_story_id(
+                artifact_config["storyId"], data_repo=data_repo
+            )
+            or ""
+        )
 
         # Create artifact info
         artifact_info = types.ArtifactInfo(
