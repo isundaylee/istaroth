@@ -56,16 +56,15 @@ def test_talk_7407811_info(data_repo: repo.DataRepo) -> None:
 
 
 def test_talk_6864003_narration_role(data_repo: repo.DataRepo) -> None:
-    """TALK_ROLE_NONE narration lines render with the narration label, not Unknown Role."""
+    """Speaker-less TALK_ROLE_NONE lines render with no role (None), not Unknown Role."""
     talk_info = processing.get_talk_info(
         "BinOutput/Talk/Gadget/6864003.json", data_repo=data_repo
     )
 
-    localized_roles = localization.get_localized_role_names(data_repo.language)
     roles = [text.role for text in talk_info.text]
 
-    assert localized_roles.narration in roles
-    assert all("TALK_ROLE_NONE" not in role for role in roles)
+    assert None in roles
+    assert all(role is None or "TALK_ROLE_NONE" not in role for role in roles)
 
 
 def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
@@ -88,7 +87,7 @@ def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
         assert step.talk is not None
         assert len(step.talk.text) > 0
         for talk_text in step.talk.text:
-            assert talk_text.role.strip()
+            assert talk_text.role is None or talk_text.role.strip()
             assert talk_text.message.strip()
 
     # 74078 has non-dialogue objective steps, each carrying objective text.
@@ -101,7 +100,7 @@ def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
     for talk_info in quest_info.non_subquest_talks:
         assert len(talk_info.text) > 0
         for talk_text in talk_info.text:
-            assert talk_text.role.strip()
+            assert talk_text.role is None or talk_text.role.strip()
             assert talk_text.message.strip()
 
 
@@ -129,7 +128,7 @@ def test_quest_10008_associated_free_talks(data_repo: repo.DataRepo) -> None:
     for talk_info in quest_info.associated_free_talks:
         assert len(talk_info.text) > 0
         for talk_text in talk_info.text:
-            assert talk_text.role.strip()
+            assert talk_text.role is None or talk_text.role.strip()
             assert talk_text.message.strip()
 
 
@@ -160,7 +159,7 @@ def test_english_language_support(english_data_repo: repo.DataRepo) -> None:
         assert len(talk_info.text) > 0
 
         # Check that player role is localized to English
-        roles = [text.role for text in talk_info.text]
+        roles = [text.role for text in talk_info.text if text.role is not None]
 
         # Player roles should be "Traveler" in English, not "旅行者"
         player_roles = [

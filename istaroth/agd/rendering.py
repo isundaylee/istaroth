@@ -222,6 +222,8 @@ def _render_dialog_line(
     """
     if text_utils.should_skip_text(talk_text.message, language):
         return None
+    if talk_text.role is None:
+        return talk_text.message
     return f"{talk_text.role}: {talk_text.message}"
 
 

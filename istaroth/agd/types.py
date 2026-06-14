@@ -329,7 +329,6 @@ class LocalizedRoleNames:
     player: str
     mate_avatar: str
     black_screen: str
-    narration: str
     unknown_npc: str
     unknown_role: str
 
@@ -346,7 +345,7 @@ class ReadableMetadata:
 class TalkText:
     """Individual talk dialog text."""
 
-    role: str
+    role: str | None
     message: str
     next_dialog_ids: list[int]
     dialog_id: int

@@ -111,7 +111,7 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
             case _:
                 return None
 
-    def _get_role_name(dialog_item: types.TalkDialogItem) -> str:
+    def _get_role_name(dialog_item: types.TalkDialogItem) -> str | None:
         talk_role = dialog_item["talkRole"]
         role_type = talk_role.get("type")
 
@@ -125,14 +125,14 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
             else:
                 return f"{by_role} ({by_name_hash})"
 
-        # TALK_ROLE_NONE is speaker-less narration / stage directions; when it has
-        # no resolvable name, label it as narration rather than an unknown role.
-        fallback = (
-            localized_roles.narration
-            if role_type == "TALK_ROLE_NONE"
-            else f"{localized_roles.unknown_role} ({role_type})"
-        )
-        return by_name_hash or by_role or fallback
+        if (resolved := by_name_hash or by_role) is not None:
+            return resolved
+
+        # TALK_ROLE_NONE is speaker-less narration / stage directions; render the
+        # message with no role prefix.
+        if role_type == "TALK_ROLE_NONE":
+            return None
+        return f"{localized_roles.unknown_role} ({role_type})"
 
     # Process dialog items
     talk_texts = []
