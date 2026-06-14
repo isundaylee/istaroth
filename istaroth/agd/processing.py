@@ -344,10 +344,8 @@ def get_quest_info(
         chapter_data = data_repo.load_chapter_excel_config_data()
 
         if (chapter := chapter_data.get(chapter_id)) is None:
-            issues.record(issues.IssueType.UNKNOWN_CHAPTER, str(chapter_id))
-            chapter_title = f"Unknown Chapter {chapter_id}"
-        else:
-            chapter_title = get_chapter_title(chapter, data_repo=data_repo)
+            raise ValueError(f"Unknown chapter {chapter_id} for quest {quest_path}")
+        chapter_title = get_chapter_title(chapter, data_repo=data_repo)
 
     # Resolve where each talk a quest declares actually plays. A talk's
     # `beginCond` names the subQuest it starts on (its true playback location);
@@ -560,8 +558,7 @@ def get_character_story_info(
                 character_name = text_map.get_optional(str(name_hash))
             break
     if character_name is None:
-        issues.record(issues.IssueType.UNKNOWN_CHARACTER, avatar_id_str)
-        character_name = "Unknown Character"
+        raise ValueError(f"Unknown character for avatar ID {avatar_id_str}")
 
     # Collect all stories for this character
     stories = []
@@ -572,8 +569,9 @@ def get_character_story_info(
             if (
                 title := text_map.get_optional(str(title_hash)) if title_hash else None
             ) is None:
-                issues.record(issues.IssueType.MISSING_STORY_TITLE, str(title_hash))
-                title = "Unknown Title"
+                raise ValueError(
+                    f"Missing story title {title_hash} for avatar ID {avatar_id_str}"
+                )
 
             # Get story content
             context_hash = story.get("storyContextTextMapHash")
@@ -658,8 +656,7 @@ def get_voiceline_info(
             character_name = text_map.get_optional(str(avatar["nameTextMapHash"]))
             break
     if character_name is None:
-        issues.record(issues.IssueType.UNKNOWN_CHARACTER, avatar_id_str)
-        character_name = "Unknown Character"
+        raise ValueError(f"Unknown character for avatar ID {avatar_id_str}")
 
     # Collect all voicelines for this character
     voicelines = {}
@@ -668,8 +665,9 @@ def get_voiceline_info(
             # Get voiceline title
             title_hash = str(fetter["voiceTitleTextMapHash"])
             if (title := text_map.get_optional(title_hash)) is None:
-                issues.record(issues.IssueType.MISSING_VOICELINE_TITLE, title_hash)
-                title = "Unknown Title"
+                raise ValueError(
+                    f"Missing voiceline title {title_hash} for avatar ID {avatar_id_str}"
+                )
 
             # Get voiceline content
             content_hash = str(fetter["voiceFileTextTextMapHash"])
@@ -769,8 +767,9 @@ def get_artifact_set_info(
         # Get artifact name and description from text map
         name_hash = str(artifact_config["nameTextMapHash"])
         if (name := text_map.get_optional(name_hash)) is None:
-            issues.record(issues.IssueType.UNKNOWN_ARTIFACT, str(artifact_id))
-            name = f"Unknown Artifact {artifact_id}"
+            raise ValueError(
+                f"Missing name for artifact ID {artifact_id} in set {set_id}"
+            )
 
         description = text_map.get(str(artifact_config["descTextMapHash"]), "")
 
