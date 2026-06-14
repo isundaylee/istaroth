@@ -11,9 +11,9 @@ _TYPE_ORDER = ["AQ", "LQ", "WQ", "EQ", "IQ"]
 
 
 def _chapter_title(chapter_id: int, *, data_repo: repo.DataRepo) -> str:
-    """Resolve a chapter title, falling back to a placeholder for unknown chapters."""
+    """Resolve a chapter's display title."""
     if (chapter := data_repo.load_chapter_excel_config_data().get(chapter_id)) is None:
-        return f"Unknown Chapter {chapter_id}"
+        raise ValueError(f"Unknown chapter {chapter_id}")
     return processing.get_chapter_title(chapter, data_repo=data_repo)
 
 
@@ -70,9 +70,9 @@ def _make_chapters(
             chapter_title=_chapter_title(cid, data_repo=data_repo),
             quests=_order_quests(
                 by_chapter[cid],
-                # chapter_buckets may hold ids absent from ChapterExcelConfigData
-                # (unknown chapters); those have no begin quest to seed from.
-                (chapters[cid]["beginQuestId"] if cid in chapters else 0) // 100,
+                # by_chapter ids all come from main-quest chapterIds, every one of
+                # which is present in ChapterExcelConfigData, so index strictly.
+                chapters[cid]["beginQuestId"] // 100,
                 main_quests=main_quests,
             ),
         )
