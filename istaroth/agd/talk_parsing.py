@@ -194,11 +194,11 @@ class TalkParser:
 
     @staticmethod
     def _init_dialog_map(talk_excel_data: types.TalkExcelConfigData) -> dict[str, int]:
-        """Map talkId -> initDialog for config entries that declare one."""
+        """Map talkId -> initDialog for config entries with a nonzero one."""
         return {
             str(entry["id"]): init_dialog
             for entry in talk_excel_data
-            if (init_dialog := entry.get("initDialog"))
+            if (init_dialog := entry["initDialog"])
         }
 
     def _resolve_talk_candidates(

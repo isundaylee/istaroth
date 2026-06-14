@@ -40,8 +40,7 @@ class DialogTalkRole(TypedDict):
     """Type definition for talk role in dialog entries."""
 
     type: str
-    id: NotRequired[str]
-    _id: NotRequired[int]
+    id: str
 
 
 class DialogExcelConfigDataItem(TypedDict):
@@ -127,7 +126,7 @@ class TalkExcelConfigDataItem(TypedDict):
     """Type definition for talk configuration entries."""
 
     id: int
-    initDialog: NotRequired[int]
+    initDialog: int
 
 
 TalkExcelConfigData: TypeAlias = list[TalkExcelConfigDataItem]
@@ -181,7 +180,7 @@ class QuestTalkItem(TypedDict):
     """Type definition for quest talk entries."""
 
     id: int
-    beginCond: NotRequired[list[BeginCondItem]]
+    beginCond: list[BeginCondItem]
 
 
 class FinishCondItem(TypedDict):
@@ -194,7 +193,7 @@ class FinishCondItem(TypedDict):
 
     damageRatio: str
     param: list[int]
-    count: NotRequired[int]
+    count: int
     CUSTOM_paramStr: NotRequired[str]
 
 
@@ -209,7 +208,7 @@ class SubQuestItem(TypedDict):
     subId: int
     order: int
     descTextMapHash: int
-    finishCond: NotRequired[list[FinishCondItem]]
+    finishCond: list[FinishCondItem]
 
 
 class QuestData(TypedDict):
@@ -221,7 +220,7 @@ class QuestData(TypedDict):
     id: int
     descTextMapHash: int
     titleTextMapHash: int
-    chapterId: NotRequired[int]
+    chapterId: int  # 0 when the quest belongs to no chapter
     subQuests: list[SubQuestItem]
     talks: list[QuestTalkItem]
 
@@ -262,8 +261,8 @@ FettersExcelConfigData: TypeAlias = list[FettersExcelConfigDataItem]
 
 class MainQuestExcelConfigDataItem(TypedDict):
     id: int
-    type: NotRequired[str]  # AQ / LQ / WQ / EQ / IQ
-    chapterId: NotRequired[int]
+    type: str  # AQ / LQ / WQ / EQ / IQ
+    chapterId: int  # 0 when the quest belongs to no chapter
     suggestTrackMainQuestList: list[int]  # "next quest(s)" pointers
 
 
@@ -276,7 +275,7 @@ class ChapterExcelConfigDataItem(TypedDict):
     id: int
     chapterTitleTextMapHash: int
     chapterNumTextMapHash: int
-    groupId: NotRequired[int]  # series: groups the acts of one questline
+    groupId: int  # series: groups the acts of one questline; 0 when none
     beginQuestId: int  # first subquest id; // 100 is its main quest id (0 if none)
 
 
@@ -296,7 +295,7 @@ class ReliquaryExcelConfigDataItem(TypedDict):
 
     id: int
     nameTextMapHash: int
-    descTextMapHash: NotRequired[int]
+    descTextMapHash: int
     storyId: int
 
 

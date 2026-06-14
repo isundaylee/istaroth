@@ -220,7 +220,7 @@ def _iter_subquest_talks(
     a missing talk is skipped instead. See the ``_HINT_PRIORITY_*`` constants.
     """
     talks: list[tuple[str, int, types.TalkInfo]] = []
-    for cond in subquest.get("finishCond", []):
+    for cond in subquest["finishCond"]:
         match cond.get("damageRatio"):
             case "QUEST_CONTENT_COMPLETE_TALK":
                 talk_id = str(cond["param"][0])
@@ -289,8 +289,6 @@ def _begin_subquest_order(
     Returns None when no activation condition resolves to a subquest of this quest
     (e.g. a cross-quest reference), leaving the talk for non-step placement.
     """
-    if "beginCond" not in talk_item:
-        return None
     orders = [
         subid_to_order[sub]
         for cond in talk_item["beginCond"]
@@ -352,7 +350,7 @@ def get_quest_info(
 
     # Get chapter information
     chapter_title = None
-    chapter_id = quest_data.get("chapterId")
+    chapter_id = quest_data["chapterId"]
     if chapter_id:
         chapter_data = data_repo.load_chapter_excel_config_data()
 
@@ -766,10 +764,7 @@ def get_artifact_set_info(
         name_hash = str(artifact_config["nameTextMapHash"])
         name = text_map.get(name_hash, f"Unknown Artifact {artifact_id}")
 
-        description = ""
-        if "descTextMapHash" in artifact_config:
-            desc_hash = str(artifact_config["descTextMapHash"])
-            description = text_map.get(desc_hash, "")
+        description = text_map.get(str(artifact_config["descTextMapHash"]), "")
 
         # Resolve the relic story from the piece's storyId via the document ->
         # localization -> readable chain, rather than assuming the story file
