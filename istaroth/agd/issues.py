@@ -27,14 +27,9 @@ class IssueType(enum.Enum):
     MISSING_TEXT = "missing_text"
     UNKNOWN_ROLE = "unknown_role"
     MISSING_QUEST_TITLE = "missing_quest_title"
-    UNKNOWN_CHAPTER = "unknown_chapter"
-    UNKNOWN_CHARACTER = "unknown_character"
-    MISSING_STORY_TITLE = "missing_story_title"
     MISSING_STORY_CONTENT = "missing_story_content"
     MISSING_MATERIAL_NAME = "missing_material_name"
     MISSING_MATERIAL_DESC = "missing_material_desc"
-    MISSING_VOICELINE_TITLE = "missing_voiceline_title"
-    UNKNOWN_ARTIFACT = "unknown_artifact"
     MISSING_READABLE_TITLE = "missing_readable_title"
 
 
