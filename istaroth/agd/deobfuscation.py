@@ -110,6 +110,7 @@ _COMMON_FIELD_MAPPINGS = {
     "DGGDDIMMIDO": "talkRole",
     "JDAPCNPEAEH": "nextDialogs",
     "JPCHNCNMMBE": "configId",
+    "CPAPOLIHGCN": "CUSTOM_addlLocalID",
     "PGELADPAKLA": "finishCond",
     # NOTE: `damageRatio` is the (misleading) cleartext name used by the older
     # 4.8-5.8 AGD dumps; the field is actually the generic enum `_type` reused
