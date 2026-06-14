@@ -179,18 +179,6 @@ class ReadablesTracker(IdTracker):
             return file_path.read_text(encoding="utf-8").strip()
         return None
 
-    def get_relic_story(self, set_id: str, piece_num: int) -> str | None:
-        """Get artifact story content and track access."""
-        # Try with language suffix first (EN pattern), then without (CHS pattern)
-        path_with_lang = f"Relic{set_id}_{piece_num}_{self._language_short}.txt"
-        path_without_lang = f"Relic{set_id}_{piece_num}.txt"
-
-        if (content := self.get_content(path_with_lang)) is not None:
-            return content
-        elif (content := self.get_content(path_without_lang)) is not None:
-            return content
-        return None
-
 
 @attrs.frozen
 class DataRepo:
