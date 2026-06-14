@@ -135,13 +135,10 @@ class LLMManager:
     def __init__(self):
         """Initialize LLM manager with empty cache."""
         self._llm_cache: dict[str, language_models.BaseLanguageModel] = {}
-        self._default_model = os.environ.get(
-            "ISTAROTH_PIPELINE_MODEL", _DEFAULT_PIPELINE_MODEL
-        )
 
     def get_default_llm(self, **kwargs) -> language_models.BaseLanguageModel:
         """Get default LLM instance based on environment variable."""
-        return self.get_llm(self._default_model, **kwargs)
+        return self.get_llm(get_default_model(), **kwargs)
 
     def get_llm(self, model_name: str, **kwargs) -> language_models.BaseLanguageModel:
         """Get LLM instance for the specified model, with caching."""
