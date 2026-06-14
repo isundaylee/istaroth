@@ -55,6 +55,19 @@ def test_talk_7407811_info(data_repo: repo.DataRepo) -> None:
         assert talk_text.message.strip()  # Non-empty message
 
 
+def test_talk_6864003_narration_role(data_repo: repo.DataRepo) -> None:
+    """TALK_ROLE_NONE narration lines render with the narration label, not Unknown Role."""
+    talk_info = processing.get_talk_info(
+        "BinOutput/Talk/Gadget/6864003.json", data_repo=data_repo
+    )
+
+    localized_roles = localization.get_localized_role_names(data_repo.language)
+    roles = [text.role for text in talk_info.text]
+
+    assert localized_roles.narration in roles
+    assert all("TALK_ROLE_NONE" not in role for role in roles)
+
+
 def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
     """Test retrieving quest info for 74078.json."""
     quest_id = "74078"
