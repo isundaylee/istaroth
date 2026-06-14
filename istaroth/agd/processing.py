@@ -681,8 +681,8 @@ def get_voiceline_info(
 
 def get_artifact_set_info(
     set_id: str, *, data_repo: repo.DataRepo
-) -> types.ArtifactSetInfo:
-    """Get artifact set information including all pieces and their stories."""
+) -> types.ArtifactSetInfo | None:
+    """Get artifact set info, or None if no piece has a story (nothing to render)."""
     # Load required data
     set_data = data_repo.load_reliquary_set_excel_config_data()
     reliquary_data = data_repo.load_reliquary_excel_config_data()
@@ -743,10 +743,29 @@ def get_artifact_set_info(
         )
         artifacts.append(artifact_info)
 
-    # Use the first artifact's name prefix as set name, or derive from set ID
-    return types.ArtifactSetInfo(
-        set_name=artifacts[0].name, set_id=set_id, artifacts=artifacts
-    )
+    # Skip sets whose pieces carry no text at all (e.g. hidden set 15000): there is
+    # nothing to render, and such sets also lack a set bonus to name them by.
+    if not any(artifact.story or artifact.description for artifact in artifacts):
+        return None
+
+    # Resolve the set name from the set bonus (equip affix), not the first piece
+    affix_id = set_config["equipAffixId"]
+    if (
+        affix_name_hash := next(
+            (
+                str(affix["nameTextMapHash"])
+                for affix in data_repo.load_equip_affix_excel_config_data()
+                if affix["id"] == affix_id
+            ),
+            None,
+        )
+    ) is None:
+        raise ValueError(f"Equip affix {affix_id} not found for set {set_id}")
+    if (set_name := text_map.get_optional(affix_name_hash)) is None:
+        raise ValueError(
+            f"Set name not found for affix {affix_id} (hash {affix_name_hash}) in set {set_id}"
+        )
+    return types.ArtifactSetInfo(set_name=set_name, set_id=set_id, artifacts=artifacts)
 
 
 def get_talk_group_info(

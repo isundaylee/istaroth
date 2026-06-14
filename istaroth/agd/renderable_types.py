@@ -400,13 +400,12 @@ class ArtifactSets(BaseRenderableType[str]):
         self, renderable_key: str, data_repo: repo.DataRepo
     ) -> types.RenderedItem | None:
         """Process artifact set into rendered content."""
-        # Get artifact set info
-        artifact_set_info = processing.get_artifact_set_info(
-            renderable_key, data_repo=data_repo
-        )
-
-        # Skip if no artifacts in set
-        if not artifact_set_info.artifacts:
+        # Skip sets with no story content (returns None)
+        if (
+            artifact_set_info := processing.get_artifact_set_info(
+                renderable_key, data_repo=data_repo
+            )
+        ) is None:
             return None
 
         # Render the artifact set

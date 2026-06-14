@@ -65,6 +65,7 @@ istaroth/
 - NEVER re-export symbols from child modules in the parent package
 - ALWAYS use modern features as available in Python 3.11; DO NOT use features only in Python 3.12
 - ALWAYS be strict with error handling and prefer raising exception than falling back to implicit default values
+- ALWAYS be strict with data typing; use `NotRequired`/`None` sparingly and only when a field/value is genuinely optional in the data. If every record has a field, type it as required (let a missing key raise) rather than hedging with `NotRequired`.
 - NEVER import individual symbols from modules and ALWAYS use module-level imports only; exceptions: it is okay to import individual symbols from the typing stdlib package.
 - NEVER use TYPE_CHECKING conditional imports
 - Write very concise docstring; don't list all args & return values when they are self-explanatory from the function signature and names

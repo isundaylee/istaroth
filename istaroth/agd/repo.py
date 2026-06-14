@@ -540,6 +540,14 @@ class DataRepo:
             return data
 
     @functools.lru_cache(maxsize=None)
+    def load_equip_affix_excel_config_data(self) -> types.EquipAffixExcelConfigData:
+        """Load EquipAffixExcelConfigData.json."""
+        file_path = self.agd_path / "ExcelBinOutput" / "EquipAffixExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.EquipAffixExcelConfigData = json.load(f)
+            return data
+
+    @functools.lru_cache(maxsize=None)
     def get_readables(self) -> ReadablesTracker:
         """Get ReadablesTracker for tracking access to readable files."""
         return ReadablesTracker(self.agd_path, self.language_short)

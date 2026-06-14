@@ -288,6 +288,7 @@ class ReliquarySetExcelConfigDataItem(TypedDict):
 
     setId: int
     containsList: list[int]
+    equipAffixId: int
 
 
 class ReliquaryExcelConfigDataItem(TypedDict):
@@ -298,8 +299,16 @@ class ReliquaryExcelConfigDataItem(TypedDict):
     descTextMapHash: NotRequired[int]
 
 
+class EquipAffixExcelConfigDataItem(TypedDict):
+    """Type definition for equipment affix (artifact set bonus) entries."""
+
+    id: int
+    nameTextMapHash: int
+
+
 ReliquarySetExcelConfigData: TypeAlias = list[ReliquarySetExcelConfigDataItem]
 ReliquaryExcelConfigData: TypeAlias = list[ReliquaryExcelConfigDataItem]
+EquipAffixExcelConfigData: TypeAlias = list[EquipAffixExcelConfigDataItem]
 
 """List of main quest configuration items.
 

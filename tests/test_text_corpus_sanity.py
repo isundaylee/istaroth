@@ -11,7 +11,7 @@ def test_chinese_corpus_sanity():
 
     # Define test cases with file paths and expected content (1-to-1 mapping)
     test_cases = {
-        "agd_artifact_set/15029_旅途中的鲜花.txt": "「是啊，我不会怨恨。我明白，你不曾见到我曾目睹的景象。所以你才会想阻止我。」",
+        "agd_artifact_set/15029_水仙之梦.txt": "「是啊，我不会怨恨。我明白，你不曾见到我曾目睹的景象。所以你才会想阻止我。」",
         "agd_character_story/10000048_烟绯.txt": "所以烟绯也拥有神之眼——而且她的神之眼，与她信奉的「规则」等价。",
         "agd_material_type/137297451086922_MATERIAL_AVATAR_MATERIAL.txt": "传说在最初的僭主来到原始之海时，水国的先主曾赠予他一杯水。",
         "agd_quest/15010_神秘岛的真相.txt": "Quest is part of chapter: 流泉所归之处  第三幕 神秘岛之旅",
@@ -41,7 +41,7 @@ def test_english_corpus_sanity():
 
     # Define test cases with file paths and expected content (1-to-1 mapping)
     test_cases = {
-        "agd_artifact_set/15029_Odyssean_Flower.txt": "Yes, hatred shall not fill me. I know that you have not seen the sights I have, and that is why you wish to stop me.",
+        "agd_artifact_set/15029_Nymphs_Dream.txt": "Yes, hatred shall not fill me. I know that you have not seen the sights I have, and that is why you wish to stop me.",
         "agd_character_story/10000048_Yanfei.txt": "That is why Yanfei possesses a Vision, one that is of equal weight to her principles.",
         "agd_material_type/137297451086922_MATERIAL_AVATAR_MATERIAL.txt": "Legend says that when the first usurper came to the primordial sea, the first sovereign gave him a goblet of water.",
         "agd_quest/15010_The_Mysterious_Islands_Truth.txt": "Quest is part of chapter: Where the Springs Return: Act III Journey to the Mysterious Island",
