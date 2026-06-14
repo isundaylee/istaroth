@@ -406,6 +406,12 @@ class DataRepo:
         self.build_readable_stem_to_localization_id()
         self.build_localization_id_to_title_hash()
 
+        # Warm the NPC name mappings (output-language + CHS source) so forked
+        # talk-group workers inherit them instead of each re-scanning the NPC
+        # Excel config and text maps.
+        self.get_npc_id_to_name_mapping()
+        self.get_npc_id_to_source_name_mapping()
+
     @functools.lru_cache(maxsize=None)
     def load_talk_excel_config_data(self) -> types.TalkExcelConfigData:
         """Load and return the raw talk Excel configuration data."""
@@ -517,20 +523,29 @@ class DataRepo:
             data: types.ChapterExcelConfigData = json.load(f)
             return {chapter["id"]: chapter for chapter in data}
 
-    @functools.lru_cache(maxsize=None)
-    def get_npc_id_to_name_mapping(self) -> dict[str, str]:
-        """Get cached mapping from NPC ID to name."""
-        npc_data = self.load_npc_excel_config_data()
-        text_map = self.load_text_map()
-
+    def _build_npc_id_to_name(self, text_map: TextMapTracker) -> dict[str, str]:
+        """Build NPC ID -> name using the given text map."""
         npc_id_to_name = {}
-        for npc in npc_data:
+        for npc in self.load_npc_excel_config_data():
             npc_id = str(npc["id"])
             name_hash = str(npc["nameTextMapHash"])
             if (name := text_map.get_optional(name_hash)) is not None:
                 npc_id_to_name[npc_id] = name
 
         return npc_id_to_name
+
+    @functools.lru_cache(maxsize=None)
+    def get_npc_id_to_name_mapping(self) -> dict[str, str]:
+        """Get cached mapping from NPC ID to name."""
+        return self._build_npc_id_to_name(self.load_text_map())
+
+    @functools.lru_cache(maxsize=None)
+    def get_npc_id_to_source_name_mapping(self) -> dict[str, str]:
+        """NPC ID -> CHS (source) name, for language-independent test/hidden filtering.
+
+        Dev markers like ``$HIDDEN``/``(test)`` only exist in the CHS name text.
+        """
+        return self._build_npc_id_to_name(self.load_source_text_map())
 
     @functools.lru_cache(maxsize=None)
     def get_dialog_id_to_role_name_hash_mapping(self) -> dict[int, int]:

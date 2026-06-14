@@ -441,8 +441,26 @@ class TalkGroups(BaseRenderableType[tuple[talk_parsing.TalkGroupType, str]]):
         if not talk_group_info.talks:
             return None
 
+        # An NpcGroup's id is itself an NPC id, so resolve it to a readable name.
+        group_name: str | None = None
+        if renderable_key[0] == "NpcGroup":
+            npc_id = renderable_key[1]
+            # Dev/test markers live only in CHS, so always decide skip from the
+            # source name to keep CHS/ENG corpora consistent.
+            source_name = data_repo.get_npc_id_to_source_name_mapping().get(npc_id)
+            if source_name is not None:
+                if text_utils.should_skip_text(source_name, localization.Language.CHS):
+                    return None
+                # The id resolves to a real (non-test) NPC in CHS, so it must
+                # resolve in the output language too — index strictly.
+                group_name = data_repo.get_npc_id_to_name_mapping()[npc_id]
+
         return rendering.render_talk_group(
-            renderable_key[0], renderable_key[1], talk_group_info, data_repo.language
+            renderable_key[0],
+            renderable_key[1],
+            talk_group_info,
+            data_repo.language,
+            group_name=group_name,
         )
 
 
