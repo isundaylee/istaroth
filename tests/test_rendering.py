@@ -338,6 +338,56 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
     assert rendered.content == expected_content
 
 
+def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
+    """A convergence node that itself re-branches must not duplicate options.
+
+    Mirrors quest 76011 (issue #62): a 2-option choice converges at a node that
+    has its own outgoing branch. The short option reaches the convergence node
+    long before the long option; without pausing there it would walk through and
+    split on the convergence node's out-edges, emitting copies of the short
+    option that all share its pre-convergence prefix.
+    """
+    # 1 (menu) -> [2 (short option), 4 (long option)]
+    # short: 2 -> 6 (convergence, reached in 1 step)
+    # long:  4 -> 5 -> 6 (convergence, reached in 2 steps)
+    # 6 (convergence) -> [7, 8] -> 9 (its own nested branch)
+    talk_texts = [
+        types.TalkText(role="NPC", message="Menu", next_dialog_ids=[2, 4], dialog_id=1),
+        types.TalkText(
+            role="Player", message="Short", next_dialog_ids=[6], dialog_id=2
+        ),
+        types.TalkText(role="Player", message="Long", next_dialog_ids=[5], dialog_id=4),
+        types.TalkText(
+            role="NPC", message="Long tail", next_dialog_ids=[6], dialog_id=5
+        ),
+        types.TalkText(
+            role="NPC", message="Converged", next_dialog_ids=[7, 8], dialog_id=6
+        ),
+        types.TalkText(
+            role="Player", message="After A", next_dialog_ids=[9], dialog_id=7
+        ),
+        types.TalkText(
+            role="Player", message="After B", next_dialog_ids=[9], dialog_id=8
+        ),
+        types.TalkText(role="NPC", message="End", next_dialog_ids=[], dialog_id=9),
+    ]
+
+    rendered = rendering.render_talk(
+        types.TalkInfo(text=talk_texts),
+        talk_id="66666",
+        language=localization.Language.ENG,
+        talk_file_path="BinOutput/Talk/Quest/66666.json",
+    )
+
+    # Exactly two options at the first choice, neither duplicated.
+    assert rendered.content.count("Player: Short") == 1, rendered.content
+    assert rendered.content.count("Player: Long") == 1, rendered.content
+    # The convergence node's own branch still renders after the options.
+    assert "NPC: Converged" in rendered.content
+    for line in ("Player: After A", "Player: After B"):
+        assert line in rendered.content, rendered.content
+
+
 def test_render_talk_menu_hub_no_blowup() -> None:
     """An "ask about X" menu whose answers loop back renders each topic once.
 
@@ -389,6 +439,75 @@ def test_render_talk_menu_hub_no_blowup() -> None:
     # Each unique answer line appears exactly once (no permutation blow-up), and
     # the exit branch's content is still present.
     for line in ("NPC: Answer A", "NPC: Answer B", "NPC: Goodbye"):
+        assert rendered.content.count(line) == 1, rendered.content
+
+
+def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None:
+    """Cascaded "wrong answers loop, right one continues" menus stay one-per-choice.
+
+    Mirrors quest 11008's evidence menus: each wrong-answer tail re-offers exactly
+    the seed options (a back-edge join whose out-edges are all already covered),
+    and the correct answer runs on into the next such menu. The convergence-wait
+    must not stall at those back-edge joins, or each menu spawns extra empty
+    option branches (here 8 options / 4 empty instead of the correct 6 / 2).
+    """
+    # M1 (11) -> [12 correct, 13 wrong, 14 wrong]
+    #   correct: 12 -> 15 -> 17 -> 18 -> M2 (22)
+    #   wrong:   13 -> 16, 14 -> 16; 16 re-offers [12, 13, 14]
+    # M2 (22) -> [23 correct, 24 wrong, 25 wrong]
+    #   correct: 23 -> 26 -> 28 (end);  wrong: 24 -> 27, 25 -> 27; 27 re-offers
+    talk_texts = [
+        types.TalkText(
+            role="NPC", message="M1", next_dialog_ids=[12, 13, 14], dialog_id=11
+        ),
+        types.TalkText(
+            role="Player", message="1-correct", next_dialog_ids=[15], dialog_id=12
+        ),
+        types.TalkText(
+            role="Player", message="1-wrongA", next_dialog_ids=[16], dialog_id=13
+        ),
+        types.TalkText(
+            role="Player", message="1-wrongB", next_dialog_ids=[16], dialog_id=14
+        ),
+        types.TalkText(
+            role="NPC", message="right1", next_dialog_ids=[17], dialog_id=15
+        ),
+        types.TalkText(
+            role="NPC", message="wrong1", next_dialog_ids=[12, 13, 14], dialog_id=16
+        ),
+        types.TalkText(role="NPC", message="mid17", next_dialog_ids=[18], dialog_id=17),
+        types.TalkText(role="NPC", message="mid18", next_dialog_ids=[22], dialog_id=18),
+        types.TalkText(
+            role="NPC", message="M2", next_dialog_ids=[23, 24, 25], dialog_id=22
+        ),
+        types.TalkText(
+            role="Player", message="2-correct", next_dialog_ids=[26], dialog_id=23
+        ),
+        types.TalkText(
+            role="Player", message="2-wrongA", next_dialog_ids=[27], dialog_id=24
+        ),
+        types.TalkText(
+            role="Player", message="2-wrongB", next_dialog_ids=[27], dialog_id=25
+        ),
+        types.TalkText(
+            role="NPC", message="right2", next_dialog_ids=[28], dialog_id=26
+        ),
+        types.TalkText(
+            role="NPC", message="wrong2", next_dialog_ids=[23, 24, 25], dialog_id=27
+        ),
+        types.TalkText(role="NPC", message="End", next_dialog_ids=[], dialog_id=28),
+    ]
+    rendered = rendering.render_talk(
+        types.TalkInfo(text=talk_texts),
+        talk_id="55555",
+        language=localization.Language.ENG,
+        talk_file_path="BinOutput/Talk/Quest/55555.json",
+    )
+
+    # Three options per menu, two menus -> six options; no spurious extras.
+    assert rendered.content.count("Option ") == 6, rendered.content
+    # Each wrong answer renders once; both correct continuations are present.
+    for line in ("Player: 1-wrongA", "Player: 2-wrongA", "NPC: right1", "NPC: End"):
         assert rendered.content.count(line) == 1, rendered.content
 
 
