@@ -831,16 +831,18 @@ def get_talk_group_info(
     ]
     talk_group_data = data_repo.load_talk_group_data(talk_group_path)
 
-    # Extract talk IDs and get talk info for each
+    # Extract talk IDs and get talk info for each. A not-found talk is a genuine
+    # upstream data gap: record it and skip the entry rather than dropping the
+    # whole group. An existing talk that fails to parse still propagates.
     talks = []
     for talk_entry in talk_group_data["talks"]:
         talk_id = str(talk_entry["id"])
 
-        # Get talk info using existing function
         try:
             talk_info = get_talk_info_by_id(talk_id, data_repo=data_repo)
-        except Exception:
-            raise RuntimeError(f"Failed to get talk info for talk ID: {talk_id}")
+        except ValueError:
+            issues.record(issues.IssueType.MISSING_TALK, talk_id)
+            continue
 
         next_talks = list[types.TalkInfo]()
         for next_talk_id in talk_entry.get("nextTalks", []):
@@ -848,10 +850,9 @@ def get_talk_group_info(
                 next_talk_info = get_talk_info_by_id(
                     str(next_talk_id), data_repo=data_repo
                 )
-            except Exception:
-                raise RuntimeError(
-                    f"Failed to get talk info for talk ID: {next_talk_id}"
-                )
+            except ValueError:
+                issues.record(issues.IssueType.MISSING_TALK, str(next_talk_id))
+                continue
             if next_talk_info.text:
                 next_talks.append(next_talk_info)
 
