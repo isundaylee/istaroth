@@ -70,7 +70,15 @@ def cli() -> None:
 @click.argument("text_path", type=pathlib.Path)
 @click.argument("checkpoint_path", type=pathlib.Path)
 @click.option("-f", "--force", is_flag=True, help="Delete target if it exists")
-def build(text_path: pathlib.Path, checkpoint_path: pathlib.Path, force: bool) -> None:
+@click.option(
+    "--concurrency", default=8, help="Concurrent embedding requests in flight"
+)
+def build(
+    text_path: pathlib.Path,
+    checkpoint_path: pathlib.Path,
+    force: bool,
+    concurrency: int,
+) -> None:
     """Build document store from a file or folder."""
     # Check if target exists
     if checkpoint_path.exists():
@@ -106,6 +114,7 @@ def build(text_path: pathlib.Path, checkpoint_path: pathlib.Path, force: bool) -
         files_to_process,
         text_root=text_path,
         chunk_size_multiplier=chunk_size_multiplier,
+        concurrency=concurrency,
         show_progress=True,
     )
 
