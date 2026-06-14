@@ -125,9 +125,14 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
             else:
                 return f"{by_role} ({by_name_hash})"
 
-        return (
-            by_name_hash or by_role or f"{localized_roles.unknown_role} ({role_type})"
+        # TALK_ROLE_NONE is speaker-less narration / stage directions; when it has
+        # no resolvable name, label it as narration rather than an unknown role.
+        fallback = (
+            localized_roles.narration
+            if role_type == "TALK_ROLE_NONE"
+            else f"{localized_roles.unknown_role} ({role_type})"
         )
+        return by_name_hash or by_role or fallback
 
     # Process dialog items
     talk_texts = []

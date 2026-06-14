@@ -329,6 +329,7 @@ class LocalizedRoleNames:
     player: str
     mate_avatar: str
     black_screen: str
+    narration: str
     unknown_npc: str
     unknown_role: str
 
