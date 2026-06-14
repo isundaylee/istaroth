@@ -748,6 +748,11 @@ def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
     )
 
 
+def _humanize_material_type(material_type: str) -> str:
+    """Turn a raw MaterialType enum into a readable title (e.g. MATERIAL_FISH_ROD -> Fish Rod)."""
+    return material_type.removeprefix("MATERIAL_").replace("_", " ").title()
+
+
 def render_materials_by_type(
     material_type: str, materials: list[types.MaterialInfo]
 ) -> types.RenderedItem:
@@ -761,8 +766,10 @@ def render_materials_by_type(
     safe_type = utils.make_safe_filename_part(material_type)
     filename = f"{material_type_id}_{safe_type}.txt"
 
+    material_type_name = _humanize_material_type(material_type)
+
     # Format content with material type header and all materials
-    content_lines = [f"# Materials: {material_type}\n"]
+    content_lines = [f"# Materials: {material_type_name}\n"]
 
     # Sort materials by ID for deterministic output
     sorted_materials = sorted(materials, key=lambda x: int(x.material_id))
@@ -778,7 +785,7 @@ def render_materials_by_type(
     return types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_MATERIAL_TYPE,
-            title=material_type,
+            title=material_type_name,
             id=material_type_id,
             relative_path=f"{text_types.TextCategory.AGD_MATERIAL_TYPE.value}/{filename}",
         ),
@@ -857,14 +864,22 @@ def render_talk_group(
     talk_group_id: str,
     talk_group_info: types.TalkGroupInfo,
     language: localization.Language,
+    *,
+    group_name: str | None = None,
 ) -> types.RenderedItem:
     """Render multiple talks from an activity group into a single file."""
     # Generate filename based on activity ID
     safe_type = utils.make_safe_filename_part(str(talk_group_type))
     filename = f"{talk_group_id}_{safe_type}.txt"
 
+    title = (
+        f"{group_name} ({talk_group_type} {talk_group_id})"
+        if group_name is not None
+        else f"{talk_group_type} - {talk_group_id}"
+    )
+
     # Format content with activity group header and all talks
-    content_lines = [f"# Talk Group: {talk_group_type} - {talk_group_id}\n"]
+    content_lines = [f"# Talk Group: {title}\n"]
 
     for i, (talk, next_talks) in enumerate(talk_group_info.talks):
         content_lines.append(f"## Talk {i}\n")
@@ -885,7 +900,7 @@ def render_talk_group(
     return types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_TALK_GROUP,
-            title=f"{talk_group_type} - {talk_group_id}",
+            title=title,
             id=int(talk_group_id),
             relative_path=f"{text_types.TextCategory.AGD_TALK_GROUP.value}/{filename}",
         ),
