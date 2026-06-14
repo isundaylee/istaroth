@@ -3,6 +3,7 @@ import { useLoaderData, useSearchParams, type LoaderFunctionArgs } from 'react-r
 import { useT } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import Card from './components/Card'
+import TextInput from './components/TextInput'
 import PageCard from './components/PageCard'
 import LibraryHeader from './components/LibraryHeader'
 import { translate } from './i18n'
@@ -53,13 +54,54 @@ function typeQuestCount(type: QuestHierarchyType): number {
   )
 }
 
+interface QuestSearchEntry {
+  id: number
+  title: string
+  context: string
+  haystack: string
+}
+
+// Flatten the tree into one searchable quest list so a query can surface a
+// quest regardless of its drill-down position. A quest's haystack includes its
+// ancestors' titles, so matching a series/chapter title surfaces its quests too.
+function flattenQuests(
+  types: QuestHierarchyType[],
+  translateQuestType: (questType: string) => string
+): QuestSearchEntry[] {
+  const entries: QuestSearchEntry[] = []
+  const push = (id: number, title: string, ancestors: string[]) => {
+    const context = ancestors.join(' / ')
+    entries.push({ id, title, context, haystack: [title, ...ancestors].join(' ').toLowerCase() })
+  }
+  for (const type of types) {
+    const typeLabel = translateQuestType(type.quest_type)
+    for (const series of type.series) {
+      for (const chapter of series.chapters) {
+        for (const quest of chapter.quests) {
+          push(quest.id, quest.title, [typeLabel, series.series_title, chapter.chapter_title])
+        }
+      }
+    }
+    for (const chapter of type.chapters) {
+      for (const quest of chapter.quests) {
+        push(quest.id, quest.title, [typeLabel, chapter.chapter_title])
+      }
+    }
+    for (const quest of type.standalone_quests) {
+      push(quest.id, quest.title, [typeLabel])
+    }
+  }
+  return entries
+}
+
 interface NavCardProps {
   label: string
   count?: number
+  sublabel?: string
   onClick: () => void
 }
 
-function NavCard({ label, count, onClick }: NavCardProps) {
+function NavCard({ label, count, sublabel, onClick }: NavCardProps) {
   return (
     <div
       onClick={onClick}
@@ -85,6 +127,18 @@ function NavCard({ label, count, onClick }: NavCardProps) {
             <span style={{ color: 'var(--color-text-secondary)' }}> ({count})</span>
           )}
         </p>
+        {sublabel && (
+          <p
+            style={{
+              margin: '0.25rem 0 0',
+              wordBreak: 'break-word',
+              color: 'var(--color-text-secondary)',
+              fontSize: 'var(--font-sm)',
+            }}
+          >
+            {sublabel}
+          </p>
+        )}
       </Card>
     </div>
   )
@@ -119,12 +173,17 @@ function QuestHierarchyPage() {
   const [showStandalone, setShowStandalone] = React.useState(
     initialType !== null && searchParams.get('standalone') === '1'
   )
+  const [search, setSearch] = React.useState('')
 
   const translateQuestType = (questType: string): string => {
     const key = `library.questTypes.${questType}`
     const translated = t(key)
     return translated === key ? questType : translated
   }
+
+  // translateQuestType only changes with the active language, which remounts
+  // the page via the loader, so depending on `types` alone is sufficient.
+  const allQuests = React.useMemo(() => flattenQuests(types, translateQuestType), [types])
 
   const reset = () => {
     setSelectedType(null)
@@ -151,8 +210,29 @@ function QuestHierarchyPage() {
     crumbs.push({ label: t('library.standalone'), onClick: () => undefined })
   }
 
+  const query = search.trim().toLowerCase()
+  const searchResults = query ? allQuests.filter((entry) => entry.haystack.includes(query)) : []
+
   let content: React.ReactNode
-  if (showStandalone && selectedType) {
+  if (query) {
+    content =
+      searchResults.length === 0 ? (
+        <Card style={{ margin: '1rem 0' }}>
+          <p>{t('library.noSearchResults')}</p>
+        </Card>
+      ) : (
+        <CardGrid>
+          {searchResults.map((entry) => (
+            <NavCard
+              key={entry.id}
+              label={entry.title || t('library.noFileName')}
+              sublabel={entry.context}
+              onClick={() => openQuest(entry.id)}
+            />
+          ))}
+        </CardGrid>
+      )
+  } else if (showStandalone && selectedType) {
     content = (
       <CardGrid>
         {selectedType.standalone_quests.map((quest) => (
@@ -233,7 +313,14 @@ function QuestHierarchyPage() {
             onBack={onBack}
           />
 
-          {crumbs.length > 1 && (
+          <TextInput
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('library.questSearchPlaceholder')}
+            style={{ width: '100%', marginBottom: '1rem' }}
+          />
+
+          {!query && crumbs.length > 1 && (
             <div style={{ margin: '0 0 1rem', display: 'flex', flexWrap: 'wrap', gap: '0.25rem', alignItems: 'center' }}>
               {crumbs.map((crumb, index) => (
                 <React.Fragment key={index}>

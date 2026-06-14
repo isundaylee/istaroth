@@ -168,6 +168,8 @@ export const eng = {
       IQ: 'Daily Commissions'
     },
     standalone: 'Standalone Quests',
-    questSeriesToc: 'Quests in this series'
+    questSeriesToc: 'Quests in this series',
+    questSearchPlaceholder: 'Search quests across all types...',
+    noSearchResults: 'No quests match your search'
   }
 }
