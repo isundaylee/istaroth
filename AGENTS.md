@@ -85,6 +85,9 @@ istaroth/
 - Pass arguments that are not primary inputs to the function itself but rather toolkit objects (e.g. DataRepo) as kw-only args
 
 ## Git Workflow Best Practices
+- Each PR should be a SINGLE commit of code changes, plus optionally one
+  separate commit for the `text/` submodule pointer change (the `Update text`
+  commit). Squash incremental work into one code commit before opening/updating a PR.
 - ALWAYS run precommit separately and added resulted changes before you offer to git commit
 - When a commit fixes a GitHub issue, include a closing keyword in the commit message body (e.g. `Closes #55`) so GitHub auto-closes it on push; otherwise the issue must be closed manually.
 - The `text/` directory is a git submodule (repo `istaroth-text`) holding the generated text corpus and manifests. Regenerated data (e.g. from `scripts/tps_shishu_tools.py`) is committed INSIDE the submodule first, then the parent repo records the pointer move with a separate `Update text` commit (`git add text && git commit -m "Update text"`). Keep submodule data commits out of code commits unless asked otherwise.

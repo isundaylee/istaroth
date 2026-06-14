@@ -54,10 +54,24 @@ async def _aembed_documents_batched(
     ]
     results: list[list[list[float]] | None] = [None] * len(batches)
     limiter = anyio.CapacityLimiter(concurrency)
+    log_every = max(1, len(batches) // 20)
+    done_batches = 0
+    done_docs = 0
 
     async def _embed(idx: int, batch: list[str]) -> None:
+        nonlocal done_batches, done_docs
         async with limiter:
             results[idx] = await emb.aembed_documents(batch)
+        done_batches += 1
+        done_docs += len(batch)
+        if done_batches % log_every == 0 or done_batches == len(batches):
+            logger.info(
+                "Embedded %d/%d documents (%d/%d batches)",
+                done_docs,
+                len(texts),
+                done_batches,
+                len(batches),
+            )
 
     async with anyio.create_task_group() as tg:
         for idx, batch in enumerate(batches):
