@@ -24,6 +24,7 @@ from tqdm import tqdm
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from istaroth.agd import (
+    issues,
     localization,
     processing,
     quest_hierarchy,
@@ -59,6 +60,7 @@ class _RenderableResult:
     rendered_item: types.RenderedItem | None
     error_message: str | None
     tracker_stats: types.TrackerStats
+    parsing_issues: list[issues.ParsingIssue]
 
 
 def _get_git_commit_hash(repo_path: pathlib.Path) -> str:
@@ -124,15 +126,18 @@ def _process_single_item(
     renderable_key, renderable_type, strict = args
     data_repo = _get_data_repo_from_env()
     try:
+        issue_tracker = issues.IssueTracker()
         with (
             data_repo.load_text_map() as text_map_tracker,
             data_repo.build_talk_tracker() as talk_tracker,
             data_repo.get_readables() as readables_tracker,
+            issue_tracker.apply(),
         ):
             rendered = renderable_type.process(renderable_key, data_repo)
             accessed_text_ids = text_map_tracker.get_accessed_ids()
             accessed_talk_ids = talk_tracker.get_accessed_ids()
             accessed_readable_ids = readables_tracker.get_accessed_ids()
+            recorded_issues = issue_tracker.issues
         return _RenderableResult(
             renderable_key,
             rendered,
@@ -140,12 +145,21 @@ def _process_single_item(
             types.TrackerStats(
                 accessed_text_ids, accessed_talk_ids, accessed_readable_ids
             ),
+            [
+                issues.ParsingIssue(
+                    issue_type=issue_type,
+                    item_type=type(renderable_type).__name__,
+                    item_key=str(renderable_key),
+                    detail=detail,
+                )
+                for issue_type, detail in recorded_issues
+            ],
         )
     except Exception as e:
         if strict:
             raise RuntimeError(f"Error processing {renderable_key}")
         return _RenderableResult(
-            renderable_key, None, repr(e), types.TrackerStats(set(), set(), set())
+            renderable_key, None, repr(e), types.TrackerStats(set(), set(), set()), []
         )
 
 
@@ -159,15 +173,17 @@ def _generate_content(
     sample_rate: float = 1.0,
     strict: bool = False,
     manifest_list: list[text_types.TextMetadata],
-) -> tuple[int, int, int, types.TrackerStats]:
+    parsing_issues: list[issues.ParsingIssue],
+) -> tuple[int, int, int, int, types.TrackerStats]:
     """Generate content files using renderable type.
 
     Returns:
-        Tuple of (success_count, error_count, skipped_count, tracker_stats)
+        Tuple of (success_count, error_count, skipped_count, issue_count, tracker_stats)
     """
     success_count = 0
     error_count = 0
     skipped_count = 0
+    issue_count = 0
     tracker_stats = types.TrackerStats(
         accessed_text_map_ids=set(),
         accessed_talk_ids=set(),
@@ -210,6 +226,8 @@ def _generate_content(
 
             # Collect accessed text map IDs regardless of success/failure
             tracker_stats.update(result.tracker_stats)
+            parsing_issues.extend(result.parsing_issues)
+            issue_count += len(result.parsing_issues)
             renderable_type_name = renderable_type.__class__.__name__
 
             if result.error_message is not None:
@@ -277,6 +295,7 @@ def _generate_content(
         success_count,
         error_count,
         skipped_count,
+        issue_count,
         tracker_stats,
     )
 
@@ -363,6 +382,7 @@ def generate_all(
     total_success = 0
     total_error = 0
     total_skipped = 0
+    total_issues = 0
     all_tracker_stats = types.TrackerStats(set(), set(), set())
 
     # Collect stats for summary table
@@ -370,6 +390,11 @@ def generate_all(
 
     # Manifest list to collect all text metadata
     manifest_list: list[text_types.TextMetadata] = []
+
+    # Non-fatal parsing issues: per-category counts (for the JSON sidecar) and the
+    # full list (for the detail file).
+    issue_counts: dict[str, int] = {}
+    all_parsing_issues: list[issues.ParsingIssue] = []
 
     # Helper function to process a content type conditionally
     def process_content_type(
@@ -379,8 +404,8 @@ def generate_all(
         if not should_generate:
             return
 
-        nonlocal total_success, total_error, total_skipped
-        success, error, skipped, tracker_stats = _generate_content(
+        nonlocal total_success, total_error, total_skipped, total_issues
+        success, error, skipped, issue_count, tracker_stats = _generate_content(
             renderable,
             output_dir,
             data_repo=data_repo,
@@ -389,12 +414,17 @@ def generate_all(
             sample_rate=sample_rate,
             strict=strict,
             manifest_list=manifest_list,
+            parsing_issues=all_parsing_issues,
         )
         total_success += success
         total_error += error
         total_skipped += skipped
+        total_issues += issue_count
+        issue_counts[renderable.text_category.value] = issue_count
         all_tracker_stats.update(tracker_stats)
-        summary_stats.append([renderable.text_category.value, success, error, skipped])
+        summary_stats.append(
+            [renderable.text_category.value, success, error, skipped, issue_count]
+        )
 
     # Determine which content types to generate
     only_category = text_types.TextCategory(only) if only else None
@@ -487,8 +517,10 @@ def generate_all(
         )
 
     # Create summary table
-    headers = ["Content Type", "Success", "Errors", "Skipped"]
-    summary_stats.append(["TOTAL", total_success, total_error, total_skipped])
+    headers = ["Content Type", "Success", "Errors", "Skipped", "Issues"]
+    summary_stats.append(
+        ["TOTAL", total_success, total_error, total_skipped, total_issues]
+    )
     summary_table = tabulate(summary_stats, headers=headers, tablefmt="pretty")
 
     # Print summary table to console
@@ -521,6 +553,24 @@ def generate_all(
     with unused_stats_path.open("w", encoding="utf-8") as f:
         json.dump(unused_stats_data, f, indent=2, ensure_ascii=False)
     click.echo(f"Text map usage stats written to {unused_stats_path}")
+
+    # Write non-fatal parsing issue counts (by content type) and the full detail
+    # list. Counts mirror the summary table's "Issues" column; the detail file
+    # mirrors errors.info with one line per issue.
+    parsing_issues_path = stats_dir / "parsing_issues.json"
+    with parsing_issues_path.open("w", encoding="utf-8") as f:
+        json.dump(issue_counts, f, indent=2, ensure_ascii=False)
+    click.echo(f"Parsing issue counts written to {parsing_issues_path}")
+
+    if all_parsing_issues:
+        parsing_issues_info_path = stats_dir / "parsing_issues.info"
+        with parsing_issues_info_path.open("w", encoding="utf-8") as f:
+            for issue in all_parsing_issues:
+                f.write(
+                    f"⚠ {issue.item_type}: {issue.item_key} -> "
+                    f"{issue.issue_type.name}: {issue.detail}\n"
+                )
+        click.echo(f"Detailed parsing issues written to {parsing_issues_info_path}")
 
     # Write manifest
     manifest_path = manifest.write_manifest(output_dir, manifest_list, name="agd")
