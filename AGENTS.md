@@ -114,6 +114,24 @@ change before the full run), `--only <category>` is fine and preferred — it is
 much faster and scopes output to what you're inspecting. Only the committed
 `text/` corpus must be a full regen.
 
+### "Regen corpus" request workflow
+
+When the user asks to **regen corpus**, do the full regen + two-commit dance
+described above, plus these request-specific points:
+
+- First rebase the current branch onto the latest `origin/main`
+  (`git fetch origin && git rebase origin/main`).
+- Time the regen and report the wall-clock duration taken.
+- The submodule data commit lands on the submodule's `main` branch (check out
+  `main` in `text/` first if it is detached).
+- Do NOT push yet — the user verifies first.
+
+When the user later asks to **push the text regen** (after they verify):
+
+- Push the `istaroth-text` submodule commit onto its `main` remote.
+- Update the current PR's branch so it contains both the code change and the
+  separate `Update text` pointer commit (push the parent branch).
+
 ## Auditing Text Corpus Diffs
 
 A rendering/parsing change can touch tens of thousands of `text/` files, so a
