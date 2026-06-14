@@ -93,6 +93,7 @@ def get_response_principles(language: localization.Language) -> str:
             - **结构清晰**：按逻辑层次组织答案，重要信息优先，次要细节补充
             - **引用原文**：当需要引用原文的时候，必须在回答重复原始文本段落，使用引号标注，并添加源信息标注
             - **原文展示**：对于关键论据，应完整引用相关原文段落，而非仅做概括总结
+            - **专有名词不翻译**：不要自行在中英文之间翻译人物、地点、物品等专有名词，以免产生与官方本地化不符的错误译名。若检索资料中已给出官方对应译名则可使用，否则保留原文名称，切勿臆造译名
             """
         )
     else:  # English
@@ -105,6 +106,7 @@ def get_response_principles(language: localization.Language) -> str:
             - **Clear Structure**: Organize answers by logical hierarchy, prioritizing important information with supplementary details
             - **Quote Original Text**: When referencing source material, repeat the original text passages in your response using quotation marks, followed by source information
             - **Display Original Text**: For key evidence, quote complete relevant passages rather than just summarizing
+            - **Do Not Translate Proper Names**: Do not translate proper names (characters, places, items, etc.) between Chinese and English on your own, as self-made translations often diverge from the official localization. Use the official cross-language name only if it appears in the retrieved context; otherwise keep the name as-is and never invent a translated form
             """
         )
 
