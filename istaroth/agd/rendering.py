@@ -260,6 +260,69 @@ def _process_branch(
     dialog_paths = defaultdict[int | None, set[int]](set)
     dialog_paths.update({di: {i} for i, di in enumerate(next_dialog_ids)})
 
+    seeds = set(next_dialog_ids)
+
+    def _reachable(start: int) -> set[int]:
+        """Dialogs reachable from ``start`` by following ``nextDialogs`` edges."""
+        seen = set[int]()
+        stack = [start]
+        while stack:
+            for nxt in graph.graph.get(stack.pop(), []):
+                if nxt not in seen:
+                    seen.add(nxt)
+                    stack.append(nxt)
+        return seen
+
+    def _advance(pi: int) -> None:
+        """Follow path ``pi`` one dialog forward, splitting on multiple edges."""
+        path = paths[pi]
+        curr_di = path[-1]
+        assert curr_di is not None, "Cannot advance an ended path"
+        next_dis = graph.graph.get(curr_di, [])
+
+        if not next_dis:
+            path.append(None)
+            assert pi not in dialog_paths[None], f"Path ended multiple times"
+            dialog_paths[None].add(pi)
+            return
+
+        # Only follow edges to dialogs not already covered on this path. A
+        # covered target is (or will be) rendered by the path that first reached
+        # it, so re-walking it merely duplicates content -- and for an "ask about
+        # X" menu hub (whose answer tails re-offer the same options) it would
+        # enumerate every ordering of the options. This also handles decreasing
+        # menus and menus that add an exit option late: only the genuinely new
+        # options are followed. When nothing new remains, the path has looped
+        # back into already-seen content; stop here (curr_di, the answer tail, is
+        # already in ``path`` and still gets rendered).
+        uncovered = [di for di in next_dis if di not in path_offered[pi]]
+        if not uncovered:
+            cycle_pis.add(pi)
+            return
+        path_offered[pi] |= set(uncovered)
+
+        pis_to_extend = [pi]
+        for _ in uncovered[1:]:
+            paths.append(path[:])
+            new_path_pi = len(paths) - 1
+            path_offered.append(set(path_offered[pi]))
+            pis_to_extend.append(new_path_pi)
+            for di in paths[new_path_pi]:
+                assert new_path_pi not in dialog_paths[di], f"Found cycle: {path}"
+                dialog_paths[di].add(new_path_pi)
+
+        for pi_to_extend, di_to_extend in zip(pis_to_extend, uncovered):
+            paths[pi_to_extend].append(di_to_extend)
+
+            # A dialog already rendered by an earlier branch in this talk is a
+            # back edge out of this region; stop. (Re-entries within the region
+            # are already excluded by the ``uncovered`` filter above.)
+            if di_to_extend in rendered:
+                cycle_pis.add(pi_to_extend)
+                continue
+
+            dialog_paths[di_to_extend].add(pi_to_extend)
+
     # First, keep advancing all paths until we find a convergence point.
     while True:
         assert cycle_pis < set(range(len(paths))), f"All paths ended in cycles"
@@ -278,59 +341,57 @@ def _process_branch(
             conv_point = potential_conv_points[0]
             break
 
-        # Otherwise, follow each path to the next dialog.
-        for pi, path in enumerate(paths):
-            if pi in cycle_pis:
+        # A path that has reached a convergence node (one with 2+ incoming edges)
+        # waits there rather than walking through it: if the first branch to
+        # arrive followed the convergence node's own out-edges it would split and
+        # emit duplicate options that all share the identical pre-convergence
+        # prefix (issue #62). Seeds are never waits -- they are the branch starts
+        # we must expand. A path that has ended or looped back is also done.
+        #
+        # Only wait if the node still has a forward (uncovered) out-edge to
+        # reconverge on. A join whose every out-edge is already covered is a
+        # back-edge loop (e.g. a wrong-answer menu tail that re-offers the same
+        # options); let it advance so the existing cycle handling stops it
+        # instead of stalling here and spawning spurious empty options.
+        waits: dict[int, int] = {}
+        movers: list[int] = []
+        for pi in range(len(paths)):
+            if pi in cycle_pis or (curr_di := paths[pi][-1]) is None:
                 continue
+            if (
+                curr_di not in seeds
+                and graph.incoming_edges.get(curr_di, 0) >= 2
+                and any(d not in path_offered[pi] for d in graph.graph.get(curr_di, []))
+            ):
+                waits[pi] = curr_di
+            else:
+                movers.append(pi)
 
-            curr_di = path[-1]
-            if curr_di is None:
-                continue
+        if movers:
+            for pi in movers:
+                _advance(pi)
+            continue
 
-            next_dis = graph.graph.get(curr_di, [])
-
-            if not next_dis:
-                path.append(None)
-                assert pi not in dialog_paths[None], f"Path ended multiple times"
-                dialog_paths[None].add(pi)
-                continue
-
-            # Only follow edges to dialogs not already covered on this path. A
-            # covered target is (or will be) rendered by the path that first
-            # reached it, so re-walking it merely duplicates content -- and for an
-            # "ask about X" menu hub (whose answer tails re-offer the same options)
-            # it would enumerate every ordering of the options. This also handles
-            # decreasing menus and menus that add an exit option late: only the
-            # genuinely new options are followed. When nothing new remains, the
-            # path has looped back into already-seen content; stop here (curr_di,
-            # the answer tail, is already in ``path`` and still gets rendered).
-            uncovered = [di for di in next_dis if di not in path_offered[pi]]
-            if not uncovered:
-                cycle_pis.add(pi)
-                continue
-            path_offered[pi] |= set(uncovered)
-
-            pis_to_extend = [pi]
-            for _ in uncovered[1:]:
-                paths.append(path[:])
-                new_path_pi = len(paths) - 1
-                path_offered.append(set(path_offered[pi]))
-                pis_to_extend.append(new_path_pi)
-                for di in paths[new_path_pi]:
-                    assert new_path_pi not in dialog_paths[di], f"Found cycle: {path}"
-                    dialog_paths[di].add(new_path_pi)
-
-            for pi_to_extend, di_to_extend in zip(pis_to_extend, uncovered):
-                paths[pi_to_extend].append(di_to_extend)
-
-                # A dialog already rendered by an earlier branch in this talk is a
-                # back edge out of this region; stop. (Re-entries within the region
-                # are already excluded by the ``uncovered`` filter above.)
-                if di_to_extend in rendered:
-                    cycle_pis.add(pi_to_extend)
-                    continue
-
-                dialog_paths[di_to_extend].add(pi_to_extend)
+        # Every live path waits at a convergence node, but none is yet shared by
+        # all -- they sit at intermediate convergences nested inside the branch.
+        # Resume all but the deepest (the node reachable from every other waiting
+        # node); the deepest is the real meeting point and keeps waiting. If no
+        # single deepest exists, or some path already ended/looped (so the branch
+        # never fully reconverges), resume everyone.
+        waiting_nodes = set(waits.values())
+        deepest = None
+        if not cycle_pis and None not in dialog_paths and len(waiting_nodes) > 1:
+            deepest = next(
+                (
+                    node
+                    for node in waiting_nodes
+                    if all(node in _reachable(o) for o in waiting_nodes - {node})
+                ),
+                None,
+            )
+        for pi, node in waits.items():
+            if node != deepest:
+                _advance(pi)
 
     lines_list = []
     for pi, path in enumerate(paths):
@@ -349,7 +410,7 @@ def _process_branch(
                     branch_lines.append(rendered_text)
         else:
             assert pi in cycle_pis, f"Path {pi} did not converge"
-            branch_lines.append(f"[Circling back to a pre-branch dialog]")
+            branch_lines.append(f"[Loops back to an already-shown dialog]")
 
         lines_list.append(branch_lines)
 
