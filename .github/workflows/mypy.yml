@@ -3,8 +3,24 @@ name: Type Check
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'istaroth/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'migrations/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/mypy.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'istaroth/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'migrations/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
+      - '.github/workflows/mypy.yml'
 
 jobs:
   mypy:
