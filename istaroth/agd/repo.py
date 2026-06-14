@@ -486,7 +486,7 @@ class DataRepo:
         gadget_role_names = {}
         for dialog_item in dialog_data:
             talk_role = dialog_item["talkRole"]
-            if talk_role.get("type") == "TALK_ROLE_GADGET" and "id" in talk_role:
+            if talk_role["type"] == "TALK_ROLE_GADGET":
                 gadget_id = talk_role["id"]
                 content_hash = str(dialog_item["talkContentTextMapHash"])
                 role_name_hash = str(dialog_item["talkRoleNameTextMapHash"])

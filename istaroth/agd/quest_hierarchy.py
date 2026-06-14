@@ -115,13 +115,13 @@ def build_quest_hierarchy(
         quest_type = main_quest["type"]
         quest = types.QuestHierarchyQuest(id=quest_id, title=title)
 
-        chapter_id = main_quest.get("chapterId") or 0
+        chapter_id = main_quest["chapterId"]
         if not chapter_id:
             standalone_buckets[quest_type].append(quest)
             continue
 
         if (chapter := chapters.get(chapter_id)) is not None and (
-            series_id := chapter.get("groupId")
+            series_id := chapter["groupId"]
         ):
             series_buckets[quest_type][series_id][chapter_id].append(quest)
         else:
