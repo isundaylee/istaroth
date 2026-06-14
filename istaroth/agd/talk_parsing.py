@@ -43,6 +43,8 @@ class _TalkSignature(NamedTuple):
 
     dialogs: tuple[tuple[int, int], ...]
     """The (dialog id, content hash) sequence, for byte-identity checks."""
+    text_dialogs: frozenset[tuple[int, int]]
+    """(dialog id, content hash) pairs whose hash resolves to real text."""
     text_ids: frozenset[int]
     """Dialog ids whose content hash resolves to real text."""
 
@@ -211,8 +213,10 @@ class TalkParser:
         ``Quest`` and ``Npc``). Resolution, in order: (1) the file whose
         ``initDialog`` dialog actually carries text, when exactly one qualifies;
         (2) when the text-bearing files are equivalent, the canonically-named
-        ``<talkId>.json`` copy over a hash-named one; (3) otherwise the talkId
-        is genuinely ambiguous and is dropped. Dialogs
+        ``<talkId>.json`` copy over a hash-named one; (3) when one candidate's
+        text-bearing dialogs are a superset of every other's, that fuller copy
+        (the rest being stubs); (4) otherwise the talkId is genuinely ambiguous
+        and is dropped. Dialogs
         are loaded (deobfuscated) only for colliding ids, which also warms the
         cache for later rendering.
         """
@@ -262,6 +266,29 @@ class TalkParser:
                 stats["deduped"] += 1
                 continue
 
+            # Stub-vs-full collision: when one candidate's text-bearing dialogs
+            # are a superset of every other textful candidate's, that fuller copy
+            # is authoritative and the rest are stubs missing real dialogue
+            # (issue #75). Comparing the (id, content-hash) pairs of text-bearing
+            # dialogs — not dialog ids alone — keeps distinct talks that merely
+            # reuse local dialog ids (e.g. Coop hangouts) ambiguous.
+            superset = max(textful, key=lambda p: len(signatures[p].text_dialogs))
+            if all(
+                signatures[p].text_dialogs <= signatures[superset].text_dialogs
+                for p in textful
+            ):
+                self.talk_id_to_path[talk_id] = min(
+                    (
+                        p
+                        for p in textful
+                        if signatures[p].text_dialogs
+                        == signatures[superset].text_dialogs
+                    ),
+                    key=lambda p: (pathlib.Path(p).stem != talk_id, p),
+                )
+                stats["superset"] += 1
+                continue
+
             stats["dropped"] += 1
             log = logger.warning if init_dialog is not None else logger.debug
             log(
@@ -272,9 +299,10 @@ class TalkParser:
 
         if stats["collision"]:
             logger.info(
-                "Talk collisions: %d by initDialog, %d deduped, %d dropped",
+                "Talk collisions: %d by initDialog, %d deduped, %d superset, %d dropped",
                 stats["by_init_dialog"],
                 stats["deduped"],
+                stats["superset"],
                 stats["dropped"],
             )
 
@@ -292,15 +320,17 @@ class TalkParser:
             dialogs = data["dialogList"]
         except KeyError:
             return None
+        text_dialogs = frozenset(
+            (d["id"], d.get("talkContentTextMapHash", 0))
+            for d in dialogs
+            if text_map.has(str(d.get("talkContentTextMapHash", "")))
+        )
         return _TalkSignature(
             dialogs=tuple(
                 (d["id"], d.get("talkContentTextMapHash", 0)) for d in dialogs
             ),
-            text_ids=frozenset(
-                d["id"]
-                for d in dialogs
-                if text_map.has(str(d.get("talkContentTextMapHash", "")))
-            ),
+            text_dialogs=text_dialogs,
+            text_ids=frozenset(i for i, _ in text_dialogs),
         )
 
     @staticmethod
