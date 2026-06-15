@@ -11,6 +11,7 @@ def test_chinese_corpus_sanity():
 
     # Define test cases with file paths and expected content (1-to-1 mapping)
     test_cases = {
+        "agd_achievement/46_枫丹白露澈明的泉舞其之三.txt": "水仙十字题解\n\n何物徒留名字？何物遍开幽谷？何物映自身于镜水？何物象征拯救世界的孤独牺牲？",
         "agd_artifact_set/15029_水仙之梦.txt": "「是啊，我不会怨恨。我明白，你不曾见到我曾目睹的景象。所以你才会想阻止我。」",
         "agd_character_story/10000048_烟绯.txt": "所以烟绯也拥有神之眼——而且她的神之眼，与她信奉的「规则」等价。",
         "agd_material_type/137297451086922_MATERIAL_AVATAR_MATERIAL.txt": "传说在最初的僭主来到原始之海时，水国的先主曾赠予他一杯水。",
@@ -41,6 +42,7 @@ def test_english_corpus_sanity():
 
     # Define test cases with file paths and expected content (1-to-1 mapping)
     test_cases = {
+        "agd_achievement/46_Fontaine_Dance_of_the_Dew-White_Springs_III.txt": "Narzissenkreuz Notes\n\nWhat left its name behind? What lies spread all over the valley? What reflects itself in the mirror-water? What symbolizes the lonely, world-saving sacrifice?",
         "agd_artifact_set/15029_Nymphs_Dream.txt": "Yes, hatred shall not fill me. I know that you have not seen the sights I have, and that is why you wish to stop me.",
         "agd_character_story/10000048_Yanfei.txt": "That is why Yanfei possesses a Vision, one that is of equal weight to her principles.",
         "agd_material_type/137297451086922_MATERIAL_AVATAR_MATERIAL.txt": "Legend says that when the first usurper came to the primordial sea, the first sovereign gave him a goblet of water.",

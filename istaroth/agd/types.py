@@ -69,6 +69,12 @@ ReliquaryId: TypeAlias = int
 ArtifactSetId: TypeAlias = str
 """Artifact set id, as a string (renderable key)."""
 
+AchievementId: TypeAlias = int
+"""Achievement id."""
+
+AchievementGoalId: TypeAlias = int
+"""Achievement section/goal id (renderable key)."""
+
 EquipAffixId: TypeAlias = int
 """Equip-affix (artifact set bonus) id."""
 
@@ -350,6 +356,32 @@ class ChapterExcelConfigDataItem(TypedDict):
 ChapterExcelConfigData: TypeAlias = list[ChapterExcelConfigDataItem]
 
 
+class AchievementExcelConfigDataItem(TypedDict):
+    """Type definition for an achievement configuration entry."""
+
+    id: AchievementId
+    goalId: AchievementGoalId
+    orderId: int
+    titleTextMapHash: TextHash
+    descTextMapHash: TextHash
+    isDisuse: bool
+    isShow: str
+
+
+AchievementExcelConfigData: TypeAlias = list[AchievementExcelConfigDataItem]
+
+
+class AchievementGoalExcelConfigDataItem(TypedDict):
+    """Type definition for an achievement section configuration entry."""
+
+    id: AchievementGoalId
+    orderId: int
+    nameTextMapHash: TextHash
+
+
+AchievementGoalExcelConfigData: TypeAlias = list[AchievementGoalExcelConfigDataItem]
+
+
 class ReliquarySetExcelConfigDataItem(TypedDict):
     """Type definition for artifact set configuration entries."""
 
@@ -585,6 +617,24 @@ class MaterialInfo:
     material_id: MaterialId
     name: str
     description: str
+
+
+@attrs.define
+class AchievementInfo:
+    """Localized achievement text."""
+
+    achievement_id: AchievementId
+    name: str
+    description: str
+
+
+@attrs.define
+class AchievementSectionInfo:
+    """Localized achievements grouped by their in-game section."""
+
+    section_id: AchievementGoalId
+    section_name: str
+    achievements: list[AchievementInfo]
 
 
 @attrs.define

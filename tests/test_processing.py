@@ -104,6 +104,101 @@ def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
             assert talk_text.message.strip()
 
 
+def test_achievement_section_46_info(data_repo: repo.DataRepo) -> None:
+    """Achievement sections include their localized achievement text."""
+    section = processing.get_achievement_section_info(46, data_repo=data_repo)
+
+    assert section.section_name == "枫丹·白露澈明的泉舞·其之三"
+    assert section.achievements[-1].achievement_id == 80299
+    assert section.achievements[-1].name == "水仙十字题解"
+    assert section.achievements[-1].description.startswith("何物徒留名字？")
+
+
+def test_achievement_section_filters_disused_and_keeps_hidden() -> None:
+    """Only disused achievements are excluded; hidden active text remains."""
+    data_repo = mock.Mock(spec=repo.DataRepo)
+    data_repo.load_achievement_goal_excel_config_data.return_value = [
+        {"id": 9, "orderId": 1, "nameTextMapHash": 100}
+    ]
+    data_repo.load_achievement_excel_config_data.return_value = [
+        {
+            "id": 3,
+            "goalId": 9,
+            "orderId": 2,
+            "titleTextMapHash": 103,
+            "descTextMapHash": 203,
+            "isDisuse": False,
+            "isShow": "SHOWTYPE_HIDE",
+        },
+        {
+            "id": 2,
+            "goalId": 9,
+            "orderId": 1,
+            "titleTextMapHash": 102,
+            "descTextMapHash": 202,
+            "isDisuse": False,
+            "isShow": "SHOWTYPE_SHOW",
+        },
+        {
+            "id": 1,
+            "goalId": 9,
+            "orderId": 0,
+            "titleTextMapHash": 101,
+            "descTextMapHash": 201,
+            "isDisuse": True,
+            "isShow": "SHOWTYPE_SHOW",
+        },
+    ]
+    data_repo.build_achievement_section_mapping.return_value = (
+        repo.DataRepo.build_achievement_section_mapping(data_repo)
+    )
+    data_repo.load_text_map.return_value = repo.TextMapTracker(
+        {
+            "100": "Section",
+            "102": "Visible",
+            "202": "Visible description",
+            "103": "Hidden",
+            "203": "Hidden description",
+        },
+        localization.Language.ENG,
+    )
+
+    section = processing.get_achievement_section_info(9, data_repo=data_repo)
+
+    assert [achievement.achievement_id for achievement in section.achievements] == [
+        2,
+        3,
+    ]
+    assert section.achievements[1].name == "Hidden"
+
+
+def test_achievement_section_requires_active_localized_text() -> None:
+    """Missing active achievement text is a per-section parsing failure."""
+    data_repo = mock.Mock(spec=repo.DataRepo)
+    data_repo.build_achievement_section_mapping.return_value = {
+        9: (
+            {"id": 9, "orderId": 1, "nameTextMapHash": 100},
+            [
+                {
+                    "id": 2,
+                    "goalId": 9,
+                    "orderId": 1,
+                    "titleTextMapHash": 102,
+                    "descTextMapHash": 202,
+                    "isDisuse": False,
+                    "isShow": "SHOWTYPE_SHOW",
+                }
+            ],
+        )
+    }
+    data_repo.load_text_map.return_value = repo.TextMapTracker(
+        {"100": "Section", "102": "Achievement"}, localization.Language.ENG
+    )
+
+    with pytest.raises(ValueError, match="Missing description for achievement 2"):
+        processing.get_achievement_section_info(9, data_repo=data_repo)
+
+
 @pytest.mark.parametrize(
     "talk_id, expected_quest_id",
     [

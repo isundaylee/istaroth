@@ -81,6 +81,33 @@ def test_render_weapon_single_page_no_description() -> None:
     assert rendered.content == "# 无锋剑\n\n少年人的梦想。"
 
 
+def test_render_achievement_section() -> None:
+    """An achievement section renders as one categorized text document."""
+    rendered = rendering.render_achievement_section(
+        types.AchievementSectionInfo(
+            section_id=46,
+            section_name="枫丹·白露澈明的泉舞·其之三",
+            achievements=[
+                types.AchievementInfo(
+                    achievement_id=80299,
+                    name="水仙十字题解",
+                    description="何物徒留名字？",
+                )
+            ],
+        )
+    )
+
+    assert (
+        rendered.text_metadata.relative_path
+        == "agd_achievement/46_枫丹白露澈明的泉舞其之三.txt"
+    )
+    assert rendered.text_metadata.id == 46
+    assert rendered.text_metadata.title == "枫丹·白露澈明的泉舞·其之三"
+    assert rendered.content == (
+        "# 枫丹·白露澈明的泉舞·其之三\n\n## 水仙十字题解\n\n何物徒留名字？"
+    )
+
+
 def test_render_talk_basic() -> None:
     """Test basic talk rendering functionality."""
     talk_texts = [

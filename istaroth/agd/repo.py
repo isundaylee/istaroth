@@ -369,6 +369,60 @@ class DataRepo:
             return MaterialTracker(data)
 
     @functools.lru_cache(maxsize=None)
+    def load_achievement_excel_config_data(
+        self,
+    ) -> types.AchievementExcelConfigData:
+        """Load AchievementExcelConfigData.json."""
+        file_path = self.agd_path / "ExcelBinOutput" / "AchievementExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.AchievementExcelConfigData = json.load(f)
+            return data
+
+    @functools.lru_cache(maxsize=None)
+    def load_achievement_goal_excel_config_data(
+        self,
+    ) -> types.AchievementGoalExcelConfigData:
+        """Load AchievementGoalExcelConfigData.json."""
+        file_path = (
+            self.agd_path / "ExcelBinOutput" / "AchievementGoalExcelConfigData.json"
+        )
+        with open(file_path, encoding="utf-8") as f:
+            data: types.AchievementGoalExcelConfigData = json.load(f)
+            return data
+
+    @functools.lru_cache(maxsize=None)
+    def build_achievement_section_mapping(
+        self,
+    ) -> dict[
+        types.AchievementGoalId,
+        tuple[
+            types.AchievementGoalExcelConfigDataItem,
+            list[types.AchievementExcelConfigDataItem],
+        ],
+    ]:
+        """Index active achievements by section in configured display order."""
+        mapping = {
+            section["id"]: (section, list[types.AchievementExcelConfigDataItem]())
+            for section in self.load_achievement_goal_excel_config_data()
+        }
+        if len(mapping) != len(self.load_achievement_goal_excel_config_data()):
+            raise ValueError("Duplicate achievement section ID")
+        for achievement in self.load_achievement_excel_config_data():
+            if achievement["isDisuse"]:
+                continue
+            if (section := mapping.get(achievement["goalId"])) is None:
+                raise ValueError(
+                    f"Achievement {achievement['id']} references unknown section "
+                    f"{achievement['goalId']}"
+                )
+            section[1].append(achievement)
+        for _, achievements in mapping.values():
+            achievements.sort(
+                key=lambda achievement: (achievement["orderId"], achievement["id"])
+            )
+        return mapping
+
+    @functools.lru_cache(maxsize=None)
     def build_talk_group_mapping(
         self,
     ) -> dict[tuple[talk_parsing.TalkGroupType, talk_parsing.TalkGroupId], str]:
@@ -452,6 +506,10 @@ class DataRepo:
         # Excel config and text maps.
         self.get_npc_id_to_name_mapping()
         self.get_npc_id_to_source_name_mapping()
+
+        # Warm the achievement section index so workers inherit the parsed
+        # configs and do not each scan all achievements once per section.
+        self.build_achievement_section_mapping()
 
     @functools.lru_cache(maxsize=None)
     def load_talk_excel_config_data(self) -> types.TalkExcelConfigData:

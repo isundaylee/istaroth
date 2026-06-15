@@ -368,6 +368,35 @@ class MaterialTypes(BaseRenderableType[str]):
         return rendering.render_materials_by_type(renderable_key, materials_of_type)
 
 
+class Achievements(BaseRenderableType[types.AchievementGoalId]):
+    """Achievements grouped by their in-game section."""
+
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_ACHIEVEMENT
+    )
+
+    def discover(self, data_repo: repo.DataRepo) -> list[types.AchievementGoalId]:
+        """Discover achievement sections in their configured display order."""
+        return [
+            section["id"]
+            for section in sorted(
+                (
+                    section
+                    for section, _ in data_repo.build_achievement_section_mapping().values()
+                ),
+                key=lambda section: (section["orderId"], section["id"]),
+            )
+        ]
+
+    def process(
+        self, renderable_key: types.AchievementGoalId, data_repo: repo.DataRepo
+    ) -> types.RenderedItem:
+        """Process one achievement section into rendered content."""
+        return rendering.render_achievement_section(
+            processing.get_achievement_section_info(renderable_key, data_repo=data_repo)
+        )
+
+
 class Voicelines(BaseRenderableType[types.AvatarId]):
     """Voiceline content type (character voice lines)."""
 

@@ -141,6 +141,7 @@ export const chs = {
       agd_wings: '风之翼',
       agd_costume: '服装',
       agd_character_story: '角色故事',
+      agd_achievement: '成就',
       agd_material_type: '材料类型',
       agd_quest: '任务',
       agd_readable: '可读文本',
