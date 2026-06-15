@@ -2,10 +2,11 @@ from istaroth.agd import localization
 
 # Dev placeholders that some readables carry instead of real text, matched exactly
 # (case-insensitively). The same junk appears per language: CHS 测试/暂无/暂缺 and
-# their ENG equivalents Test/None/N/A. Matched whole-string so genuinely short
-# readables (e.g. "放假一天！", "我的宝物") are not dropped.
+# their ENG equivalents Test/None/N/A, plus the language-neutral ？？？. Matched
+# whole-string so genuinely short readables (e.g. "放假一天！", "我的宝物") are not
+# dropped.
 _READABLE_PLACEHOLDER_CONTENTS = frozenset(
-    {"测试", "暂无", "暂缺", "test", "none", "n/a"}
+    {"测试", "暂无", "暂缺", "？？？", "test", "none", "n/a"}
 )
 
 
