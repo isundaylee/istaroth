@@ -103,77 +103,17 @@ See the [Web UI section](README.md#web-ui) in the README for environment setup a
 
 ## Regenerating the Text Corpus
 
-When regenerating the committed `text/` submodule, ALWAYS regenerate the ENTIRE
-corpus for both languages — never scope a `text/` regen to a single `--only`
-category. The `-f` flag wipes and rebuilds the whole output dir so every
-category stays consistent, even when a change only touched one of them. Commit
-inside `text/` first, then amend the pointer move into the parent's code commit —
-see Git Workflow Best Practices.
+Use the `regen-text` skill for corpus regeneration, diff auditing, commits, and
+the later push workflow. Its canonical path is
+`.agents/skills/regen-text/SKILL.md`; `.claude/skills` is a compatibility symlink.
 
-```bash
-uv run scripts/agd_tools.py generate-all -f text/chs && AGD_LANGUAGE=ENG uv run scripts/agd_tools.py generate-all -f text/eng
-```
-
-For ad hoc regens to a throwaway/temporary dir (e.g. to diff or sanity-check a
-change before the full run), `--only <category>` is fine and preferred — it is
-much faster and scopes output to what you're inspecting. Only the committed
-`text/` corpus must be a full regen.
-
-### "Regen corpus" request workflow
-
-When the user asks to **regen corpus**, do the full regen and fold the pointer
-move into the code commit as described above, plus these request-specific points:
-
-- First rebase the current branch onto the latest `origin/main`
-  (`git fetch origin && git rebase origin/main`).
-- If the `text/` submodule isn't initialized in this workspace, init it shallow
-  to avoid cloning the full corpus history (the istaroth-text history is several
-  times its working-tree size and grows every regen):
-  `git submodule update --init --depth 1 text`. Depth 1 is enough — the diff
-  audit only compares the working tree against `HEAD`, and the regen commits and
-  pushes on top of the pinned commit. It speeds up the submodule checkout only,
-  not the generation run itself.
-- Time the regen and report the wall-clock duration taken.
-- The submodule data commit lands on the submodule's `main` branch (check out
-  `main` in `text/` first if it is detached).
-- Do NOT push yet — the user verifies first.
-
-When the user later asks to **push the text regen** (after they verify):
-
-- Push the `istaroth-text` submodule commit onto its `main` remote.
-- Update the current PR's branch (force-push — amending the pointer in rewrote
-  the code commit) so its single commit contains both the code change and the
-  `text/` pointer move.
-
-## Auditing Text Corpus Diffs
-
-A rendering/parsing change can touch tens of thousands of `text/` files, so a
-raw `git diff` is unreadable and line counts alone are misleading. `text/` is a
-submodule, so run these from inside `text/` (old version = `git show HEAD:<f>`,
-new = working tree).
-
-- **The line-loss check is the one that matters.** Net line deltas are noisy:
-  formatting-only changes (e.g. the dialog-graph fix packs linear chains that
-  were previously blank-line-separated entrypoints) routinely delete hundreds of
-  thousands of blank lines while losing zero content. Don't trust `--numstat`;
-  diff the *set* of meaningful lines instead.
-- **Normalize before comparing.** Strip each line, drop blanks and structural
-  markers (`Option \d+:`, `## Talk N`, `### …`, `(Quest is part of chapter…)`),
-  then compare `collections.Counter`s per file. `old - new` (Counter subtraction)
-  = genuinely lost content; `new - old` = added content. Aggregate the totals
-  across all changed files; **lost-content == 0 is the pass condition.**
-- **Split "added" into brand-new vs. repeated.** Added occurrences where the text
-  is absent from the old file are genuinely new lines; added occurrences of text
-  that already existed are increased multiplicity — usually branch/multi-entrypoint
-  convergence tails re-rendered once per path (existing renderer behavior). Report
-  the two separately so "added content" isn't mistaken for new dialogue.
-- **Categorize by directory** (`agd_quest`, `agd_talk`, `agd_talk_group`) — the
-  segment after `chs/`|`eng/` — to see where a change concentrates.
-- **Spot-check, don't full-scan, once the aggregate is clean.** A per-file
-  `git show` loop over all ~12k files is slow (minutes); sample (e.g. every Nth
-  file) for growth ratios and eyeball one or two real diffs to confirm the shape.
-- Compare `chs` and `eng` independently; macros like `{NICKNAME}` /
-  `{M#…}{F#…}` render differently per language and shouldn't be cross-normalized.
+- ALWAYS regenerate the ENTIRE committed corpus for both languages. Never use
+  `--only` for committed output; it is allowed only for ad hoc output in a
+  throwaway directory.
+- Commit generated data inside `text/` first, then include the submodule pointer
+  in the parent repository's single commit.
+- NEVER push a regenerated corpus or amended parent commit before the user has
+  verified the result.
 
 ## LangSmith Tracing
 The RAG pipeline supports LangSmith tracing for debugging and monitoring. Required environment variables:

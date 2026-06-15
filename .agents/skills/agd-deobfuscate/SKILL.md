@@ -1,5 +1,6 @@
 ---
-allowed-tools: Bash,Read,Edit,Glob,Grep
+name: agd-deobfuscate
+description: Identify and add new AnimeGameData field deobfuscation mappings by comparing cleartext and obfuscated AGD revisions. Use when a new Genshin Impact build changes obfuscated JSON field names or when istaroth/agd/deobfuscation.py needs a new version mapping block.
 ---
 
 Fill in new deobfuscation entries in `istaroth/agd/deobfuscation.py` by comparing a cleartext AGD revision against a new obfuscated HEAD revision.
