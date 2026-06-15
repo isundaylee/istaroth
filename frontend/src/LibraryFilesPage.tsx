@@ -90,7 +90,7 @@ function LibraryFilesPage() {
             >
               {filteredFiles.map((file) => (
                 <div
-                  key={file.id}
+                  key={file.relative_path}
                   onClick={() => category && navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(file.id)}`)}
                   onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
                     const card = e.currentTarget.querySelector('.card') as HTMLElement
