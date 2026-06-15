@@ -111,6 +111,9 @@ the later push workflow. Its canonical path is
 - ALWAYS regenerate the ENTIRE committed corpus for both languages. Never use
   `--only` for committed output; it is allowed only for ad hoc output in a
   throwaway directory.
+- Run the CHS and ENG regenerations in parallel; they write to independent
+  directories (`text/chs` vs `text/eng`). Wait for both and require each to exit
+  0 before auditing.
 - Commit generated data inside `text/` first, then include the submodule pointer
   in the parent repository's single commit.
 - NEVER force-push the `istaroth-text` `main` branch; it is shared, append-only

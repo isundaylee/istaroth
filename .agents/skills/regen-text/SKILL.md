@@ -28,13 +28,21 @@ When the user asks to **regen corpus**:
    Depth 1 is sufficient because the audit compares the working tree with the pinned `HEAD`.
 
 4. In `text/`, check out `main` before committing. If the shallow checkout lacks the local branch, create or reset it at the pinned commit without discarding changes.
-5. Time a complete regeneration of both languages:
+5. Time a complete regeneration of both languages. The two write to
+   independent directories (`text/chs` vs `text/eng`), so run them in parallel
+   and wait for both:
 
    ```bash
-   uv run scripts/agd_tools.py generate-all -f text/chs
-   AGD_LANGUAGE=ENG uv run scripts/agd_tools.py generate-all -f text/eng
+   uv run scripts/agd_tools.py generate-all -f text/chs > /tmp/regen-chs.log 2>&1 &
+   chs_pid=$!
+   AGD_LANGUAGE=ENG uv run scripts/agd_tools.py generate-all -f text/eng > /tmp/regen-eng.log 2>&1 &
+   eng_pid=$!
+   wait "$chs_pid"; chs_status=$?
+   wait "$eng_pid"; eng_status=$?
+   echo "chs=$chs_status eng=$eng_status"
    ```
 
+   Both must exit 0; inspect the corresponding log on any non-zero status.
    Never use `--only` for committed corpus output. It is allowed only for ad hoc output in a throwaway directory.
 
 6. Audit the generated diff using the procedure below. Treat any unexplained lost content as a failure to investigate before committing.
