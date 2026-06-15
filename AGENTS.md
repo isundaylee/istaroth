@@ -85,12 +85,14 @@ istaroth/
 - Pass arguments that are not primary inputs to the function itself but rather toolkit objects (e.g. DataRepo) as kw-only args
 
 ## Git Workflow Best Practices
-- Each PR should be a SINGLE commit of code changes, plus optionally one
-  separate commit for the `text/` submodule pointer change (the `Update text`
-  commit). Squash incremental work into one code commit before opening/updating a PR.
+- Each PR should be a SINGLE commit. Fold the `text/` submodule pointer change
+  into the code commit (`git add text && git commit --amend --no-edit`) rather
+  than keeping a separate `Update text` commit. Squash incremental work into that
+  one commit before opening/updating a PR. (A pure text regen with no code change
+  is just that single commit on its own.)
 - ALWAYS run precommit separately and added resulted changes before you offer to git commit
 - When a commit fixes a GitHub issue, include a closing keyword in the commit message body (e.g. `Closes #55`) so GitHub auto-closes it on push; otherwise the issue must be closed manually.
-- The `text/` directory is a git submodule (repo `istaroth-text`) holding the generated text corpus and manifests. Regenerated data (e.g. from `scripts/tps_shishu_tools.py`) is committed INSIDE the submodule first, then the parent repo records the pointer move with a separate `Update text` commit (`git add text && git commit -m "Update text"`). Keep submodule data commits out of code commits unless asked otherwise.
+- The `text/` directory is a git submodule (repo `istaroth-text`) holding the generated text corpus and manifests. Regenerated data (e.g. from `scripts/tps_shishu_tools.py`) is committed INSIDE the submodule first (its own commit on the submodule's `main`), then the parent repo records the pointer move by amending it into the code commit (`git add text && git commit --amend --no-edit`), not as a separate `Update text` commit. The submodule's own data commit stays on the submodule; only the parent-repo pointer move is folded into the code commit.
 
 ## Script Development Guidelines
 - ALWAYS include a shebang and make the script executable for files under scripts/
@@ -105,8 +107,8 @@ When regenerating the committed `text/` submodule, ALWAYS regenerate the ENTIRE
 corpus for both languages — never scope a `text/` regen to a single `--only`
 category. The `-f` flag wipes and rebuilds the whole output dir so every
 category stays consistent, even when a change only touched one of them. Commit
-inside `text/` first, then record the pointer move in the parent — see Git
-Workflow Best Practices.
+inside `text/` first, then amend the pointer move into the parent's code commit —
+see Git Workflow Best Practices.
 
 ```bash
 uv run scripts/agd_tools.py generate-all -f text/chs && AGD_LANGUAGE=ENG uv run scripts/agd_tools.py generate-all -f text/eng
@@ -119,11 +121,18 @@ much faster and scopes output to what you're inspecting. Only the committed
 
 ### "Regen corpus" request workflow
 
-When the user asks to **regen corpus**, do the full regen + two-commit dance
-described above, plus these request-specific points:
+When the user asks to **regen corpus**, do the full regen and fold the pointer
+move into the code commit as described above, plus these request-specific points:
 
 - First rebase the current branch onto the latest `origin/main`
   (`git fetch origin && git rebase origin/main`).
+- If the `text/` submodule isn't initialized in this workspace, init it shallow
+  to avoid cloning the full corpus history (the istaroth-text history is several
+  times its working-tree size and grows every regen):
+  `git submodule update --init --depth 1 text`. Depth 1 is enough — the diff
+  audit only compares the working tree against `HEAD`, and the regen commits and
+  pushes on top of the pinned commit. It speeds up the submodule checkout only,
+  not the generation run itself.
 - Time the regen and report the wall-clock duration taken.
 - The submodule data commit lands on the submodule's `main` branch (check out
   `main` in `text/` first if it is detached).
@@ -132,8 +141,9 @@ described above, plus these request-specific points:
 When the user later asks to **push the text regen** (after they verify):
 
 - Push the `istaroth-text` submodule commit onto its `main` remote.
-- Update the current PR's branch so it contains both the code change and the
-  separate `Update text` pointer commit (push the parent branch).
+- Update the current PR's branch (force-push — amending the pointer in rewrote
+  the code commit) so its single commit contains both the code change and the
+  `text/` pointer move.
 
 ## Auditing Text Corpus Diffs
 
