@@ -1,0 +1,4 @@
+interface:
+  display_name: "Regenerate Text Corpus"
+  short_description: "Regenerate, audit, commit, and push the text corpus"
+  default_prompt: "Regenerate the full Istaroth text corpus, audit the result for content loss, and prepare the submodule and parent commits without pushing."
