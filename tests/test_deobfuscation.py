@@ -122,11 +122,7 @@ def test_deobfuscate_document_excel_config_data(data_repo: repo.DataRepo) -> Non
     assert weapon_doc["questContentLocalizedId"] == [291431]  # page 1 (cleartext)
     assert weapon_doc["CUSTOM_addlLocalID"] == [291001]  # page 2 (was obfuscated)
 
-    # load_document_excel_config_data returns the same structure.
+    # load_document_excel_config_data returns the same structure, keyed by id.
     loaded = data_repo.load_document_excel_config_data()
-    assert (
-        next(d for d in loaded if d["id"] == 101733)["titleTextMapHash"] == 3763660007
-    )
-    assert next(d for d in loaded if d["id"] == 191431)["CUSTOM_addlLocalID"] == [
-        291001
-    ]
+    assert loaded[101733]["titleTextMapHash"] == 3763660007
+    assert loaded[191431]["CUSTOM_addlLocalID"] == [291001]

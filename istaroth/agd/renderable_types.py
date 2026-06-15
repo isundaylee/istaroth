@@ -70,7 +70,11 @@ class BaseReadables(BaseRenderableType[str]):
             raise FileNotFoundError(f"Readable not found: {renderable_key}")
         content = text_cleanup.clean_text_markers(content, data_repo.language)
 
-        if text_utils.should_skip_text(content, data_repo.language):
+        # Skip empty readables and dev placeholders (e.g. multi-page weapon base
+        # files, or "测试"/"暂无" stubs) -- nothing worth rendering, and skipping
+        # before the metadata lookup avoids erroring on files with no localization
+        # id.
+        if text_utils.should_skip_readable_content(content, data_repo.language):
             return None
 
         metadata = processing.get_readable_metadata(renderable_key, data_repo=data_repo)
@@ -130,29 +134,43 @@ class Books(BaseReadables):
         ]
 
 
-class Weapons(BaseReadables):
-    """Weapon readable content type."""
+class Weapons(BaseRenderableType[str]):
+    """Weapon story content type.
+
+    Discovered from the authoritative WeaponExcelConfigData rather than by globbing
+    ``Weapon*`` readable filenames: each weapon's storyId resolves through the
+    document and localization configs to its story page files, which are assembled
+    into a single document. This treats a multi-page weapon story as one item and
+    drops storyId-less placeholder/test weapons for free (issue #71).
+    """
 
     text_category: ClassVar[text_types.TextCategory] = (
         text_types.TextCategory.AGD_WEAPON
     )
-
-    def _render(
-        self, content: str, metadata: types.ReadableMetadata
-    ) -> types.RenderedItem:
-        return rendering.render_weapon(content, metadata)
+    error_limit: ClassVar[int] = 50
+    error_limit_non_chinese: ClassVar[int] = 200
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
-        """Find all readable files whose filename starts with Weapon."""
-        readables_tracker = data_repo.get_readables()
-        return [
-            f"Readable/{data_repo.language_short}/{filename}"
-            for filename in sorted(
-                filename
-                for filename in readables_tracker.get_all_ids()
-                if filename.startswith("Weapon")
+        """Enumerate all weapon IDs from WeaponExcelConfigData."""
+        return sorted(
+            str(weapon_id) for weapon_id in data_repo.load_weapon_excel_config_data()
+        )
+
+    def process(
+        self, renderable_key: str, data_repo: repo.DataRepo
+    ) -> types.RenderedItem | None:
+        """Assemble and render a weapon's story document, or skip if it has none.
+
+        ``get_weapon_info`` claims the weapon's readable files (base + story pages)
+        so its empty/placeholder files stay out of the generic Readables catch-all.
+        """
+        if (
+            weapon_info := processing.get_weapon_info(
+                renderable_key, data_repo=data_repo
             )
-        ]
+        ) is None:
+            return None
+        return rendering.render_weapon(weapon_info)
 
 
 class Wings(BaseReadables):

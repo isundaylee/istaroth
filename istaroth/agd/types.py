@@ -306,9 +306,23 @@ class EquipAffixExcelConfigDataItem(TypedDict):
     nameTextMapHash: int
 
 
+class WeaponExcelConfigDataItem(TypedDict):
+    """Type definition for weapon configuration entries.
+
+    ``storyId`` points at the weapon's DocumentExcelConfigData entry (0 when the
+    weapon has no story document).
+    """
+
+    id: int
+    nameTextMapHash: int
+    descTextMapHash: int
+    storyId: int
+
+
 ReliquarySetExcelConfigData: TypeAlias = list[ReliquarySetExcelConfigDataItem]
 ReliquaryExcelConfigData: TypeAlias = list[ReliquaryExcelConfigDataItem]
 EquipAffixExcelConfigData: TypeAlias = list[EquipAffixExcelConfigDataItem]
+WeaponExcelConfigData: TypeAlias = list[WeaponExcelConfigDataItem]
 
 """List of main quest configuration items.
 
@@ -575,6 +589,20 @@ class ArtifactSetInfo:
     set_name: str
     set_id: str
     artifacts: list[ArtifactInfo]
+
+
+@attrs.define
+class WeaponInfo:
+    """A weapon's assembled story document: name, flavor description, and pages.
+
+    ``story_pages`` holds the weapon's story document pages in reading order,
+    joined into one rendered document (a multi-page weapon story is a single item).
+    """
+
+    weapon_id: str
+    name: str
+    description: str
+    story_pages: list[str]
 
 
 @attrs.define
