@@ -273,13 +273,22 @@ class DataRepo:
             return data
 
     @functools.lru_cache(maxsize=None)
-    def load_document_excel_config_data(self) -> types.DocumentExcelConfigData:
-        """Load document Excel configuration data."""
+    def load_document_excel_config_data(
+        self,
+    ) -> dict[int, types.DocumentExcelConfigDataItem]:
+        """Load DocumentExcelConfigData.json as a dict mapping document id to entry.
+
+        First entry wins per id, matching the original break-on-first-match
+        behavior of callers that scanned for a matching ``id``.
+        """
         file_path = self.agd_path / "ExcelBinOutput" / "DocumentExcelConfigData.json"
         with open(file_path, encoding="utf-8") as f:
             raw_data: list[dict[str, Any]] = json.load(f)
             data = deobfuscation.deobfuscate_document_excel_config_data(raw_data)
-            return data  # type: ignore[return-value]
+            mapping: dict[int, types.DocumentExcelConfigDataItem] = {}
+            for doc_item in data:
+                mapping.setdefault(doc_item["id"], doc_item)  # type: ignore[arg-type]
+            return mapping
 
     @functools.lru_cache(maxsize=None)
     def build_readable_stem_to_localization_id(self) -> dict[str, int]:
@@ -304,6 +313,29 @@ class DataRepo:
         return mapping
 
     @functools.lru_cache(maxsize=None)
+    def build_localization_id_to_readable_path(self) -> dict[int, str]:
+        """Map a localization id to its readable filename for the instance language.
+
+        The inverse of ``build_readable_stem_to_localization_id``, precomputed once
+        so story-document assembly (e.g. weapons) resolves each page id in O(1)
+        instead of rescanning LocalizationExcelConfigData per item. First language
+        path wins, matching the original break-on-first-match behavior.
+        """
+        language_short = self.language_short
+        mapping: dict[int, str] = {}
+        for entry in self.load_localization_excel_config_data():
+            for path_value in entry.values():
+                if not isinstance(path_value, str):
+                    continue
+                path = pathlib.Path(path_value)
+                if (
+                    path_value.endswith(f"_{language_short}")
+                    or language_short in path.parts
+                ):
+                    mapping.setdefault(entry["id"], f"{path.name}.txt")
+        return mapping
+
+    @functools.lru_cache(maxsize=None)
     def build_localization_id_to_title_hash(self) -> dict[int, int]:
         """Map a localization id to its document title hash.
 
@@ -311,7 +343,7 @@ class DataRepo:
         document wins per id, matching the original break-on-first-match behavior.
         """
         mapping: dict[int, int] = {}
-        for doc_item in self.load_document_excel_config_data():
+        for doc_item in self.load_document_excel_config_data().values():
             for loc_id in itertools.chain(
                 doc_item.get("CUSTOM_addlLocalID", []),
                 doc_item["questContentLocalizedId"],
@@ -404,6 +436,7 @@ class DataRepo:
         # Warm the readable-metadata lookup maps so forked workers don't each
         # re-scan the localization/document Excel configs once per readable.
         self.build_readable_stem_to_localization_id()
+        self.build_localization_id_to_readable_path()
         self.build_localization_id_to_title_hash()
 
         # Warm the NPC name mappings (output-language + CHS source) so forked
@@ -585,6 +618,16 @@ class DataRepo:
         with open(file_path, encoding="utf-8") as f:
             data: types.EquipAffixExcelConfigData = json.load(f)
             return data
+
+    @functools.lru_cache(maxsize=None)
+    def load_weapon_excel_config_data(
+        self,
+    ) -> dict[int, types.WeaponExcelConfigDataItem]:
+        """Load WeaponExcelConfigData.json as a dict mapping weapon ID to weapon."""
+        file_path = self.agd_path / "ExcelBinOutput" / "WeaponExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.WeaponExcelConfigData = json.load(f)
+            return {weapon["id"]: weapon for weapon in data}
 
     @functools.lru_cache(maxsize=None)
     def get_readables(self) -> ReadablesTracker:

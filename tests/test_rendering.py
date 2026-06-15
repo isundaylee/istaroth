@@ -48,6 +48,39 @@ def test_render_readable_whitespace() -> None:
     assert rendered.text_metadata.id == 0
 
 
+def test_render_weapon_multi_page_with_description() -> None:
+    """A multi-page weapon story renders as one document under the weapon name."""
+    weapon_info = types.WeaponInfo(
+        weapon_id="11431",
+        name="息燧之笛",
+        description="造型奇特的玉石长刀。",
+        story_pages=["第一页内容。", "第二页内容。"],
+    )
+
+    rendered = rendering.render_weapon(weapon_info)
+
+    assert rendered.text_metadata.relative_path == "agd_weapon/11431_息燧之笛.txt"
+    assert rendered.text_metadata.id == 11431
+    assert rendered.content == (
+        "# 息燧之笛\n\n造型奇特的玉石长刀。\n\n第一页内容。\n\n---\n\n第二页内容。"
+    )
+
+
+def test_render_weapon_single_page_no_description() -> None:
+    """A weapon without a description omits the description block."""
+    weapon_info = types.WeaponInfo(
+        weapon_id="11101",
+        name="无锋剑",
+        description="",
+        story_pages=["少年人的梦想。"],
+    )
+
+    rendered = rendering.render_weapon(weapon_info)
+
+    assert rendered.text_metadata.relative_path == "agd_weapon/11101_无锋剑.txt"
+    assert rendered.content == "# 无锋剑\n\n少年人的梦想。"
+
+
 def test_render_talk_basic() -> None:
     """Test basic talk rendering functionality."""
     talk_texts = [

@@ -159,20 +159,25 @@ def render_book(content: str, metadata: types.ReadableMetadata) -> types.Rendere
     )
 
 
-def render_weapon(content: str, metadata: types.ReadableMetadata) -> types.RenderedItem:
-    """Render weapon readable content into RAG-suitable format."""
-    safe_title = utils.make_safe_filename_part(metadata.title)
-    filename = f"{metadata.localization_id}_{safe_title}.txt"
-    rendered_content = f"# {metadata.title}\n\n{content}"
+def render_weapon(weapon_info: types.WeaponInfo) -> types.RenderedItem:
+    """Render a weapon's assembled story document into RAG-suitable format."""
+    safe_name = utils.make_safe_filename_part(weapon_info.name)
+    filename = f"{weapon_info.weapon_id}_{safe_name}.txt"
+
+    content_lines = [f"# {weapon_info.name}\n"]
+    if weapon_info.description:
+        content_lines.append(f"{weapon_info.description}\n")
+    # Join story pages with a markdown horizontal rule so page boundaries survive.
+    content_lines.append("\n\n---\n\n".join(weapon_info.story_pages))
 
     return types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_WEAPON,
-            title=metadata.title,
-            id=metadata.localization_id,
+            title=weapon_info.name,
+            id=int(weapon_info.weapon_id),
             relative_path=f"{text_types.TextCategory.AGD_WEAPON.value}/{filename}",
         ),
-        content=rendered_content,
+        content="\n".join(content_lines),
     )
 
 

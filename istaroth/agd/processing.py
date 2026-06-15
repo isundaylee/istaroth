@@ -693,16 +693,7 @@ def _get_relic_story_by_story_id(
     if story_id == 0:
         return None
 
-    if (
-        doc_item := next(
-            (
-                doc
-                for doc in data_repo.load_document_excel_config_data()
-                if doc["id"] == story_id
-            ),
-            None,
-        )
-    ) is None:
+    if (doc_item := data_repo.load_document_excel_config_data().get(story_id)) is None:
         return None
 
     localization_ids = set(doc_item["questIDList"])
@@ -815,6 +806,62 @@ def get_artifact_set_info(
             f"Set name not found for affix {affix_id} (hash {affix_name_hash}) in set {set_id}"
         )
     return types.ArtifactSetInfo(set_name=set_name, set_id=set_id, artifacts=artifacts)
+
+
+def get_weapon_info(
+    weapon_id: str, *, data_repo: repo.DataRepo
+) -> types.WeaponInfo | None:
+    """Assemble a weapon's story document from its authoritative weapon config.
+
+    Follows weapon storyId -> DocumentExcelConfigData -> ordered page localization
+    ids -> readable files, joining the pages into one document. Returns None when
+    the weapon has no story (storyId 0, no document, or no page has on-disk
+    content), mirroring the artifact-set discovery model. Reading each page also
+    marks it accessed, keeping rendered pages out of the generic Readables
+    catch-all; the unrendered base/placeholder files it leaves behind are dropped
+    there by the empty/placeholder content skip.
+    """
+    text_map = data_repo.load_text_map()
+    readables = data_repo.get_readables()
+
+    if (
+        weapon := data_repo.load_weapon_excel_config_data().get(int(weapon_id))
+    ) is None:
+        raise ValueError(f"Weapon configuration not found for weapon ID: {weapon_id}")
+
+    if (story_id := weapon["storyId"]) == 0:
+        return None
+
+    if (doc_item := data_repo.load_document_excel_config_data().get(story_id)) is None:
+        return None
+
+    # Page localization ids in reading order: page-1 fields first, then the
+    # additional-page field, de-duplicated while preserving order (page 1's two
+    # fields hold the same id).
+    ordered_loc_ids = dict.fromkeys(
+        doc_item["questContentLocalizedId"]
+        + doc_item["questIDList"]
+        + doc_item.get("CUSTOM_addlLocalID", [])
+    )
+    readable_paths = data_repo.build_localization_id_to_readable_path()
+    story_pages = [
+        content
+        for loc_id in ordered_loc_ids
+        if (path := readable_paths.get(loc_id)) is not None
+        and (content := readables.get_content(path))
+    ]
+    if not story_pages:
+        return None
+
+    if (name := text_map.get_optional(str(weapon["nameTextMapHash"]))) is None:
+        raise ValueError(f"Missing name for weapon ID {weapon_id}")
+
+    return types.WeaponInfo(
+        weapon_id=weapon_id,
+        name=name,
+        description=text_map.get(str(weapon["descTextMapHash"]), ""),
+        story_pages=story_pages,
+    )
 
 
 def get_talk_group_info(
