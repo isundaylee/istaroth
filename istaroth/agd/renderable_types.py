@@ -230,9 +230,14 @@ class Quests(BaseRenderableType[types.QuestId]):
 
     def discover(self, data_repo: repo.DataRepo) -> list[types.QuestId]:
         """Find all quest IDs from MainQuestExcelConfigData."""
+        # Sort by the string form: quest ids vary in digit width, so this keeps
+        # the established (lexicographic) manifest ordering now that ids are int.
         return sorted(
-            str(quest_entry["id"])
-            for quest_entry in data_repo.load_main_quest_excel_config_data()
+            (
+                quest_entry["id"]
+                for quest_entry in data_repo.load_main_quest_excel_config_data()
+            ),
+            key=str,
         )
 
     def process(
@@ -274,8 +279,7 @@ class CharacterStories(BaseRenderableType[types.AvatarId]):
             if avatar_id:
                 avatar_ids.add(avatar_id)
 
-        # Return avatar IDs as strings for processing
-        return [str(avatar_id) for avatar_id in sorted(avatar_ids)]
+        return sorted(avatar_ids)
 
     def process(
         self, renderable_key: types.AvatarId, data_repo: repo.DataRepo
@@ -346,7 +350,7 @@ class MaterialTypes(BaseRenderableType[str]):
             if material["materialType"] != renderable_key:
                 continue
 
-            material_id = str(material["id"])
+            material_id = material["id"]
             material_info = processing.get_material_info(
                 material_id, data_repo=data_repo
             )
@@ -408,7 +412,7 @@ class Voicelines(BaseRenderableType[types.AvatarId]):
         """Find all avatar IDs that have voicelines."""
         return sorted(
             {
-                str(fetter["avatarId"])
+                fetter["avatarId"]
                 for fetter in data_repo.load_fetters_excel_config_data()
             }
         )
@@ -440,8 +444,7 @@ class ArtifactSets(BaseRenderableType[types.ArtifactSetId]):
         # Load artifact set configuration data
         set_data = data_repo.load_reliquary_set_excel_config_data()
 
-        # Return all set IDs as strings for processing
-        return [str(set_entry["setId"]) for set_entry in set_data]
+        return [set_entry["setId"] for set_entry in set_data]
 
     def process(
         self, renderable_key: types.ArtifactSetId, data_repo: repo.DataRepo

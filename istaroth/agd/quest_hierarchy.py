@@ -19,9 +19,9 @@ def _chapter_title(chapter_id: types.ChapterId, *, data_repo: repo.DataRepo) -> 
 
 def _order_quests(
     quests: list[types.QuestHierarchyQuest],
-    begin_quest_id: int,
+    begin_quest_id: types.QuestId,
     *,
-    main_quests: dict[int, types.MainQuestExcelConfigDataItem],
+    main_quests: dict[types.QuestId, types.MainQuestExcelConfigDataItem],
 ) -> list[types.QuestHierarchyQuest]:
     """Order a chapter's quests by narrative sequence.
 
@@ -33,7 +33,7 @@ def _order_quests(
     """
     by_id = {q.id: q for q in quests}
 
-    def _next(quest_id: int) -> list[int]:
+    def _next(quest_id: types.QuestId) -> list[types.QuestId]:
         # Every quest reached here is in by_id, which build_quest_hierarchy only
         # populated with quests that have a MainQuest entry, so index strictly.
         return sorted(
@@ -46,9 +46,9 @@ def _order_quests(
     starts += [quest_id for quest_id in sorted(by_id) if quest_id not in pointed]
 
     ordered: list[types.QuestHierarchyQuest] = []
-    seen: set[int] = set()
+    seen: set[types.QuestId] = set()
     for start in starts:
-        current: int | None = start
+        current: types.QuestId | None = start
         while current is not None and current not in seen:
             ordered.append(by_id[current])
             seen.add(current)
@@ -60,7 +60,7 @@ def _order_quests(
 def _make_chapters(
     by_chapter: dict[types.ChapterId, list[types.QuestHierarchyQuest]],
     *,
-    main_quests: dict[int, types.MainQuestExcelConfigDataItem],
+    main_quests: dict[types.QuestId, types.MainQuestExcelConfigDataItem],
     data_repo: repo.DataRepo,
 ) -> list[types.QuestHierarchyChapter]:
     chapters = data_repo.load_chapter_excel_config_data()
@@ -81,7 +81,7 @@ def _make_chapters(
 
 
 def build_quest_hierarchy(
-    quest_items: list[tuple[int, str]], *, data_repo: repo.DataRepo
+    quest_items: list[tuple[types.QuestId, str]], *, data_repo: repo.DataRepo
 ) -> types.QuestHierarchy:
     """Assemble the quest hierarchy from rendered (quest_id, title) pairs.
 

@@ -676,8 +676,8 @@ def render_talk(talk_path: str) -> None:
         # Get talk info
         talk_info = processing.get_talk_info(talk_path, data_repo=data_repo)
 
-        # Extract talk ID from path (e.g., "BinOutput/Talk/NPC/100001.json" -> "100001")
-        talk_id = pathlib.Path(talk_path).stem
+        # Extract talk ID from path (e.g., "BinOutput/Talk/NPC/100001.json" -> 100001)
+        talk_id = int(pathlib.Path(talk_path).stem)
 
         # Render the talk
         rendered = rendering.render_talk(
@@ -703,7 +703,7 @@ def render_quest(quest_path: str) -> None:
         data_repo = repo.DataRepo.from_env()
 
         # Extract quest ID from path
-        quest_id = pathlib.Path(quest_path).stem
+        quest_id = int(pathlib.Path(quest_path).stem)
         # Get quest info
         if (
             quest_info := processing.get_quest_info(quest_id, data_repo=data_repo)

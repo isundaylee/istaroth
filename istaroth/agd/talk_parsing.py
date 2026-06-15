@@ -28,17 +28,19 @@ TalkGroupId: TypeAlias = str
 """Str half of a talk-group key; pairs with ``TalkGroupType`` (e.g. an NPC id)."""
 
 
-def _free_group_quest_id(talk_id: types.TalkId) -> types.QuestId:
+def _free_group_quest_id(talk_id: str) -> types.QuestId | None:
     """Owning quest id for a FreeGroup talk, inferred from its talkId numbering.
 
     FreeGroup talkIds follow ``<questId><index>``; dropping the trailing two-digit
     index yields the quest id, except for the ``<questId>99<index>`` ambient-talk
-    bucket where two more digits are dropped.
+    bucket where two more digits are dropped. Takes the talk id in its ``str``
+    form (digit-slicing) and returns the ``int`` quest id, or None when the id is
+    too short to contain one (degenerate FreeGroup files like ``7.json``).
     """
     base = talk_id[:-2]
     if len(base) >= 6 and base.endswith("99"):
         base = base[:-2]
-    return base
+    return int(base) if base else None
 
 
 class _TalkSignature(NamedTuple):
@@ -187,7 +189,7 @@ class TalkParser:
     def _handle_talk_file(
         self, relative_path: pathlib.Path, talk_data: dict[str, Any]
     ) -> None:
-        self._talk_candidates[str(talk_data["talkId"])].append(relative_path.as_posix())
+        self._talk_candidates[int(talk_data["talkId"])].append(relative_path.as_posix())
 
     @staticmethod
     def _handle_free_group_file(
@@ -197,9 +199,10 @@ class TalkParser:
     ) -> None:
         """Attach a FreeGroup talk to its owning quest by talkId numbering."""
         talk_id = int(talk_data["talkId"])
-        free_group[_free_group_quest_id(str(talk_id))].append(
-            (talk_id, relative_path.as_posix())
-        )
+        # Skip ids too short to derive a quest id (orphaned, as before).
+        if (quest_id := _free_group_quest_id(str(talk_id))) is None:
+            return
+        free_group[quest_id].append((talk_id, relative_path.as_posix()))
 
     @staticmethod
     def _init_dialog_map(
@@ -207,7 +210,7 @@ class TalkParser:
     ) -> dict[types.TalkId, types.DialogId]:
         """Map talkId -> initDialog for config entries with a nonzero one."""
         return {
-            str(entry["id"]): init_dialog
+            entry["id"]: init_dialog
             for entry in talk_excel_data
             if (init_dialog := entry["initDialog"])
         }
@@ -270,7 +273,7 @@ class TalkParser:
                 # so the canonical name is the safer authoritative pick.
                 self.talk_id_to_path[talk_id] = min(
                     textful or usable,
-                    key=lambda p: (pathlib.Path(p).stem != talk_id, p),
+                    key=lambda p: (pathlib.Path(p).stem != str(talk_id), p),
                 )
                 stats["deduped"] += 1
                 continue
@@ -293,7 +296,7 @@ class TalkParser:
                         if signatures[p].text_dialogs
                         == signatures[superset].text_dialogs
                     ),
-                    key=lambda p: (pathlib.Path(p).stem != talk_id, p),
+                    key=lambda p: (pathlib.Path(p).stem != str(talk_id), p),
                 )
                 stats["superset"] += 1
                 continue

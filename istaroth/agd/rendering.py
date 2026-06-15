@@ -581,7 +581,7 @@ def render_talk(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_TALK,
             title=title,
-            id=int(talk_id),
+            id=talk_id,
             relative_path=f"{text_types.TextCategory.AGD_TALK.value}/{filename}",
         ),
         content=rendered_content,
@@ -663,7 +663,7 @@ def render_quest(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_QUEST,
             title=quest.title,
-            id=int(quest.quest_id),
+            id=quest.quest_id,
             relative_path=f"{text_types.TextCategory.AGD_QUEST.value}/{filename}",
         ),
         content=rendered_content,
@@ -712,7 +712,7 @@ def render_character_story(story_info: types.CharacterStoryInfo) -> types.Render
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_CHARACTER_STORY,
             title=story_info.character_name,
-            id=int(story_info.avatar_id),
+            id=story_info.avatar_id,
             relative_path=f"{text_types.TextCategory.AGD_CHARACTER_STORY.value}/{filename}",
         ),
         content=rendered_content,
@@ -766,7 +766,7 @@ def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_MATERIAL_TYPE,
             title=material_info.name,
-            id=int(material_info.material_id),
+            id=material_info.material_id,
             relative_path=f"{text_types.TextCategory.AGD_MATERIAL_TYPE.value}/{filename}",
         ),
         content=rendered_content,
@@ -824,7 +824,7 @@ def render_materials_by_type(
     content_lines = [f"# Materials: {material_type_name}\n"]
 
     # Sort materials by ID for deterministic output
-    sorted_materials = sorted(materials, key=lambda x: int(x.material_id))
+    sorted_materials = sorted(materials, key=lambda x: x.material_id)
 
     for material_info in sorted_materials:
         content_lines.append(f"## {material_info.name}")
@@ -865,7 +865,7 @@ def render_voiceline(voiceline_info: types.VoicelineInfo) -> types.RenderedItem:
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_VOICELINE,
             title=voiceline_info.character_name,
-            id=int(voiceline_info.avatar_id),
+            id=voiceline_info.avatar_id,
             relative_path=f"{text_types.TextCategory.AGD_VOICELINE.value}/{filename}",
         ),
         content=rendered_content,
@@ -904,7 +904,7 @@ def render_artifact_set(artifact_set_info: types.ArtifactSetInfo) -> types.Rende
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_ARTIFACT_SET,
             title=artifact_set_info.set_name,
-            id=int(artifact_set_info.set_id),
+            id=artifact_set_info.set_id,
             relative_path=f"{text_types.TextCategory.AGD_ARTIFACT_SET.value}/{filename}",
         ),
         content=rendered_content,

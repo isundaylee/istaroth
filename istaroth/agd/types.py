@@ -26,21 +26,21 @@ Example file: TextMap/TextMapCHS.json
 # ID type aliases
 # ============================================================================
 # Documentation-only aliases (transparent to mypy) that name the many distinct
-# kinds of AGD id, so signatures say *which* id they want instead of a bare
-# ``int``/``str``. Each alias is the single canonical representation that id uses
-# after parse; the raw JSON ``int`` is converted to it once, at the parse
-# boundary, and never re-converted downstream. ``str``-canonical ids therefore
-# leave their JSON ``.id: int`` field bare (that field *is* the boundary).
+# kinds of AGD id, so a signature says *which* id it carries instead of a bare
+# ``int``. Each alias is the id's on-disk JSON wire type -- every AGD id ships as
+# ``int`` -- and the pipeline carries it as ``int`` end-to-end. ``str`` appears
+# only at genuine boundaries: output filenames, ``TextMap`` lookups, and the few
+# spots that compare an id to a file-path stem.
 
-QuestId: TypeAlias = str
-"""Quest id, as a string: quest-mapping / ``BinOutput/Quest/<id>.json`` key.
+QuestId: TypeAlias = int
+"""Quest id (``QuestData.id``); carried as ``int``, stringified only for filenames."""
 
-(The browsable quest *hierarchy* keeps quest ids as ``int``; this alias names
-the str representation used by the processing/rendering pipeline.)
+TalkId: TypeAlias = int
+"""Talk id (``TalkData.talkId``); carried as ``int``.
+
+Stringified only where a talk file is resolved by comparing the id to a file-path
+stem (the talkId-collision resolution in ``talk_parsing``).
 """
-
-TalkId: TypeAlias = str
-"""Talk id, as a string (``talk_id_to_path`` key)."""
 
 DialogId: TypeAlias = int
 """Dialog id within a talk's ``dialogList`` and the dialog graph."""
@@ -54,20 +54,24 @@ ChapterId: TypeAlias = int
 QuestSeriesId: TypeAlias = int
 """Series (questline) id: a chapter ``groupId`` grouping the acts of one story."""
 
-NpcId: TypeAlias = str
-"""NPC id, as a string (``npc_id_to_name`` key; dialog/talk role ``id``)."""
+NpcId: TypeAlias = int
+"""NPC id, as it ships in the master table (``NpcExcelConfigDataItem.id``).
 
-AvatarId: TypeAlias = str
-"""Avatar (character) id, as a string (renderable key); ``int()`` for excel filtering."""
+Dialog/talk role *references* (``talkRole.id`` / ``_id``) and the
+``npc_id_to_name`` map key carry the id as a plain ``str``, not this alias.
+"""
 
-MaterialId: TypeAlias = str
-"""Material id, as a string (material-tracker key)."""
+AvatarId: TypeAlias = int
+"""Avatar (character) id (``AvatarExcelConfigDataItem.id``); carried as ``int``."""
+
+MaterialId: TypeAlias = int
+"""Material id (``MaterialExcelConfigDataItem.id``); carried as ``int``."""
 
 ReliquaryId: TypeAlias = int
 """Individual artifact (reliquary piece) id."""
 
-ArtifactSetId: TypeAlias = str
-"""Artifact set id, as a string (renderable key)."""
+ArtifactSetId: TypeAlias = int
+"""Artifact set id (``ReliquarySetExcelConfigDataItem.setId``); carried as ``int``."""
 
 AchievementId: TypeAlias = int
 """Achievement id."""
@@ -109,7 +113,7 @@ Stringified to index ``TextMap`` (whose keys are ``str``) at lookup time.
 class NpcExcelConfigDataItem(TypedDict):
     """Type definition for individual NPC configuration entries."""
 
-    id: int  # NpcId after str() at the parse boundary
+    id: NpcId
     nameTextMapHash: TextHash
 
 
@@ -124,7 +128,7 @@ class DialogTalkRole(TypedDict):
     """Type definition for talk role in dialog entries."""
 
     type: str
-    id: NpcId
+    id: str  # NPC id reference; ships as a str on disk, unlike the int NpcId master id
 
 
 class DialogExcelConfigDataItem(TypedDict):
@@ -193,7 +197,7 @@ Example file: ExcelBinOutput/DocumentExcelConfigData.json
 class MaterialExcelConfigDataItem(TypedDict):
     """Type definition for material configuration entries."""
 
-    id: int  # MaterialId after str() at the parse boundary
+    id: MaterialId
     nameTextMapHash: TextHash
     descTextMapHash: TextHash
     materialType: str
@@ -209,7 +213,7 @@ Example file: ExcelBinOutput/MaterialExcelConfigData.json
 class TalkExcelConfigDataItem(TypedDict):
     """Type definition for talk configuration entries."""
 
-    id: int  # TalkId after str() at the parse boundary
+    id: TalkId
     initDialog: DialogId
 
 
@@ -224,8 +228,8 @@ class TalkRole(TypedDict):
     """Type definition for talk role."""
 
     type: str
-    _id: NotRequired[NpcId]
-    id: NotRequired[NpcId]
+    _id: NotRequired[str]  # NPC id reference; ships as a str on disk (see NpcId)
+    id: NotRequired[str]  # NPC id reference; ships as a str on disk (see NpcId)
 
 
 class TalkDialogItem(TypedDict):
@@ -244,7 +248,7 @@ class TalkData(TypedDict):
     Example file: BinOutput/Talk/Quest/7407811.json
     """
 
-    talkId: int  # TalkId after str() at the parse boundary
+    talkId: TalkId
     dialogList: list[TalkDialogItem]
 
 
@@ -263,7 +267,7 @@ class BeginCondItem(TypedDict):
 class QuestTalkItem(TypedDict):
     """Type definition for quest talk entries."""
 
-    id: int  # TalkId after str() at the parse boundary
+    id: TalkId
     beginCond: list[BeginCondItem]
 
 
@@ -301,7 +305,7 @@ class QuestData(TypedDict):
     Example file: BinOutput/Quest/74078.json
     """
 
-    id: int  # QuestId after str() at the parse boundary
+    id: QuestId
     descTextMapHash: TextHash
     titleTextMapHash: TextHash
     chapterId: ChapterId  # 0 when the quest belongs to no chapter
@@ -312,7 +316,7 @@ class QuestData(TypedDict):
 class AvatarExcelConfigDataItem(TypedDict):
     """Type definition for avatar configuration entries."""
 
-    id: int  # AvatarId after str() at the parse boundary
+    id: AvatarId
     nameTextMapHash: TextHash
     skillDepotId: SkillDepotId
     candSkillDepotIds: list[SkillDepotId]  # per-element depots for the Travelers
@@ -372,7 +376,7 @@ Example file: ExcelBinOutput/AvatarSkillExcelConfigData.json
 class FetterStoryExcelConfigDataItem(TypedDict):
     """Type definition for fetter story configuration entries."""
 
-    avatarId: int  # AvatarId; compared as int after int(avatar_id)
+    avatarId: AvatarId
     storyTitleTextMapHash: TextHash
     storyContextTextMapHash: TextHash
 
@@ -381,7 +385,7 @@ FetterStoryExcelConfigData: TypeAlias = list[FetterStoryExcelConfigDataItem]
 
 
 class FettersExcelConfigDataItem(TypedDict):
-    avatarId: int  # AvatarId; compared as int after int(avatar_id)
+    avatarId: AvatarId
     voiceTitleTextMapHash: TextHash
     voiceFileTextTextMapHash: TextHash
 
@@ -390,10 +394,10 @@ FettersExcelConfigData: TypeAlias = list[FettersExcelConfigDataItem]
 
 
 class MainQuestExcelConfigDataItem(TypedDict):
-    id: int  # quest id; kept int (the quest hierarchy keys on int quest ids)
+    id: QuestId
     type: str  # AQ / LQ / WQ / EQ / IQ
     chapterId: ChapterId  # 0 when the quest belongs to no chapter
-    suggestTrackMainQuestList: list[int]  # "next quest(s)" pointers (int quest ids)
+    suggestTrackMainQuestList: list[QuestId]  # "next quest(s)" pointers
 
 
 MainQuestExcelConfigData: TypeAlias = list[MainQuestExcelConfigDataItem]
@@ -443,7 +447,7 @@ AchievementGoalExcelConfigData: TypeAlias = list[AchievementGoalExcelConfigDataI
 class ReliquarySetExcelConfigDataItem(TypedDict):
     """Type definition for artifact set configuration entries."""
 
-    setId: int  # ArtifactSetId after str() at the parse boundary
+    setId: ArtifactSetId
     containsList: list[ReliquaryId]
     equipAffixId: EquipAffixId
 
@@ -573,7 +577,7 @@ class QuestInfo:
 class QuestHierarchyQuest:
     """A single quest leaf in the browsable quest hierarchy."""
 
-    id: int  # quest id, kept int here (the hierarchy keys on int quest ids)
+    id: QuestId
     title: str
 
     def to_dict(self) -> dict[str, Any]:
@@ -723,7 +727,7 @@ class TrackerStats:
     """Statistics for text map, talk ID, and readable access tracking."""
 
     accessed_text_map_ids: set[str]
-    accessed_talk_ids: set[str]
+    accessed_talk_ids: set[TalkId]
     accessed_readable_ids: set[str]
 
     def update(self, other: "TrackerStats") -> None:

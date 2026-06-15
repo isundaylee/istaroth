@@ -181,7 +181,7 @@ def _resolve_authoritative_talk(
     try:
         return get_talk_info_by_id(talk_id, data_repo=data_repo)
     except ValueError:
-        issues.record(issues.IssueType.MISSING_TALK, talk_id)
+        issues.record(issues.IssueType.MISSING_TALK, str(talk_id))
         return types.TalkInfo(
             text=[
                 types.TalkText(
@@ -210,7 +210,7 @@ def _iter_subquest_talks(
     for cond in subquest["finishCond"]:
         match cond.get("damageRatio"):
             case "QUEST_CONTENT_COMPLETE_TALK":
-                talk_id = str(cond["param"][0])
+                talk_id = cond["param"][0]
                 talks.append(
                     (
                         talk_id,
@@ -219,16 +219,17 @@ def _iter_subquest_talks(
                     )
                 )
             case "QUEST_CONTENT_COMPLETE_ANY_TALK":
+                # CUSTOM_paramStr is a comma-separated string of talk ids.
                 talks.extend(
                     (
                         talk_id,
                         _HINT_PRIORITY_COMPLETE_TALK,
                         _resolve_authoritative_talk(talk_id, data_repo=data_repo),
                     )
-                    for talk_id in cond["CUSTOM_paramStr"].split(",")
+                    for talk_id in map(int, cond["CUSTOM_paramStr"].split(","))
                 )
             case "QUEST_CONTENT_FINISH_PLOT":
-                talk_id = str(cond["param"][0])
+                talk_id = cond["param"][0]
                 try:
                     talk_info = get_talk_info_by_id(talk_id, data_repo=data_repo)
                 except ValueError:
@@ -357,7 +358,7 @@ def get_quest_info(
         subquest["subId"]: subquest["order"] for subquest in quest_data["subQuests"]
     }
     talk_begin_order = {
-        str(talk_item["id"]): begin
+        talk_item["id"]: begin
         for talk_item in quest_data["talks"]
         if (begin := _begin_subquest_order(talk_item, subid_to_order)) is not None
     }
@@ -404,7 +405,7 @@ def get_quest_info(
     # beginCond has no anchor in this quest and is rendered in a separate section.
     non_subquest_talk_infos: list[types.TalkInfo] = []
     for talk_item in quest_data["talks"]:
-        talk_id = str(talk_item["id"])
+        talk_id = talk_item["id"]
         # The order to anchor this talk's beginCond hint at, or None for no usable
         # beginCond: a hidden/test trigger is ignored only when a finishCond
         # placement can stand in for it.
@@ -442,7 +443,7 @@ def get_quest_info(
     # talks by finishCond discovery order, lead-ins by their order in the quest
     # `talks` field (a lead-in always has a beginCond, so it is listed there).
     talk_order = {
-        str(talk_item["id"]): idx for idx, talk_item in enumerate(quest_data["talks"])
+        talk_item["id"]: idx for idx, talk_item in enumerate(quest_data["talks"])
     }
     placed: dict[types.TalkId, tuple[int, int, str | None, types.TalkInfo, bool]] = {}
     for seq, (talk_id, hints) in enumerate(talk_hints.items()):
@@ -623,14 +624,7 @@ def _get_constellations(
 def get_character_story_info(
     avatar_id: types.AvatarId, *, data_repo: repo.DataRepo
 ) -> types.CharacterStoryInfo:
-    """Get all character story information for a specific character.
-
-    Args:
-        avatar_id: Avatar ID as string (e.g. "10000032")
-        data_repo: Data repository instance
-    """
-    avatar_id_int = int(avatar_id)
-
+    """Get all character story information for a specific character."""
     # Load required data
     text_map = data_repo.load_text_map()
     avatar_data = data_repo.load_avatar_excel_config_data()
@@ -638,7 +632,7 @@ def get_character_story_info(
 
     # Find the avatar and its name from avatar data
     matched_avatar = next(
-        (avatar for avatar in avatar_data if avatar["id"] == avatar_id_int), None
+        (avatar for avatar in avatar_data if avatar["id"] == avatar_id), None
     )
     if (
         matched_avatar is None
@@ -656,7 +650,7 @@ def get_character_story_info(
     # Collect all stories for this character
     stories = []
     for story in fetter_data:
-        if story["avatarId"] == avatar_id_int:
+        if story["avatarId"] == avatar_id:
             # Get story title
             title_hash = story.get("storyTitleTextMapHash")
             if (
@@ -777,8 +771,6 @@ def get_voiceline_info(
     avatar_id: types.AvatarId, *, data_repo: repo.DataRepo
 ) -> types.VoicelineInfo:
     """Get all voiceline information for a specific character."""
-    avatar_id_int = int(avatar_id)
-
     # Load required data
     text_map = data_repo.load_text_map()
     avatar_data = data_repo.load_avatar_excel_config_data()
@@ -787,7 +779,7 @@ def get_voiceline_info(
     # Find character name from avatar data
     character_name = None
     for avatar in avatar_data:
-        if avatar["id"] == avatar_id_int:
+        if avatar["id"] == avatar_id:
             character_name = text_map.get_optional(str(avatar["nameTextMapHash"]))
             break
     if character_name is None:
@@ -796,7 +788,7 @@ def get_voiceline_info(
     # Collect all voicelines for this character
     voicelines = {}
     for fetter in fetters_data:
-        if fetter["avatarId"] == avatar_id_int:
+        if fetter["avatarId"] == avatar_id:
             # Get voiceline title
             title_hash = str(fetter["voiceTitleTextMapHash"])
             if (title := text_map.get_optional(title_hash)) is None:
@@ -858,12 +850,10 @@ def get_artifact_set_info(
     reliquary_data = data_repo.load_reliquary_excel_config_data()
     text_map = data_repo.load_text_map()
 
-    set_id_int = int(set_id)
-
     # Find the artifact set configuration
     set_config = None
     for set_entry in set_data:
-        if set_entry["setId"] == set_id_int:
+        if set_entry["setId"] == set_id:
             set_config = set_entry
             break
 
@@ -1017,19 +1007,19 @@ def get_talk_group_info(
     # whole group. An existing talk that fails to parse still propagates.
     talks = []
     for talk_entry in talk_group_data["talks"]:
-        talk_id = str(talk_entry["id"])
+        talk_id = int(talk_entry["id"])
 
         try:
             talk_info = get_talk_info_by_id(talk_id, data_repo=data_repo)
         except ValueError:
-            issues.record(issues.IssueType.MISSING_TALK, talk_id)
+            issues.record(issues.IssueType.MISSING_TALK, str(talk_id))
             continue
 
         next_talks = list[types.TalkInfo]()
         for next_talk_id in talk_entry.get("nextTalks", []):
             try:
                 next_talk_info = get_talk_info_by_id(
-                    str(next_talk_id), data_repo=data_repo
+                    int(next_talk_id), data_repo=data_repo
                 )
             except ValueError:
                 issues.record(issues.IssueType.MISSING_TALK, str(next_talk_id))
