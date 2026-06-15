@@ -6,8 +6,8 @@ from collections.abc import Callable, Mapping
 from typing import Any
 
 # Global field mappings - union of all mappings used across different data types.
-# NOTE: when adding a new field mapping here, extend tests/test_deobfuscation.py
-# to cover it.
+# NOTE: when adding current-build mappings here, extend
+# tests/test_deobfuscation.py to cover them.
 _COMMON_FIELD_MAPPINGS = {
     "JOLEJEFDNJJ": "id",
     "FJIMHCGKKPJ": "id",
@@ -16,7 +16,6 @@ _COMMON_FIELD_MAPPINGS = {
     "NKEKKINIKEB": "chapterId",
     "BMCONAJCMAK": "subQuests",
     "DCHHEHNNEOO": "talks",
-    "PCNNNPLAEAI": "talks",
     "DMIMNILOLKP": "talks",
     "FKJCGCAMNEH": "subId",
     "JDCNDABFDFP": "order",
@@ -25,7 +24,6 @@ _COMMON_FIELD_MAPPINGS = {
     "DBIHEJMJCMK": "talkContentTextMapHash",
     "BCBFGKALICJ": "talkRole",
     "IJOEEMHDLHF": "talkRoleNameTextMapHash",
-    "JDOFKFPHIDC": "npcId",
     "PGCNMMEBDIE": "npcId",
     "ELEPNLBFNOP": "npcId",
     "DANPPPLPAEE": "configId",
@@ -38,6 +36,10 @@ _COMMON_FIELD_MAPPINGS = {
     "_type": "type",
     "_id": "_id",
     "id": "id",
+    # OSRELWin4.3.0_R19706476_S19529137_D19702261
+    "CCFPGAKINNB": "id",
+    "PCNNNPLAEAI": "talks",
+    "JDOFKFPHIDC": "npcId",
     # OSRELWin6.3.0_R41701329_S41708913_D41667700
     "ILHDNJDDEOP": "id",
     "CBBBCAKOFGO": "descTextMapHash",
