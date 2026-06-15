@@ -24,8 +24,11 @@ logger = logging.getLogger(__name__)
 
 TalkGroupType: TypeAlias = Literal["ActivityGroup", "GadgetGroup", "NpcGroup"]
 
+TalkGroupId: TypeAlias = str
+"""Str half of a talk-group key; pairs with ``TalkGroupType`` (e.g. an NPC id)."""
 
-def _free_group_quest_id(talk_id: str) -> str:
+
+def _free_group_quest_id(talk_id: types.TalkId) -> types.QuestId:
     """Owning quest id for a FreeGroup talk, inferred from its talkId numbering.
 
     FreeGroup talkIds follow ``<questId><index>``; dropping the trailing two-digit
@@ -85,16 +88,20 @@ class TalkParser:
     ) -> None:
         self.agd_path = data_repo.agd_path
 
-        self.talk_id_to_path = dict[str, str]()
-        self.talk_group_id_to_path = dict[tuple[TalkGroupType, str], str]()
+        self.talk_id_to_path: dict[types.TalkId, str] = {}
+        self.talk_group_id_to_path: dict[tuple[TalkGroupType, TalkGroupId], str] = {}
 
         # talkId -> candidate file paths; collapsed to one path after the scan.
-        self._talk_candidates: dict[str, list[str]] = collections.defaultdict(list)
+        self._talk_candidates: dict[types.TalkId, list[str]] = collections.defaultdict(
+            list
+        )
 
         # questId -> FreeGroup talk paths, attached by the talkId-numbering
         # heuristic; collected as (talkId, path) then sorted by talkId below.
-        _free_group: dict[str, list[tuple[int, str]]] = collections.defaultdict(list)
-        self.free_group_quest_to_paths = dict[str, list[str]]()
+        _free_group: dict[types.QuestId, list[tuple[int, str]]] = (
+            collections.defaultdict(list)
+        )
+        self.free_group_quest_to_paths: dict[types.QuestId, list[str]] = {}
 
         invalid_paths = dict[pathlib.Path, str]()
 
@@ -186,7 +193,7 @@ class TalkParser:
     def _handle_free_group_file(
         relative_path: pathlib.Path,
         talk_data: dict[str, Any],
-        free_group: dict[str, list[tuple[int, str]]],
+        free_group: dict[types.QuestId, list[tuple[int, str]]],
     ) -> None:
         """Attach a FreeGroup talk to its owning quest by talkId numbering."""
         talk_id = int(talk_data["talkId"])
@@ -195,7 +202,9 @@ class TalkParser:
         )
 
     @staticmethod
-    def _init_dialog_map(talk_excel_data: types.TalkExcelConfigData) -> dict[str, int]:
+    def _init_dialog_map(
+        talk_excel_data: types.TalkExcelConfigData,
+    ) -> dict[types.TalkId, types.DialogId]:
         """Map talkId -> initDialog for config entries with a nonzero one."""
         return {
             str(entry["id"]): init_dialog
@@ -204,7 +213,7 @@ class TalkParser:
         }
 
     def _resolve_talk_candidates(
-        self, data_repo: repo.DataRepo, init_dialogs: dict[str, int]
+        self, data_repo: repo.DataRepo, init_dialogs: dict[types.TalkId, types.DialogId]
     ) -> None:
         """Collapse per-talkId candidate files into a single authoritative path.
 

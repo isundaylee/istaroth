@@ -77,16 +77,18 @@ class MaterialTracker(IdTracker):
     """Tracks which material IDs have been accessed."""
 
     def __init__(self, material_data: types.MaterialExcelConfigData) -> None:
-        self._material_dict = {
-            str(material["id"]): material for material in material_data
-        }
+        self._material_dict: dict[
+            types.MaterialId, types.MaterialExcelConfigDataItem
+        ] = {str(material["id"]): material for material in material_data}
         super().__init__(set(self._material_dict.keys()))
 
-    def get(self, material_id_str: str) -> types.MaterialExcelConfigDataItem | None:
+    def get(
+        self, material_id: types.MaterialId
+    ) -> types.MaterialExcelConfigDataItem | None:
         """Get material data by ID and track access."""
-        if material_id_str in self._material_dict:
-            self._track_access(material_id_str)
-            return self._material_dict[material_id_str]
+        if material_id in self._material_dict:
+            self._track_access(material_id)
+            return self._material_dict[material_id]
         return None
 
     def get_all(self) -> types.MaterialExcelConfigData:
@@ -100,31 +102,33 @@ class TalkTracker(IdTracker):
     def __init__(
         self,
         talk_excel_data: types.TalkExcelConfigData,
-        talk_file_mapping: dict[str, str],
+        talk_file_mapping: dict[types.TalkId, str],
     ) -> None:
-        self._talk_dict = {str(talk["id"]): talk for talk in talk_excel_data}
+        self._talk_dict: dict[types.TalkId, types.TalkExcelConfigDataItem] = {
+            str(talk["id"]): talk for talk in talk_excel_data
+        }
         self._talk_file_mapping = talk_file_mapping
         super().__init__(set(self._talk_dict.keys()))
 
-    def get(self, talk_id_str: str) -> types.TalkExcelConfigDataItem | None:
+    def get(self, talk_id: types.TalkId) -> types.TalkExcelConfigDataItem | None:
         """Get talk configuration data by ID and track access."""
-        if talk_id_str in self._talk_dict:
-            self._track_access(talk_id_str)
-            return self._talk_dict[talk_id_str]
+        if talk_id in self._talk_dict:
+            self._track_access(talk_id)
+            return self._talk_dict[talk_id]
         return None
 
     def get_all(self) -> types.TalkExcelConfigData:
         """Get all talk configuration data without tracking (for discovery purposes)."""
         return list(self._talk_dict.values())
 
-    def get_talk_file_path(self, talk_id_str: str) -> str | None:
+    def get_talk_file_path(self, talk_id: types.TalkId) -> str | None:
         """Get the file path for a talk ID and track access."""
-        talk_item = self.get(talk_id_str)
+        talk_item = self.get(talk_id)
         if talk_item is None:
             return None
 
         # Look up the file path in the pre-built mapping
-        return self._talk_file_mapping.get(talk_id_str)
+        return self._talk_file_mapping.get(talk_id)
 
 
 class TextMapTracker(IdTracker):
@@ -291,7 +295,7 @@ class DataRepo:
             return mapping
 
     @functools.lru_cache(maxsize=None)
-    def build_readable_stem_to_localization_id(self) -> dict[str, int]:
+    def build_readable_stem_to_localization_id(self) -> dict[str, types.LocalizationId]:
         """Map a readable file stem to its localization id for the instance language.
 
         Inverts the per-readable linear scan over LocalizationExcelConfigData into a
@@ -299,7 +303,7 @@ class DataRepo:
         matches the original break-on-first-match behavior.
         """
         language_short = self.language_short
-        mapping: dict[str, int] = {}
+        mapping: dict[str, types.LocalizationId] = {}
         for entry in self.load_localization_excel_config_data():
             for path_value in entry.values():
                 if not isinstance(path_value, str):
@@ -313,7 +317,9 @@ class DataRepo:
         return mapping
 
     @functools.lru_cache(maxsize=None)
-    def build_localization_id_to_readable_path(self) -> dict[int, str]:
+    def build_localization_id_to_readable_path(
+        self,
+    ) -> dict[types.LocalizationId, str]:
         """Map a localization id to its readable filename for the instance language.
 
         The inverse of ``build_readable_stem_to_localization_id``, precomputed once
@@ -322,7 +328,7 @@ class DataRepo:
         path wins, matching the original break-on-first-match behavior.
         """
         language_short = self.language_short
-        mapping: dict[int, str] = {}
+        mapping: dict[types.LocalizationId, str] = {}
         for entry in self.load_localization_excel_config_data():
             for path_value in entry.values():
                 if not isinstance(path_value, str):
@@ -336,13 +342,15 @@ class DataRepo:
         return mapping
 
     @functools.lru_cache(maxsize=None)
-    def build_localization_id_to_title_hash(self) -> dict[int, int]:
+    def build_localization_id_to_title_hash(
+        self,
+    ) -> dict[types.LocalizationId, types.TextHash]:
         """Map a localization id to its document title hash.
 
         Inverts the per-readable linear scan over DocumentExcelConfigData; first
         document wins per id, matching the original break-on-first-match behavior.
         """
-        mapping: dict[int, int] = {}
+        mapping: dict[types.LocalizationId, types.TextHash] = {}
         for doc_item in self.load_document_excel_config_data().values():
             for loc_id in itertools.chain(
                 doc_item.get("CUSTOM_addlLocalID", []),
@@ -363,22 +371,22 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def build_talk_group_mapping(
         self,
-    ) -> dict[tuple[talk_parsing.TalkGroupType, str], str]:
+    ) -> dict[tuple[talk_parsing.TalkGroupType, talk_parsing.TalkGroupId], str]:
         return self._get_talk_parser().talk_group_id_to_path
 
     @functools.lru_cache(maxsize=None)
-    def build_free_group_mapping(self) -> dict[str, list[str]]:
+    def build_free_group_mapping(self) -> dict[types.QuestId, list[str]]:
         """questId -> FreeGroup talk file paths attached by the id heuristic."""
         return self._get_talk_parser().free_group_quest_to_paths
 
     @functools.lru_cache(maxsize=None)
-    def build_quest_mapping(self) -> dict[str, str]:
+    def build_quest_mapping(self) -> dict[types.QuestId, str]:
         """Build a mapping from quest ID to BinOutput/Quest file path.
 
         AGD retains stale hash-named duplicates of quests across builds, so when
         several files share an ID the canonically-named ``{id}.json`` wins.
         """
-        quest_id_to_path: dict[str, str] = {}
+        quest_id_to_path: dict[types.QuestId, str] = {}
 
         for json_file in (self.agd_path / "BinOutput" / "Quest").glob("*.json"):
             relative_path_str = json_file.relative_to(self.agd_path).as_posix()
@@ -549,16 +557,16 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_chapter_excel_config_data(
         self,
-    ) -> dict[int, types.ChapterExcelConfigDataItem]:
+    ) -> dict[types.ChapterId, types.ChapterExcelConfigDataItem]:
         """Load chapter Excel configuration data as a dictionary mapping chapter ID to chapter object."""
         file_path = self.agd_path / "ExcelBinOutput" / "ChapterExcelConfigData.json"
         with open(file_path, encoding="utf-8") as f:
             data: types.ChapterExcelConfigData = json.load(f)
             return {chapter["id"]: chapter for chapter in data}
 
-    def _build_npc_id_to_name(self, text_map: TextMapTracker) -> dict[str, str]:
+    def _build_npc_id_to_name(self, text_map: TextMapTracker) -> dict[types.NpcId, str]:
         """Build NPC ID -> name using the given text map."""
-        npc_id_to_name = {}
+        npc_id_to_name: dict[types.NpcId, str] = {}
         for npc in self.load_npc_excel_config_data():
             npc_id = str(npc["id"])
             name_hash = str(npc["nameTextMapHash"])
@@ -568,12 +576,12 @@ class DataRepo:
         return npc_id_to_name
 
     @functools.lru_cache(maxsize=None)
-    def get_npc_id_to_name_mapping(self) -> dict[str, str]:
+    def get_npc_id_to_name_mapping(self) -> dict[types.NpcId, str]:
         """Get cached mapping from NPC ID to name."""
         return self._build_npc_id_to_name(self.load_text_map())
 
     @functools.lru_cache(maxsize=None)
-    def get_npc_id_to_source_name_mapping(self) -> dict[str, str]:
+    def get_npc_id_to_source_name_mapping(self) -> dict[types.NpcId, str]:
         """NPC ID -> CHS (source) name, for language-independent test/hidden filtering.
 
         Dev markers like ``$HIDDEN``/``(test)`` only exist in the CHS name text.
@@ -581,11 +589,13 @@ class DataRepo:
         return self._build_npc_id_to_name(self.load_source_text_map())
 
     @functools.lru_cache(maxsize=None)
-    def get_dialog_id_to_role_name_hash_mapping(self) -> dict[int, int]:
+    def get_dialog_id_to_role_name_hash_mapping(
+        self,
+    ) -> dict[types.DialogId, types.TextHash]:
         """Get cached mapping from dialog ID to talkRoleNameTextMapHash."""
         dialog_data = self.load_dialog_excel_config_data()
 
-        dialog_id_to_role_hash = {}
+        dialog_id_to_role_hash: dict[types.DialogId, types.TextHash] = {}
         for dialog_item in dialog_data:
             dialog_id = dialog_item["GFLDJMJKIKE"]
             role_name_hash = dialog_item["talkRoleNameTextMapHash"]

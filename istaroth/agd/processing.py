@@ -61,15 +61,15 @@ def get_readable_metadata(
 
 
 def get_talk_info_by_id(
-    talk_id_str: str, *, data_repo: repo.DataRepo
+    talk_id: types.TalkId, *, data_repo: repo.DataRepo
 ) -> types.TalkInfo:
     """Retrieve talk information by talk ID."""
     # Get talk file path through tracker (this automatically tracks access)
     talk_tracker = data_repo.build_talk_tracker()
-    talk_file_path = talk_tracker.get_talk_file_path(talk_id_str)
+    talk_file_path = talk_tracker.get_talk_file_path(talk_id)
 
     if talk_file_path is None:
-        raise ValueError(f"Talk ID {talk_id_str} not found")
+        raise ValueError(f"Talk ID {talk_id} not found")
 
     return get_talk_info(talk_file_path, data_repo=data_repo)
 
@@ -169,7 +169,7 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
 
 
 def _resolve_authoritative_talk(
-    talk_id: str, *, data_repo: repo.DataRepo
+    talk_id: types.TalkId, *, data_repo: repo.DataRepo
 ) -> types.TalkInfo:
     """Resolve a talk pointed at by an authoritative finish condition.
 
@@ -196,7 +196,7 @@ def _resolve_authoritative_talk(
 
 def _iter_subquest_talks(
     subquest: types.SubQuestItem, *, data_repo: repo.DataRepo
-) -> list[tuple[str, int, types.TalkInfo]]:
+) -> list[tuple[types.TalkId, int, types.TalkInfo]]:
     """Return (talk_id, hint_priority, TalkInfo) for talks referenced by finish conditions.
 
     Only the condition types that genuinely reference a talk are handled;
@@ -206,7 +206,7 @@ def _iter_subquest_talks(
     is a plot-completion marker whose param is only sometimes a real talk id, so
     a missing talk is skipped instead. See the ``_HINT_PRIORITY_*`` constants.
     """
-    talks: list[tuple[str, int, types.TalkInfo]] = []
+    talks: list[tuple[types.TalkId, int, types.TalkInfo]] = []
     for cond in subquest["finishCond"]:
         match cond.get("damageRatio"):
             case "QUEST_CONTENT_COMPLETE_TALK":
@@ -265,7 +265,7 @@ def _resolve_step_description(
 
 
 def _begin_subquest_order(
-    talk_item: types.QuestTalkItem, subid_to_order: dict[int, int]
+    talk_item: types.QuestTalkItem, subid_to_order: dict[types.SubQuestId, int]
 ) -> int | None:
     """Step order a quest talk begins at (via its ``beginCond``), or None.
 
@@ -317,7 +317,7 @@ def _is_test_or_hidden_title(title_hash: int, *, data_repo: repo.DataRepo) -> bo
 
 
 def get_quest_info(
-    quest_id: str, *, data_repo: repo.DataRepo
+    quest_id: types.QuestId, *, data_repo: repo.DataRepo
 ) -> types.QuestInfo | None:
     """Retrieve quest information from quest ID, or None for a test/hidden quest."""
     # Convert quest ID to path
@@ -367,8 +367,8 @@ def get_quest_info(
     # COMPLETE_TALK priority); a talk's own `beginCond` (from the quest `talks`
     # field) names the step it STARTS playing on — its true location, hence top
     # priority. Track hidden/test steps, whose `order` numbers are meaningless.
-    talk_hints: dict[str, list[_PlacementHint]] = {}
-    talk_infos: dict[str, types.TalkInfo] = {}
+    talk_hints: dict[types.TalkId, list[_PlacementHint]] = {}
+    talk_infos: dict[types.TalkId, types.TalkInfo] = {}
     order_to_desc: dict[int, str | None] = {}
     hidden_orders: set[int] = set()
     for subquest in quest_data["subQuests"]:
@@ -444,7 +444,7 @@ def get_quest_info(
     talk_order = {
         str(talk_item["id"]): idx for idx, talk_item in enumerate(quest_data["talks"])
     }
-    placed: dict[str, tuple[int, int, str | None, types.TalkInfo, bool]] = {}
+    placed: dict[types.TalkId, tuple[int, int, str | None, types.TalkInfo, bool]] = {}
     for seq, (talk_id, hints) in enumerate(talk_hints.items()):
         best = max(hints, key=lambda h: (h.priority, -h.order))
         is_lead_in = best.order not in finish_orders.get(talk_id, frozenset())
@@ -535,15 +535,15 @@ def get_quest_info(
 
 
 def get_character_story_info(
-    avatar_id_str: str, *, data_repo: repo.DataRepo
+    avatar_id: types.AvatarId, *, data_repo: repo.DataRepo
 ) -> types.CharacterStoryInfo:
     """Get all character story information for a specific character.
 
     Args:
-        avatar_id_str: Avatar ID as string (e.g. "10000032")
+        avatar_id: Avatar ID as string (e.g. "10000032")
         data_repo: Data repository instance
     """
-    avatar_id = int(avatar_id_str)
+    avatar_id_int = int(avatar_id)
 
     # Load required data
     text_map = data_repo.load_text_map()
@@ -553,24 +553,24 @@ def get_character_story_info(
     # Find character name from avatar data
     character_name = None
     for avatar in avatar_data:
-        if avatar["id"] == avatar_id:
+        if avatar["id"] == avatar_id_int:
             if name_hash := avatar.get("nameTextMapHash"):
                 character_name = text_map.get_optional(str(name_hash))
             break
     if character_name is None:
-        raise ValueError(f"Unknown character for avatar ID {avatar_id_str}")
+        raise ValueError(f"Unknown character for avatar ID {avatar_id}")
 
     # Collect all stories for this character
     stories = []
     for story in fetter_data:
-        if story["avatarId"] == avatar_id:
+        if story["avatarId"] == avatar_id_int:
             # Get story title
             title_hash = story.get("storyTitleTextMapHash")
             if (
                 title := text_map.get_optional(str(title_hash)) if title_hash else None
             ) is None:
                 raise ValueError(
-                    f"Missing story title {title_hash} for avatar ID {avatar_id_str}"
+                    f"Missing story title {title_hash} for avatar ID {avatar_id}"
                 )
 
             # Get story content
@@ -586,7 +586,7 @@ def get_character_story_info(
             stories.append(types.CharacterStory(title=title, content=content))
 
     return types.CharacterStoryInfo(
-        character_name=character_name, stories=stories, avatar_id=avatar_id_str
+        character_name=character_name, stories=stories, avatar_id=avatar_id
     )
 
 
@@ -608,7 +608,7 @@ def get_subtitle_info(
 
 
 def get_material_info(
-    material_id_str: str, *, data_repo: repo.DataRepo
+    material_id: types.MaterialId, *, data_repo: repo.DataRepo
 ) -> types.MaterialInfo:
     """Get material information for a specific material ID."""
 
@@ -617,9 +617,9 @@ def get_material_info(
     material_tracker = data_repo.load_material_excel_config_data()
 
     # Get material data (this automatically tracks access)
-    material = material_tracker.get(material_id_str)
+    material = material_tracker.get(material_id)
     if material is None:
-        raise ValueError(f"Material with ID {material_id_str} not found")
+        raise ValueError(f"Material with ID {material_id} not found")
 
     # Get material name
     name_hash = str(material["nameTextMapHash"])
@@ -634,15 +634,15 @@ def get_material_info(
         description = "No description available"
 
     return types.MaterialInfo(
-        material_id=material_id_str, name=name, description=description
+        material_id=material_id, name=name, description=description
     )
 
 
 def get_voiceline_info(
-    avatar_id_str: str, *, data_repo: repo.DataRepo
+    avatar_id: types.AvatarId, *, data_repo: repo.DataRepo
 ) -> types.VoicelineInfo:
     """Get all voiceline information for a specific character."""
-    avatar_id = int(avatar_id_str)
+    avatar_id_int = int(avatar_id)
 
     # Load required data
     text_map = data_repo.load_text_map()
@@ -652,21 +652,21 @@ def get_voiceline_info(
     # Find character name from avatar data
     character_name = None
     for avatar in avatar_data:
-        if avatar["id"] == avatar_id:
+        if avatar["id"] == avatar_id_int:
             character_name = text_map.get_optional(str(avatar["nameTextMapHash"]))
             break
     if character_name is None:
-        raise ValueError(f"Unknown character for avatar ID {avatar_id_str}")
+        raise ValueError(f"Unknown character for avatar ID {avatar_id}")
 
     # Collect all voicelines for this character
     voicelines = {}
     for fetter in fetters_data:
-        if fetter["avatarId"] == avatar_id:
+        if fetter["avatarId"] == avatar_id_int:
             # Get voiceline title
             title_hash = str(fetter["voiceTitleTextMapHash"])
             if (title := text_map.get_optional(title_hash)) is None:
                 raise ValueError(
-                    f"Missing voiceline title {title_hash} for avatar ID {avatar_id_str}"
+                    f"Missing voiceline title {title_hash} for avatar ID {avatar_id}"
                 )
 
             # Get voiceline content
@@ -677,12 +677,12 @@ def get_voiceline_info(
                 voicelines[title] = content
 
     return types.VoicelineInfo(
-        character_name=character_name, voicelines=voicelines, avatar_id=avatar_id_str
+        character_name=character_name, voicelines=voicelines, avatar_id=avatar_id
     )
 
 
 def _get_relic_story_by_story_id(
-    story_id: int, *, data_repo: repo.DataRepo
+    story_id: types.StoryId, *, data_repo: repo.DataRepo
 ) -> str | None:
     """Resolve a reliquary piece's relic story from its storyId.
 
@@ -715,7 +715,7 @@ def _get_relic_story_by_story_id(
 
 
 def get_artifact_set_info(
-    set_id: str, *, data_repo: repo.DataRepo
+    set_id: types.ArtifactSetId, *, data_repo: repo.DataRepo
 ) -> types.ArtifactSetInfo | None:
     """Get artifact set info, or None if no piece has a story (nothing to render)."""
     # Load required data
@@ -866,7 +866,7 @@ def get_weapon_info(
 
 def get_talk_group_info(
     talk_group_type: talk_parsing.TalkGroupType,
-    talk_group_id: str,
+    talk_group_id: talk_parsing.TalkGroupId,
     *,
     data_repo: repo.DataRepo,
 ) -> types.TalkGroupInfo:

@@ -221,14 +221,14 @@ class Costumes(BaseReadables):
         ]
 
 
-class Quests(BaseRenderableType[str]):
+class Quests(BaseRenderableType[types.QuestId]):
     """Quest content type (dialog, cutscenes, etc.)"""
 
     text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_QUEST
     error_limit: ClassVar[int] = 100
     error_limit_non_chinese: ClassVar[int] = 2000
 
-    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+    def discover(self, data_repo: repo.DataRepo) -> list[types.QuestId]:
         """Find all quest IDs from MainQuestExcelConfigData."""
         return sorted(
             str(quest_entry["id"])
@@ -236,7 +236,7 @@ class Quests(BaseRenderableType[str]):
         )
 
     def process(
-        self, renderable_key: str, data_repo: repo.DataRepo
+        self, renderable_key: types.QuestId, data_repo: repo.DataRepo
     ) -> types.RenderedItem | None:
         """Process quest file into rendered content."""
         # get_quest_info returns None for test/hidden quests, which are excluded.
@@ -256,14 +256,14 @@ class Quests(BaseRenderableType[str]):
         return rendering.render_quest(quest_info, language=data_repo.language)
 
 
-class CharacterStories(BaseRenderableType[str]):
+class CharacterStories(BaseRenderableType[types.AvatarId]):
     """Character story content type."""
 
     text_category: ClassVar[text_types.TextCategory] = (
         text_types.TextCategory.AGD_CHARACTER_STORY
     )
 
-    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+    def discover(self, data_repo: repo.DataRepo) -> list[types.AvatarId]:
         """Find all unique character IDs that have stories."""
         fetter_data = data_repo.load_fetter_story_excel_config_data()
 
@@ -278,7 +278,7 @@ class CharacterStories(BaseRenderableType[str]):
         return [str(avatar_id) for avatar_id in sorted(avatar_ids)]
 
     def process(
-        self, renderable_key: str, data_repo: repo.DataRepo
+        self, renderable_key: types.AvatarId, data_repo: repo.DataRepo
     ) -> types.RenderedItem | None:
         """Process character story into rendered content."""
         # Get character story info
@@ -368,14 +368,14 @@ class MaterialTypes(BaseRenderableType[str]):
         return rendering.render_materials_by_type(renderable_key, materials_of_type)
 
 
-class Voicelines(BaseRenderableType[str]):
+class Voicelines(BaseRenderableType[types.AvatarId]):
     """Voiceline content type (character voice lines)."""
 
     text_category: ClassVar[text_types.TextCategory] = (
         text_types.TextCategory.AGD_VOICELINE
     )
 
-    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+    def discover(self, data_repo: repo.DataRepo) -> list[types.AvatarId]:
         """Find all avatar IDs that have voicelines."""
         return sorted(
             {
@@ -385,7 +385,7 @@ class Voicelines(BaseRenderableType[str]):
         )
 
     def process(
-        self, renderable_key: str, data_repo: repo.DataRepo
+        self, renderable_key: types.AvatarId, data_repo: repo.DataRepo
     ) -> types.RenderedItem | None:
         """Process voiceline into rendered content."""
         voiceline_info = processing.get_voiceline_info(
@@ -399,14 +399,14 @@ class Voicelines(BaseRenderableType[str]):
         return rendering.render_voiceline(voiceline_info)
 
 
-class ArtifactSets(BaseRenderableType[str]):
+class ArtifactSets(BaseRenderableType[types.ArtifactSetId]):
     """Artifact set content type (artifact sets with individual piece stories)."""
 
     text_category: ClassVar[text_types.TextCategory] = (
         text_types.TextCategory.AGD_ARTIFACT_SET
     )
 
-    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+    def discover(self, data_repo: repo.DataRepo) -> list[types.ArtifactSetId]:
         """Find all artifact set IDs from ReliquarySetExcelConfigData."""
         # Load artifact set configuration data
         set_data = data_repo.load_reliquary_set_excel_config_data()
@@ -415,7 +415,7 @@ class ArtifactSets(BaseRenderableType[str]):
         return [str(set_entry["setId"]) for set_entry in set_data]
 
     def process(
-        self, renderable_key: str, data_repo: repo.DataRepo
+        self, renderable_key: types.ArtifactSetId, data_repo: repo.DataRepo
     ) -> types.RenderedItem | None:
         """Process artifact set into rendered content."""
         # Skip sets with no story content (returns None)
@@ -430,7 +430,9 @@ class ArtifactSets(BaseRenderableType[str]):
         return rendering.render_artifact_set(artifact_set_info)
 
 
-class TalkGroups(BaseRenderableType[tuple[talk_parsing.TalkGroupType, str]]):
+class TalkGroups(
+    BaseRenderableType[tuple[talk_parsing.TalkGroupType, talk_parsing.TalkGroupId]]
+):
     """Talk activity groups content type (talks grouped by activity)."""
 
     text_category: ClassVar[text_types.TextCategory] = (
@@ -441,13 +443,13 @@ class TalkGroups(BaseRenderableType[tuple[talk_parsing.TalkGroupType, str]]):
 
     def discover(
         self, data_repo: repo.DataRepo
-    ) -> list[tuple[talk_parsing.TalkGroupType, str]]:
+    ) -> list[tuple[talk_parsing.TalkGroupType, talk_parsing.TalkGroupId]]:
         """Find all ActivityGroup JSON files and return activity IDs."""
         return sorted(data_repo.build_talk_group_mapping())
 
     def process(
         self,
-        renderable_key: tuple[talk_parsing.TalkGroupType, str],
+        renderable_key: tuple[talk_parsing.TalkGroupType, talk_parsing.TalkGroupId],
         data_repo: repo.DataRepo,
     ) -> types.RenderedItem | None:
         """Process talk activity group into rendered content."""
@@ -482,18 +484,18 @@ class TalkGroups(BaseRenderableType[tuple[talk_parsing.TalkGroupType, str]]):
         )
 
 
-class Talks(BaseRenderableType[str]):
+class Talks(BaseRenderableType[types.TalkId]):
     """Standalone talk content type for talks not used by other renderable types."""
 
     text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_TALK
     error_limit: ClassVar[int] = 1000
     error_limit_non_chinese: ClassVar[int] = 1000
 
-    def __init__(self, used_talk_ids: set[str]) -> None:
+    def __init__(self, used_talk_ids: set[types.TalkId]) -> None:
         """Initialize with set of already used talk IDs."""
         self.used_talk_ids = used_talk_ids
 
-    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+    def discover(self, data_repo: repo.DataRepo) -> list[types.TalkId]:
         """Find all talk IDs that are not already used."""
         talk_tracker = data_repo.build_talk_tracker()
 
@@ -506,7 +508,7 @@ class Talks(BaseRenderableType[str]):
         return sorted(unused_talk_ids)
 
     def process(
-        self, renderable_key: str, data_repo: repo.DataRepo
+        self, renderable_key: types.TalkId, data_repo: repo.DataRepo
     ) -> types.RenderedItem | None:
         """Process talk into rendered content."""
         # Check if talk file exists in mapping first
