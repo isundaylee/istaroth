@@ -335,7 +335,7 @@ class TalkParser:
         text_dialogs = frozenset(
             (d["id"], d.get("talkContentTextMapHash", 0))
             for d in dialogs
-            if text_map.has(str(d.get("talkContentTextMapHash", "")))
+            if text_map.has(d.get("talkContentTextMapHash", 0))
         )
         return _TalkSignature(
             dialogs=tuple(

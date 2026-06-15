@@ -96,9 +96,9 @@ class Readables(BaseReadables):
     ) -> types.RenderedItem:
         return rendering.render_readable(content, metadata)
 
-    def __init__(self, used_readable_ids: set[str]) -> None:
-        """Initialize with optional set of used readable IDs to exclude."""
-        self.used_readable_ids = used_readable_ids
+    def __init__(self, used_readable_filenames: set[types.ReadableFilename]) -> None:
+        """Initialize with optional set of used readable filenames to exclude."""
+        self.used_readable_filenames = used_readable_filenames
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all readable files, excluding those already used."""
@@ -106,7 +106,7 @@ class Readables(BaseReadables):
         return [
             f"Readable/{data_repo.language_short}/{filename}"
             for filename in sorted(
-                readables_tracker.get_all_ids() - self.used_readable_ids
+                readables_tracker.get_all_ids() - self.used_readable_filenames
             )
         ]
 

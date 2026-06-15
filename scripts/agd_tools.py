@@ -137,14 +137,14 @@ def _process_single_item(
             rendered = renderable_type.process(renderable_key, data_repo)
             accessed_text_ids = text_map_tracker.get_accessed_ids()
             accessed_talk_ids = talk_tracker.get_accessed_ids()
-            accessed_readable_ids = readables_tracker.get_accessed_ids()
+            accessed_readable_filenames = readables_tracker.get_accessed_ids()
             recorded_issues = issue_tracker.issues
         return _RenderableResult(
             renderable_key,
             rendered,
             None,
             types.TrackerStats(
-                accessed_text_ids, accessed_talk_ids, accessed_readable_ids
+                accessed_text_ids, accessed_talk_ids, accessed_readable_filenames
             ),
             [
                 issues.ParsingIssue(
@@ -188,7 +188,7 @@ def _generate_content(
     tracker_stats = types.TrackerStats(
         accessed_text_map_ids=set(),
         accessed_talk_ids=set(),
-        accessed_readable_ids=set(),
+        accessed_readable_filenames=set(),
     )
 
     # Discover renderable keys for this type
@@ -522,7 +522,7 @@ def generate_all(
         # Generating remaining unused readables/talks
         process_content_type(
             generate_readable,
-            Readables(all_tracker_stats.accessed_readable_ids.copy()),
+            Readables(all_tracker_stats.accessed_readable_filenames.copy()),
         )
         process_content_type(
             generate_talks, Talks(all_tracker_stats.accessed_talk_ids.copy())
@@ -554,7 +554,9 @@ def generate_all(
     click.echo(f"Talk IDs: {talk_tracker.format_unused_stats()} unused")
 
     readables_tracker = data_repo.get_readables()
-    readables_tracker._accessed_ids.update(all_tracker_stats.accessed_readable_ids)
+    readables_tracker._accessed_ids.update(
+        all_tracker_stats.accessed_readable_filenames
+    )
     click.echo(f"Readables: {readables_tracker.format_unused_stats()} unused")
 
     # Write unused stats to JSON file

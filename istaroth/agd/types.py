@@ -103,10 +103,19 @@ SkillId: TypeAlias = int
 """Avatar skill id (``AvatarSkillExcelConfigDataItem.id``;
 ``AvatarSkillDepotExcelConfigDataItem.energySkill``)."""
 
-TextHash: TypeAlias = int
-"""A TextMap hash as stored in JSON (the ``*TextMapHash`` fields).
+TextMapHash: TypeAlias = int
+"""A TextMap hash (the ``*TextMapHash`` fields); carried as ``int`` end-to-end.
 
-Stringified to index ``TextMap`` (whose keys are ``str``) at lookup time.
+``TextMap`` ships with ``str`` keys (JSON object keys are always strings), but
+``TextMapTracker`` int-keys the map at load so lookups take a ``TextMapHash``
+directly.
+"""
+
+ReadableFilename: TypeAlias = str
+"""A readable file's name relative to ``Readable/<lang>/`` (e.g. ``Foo_EN.txt``).
+
+``ReadablesTracker`` keys on this; distinct from the readable *stem* (no
+``.txt``) and from a renderable's full ``Readable/<lang>/<name>.txt`` key.
 """
 
 
@@ -114,7 +123,7 @@ class NpcExcelConfigDataItem(TypedDict):
     """Type definition for individual NPC configuration entries."""
 
     id: NpcId
-    nameTextMapHash: TextHash
+    nameTextMapHash: TextMapHash
 
 
 NpcExcelConfigData: TypeAlias = list[NpcExcelConfigDataItem]
@@ -136,8 +145,8 @@ class DialogExcelConfigDataItem(TypedDict):
 
     GFLDJMJKIKE: DialogId
     talkRole: DialogTalkRole
-    talkContentTextMapHash: TextHash
-    talkRoleNameTextMapHash: TextHash
+    talkContentTextMapHash: TextMapHash
+    talkRoleNameTextMapHash: TextMapHash
 
 
 DialogExcelConfigData: TypeAlias = list[DialogExcelConfigDataItem]
@@ -181,7 +190,7 @@ class DocumentExcelConfigDataItem(TypedDict):
     """Type definition for document configuration entries."""
 
     id: DocumentId
-    titleTextMapHash: TextHash
+    titleTextMapHash: TextMapHash
     CUSTOM_addlLocalID: NotRequired[list[LocalizationId]]
     questContentLocalizedId: list[LocalizationId]
     questIDList: list[LocalizationId]
@@ -198,8 +207,8 @@ class MaterialExcelConfigDataItem(TypedDict):
     """Type definition for material configuration entries."""
 
     id: MaterialId
-    nameTextMapHash: TextHash
-    descTextMapHash: TextHash
+    nameTextMapHash: TextMapHash
+    descTextMapHash: TextMapHash
     materialType: str
 
 
@@ -237,8 +246,8 @@ class TalkDialogItem(TypedDict):
 
     id: DialogId
     talkRole: TalkRole
-    talkContentTextMapHash: TextHash
-    talkRoleNameTextMapHash: NotRequired[TextHash]
+    talkContentTextMapHash: TextMapHash
+    talkRoleNameTextMapHash: NotRequired[TextMapHash]
     nextDialogs: NotRequired[list[DialogId]]
 
 
@@ -295,7 +304,7 @@ class SubQuestItem(TypedDict):
 
     subId: SubQuestId
     order: int
-    descTextMapHash: TextHash
+    descTextMapHash: TextMapHash
     finishCond: list[FinishCondItem]
 
 
@@ -306,8 +315,8 @@ class QuestData(TypedDict):
     """
 
     id: QuestId
-    descTextMapHash: TextHash
-    titleTextMapHash: TextHash
+    descTextMapHash: TextMapHash
+    titleTextMapHash: TextMapHash
     chapterId: ChapterId  # 0 when the quest belongs to no chapter
     subQuests: list[SubQuestItem]
     talks: list[QuestTalkItem]
@@ -317,7 +326,7 @@ class AvatarExcelConfigDataItem(TypedDict):
     """Type definition for avatar configuration entries."""
 
     id: AvatarId
-    nameTextMapHash: TextHash
+    nameTextMapHash: TextMapHash
     skillDepotId: SkillDepotId
     candSkillDepotIds: list[SkillDepotId]  # per-element depots for the Travelers
 
@@ -348,8 +357,8 @@ class AvatarTalentExcelConfigDataItem(TypedDict):
     """Type definition for constellation (talent) entries."""
 
     talentId: TalentId
-    nameTextMapHash: TextHash
-    descTextMapHash: TextHash
+    nameTextMapHash: TextMapHash
+    descTextMapHash: TextMapHash
 
 
 AvatarTalentExcelConfigData: TypeAlias = list[AvatarTalentExcelConfigDataItem]
@@ -377,8 +386,8 @@ class FetterStoryExcelConfigDataItem(TypedDict):
     """Type definition for fetter story configuration entries."""
 
     avatarId: AvatarId
-    storyTitleTextMapHash: TextHash
-    storyContextTextMapHash: TextHash
+    storyTitleTextMapHash: TextMapHash
+    storyContextTextMapHash: TextMapHash
 
 
 FetterStoryExcelConfigData: TypeAlias = list[FetterStoryExcelConfigDataItem]
@@ -386,8 +395,8 @@ FetterStoryExcelConfigData: TypeAlias = list[FetterStoryExcelConfigDataItem]
 
 class FettersExcelConfigDataItem(TypedDict):
     avatarId: AvatarId
-    voiceTitleTextMapHash: TextHash
-    voiceFileTextTextMapHash: TextHash
+    voiceTitleTextMapHash: TextMapHash
+    voiceFileTextTextMapHash: TextMapHash
 
 
 FettersExcelConfigData: TypeAlias = list[FettersExcelConfigDataItem]
@@ -407,8 +416,8 @@ class ChapterExcelConfigDataItem(TypedDict):
     """Type definition for chapter configuration entries."""
 
     id: ChapterId
-    chapterTitleTextMapHash: TextHash
-    chapterNumTextMapHash: TextHash
+    chapterTitleTextMapHash: TextMapHash
+    chapterNumTextMapHash: TextMapHash
     groupId: QuestSeriesId  # series: groups the acts of one questline; 0 when none
     beginQuestId: (
         int  # first subquest id; // 100 is its (int) main quest id (0 if none)
@@ -424,8 +433,8 @@ class AchievementExcelConfigDataItem(TypedDict):
     id: AchievementId
     goalId: AchievementGoalId
     orderId: int
-    titleTextMapHash: TextHash
-    descTextMapHash: TextHash
+    titleTextMapHash: TextMapHash
+    descTextMapHash: TextMapHash
     isDisuse: bool
     isShow: str
 
@@ -438,7 +447,7 @@ class AchievementGoalExcelConfigDataItem(TypedDict):
 
     id: AchievementGoalId
     orderId: int
-    nameTextMapHash: TextHash
+    nameTextMapHash: TextMapHash
 
 
 AchievementGoalExcelConfigData: TypeAlias = list[AchievementGoalExcelConfigDataItem]
@@ -456,8 +465,8 @@ class ReliquaryExcelConfigDataItem(TypedDict):
     """Type definition for individual artifact configuration entries."""
 
     id: ReliquaryId
-    nameTextMapHash: TextHash
-    descTextMapHash: TextHash
+    nameTextMapHash: TextMapHash
+    descTextMapHash: TextMapHash
     storyId: StoryId
 
 
@@ -465,7 +474,7 @@ class EquipAffixExcelConfigDataItem(TypedDict):
     """Type definition for equipment affix (artifact set bonus) entries."""
 
     id: EquipAffixId
-    nameTextMapHash: TextHash
+    nameTextMapHash: TextMapHash
 
 
 class WeaponExcelConfigDataItem(TypedDict):
@@ -726,15 +735,15 @@ class VoicelineInfo:
 class TrackerStats:
     """Statistics for text map, talk ID, and readable access tracking."""
 
-    accessed_text_map_ids: set[str]
+    accessed_text_map_ids: set[TextMapHash]
     accessed_talk_ids: set[TalkId]
-    accessed_readable_ids: set[str]
+    accessed_readable_filenames: set[ReadableFilename]
 
     def update(self, other: "TrackerStats") -> None:
         """Update this TrackerStats with IDs from another TrackerStats."""
         self.accessed_text_map_ids.update(other.accessed_text_map_ids)
         self.accessed_talk_ids.update(other.accessed_talk_ids)
-        self.accessed_readable_ids.update(other.accessed_readable_ids)
+        self.accessed_readable_filenames.update(other.accessed_readable_filenames)
 
     def to_dict(
         self,

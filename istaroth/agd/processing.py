@@ -51,7 +51,7 @@ def get_readable_metadata(
     title = (
         None
         if title_hash is None
-        else data_repo.load_text_map().get_optional(str(title_hash))
+        else data_repo.load_text_map().get_optional(title_hash)
     )
     if title is None:
         issues.record(issues.IssueType.MISSING_READABLE_TITLE, readable_id)
@@ -100,11 +100,7 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
             "talkRoleNameTextMapHash"
         ) or dialog_id_to_role_hash.get(dialog_id)
 
-        return (
-            None
-            if role_name_hash is None
-            else text_map.get_optional(str(role_name_hash))
-        )
+        return None if role_name_hash is None else text_map.get_optional(role_name_hash)
 
     def _get_role_name_by_role(talk_role: types.TalkRole) -> str | None:
         role_type = talk_role.get("type")
@@ -151,10 +147,10 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
     # Process dialog items
     talk_texts = []
     for dialog_item in dialog_list:
-        content_hash = str(dialog_item["talkContentTextMapHash"])
+        content_hash = dialog_item["talkContentTextMapHash"]
         next_dialog_ids = dialog_item.get("nextDialogs", [])
         if (message := text_map.get_optional(content_hash)) is None:
-            issues.record(issues.IssueType.MISSING_TEXT, content_hash)
+            issues.record(issues.IssueType.MISSING_TEXT, str(content_hash))
             message = f"Missing text ({content_hash})"
         talk_texts.append(
             types.TalkText(
@@ -246,7 +242,7 @@ def _is_hidden_step(desc_hash: int, *, data_repo: repo.DataRepo) -> bool:
     The markers live only in the CHS (source) desc text, like quest titles.
     """
     return (
-        chs := data_repo.load_source_text_map().get_optional(str(desc_hash))
+        chs := data_repo.load_source_text_map().get_optional(desc_hash)
     ) is not None and text_utils.should_skip_text(chs, localization.Language.CHS)
 
 
@@ -261,7 +257,7 @@ def _resolve_step_description(
     """
     if _is_hidden_step(desc_hash, data_repo=data_repo):
         return None
-    text = data_repo.load_text_map().get_optional(str(desc_hash))
+    text = data_repo.load_text_map().get_optional(desc_hash)
     return text if text and text.strip() else None
 
 
@@ -296,8 +292,8 @@ def get_chapter_title(
     return " ".join(
         p
         for p in [
-            text_map.get_optional(str(chapter["chapterNumTextMapHash"])),
-            text_map.get_optional(str(chapter["chapterTitleTextMapHash"])),
+            text_map.get_optional(chapter["chapterNumTextMapHash"]),
+            text_map.get_optional(chapter["chapterTitleTextMapHash"]),
         ]
         if p is not None
     )
@@ -310,9 +306,7 @@ def _is_test_or_hidden_title(title_hash: int, *, data_repo: repo.DataRepo) -> bo
     so resolve the title against the CHS text map regardless of the output
     language; otherwise non-CHS corpora leak these quests.
     """
-    if (
-        chs_title := data_repo.load_source_text_map().get_optional(str(title_hash))
-    ) is None:
+    if (chs_title := data_repo.load_source_text_map().get_optional(title_hash)) is None:
         return False
     return text_utils.should_skip_text(chs_title, localization.Language.CHS)
 
@@ -328,13 +322,13 @@ def get_quest_info(
 
     # Resolve quest title and poetic description from their respective hashes.
     title_hash = quest_data["titleTextMapHash"]
-    if (quest_title := text_map.get_optional(str(title_hash))) is None:
+    if (quest_title := text_map.get_optional(title_hash)) is None:
         issues.record(issues.IssueType.MISSING_QUEST_TITLE, str(title_hash))
         quest_title = f"Missing title ({title_hash})"
 
     # Surface the quest description only when it adds something beyond the title:
     # this guard drops empty descriptions and ones that merely repeat the title.
-    description = text_map.get_optional(str(quest_data["descTextMapHash"]))
+    description = text_map.get_optional(quest_data["descTextMapHash"])
     if description == quest_title:
         description = None
 
@@ -573,11 +567,9 @@ def _resolve_constellations(
     for talent_id in talent_ids:
         if (talent := talent_map.get(talent_id)) is None:
             raise ValueError(f"Unknown talent {talent_id} in depot {depot['id']}")
-        if (name := text_map.get_optional(str(talent["nameTextMapHash"]))) is None:
+        if (name := text_map.get_optional(talent["nameTextMapHash"])) is None:
             raise ValueError(f"Missing constellation name for talent {talent_id}")
-        if (
-            description := text_map.get_optional(str(talent["descTextMapHash"]))
-        ) is None:
+        if (description := text_map.get_optional(talent["descTextMapHash"])) is None:
             raise ValueError(
                 f"Missing constellation description for talent {talent_id}"
             )
@@ -636,11 +628,7 @@ def get_character_story_info(
     )
     if (
         matched_avatar is None
-        or (
-            character_name := text_map.get_optional(
-                str(matched_avatar["nameTextMapHash"])
-            )
-        )
+        or (character_name := text_map.get_optional(matched_avatar["nameTextMapHash"]))
         is None
     ):
         raise ValueError(f"Unknown character for avatar ID {avatar_id}")
@@ -654,7 +642,7 @@ def get_character_story_info(
             # Get story title
             title_hash = story.get("storyTitleTextMapHash")
             if (
-                title := text_map.get_optional(str(title_hash)) if title_hash else None
+                title := text_map.get_optional(title_hash) if title_hash else None
             ) is None:
                 raise ValueError(
                     f"Missing story title {title_hash} for avatar ID {avatar_id}"
@@ -664,7 +652,7 @@ def get_character_story_info(
             context_hash = story.get("storyContextTextMapHash")
             if (
                 content := (
-                    text_map.get_optional(str(context_hash)) if context_hash else None
+                    text_map.get_optional(context_hash) if context_hash else None
                 )
             ) is None:
                 issues.record(issues.IssueType.MISSING_STORY_CONTENT, str(context_hash))
@@ -712,15 +700,15 @@ def get_material_info(
         raise ValueError(f"Material with ID {material_id} not found")
 
     # Get material name
-    name_hash = str(material["nameTextMapHash"])
+    name_hash = material["nameTextMapHash"]
     if (name := text_map.get_optional(name_hash)) is None:
-        issues.record(issues.IssueType.MISSING_MATERIAL_NAME, name_hash)
+        issues.record(issues.IssueType.MISSING_MATERIAL_NAME, str(name_hash))
         name = "Unknown Material"
 
     # Get material description
-    desc_hash = str(material["descTextMapHash"])
+    desc_hash = material["descTextMapHash"]
     if (description := text_map.get_optional(desc_hash)) is None:
-        issues.record(issues.IssueType.MISSING_MATERIAL_DESC, desc_hash)
+        issues.record(issues.IssueType.MISSING_MATERIAL_DESC, str(desc_hash))
         description = "No description available"
 
     return types.MaterialInfo(
@@ -739,17 +727,15 @@ def get_achievement_section_info(
     section, achievement_configs = section_config
 
     text_map = data_repo.load_text_map()
-    if (section_name := text_map.get_optional(str(section["nameTextMapHash"]))) is None:
+    if (section_name := text_map.get_optional(section["nameTextMapHash"])) is None:
         raise ValueError(f"Missing name for achievement section {section_id}")
 
     achievements = list[types.AchievementInfo]()
     for achievement in achievement_configs:
-        if (
-            name := text_map.get_optional(str(achievement["titleTextMapHash"]))
-        ) is None:
+        if (name := text_map.get_optional(achievement["titleTextMapHash"])) is None:
             raise ValueError(f"Missing name for achievement {achievement['id']}")
         if (
-            description := text_map.get_optional(str(achievement["descTextMapHash"]))
+            description := text_map.get_optional(achievement["descTextMapHash"])
         ) is None:
             raise ValueError(f"Missing description for achievement {achievement['id']}")
         achievements.append(
@@ -780,7 +766,7 @@ def get_voiceline_info(
     character_name = None
     for avatar in avatar_data:
         if avatar["id"] == avatar_id:
-            character_name = text_map.get_optional(str(avatar["nameTextMapHash"]))
+            character_name = text_map.get_optional(avatar["nameTextMapHash"])
             break
     if character_name is None:
         raise ValueError(f"Unknown character for avatar ID {avatar_id}")
@@ -790,15 +776,14 @@ def get_voiceline_info(
     for fetter in fetters_data:
         if fetter["avatarId"] == avatar_id:
             # Get voiceline title
-            title_hash = str(fetter["voiceTitleTextMapHash"])
+            title_hash = fetter["voiceTitleTextMapHash"]
             if (title := text_map.get_optional(title_hash)) is None:
                 raise ValueError(
                     f"Missing voiceline title {title_hash} for avatar ID {avatar_id}"
                 )
 
             # Get voiceline content
-            content_hash = str(fetter["voiceFileTextTextMapHash"])
-            content = text_map.get(content_hash, "")
+            content = text_map.get(fetter["voiceFileTextTextMapHash"], "")
 
             if content:  # Only add if there's actual content
                 voicelines[title] = content
@@ -881,13 +866,12 @@ def get_artifact_set_info(
             )
 
         # Get artifact name and description from text map
-        name_hash = str(artifact_config["nameTextMapHash"])
-        if (name := text_map.get_optional(name_hash)) is None:
+        if (name := text_map.get_optional(artifact_config["nameTextMapHash"])) is None:
             raise ValueError(
                 f"Missing name for artifact ID {artifact_id} in set {set_id}"
             )
 
-        description = text_map.get(str(artifact_config["descTextMapHash"]), "")
+        description = text_map.get(artifact_config["descTextMapHash"], "")
 
         # Resolve the relic story from the piece's storyId via the document ->
         # localization -> readable chain, rather than assuming the story file
@@ -918,7 +902,7 @@ def get_artifact_set_info(
     if (
         affix_name_hash := next(
             (
-                str(affix["nameTextMapHash"])
+                affix["nameTextMapHash"]
                 for affix in data_repo.load_equip_affix_excel_config_data()
                 if affix["id"] == affix_id
             ),
@@ -978,13 +962,13 @@ def get_weapon_info(
     if not story_pages:
         return None
 
-    if (name := text_map.get_optional(str(weapon["nameTextMapHash"]))) is None:
+    if (name := text_map.get_optional(weapon["nameTextMapHash"])) is None:
         raise ValueError(f"Missing name for weapon ID {weapon_id}")
 
     return types.WeaponInfo(
         weapon_id=weapon_id,
         name=name,
-        description=text_map.get(str(weapon["descTextMapHash"]), ""),
+        description=text_map.get(weapon["descTextMapHash"], ""),
         story_pages=story_pages,
     )
 

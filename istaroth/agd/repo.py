@@ -24,8 +24,8 @@ _K = TypeVar("_K")
 class IdTracker(Generic[_K]):
     """Base class for tracking which IDs have been accessed.
 
-    Generic over the id type ``_K``: text-map hashes and readable paths are
-    ``str``, while talk and material ids are ``int`` (their on-disk wire type).
+    Generic over the id type ``_K``: readable filenames are ``str``, while
+    text-map hashes, talk, and material ids are ``int`` (their wire type).
     """
 
     def __init__(self, all_ids: set[_K]) -> None:
@@ -137,17 +137,23 @@ class TalkTracker(IdTracker[types.TalkId]):
         return self._talk_file_mapping.get(talk_id)
 
 
-class TextMapTracker(IdTracker[str]):
-    """Wrapper around TextMap that tracks which text IDs have been accessed."""
+class TextMapTracker(IdTracker[types.TextMapHash]):
+    """Wrapper around TextMap that tracks which text IDs have been accessed.
+
+    ``TextMap`` ships with ``str`` keys (JSON object keys are always strings);
+    they are int-keyed once here so lookups carry a ``TextMapHash`` directly.
+    """
 
     def __init__(
         self, text_map: types.TextMap, language: localization.Language
     ) -> None:
-        super().__init__(set(text_map.keys()))
-        self._text_map = text_map
+        self._text_map: dict[types.TextMapHash, str] = {
+            int(k): v for k, v in text_map.items()
+        }
+        super().__init__(set(self._text_map))
         self._language = language
 
-    def get(self, key: str, default: str) -> str:
+    def get(self, key: types.TextMapHash, default: str) -> str:
         """Get text by ID with default, tracks access if key exists."""
         if key in self._text_map:
             self._track_access(key)
@@ -155,7 +161,7 @@ class TextMapTracker(IdTracker[str]):
             return text_cleanup.clean_text_markers(text, self._language)
         return default
 
-    def get_optional(self, key: str) -> str | None:
+    def get_optional(self, key: types.TextMapHash) -> str | None:
         """Get text by ID, returns None if not found."""
         if key in self._text_map:
             self._track_access(key)
@@ -164,8 +170,8 @@ class TextMapTracker(IdTracker[str]):
         return None
 
 
-class ReadablesTracker(IdTracker[str]):
-    """Tracks which readable file paths have been accessed."""
+class ReadablesTracker(IdTracker[types.ReadableFilename]):
+    """Tracks which readable filenames have been accessed."""
 
     def __init__(self, agd_path: pathlib.Path, language_short: str) -> None:
         self._agd_path = agd_path
@@ -173,20 +179,19 @@ class ReadablesTracker(IdTracker[str]):
         self._readable_base_path = agd_path / "Readable" / language_short
 
         # Discover all readable files
-        all_readable_paths = set()
+        all_readable_filenames: set[types.ReadableFilename] = set()
         if self._readable_base_path.exists():
             for file_path in self._readable_base_path.glob("*.txt"):
-                # Store relative path from readable base directory
-                relative_path = file_path.name
-                all_readable_paths.add(relative_path)
+                # Store the filename relative to the readable base directory
+                all_readable_filenames.add(file_path.name)
 
-        super().__init__(set(sorted(all_readable_paths)))
+        super().__init__(set(sorted(all_readable_filenames)))
 
-    def get_content(self, relative_path: str) -> str | None:
-        """Get readable file content by relative path and track access."""
-        if relative_path in self._all_ids:
-            self._track_access(relative_path)
-            file_path = self._readable_base_path / relative_path
+    def get_content(self, readable_filename: types.ReadableFilename) -> str | None:
+        """Get readable file content by filename and track access."""
+        if readable_filename in self._all_ids:
+            self._track_access(readable_filename)
+            file_path = self._readable_base_path / readable_filename
             return file_path.read_text(encoding="utf-8").strip()
         return None
 
@@ -325,7 +330,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def build_localization_id_to_readable_path(
         self,
-    ) -> dict[types.LocalizationId, str]:
+    ) -> dict[types.LocalizationId, types.ReadableFilename]:
         """Map a localization id to its readable filename for the instance language.
 
         The inverse of ``build_readable_stem_to_localization_id``, precomputed once
@@ -334,7 +339,7 @@ class DataRepo:
         path wins, matching the original break-on-first-match behavior.
         """
         language_short = self.language_short
-        mapping: dict[types.LocalizationId, str] = {}
+        mapping: dict[types.LocalizationId, types.ReadableFilename] = {}
         for entry in self.load_localization_excel_config_data():
             for path_value in entry.values():
                 if not isinstance(path_value, str):
@@ -350,13 +355,13 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def build_localization_id_to_title_hash(
         self,
-    ) -> dict[types.LocalizationId, types.TextHash]:
+    ) -> dict[types.LocalizationId, types.TextMapHash]:
         """Map a localization id to its document title hash.
 
         Inverts the per-readable linear scan over DocumentExcelConfigData; first
         document wins per id, matching the original break-on-first-match behavior.
         """
-        mapping: dict[types.LocalizationId, types.TextHash] = {}
+        mapping: dict[types.LocalizationId, types.TextMapHash] = {}
         for doc_item in self.load_document_excel_config_data().values():
             for loc_id in itertools.chain(
                 doc_item.get("CUSTOM_addlLocalID", []),
@@ -674,8 +679,7 @@ class DataRepo:
         npc_id_to_name: dict[str, str] = {}
         for npc in self.load_npc_excel_config_data():
             npc_id = str(npc["id"])
-            name_hash = str(npc["nameTextMapHash"])
-            if (name := text_map.get_optional(name_hash)) is not None:
+            if (name := text_map.get_optional(npc["nameTextMapHash"])) is not None:
                 npc_id_to_name[npc_id] = name
 
         return npc_id_to_name
@@ -696,11 +700,11 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def get_dialog_id_to_role_name_hash_mapping(
         self,
-    ) -> dict[types.DialogId, types.TextHash]:
+    ) -> dict[types.DialogId, types.TextMapHash]:
         """Get cached mapping from dialog ID to talkRoleNameTextMapHash."""
         dialog_data = self.load_dialog_excel_config_data()
 
-        dialog_id_to_role_hash: dict[types.DialogId, types.TextHash] = {}
+        dialog_id_to_role_hash: dict[types.DialogId, types.TextMapHash] = {}
         for dialog_item in dialog_data:
             dialog_id = dialog_item["GFLDJMJKIKE"]
             role_name_hash = dialog_item["talkRoleNameTextMapHash"]
