@@ -24,6 +24,7 @@ class TextCategory(Enum):
     AGD_CHARACTER_STORY = "agd_character_story"
     AGD_SUBTITLE = "agd_subtitle"
     AGD_MATERIAL_TYPE = "agd_material_type"
+    AGD_ACHIEVEMENT = "agd_achievement"
     AGD_VOICELINE = "agd_voiceline"
     AGD_TALK_GROUP = "agd_talk_group"
     AGD_TALK = "agd_talk"
@@ -49,6 +50,7 @@ class TextCategory(Enum):
                 | TextCategory.AGD_CHARACTER_STORY
                 | TextCategory.AGD_SUBTITLE
                 | TextCategory.AGD_MATERIAL_TYPE
+                | TextCategory.AGD_ACHIEVEMENT
                 | TextCategory.AGD_VOICELINE
                 | TextCategory.AGD_TALK_GROUP
                 | TextCategory.AGD_TALK

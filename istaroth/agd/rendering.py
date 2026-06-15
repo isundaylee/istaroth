@@ -753,6 +753,33 @@ def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
     )
 
 
+def render_achievement_section(
+    section_info: types.AchievementSectionInfo,
+) -> types.RenderedItem:
+    """Render one achievement section into a single text file."""
+    filename = (
+        f"{section_info.section_id}_"
+        f"{utils.make_safe_filename_part(section_info.section_name)}.txt"
+    )
+    content_lines = [f"# {section_info.section_name}", ""]
+    for achievement in section_info.achievements:
+        content_lines.extend(
+            [f"## {achievement.name}", "", achievement.description, ""]
+        )
+
+    return types.RenderedItem(
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_ACHIEVEMENT,
+            title=section_info.section_name,
+            id=section_info.section_id,
+            relative_path=(
+                f"{text_types.TextCategory.AGD_ACHIEVEMENT.value}/{filename}"
+            ),
+        ),
+        content="\n".join(content_lines).rstrip(),
+    )
+
+
 def _humanize_material_type(material_type: str) -> str:
     """Turn a raw MaterialType enum into a readable title (e.g. MATERIAL_FISH_ROD -> Fish Rod)."""
     return material_type.removeprefix("MATERIAL_").replace("_", " ").title()

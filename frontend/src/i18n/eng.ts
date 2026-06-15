@@ -141,6 +141,7 @@ export const eng = {
       agd_wings: 'Wings',
       agd_costume: 'Costumes',
       agd_character_story: 'Character Stories',
+      agd_achievement: 'Achievements',
       agd_material_type: 'Material Types',
       agd_quest: 'Quests',
       agd_readable: 'Readables',

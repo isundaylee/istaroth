@@ -638,6 +638,45 @@ def get_material_info(
     )
 
 
+def get_achievement_section_info(
+    section_id: types.AchievementGoalId, *, data_repo: repo.DataRepo
+) -> types.AchievementSectionInfo:
+    """Get one localized achievement section and its active achievements."""
+    if (
+        section_config := data_repo.build_achievement_section_mapping().get(section_id)
+    ) is None:
+        raise ValueError(f"Achievement section not found for ID {section_id}")
+    section, achievement_configs = section_config
+
+    text_map = data_repo.load_text_map()
+    if (section_name := text_map.get_optional(str(section["nameTextMapHash"]))) is None:
+        raise ValueError(f"Missing name for achievement section {section_id}")
+
+    achievements = list[types.AchievementInfo]()
+    for achievement in achievement_configs:
+        if (
+            name := text_map.get_optional(str(achievement["titleTextMapHash"]))
+        ) is None:
+            raise ValueError(f"Missing name for achievement {achievement['id']}")
+        if (
+            description := text_map.get_optional(str(achievement["descTextMapHash"]))
+        ) is None:
+            raise ValueError(f"Missing description for achievement {achievement['id']}")
+        achievements.append(
+            types.AchievementInfo(
+                achievement_id=achievement["id"],
+                name=name,
+                description=description,
+            )
+        )
+
+    return types.AchievementSectionInfo(
+        section_id=section_id,
+        section_name=section_name,
+        achievements=achievements,
+    )
+
+
 def get_voiceline_info(
     avatar_id: types.AvatarId, *, data_repo: repo.DataRepo
 ) -> types.VoicelineInfo:

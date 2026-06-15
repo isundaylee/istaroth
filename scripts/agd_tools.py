@@ -33,6 +33,7 @@ from istaroth.agd import (
     types,
 )
 from istaroth.agd.renderable_types import (
+    Achievements,
     ArtifactSets,
     BaseRenderableType,
     Books,
@@ -463,6 +464,10 @@ def generate_all(
         only_category is None
         or only_category == text_types.TextCategory.AGD_MATERIAL_TYPE
     )
+    generate_achievements = (
+        only_category is None
+        or only_category == text_types.TextCategory.AGD_ACHIEVEMENT
+    )
     generate_voicelines = (
         only_category is None or only_category == text_types.TextCategory.AGD_VOICELINE
     )
@@ -505,6 +510,7 @@ def generate_all(
         process_content_type(generate_character_stories, CharacterStories())
         process_content_type(generate_subtitles, Subtitles())
         process_content_type(generate_material_types, MaterialTypes())
+        process_content_type(generate_achievements, Achievements())
         process_content_type(generate_voicelines, Voicelines())
         process_content_type(generate_talk_groups, TalkGroups())
 
