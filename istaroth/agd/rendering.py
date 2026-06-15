@@ -686,6 +686,26 @@ def render_character_story(story_info: types.CharacterStoryInfo) -> types.Render
         content_lines.append(story.content)
         content_lines.append("")  # Add blank line between stories
 
+    # Constellations as a flat list. No Cn prefix: the source data does not give a
+    # reliable constellation index (the talents array order and openConfig disagree),
+    # so we list them in talents-array order without asserting a number. The
+    # Travelers' per-element sets are grouped under ### element subsections.
+    if story_info.constellations:
+        content_lines.append("## Constellations\n")
+        current_element: object = object()  # sentinel so the first item opens a group
+        first_group = True
+        for constellation in story_info.constellations:
+            if constellation.element != current_element:
+                current_element = constellation.element
+                if constellation.element is not None:
+                    if not first_group:
+                        content_lines.append("")
+                    content_lines.append(f"### {constellation.element}\n")
+                first_group = False
+            description = " ".join(constellation.description.split())
+            content_lines.append(f"{constellation.name}: {description}")
+        content_lines.append("")
+
     rendered_content = "\n".join(content_lines)
 
     return types.RenderedItem(

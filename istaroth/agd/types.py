@@ -87,6 +87,18 @@ LocalizationId: TypeAlias = int
 DocumentId: TypeAlias = int
 """Document-config id (``DocumentExcelConfigDataItem.id``)."""
 
+SkillDepotId: TypeAlias = int
+"""Skill-depot id (``AvatarSkillDepotExcelConfigDataItem.id``;
+``AvatarExcelConfigDataItem.skillDepotId`` and ``candSkillDepotIds`` entries)."""
+
+TalentId: TypeAlias = int
+"""Constellation talent id (``AvatarTalentExcelConfigDataItem.talentId``;
+``AvatarSkillDepotExcelConfigDataItem.talents`` entries)."""
+
+SkillId: TypeAlias = int
+"""Avatar skill id (``AvatarSkillExcelConfigDataItem.id``;
+``AvatarSkillDepotExcelConfigDataItem.energySkill``)."""
+
 TextHash: TypeAlias = int
 """A TextMap hash as stored in JSON (the ``*TextMapHash`` fields).
 
@@ -302,12 +314,58 @@ class AvatarExcelConfigDataItem(TypedDict):
 
     id: int  # AvatarId after str() at the parse boundary
     nameTextMapHash: TextHash
+    skillDepotId: SkillDepotId
+    candSkillDepotIds: list[SkillDepotId]  # per-element depots for the Travelers
 
 
 AvatarExcelConfigData: TypeAlias = list[AvatarExcelConfigDataItem]
 """List of avatar configuration items.
 
 Example file: ExcelBinOutput/AvatarExcelConfigData.json
+"""
+
+
+class AvatarSkillDepotExcelConfigDataItem(TypedDict):
+    """Type definition for avatar skill-depot entries."""
+
+    id: SkillDepotId
+    talents: list[TalentId]  # constellation talent ids (6 per element); 0 = empty slot
+    energySkill: SkillId  # elemental burst skill (used to derive the depot's element)
+
+
+AvatarSkillDepotExcelConfigData: TypeAlias = list[AvatarSkillDepotExcelConfigDataItem]
+"""List of avatar skill-depot items.
+
+Example file: ExcelBinOutput/AvatarSkillDepotExcelConfigData.json
+"""
+
+
+class AvatarTalentExcelConfigDataItem(TypedDict):
+    """Type definition for constellation (talent) entries."""
+
+    talentId: TalentId
+    nameTextMapHash: TextHash
+    descTextMapHash: TextHash
+
+
+AvatarTalentExcelConfigData: TypeAlias = list[AvatarTalentExcelConfigDataItem]
+"""List of constellation (talent) items.
+
+Example file: ExcelBinOutput/AvatarTalentExcelConfigData.json
+"""
+
+
+class AvatarSkillExcelConfigDataItem(TypedDict):
+    """Type definition for avatar skill entries (only fields we use)."""
+
+    id: SkillId
+    costElemType: str  # e.g. Fire / Water / Wind / Rock / Electric / Grass / Ice
+
+
+AvatarSkillExcelConfigData: TypeAlias = list[AvatarSkillExcelConfigDataItem]
+"""List of avatar skill items.
+
+Example file: ExcelBinOutput/AvatarSkillExcelConfigData.json
 """
 
 
@@ -595,12 +653,26 @@ class CharacterStory:
 
 
 @attrs.define
+class Constellation:
+    """A single constellation (命之座) name and description.
+
+    ``element`` is set only for the Travelers, whose constellations are
+    per-element; it is ``None`` for regular characters.
+    """
+
+    name: str
+    description: str
+    element: str | None
+
+
+@attrs.define
 class CharacterStoryInfo:
     """Character story information containing all stories for a character."""
 
     character_name: str
     stories: list[CharacterStory]
     avatar_id: AvatarId
+    constellations: list[Constellation]
 
 
 @attrs.define
