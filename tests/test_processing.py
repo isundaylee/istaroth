@@ -28,6 +28,29 @@ def test_weapon11101_metadata(data_repo: repo.DataRepo) -> None:
     assert metadata.title == expected_title
 
 
+def test_furina_constellations(data_repo: repo.DataRepo) -> None:
+    """Furina has 6 constellations including the C5 example name."""
+    if data_repo.language is not localization.Language.CHS:
+        pytest.skip("Constellation name assertion is CHS-specific")
+
+    story_info = processing.get_character_story_info("10000089", data_repo=data_repo)
+
+    assert len(story_info.constellations) == 6
+    assert all(c.element is None for c in story_info.constellations)
+    assert any("秘密藏心间，无人知我名。" in c.name for c in story_info.constellations)
+
+
+def test_traveler_constellations_grouped_by_element(data_repo: repo.DataRepo) -> None:
+    """The Traveler's per-element constellations come tagged with their element."""
+    story_info = processing.get_character_story_info("10000005", data_repo=data_repo)
+
+    # Multiple released elements, 6 constellations each, all element-tagged.
+    assert story_info.constellations
+    assert len(story_info.constellations) % 6 == 0
+    assert all(c.element is not None for c in story_info.constellations)
+    assert len({c.element for c in story_info.constellations}) >= 2
+
+
 def test_talk_7407811_info(data_repo: repo.DataRepo) -> None:
     """Test retrieving talk info for 7407811.json."""
     talk_path = "BinOutput/Talk/Quest/7407811.json"

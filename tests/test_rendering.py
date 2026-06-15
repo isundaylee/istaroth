@@ -614,3 +614,50 @@ def test_render_quest_numbers_variant_talks() -> None:
     assert "(variant" not in content.split("## Talk 2")[1]
     assert "## Talk 3 (alternative/additional)" in content
     assert "## Talk 3\n" in content
+
+
+def test_render_character_story_constellations() -> None:
+    """Constellations render as a flat name: description list, descriptions on one line."""
+    story_info = types.CharacterStoryInfo(
+        character_name="Tester",
+        stories=[types.CharacterStory(title="Story 1", content="Once upon a time.")],
+        avatar_id="10000099",
+        constellations=[
+            types.Constellation(
+                name="First Star", description="Line one.\nLine two.", element=None
+            ),
+            types.Constellation(
+                name="Second Star", description="A single effect.", element=None
+            ),
+        ],
+    )
+
+    content = rendering.render_character_story(story_info).content
+
+    assert "## Constellations\n" in content
+    assert "First Star: Line one. Line two." in content
+    assert "Second Star: A single effect." in content
+    assert "###" not in content  # no element subsections for regular characters
+
+
+def test_render_character_story_traveler_constellations_grouped() -> None:
+    """Traveler constellations group under ### element subsections."""
+    story_info = types.CharacterStoryInfo(
+        character_name="Traveler",
+        stories=[],
+        avatar_id="10000005",
+        constellations=[
+            types.Constellation(name="Pyro One", description="P1", element="Pyro"),
+            types.Constellation(name="Pyro Two", description="P2", element="Pyro"),
+            types.Constellation(name="Hydro One", description="H1", element="Hydro"),
+        ],
+    )
+
+    content = rendering.render_character_story(story_info).content
+
+    assert "### Pyro\n" in content
+    assert "### Hydro\n" in content
+    # Pyro group comes before Hydro group, and its members sit under its header.
+    assert content.index("### Pyro") < content.index("Pyro One: P1")
+    assert content.index("Pyro Two: P2") < content.index("### Hydro")
+    assert "Hydro One: H1" in content

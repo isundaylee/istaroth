@@ -66,6 +66,7 @@ istaroth/
 - ALWAYS use modern features as available in Python 3.11; DO NOT use features only in Python 3.12
 - ALWAYS be strict with error handling and prefer raising exception than falling back to implicit default values
 - ALWAYS be strict with data typing; use `NotRequired`/`None` sparingly and only when a field/value is genuinely optional in the data. If every record has a field, type it as required (let a missing key raise) rather than hedging with `NotRequired`.
+- ALWAYS give every new AGD id its own documented `TypeAlias` in the id-alias block of `istaroth/agd/types.py` (e.g. `TalentId`, `SkillDepotId`), and reference that alias from TypedDict fields, loader dict keys, and processing/rendering code rather than a bare `int`/`str`.
 - NEVER import individual symbols from modules and ALWAYS use module-level imports only; exceptions: it is okay to import individual symbols from the typing stdlib package.
 - NEVER use TYPE_CHECKING conditional imports
 - Write very concise docstring; don't list all args & return values when they are self-explanatory from the function signature and names
@@ -112,6 +113,11 @@ the later push workflow. Its canonical path is
   throwaway directory.
 - Commit generated data inside `text/` first, then include the submodule pointer
   in the parent repository's single commit.
+- NEVER force-push the `istaroth-text` `main` branch; it is shared, append-only
+  history. NEVER amend or rebase an `istaroth-text` commit that has already been
+  pushed. To regenerate, hard reset `text/` to the latest `origin/main` and regen
+  on top so the new corpus commit is a clean fast-forward. (Force-pushing the
+  parent PR branch is fine — that is your own branch.)
 - NEVER push a regenerated corpus or amended parent commit before the user has
   verified the result.
 

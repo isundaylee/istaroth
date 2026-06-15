@@ -511,6 +511,14 @@ class DataRepo:
         # configs and do not each scan all achievements once per section.
         self.build_achievement_section_mapping()
 
+        # Warm the avatar/constellation Excel configs (~1.8MB across the skill,
+        # talent, and depot files) so forked character-story workers inherit them
+        # instead of each re-parsing the large files on first constellation lookup.
+        self.load_avatar_excel_config_data()
+        self.load_avatar_skill_depot_excel_config_data()
+        self.load_avatar_talent_excel_config_data()
+        self.load_avatar_skill_excel_config_data()
+
     @functools.lru_cache(maxsize=None)
     def load_talk_excel_config_data(self) -> types.TalkExcelConfigData:
         """Load and return the raw talk Excel configuration data."""
@@ -587,6 +595,40 @@ class DataRepo:
         with open(file_path, encoding="utf-8") as f:
             data: types.AvatarExcelConfigData = json.load(f)
             return data
+
+    @functools.lru_cache(maxsize=None)
+    def load_avatar_skill_depot_excel_config_data(
+        self,
+    ) -> dict[types.SkillDepotId, types.AvatarSkillDepotExcelConfigDataItem]:
+        """Load avatar skill-depot data as a dict keyed by depot id."""
+        file_path = (
+            self.agd_path / "ExcelBinOutput" / "AvatarSkillDepotExcelConfigData.json"
+        )
+        with open(file_path, encoding="utf-8") as f:
+            data: types.AvatarSkillDepotExcelConfigData = json.load(f)
+            return {item["id"]: item for item in data}
+
+    @functools.lru_cache(maxsize=None)
+    def load_avatar_talent_excel_config_data(
+        self,
+    ) -> dict[types.TalentId, types.AvatarTalentExcelConfigDataItem]:
+        """Load constellation (talent) data as a dict keyed by talent id."""
+        file_path = (
+            self.agd_path / "ExcelBinOutput" / "AvatarTalentExcelConfigData.json"
+        )
+        with open(file_path, encoding="utf-8") as f:
+            data: types.AvatarTalentExcelConfigData = json.load(f)
+            return {item["talentId"]: item for item in data}
+
+    @functools.lru_cache(maxsize=None)
+    def load_avatar_skill_excel_config_data(
+        self,
+    ) -> dict[types.SkillId, types.AvatarSkillExcelConfigDataItem]:
+        """Load avatar skill data as a dict keyed by skill id."""
+        file_path = self.agd_path / "ExcelBinOutput" / "AvatarSkillExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.AvatarSkillExcelConfigData = json.load(f)
+            return {item["id"]: item for item in data}
 
     @functools.lru_cache(maxsize=None)
     def load_fetter_story_excel_config_data(self) -> types.FetterStoryExcelConfigData:
