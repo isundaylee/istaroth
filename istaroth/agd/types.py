@@ -22,11 +22,77 @@ Example file: TextMap/TextMapCHS.json
 """
 
 
+# ============================================================================
+# ID type aliases
+# ============================================================================
+# Documentation-only aliases (transparent to mypy) that name the many distinct
+# kinds of AGD id, so signatures say *which* id they want instead of a bare
+# ``int``/``str``. Each alias is the single canonical representation that id uses
+# after parse; the raw JSON ``int`` is converted to it once, at the parse
+# boundary, and never re-converted downstream. ``str``-canonical ids therefore
+# leave their JSON ``.id: int`` field bare (that field *is* the boundary).
+
+QuestId: TypeAlias = str
+"""Quest id, as a string: quest-mapping / ``BinOutput/Quest/<id>.json`` key.
+
+(The browsable quest *hierarchy* keeps quest ids as ``int``; this alias names
+the str representation used by the processing/rendering pipeline.)
+"""
+
+TalkId: TypeAlias = str
+"""Talk id, as a string (``talk_id_to_path`` key)."""
+
+DialogId: TypeAlias = int
+"""Dialog id within a talk's ``dialogList`` and the dialog graph."""
+
+SubQuestId: TypeAlias = int
+"""Sub-quest id (``SubQuestItem.subId``)."""
+
+ChapterId: TypeAlias = int
+"""Chapter (act) id."""
+
+QuestSeriesId: TypeAlias = int
+"""Series (questline) id: a chapter ``groupId`` grouping the acts of one story."""
+
+NpcId: TypeAlias = str
+"""NPC id, as a string (``npc_id_to_name`` key; dialog/talk role ``id``)."""
+
+AvatarId: TypeAlias = str
+"""Avatar (character) id, as a string (renderable key); ``int()`` for excel filtering."""
+
+MaterialId: TypeAlias = str
+"""Material id, as a string (material-tracker key)."""
+
+ReliquaryId: TypeAlias = int
+"""Individual artifact (reliquary piece) id."""
+
+ArtifactSetId: TypeAlias = str
+"""Artifact set id, as a string (renderable key)."""
+
+EquipAffixId: TypeAlias = int
+"""Equip-affix (artifact set bonus) id."""
+
+StoryId: TypeAlias = int
+"""Relic story id (``ReliquaryExcelConfigDataItem.storyId``)."""
+
+LocalizationId: TypeAlias = int
+"""Localization-config id linking a readable to its document/title."""
+
+DocumentId: TypeAlias = int
+"""Document-config id (``DocumentExcelConfigDataItem.id``)."""
+
+TextHash: TypeAlias = int
+"""A TextMap hash as stored in JSON (the ``*TextMapHash`` fields).
+
+Stringified to index ``TextMap`` (whose keys are ``str``) at lookup time.
+"""
+
+
 class NpcExcelConfigDataItem(TypedDict):
     """Type definition for individual NPC configuration entries."""
 
-    id: int
-    nameTextMapHash: int
+    id: int  # NpcId after str() at the parse boundary
+    nameTextMapHash: TextHash
 
 
 NpcExcelConfigData: TypeAlias = list[NpcExcelConfigDataItem]
@@ -40,16 +106,16 @@ class DialogTalkRole(TypedDict):
     """Type definition for talk role in dialog entries."""
 
     type: str
-    id: str
+    id: NpcId
 
 
 class DialogExcelConfigDataItem(TypedDict):
     """Type definition for individual dialog configuration entries."""
 
-    GFLDJMJKIKE: int
+    GFLDJMJKIKE: DialogId
     talkRole: DialogTalkRole
-    talkContentTextMapHash: int
-    talkRoleNameTextMapHash: int
+    talkContentTextMapHash: TextHash
+    talkRoleNameTextMapHash: TextHash
 
 
 DialogExcelConfigData: TypeAlias = list[DialogExcelConfigDataItem]
@@ -62,7 +128,7 @@ Example file: ExcelBinOutput/DialogExcelConfigData.json
 class LocalizationExcelConfigDataItem(TypedDict):
     """Type definition for localization configuration entries."""
 
-    id: int
+    id: LocalizationId
     assetType: str
     defaultPath: str
     scPath: str
@@ -92,11 +158,11 @@ Example file: ExcelBinOutput/LocalizationExcelConfigData.json
 class DocumentExcelConfigDataItem(TypedDict):
     """Type definition for document configuration entries."""
 
-    id: int
-    titleTextMapHash: int
-    CUSTOM_addlLocalID: NotRequired[list[int]]
-    questContentLocalizedId: list[int]
-    questIDList: list[int]
+    id: DocumentId
+    titleTextMapHash: TextHash
+    CUSTOM_addlLocalID: NotRequired[list[LocalizationId]]
+    questContentLocalizedId: list[LocalizationId]
+    questIDList: list[LocalizationId]
 
 
 DocumentExcelConfigData: TypeAlias = list[DocumentExcelConfigDataItem]
@@ -109,9 +175,9 @@ Example file: ExcelBinOutput/DocumentExcelConfigData.json
 class MaterialExcelConfigDataItem(TypedDict):
     """Type definition for material configuration entries."""
 
-    id: int
-    nameTextMapHash: int
-    descTextMapHash: int
+    id: int  # MaterialId after str() at the parse boundary
+    nameTextMapHash: TextHash
+    descTextMapHash: TextHash
     materialType: str
 
 
@@ -125,8 +191,8 @@ Example file: ExcelBinOutput/MaterialExcelConfigData.json
 class TalkExcelConfigDataItem(TypedDict):
     """Type definition for talk configuration entries."""
 
-    id: int
-    initDialog: int
+    id: int  # TalkId after str() at the parse boundary
+    initDialog: DialogId
 
 
 TalkExcelConfigData: TypeAlias = list[TalkExcelConfigDataItem]
@@ -140,18 +206,18 @@ class TalkRole(TypedDict):
     """Type definition for talk role."""
 
     type: str
-    _id: NotRequired[str]
-    id: NotRequired[str]
+    _id: NotRequired[NpcId]
+    id: NotRequired[NpcId]
 
 
 class TalkDialogItem(TypedDict):
     """Type definition for individual talk dialog entries."""
 
-    id: int
+    id: DialogId
     talkRole: TalkRole
-    talkContentTextMapHash: int
-    talkRoleNameTextMapHash: NotRequired[int]
-    nextDialogs: NotRequired[list[int]]
+    talkContentTextMapHash: TextHash
+    talkRoleNameTextMapHash: NotRequired[TextHash]
+    nextDialogs: NotRequired[list[DialogId]]
 
 
 class TalkData(TypedDict):
@@ -160,7 +226,7 @@ class TalkData(TypedDict):
     Example file: BinOutput/Talk/Quest/7407811.json
     """
 
-    talkId: int
+    talkId: int  # TalkId after str() at the parse boundary
     dialogList: list[TalkDialogItem]
 
 
@@ -179,7 +245,7 @@ class BeginCondItem(TypedDict):
 class QuestTalkItem(TypedDict):
     """Type definition for quest talk entries."""
 
-    id: int
+    id: int  # TalkId after str() at the parse boundary
     beginCond: list[BeginCondItem]
 
 
@@ -205,9 +271,9 @@ class SubQuestItem(TypedDict):
     step has no player-facing objective.
     """
 
-    subId: int
+    subId: SubQuestId
     order: int
-    descTextMapHash: int
+    descTextMapHash: TextHash
     finishCond: list[FinishCondItem]
 
 
@@ -217,10 +283,10 @@ class QuestData(TypedDict):
     Example file: BinOutput/Quest/74078.json
     """
 
-    id: int
-    descTextMapHash: int
-    titleTextMapHash: int
-    chapterId: int  # 0 when the quest belongs to no chapter
+    id: int  # QuestId after str() at the parse boundary
+    descTextMapHash: TextHash
+    titleTextMapHash: TextHash
+    chapterId: ChapterId  # 0 when the quest belongs to no chapter
     subQuests: list[SubQuestItem]
     talks: list[QuestTalkItem]
 
@@ -228,8 +294,8 @@ class QuestData(TypedDict):
 class AvatarExcelConfigDataItem(TypedDict):
     """Type definition for avatar configuration entries."""
 
-    id: int
-    nameTextMapHash: int
+    id: int  # AvatarId after str() at the parse boundary
+    nameTextMapHash: TextHash
 
 
 AvatarExcelConfigData: TypeAlias = list[AvatarExcelConfigDataItem]
@@ -242,28 +308,28 @@ Example file: ExcelBinOutput/AvatarExcelConfigData.json
 class FetterStoryExcelConfigDataItem(TypedDict):
     """Type definition for fetter story configuration entries."""
 
-    avatarId: int
-    storyTitleTextMapHash: int
-    storyContextTextMapHash: int
+    avatarId: int  # AvatarId; compared as int after int(avatar_id)
+    storyTitleTextMapHash: TextHash
+    storyContextTextMapHash: TextHash
 
 
 FetterStoryExcelConfigData: TypeAlias = list[FetterStoryExcelConfigDataItem]
 
 
 class FettersExcelConfigDataItem(TypedDict):
-    avatarId: int
-    voiceTitleTextMapHash: int
-    voiceFileTextTextMapHash: int
+    avatarId: int  # AvatarId; compared as int after int(avatar_id)
+    voiceTitleTextMapHash: TextHash
+    voiceFileTextTextMapHash: TextHash
 
 
 FettersExcelConfigData: TypeAlias = list[FettersExcelConfigDataItem]
 
 
 class MainQuestExcelConfigDataItem(TypedDict):
-    id: int
+    id: int  # quest id; kept int (the quest hierarchy keys on int quest ids)
     type: str  # AQ / LQ / WQ / EQ / IQ
-    chapterId: int  # 0 when the quest belongs to no chapter
-    suggestTrackMainQuestList: list[int]  # "next quest(s)" pointers
+    chapterId: ChapterId  # 0 when the quest belongs to no chapter
+    suggestTrackMainQuestList: list[int]  # "next quest(s)" pointers (int quest ids)
 
 
 MainQuestExcelConfigData: TypeAlias = list[MainQuestExcelConfigDataItem]
@@ -272,11 +338,13 @@ MainQuestExcelConfigData: TypeAlias = list[MainQuestExcelConfigDataItem]
 class ChapterExcelConfigDataItem(TypedDict):
     """Type definition for chapter configuration entries."""
 
-    id: int
-    chapterTitleTextMapHash: int
-    chapterNumTextMapHash: int
-    groupId: int  # series: groups the acts of one questline; 0 when none
-    beginQuestId: int  # first subquest id; // 100 is its main quest id (0 if none)
+    id: ChapterId
+    chapterTitleTextMapHash: TextHash
+    chapterNumTextMapHash: TextHash
+    groupId: QuestSeriesId  # series: groups the acts of one questline; 0 when none
+    beginQuestId: (
+        int  # first subquest id; // 100 is its (int) main quest id (0 if none)
+    )
 
 
 ChapterExcelConfigData: TypeAlias = list[ChapterExcelConfigDataItem]
@@ -285,25 +353,25 @@ ChapterExcelConfigData: TypeAlias = list[ChapterExcelConfigDataItem]
 class ReliquarySetExcelConfigDataItem(TypedDict):
     """Type definition for artifact set configuration entries."""
 
-    setId: int
-    containsList: list[int]
-    equipAffixId: int
+    setId: int  # ArtifactSetId after str() at the parse boundary
+    containsList: list[ReliquaryId]
+    equipAffixId: EquipAffixId
 
 
 class ReliquaryExcelConfigDataItem(TypedDict):
     """Type definition for individual artifact configuration entries."""
 
-    id: int
-    nameTextMapHash: int
-    descTextMapHash: int
-    storyId: int
+    id: ReliquaryId
+    nameTextMapHash: TextHash
+    descTextMapHash: TextHash
+    storyId: StoryId
 
 
 class EquipAffixExcelConfigDataItem(TypedDict):
     """Type definition for equipment affix (artifact set bonus) entries."""
 
-    id: int
-    nameTextMapHash: int
+    id: EquipAffixId
+    nameTextMapHash: TextHash
 
 
 class WeaponExcelConfigDataItem(TypedDict):
@@ -351,7 +419,7 @@ class LocalizedRoleNames:
 class ReadableMetadata:
     """Metadata for a readable item."""
 
-    localization_id: int
+    localization_id: LocalizationId
     title: str
 
 
@@ -361,8 +429,8 @@ class TalkText:
 
     role: str | None
     message: str
-    next_dialog_ids: list[int]
-    dialog_id: int
+    next_dialog_ids: list[DialogId]
+    dialog_id: DialogId
 
 
 @attrs.define
@@ -400,7 +468,7 @@ class QuestStep:
 class QuestInfo:
     """Quest information with associated talk dialogs."""
 
-    quest_id: str
+    quest_id: QuestId
     title: str
     chapter_title: str | None
     description: str | None
@@ -415,7 +483,7 @@ class QuestInfo:
 class QuestHierarchyQuest:
     """A single quest leaf in the browsable quest hierarchy."""
 
-    id: int
+    id: int  # quest id, kept int here (the hierarchy keys on int quest ids)
     title: str
 
     def to_dict(self) -> dict[str, Any]:
@@ -426,7 +494,7 @@ class QuestHierarchyQuest:
 class QuestHierarchyChapter:
     """One chapter (act) grouping a set of quests."""
 
-    chapter_id: int
+    chapter_id: ChapterId
     chapter_title: str
     quests: list[QuestHierarchyQuest]
 
@@ -442,7 +510,7 @@ class QuestHierarchyChapter:
 class QuestHierarchySeries:
     """A series (questline) grouping the chapters that share a chapter ``groupId``."""
 
-    series_id: int
+    series_id: QuestSeriesId
     series_title: str
     chapters: list[QuestHierarchyChapter]
 
@@ -500,7 +568,7 @@ class CharacterStoryInfo:
 
     character_name: str
     stories: list[CharacterStory]
-    avatar_id: str
+    avatar_id: AvatarId
 
 
 @attrs.define
@@ -514,7 +582,7 @@ class SubtitleInfo:
 class MaterialInfo:
     """Material information with name and description."""
 
-    material_id: str
+    material_id: MaterialId
     name: str
     description: str
 
@@ -525,7 +593,7 @@ class VoicelineInfo:
 
     character_name: str
     voicelines: dict[str, str]  # title -> content mapping
-    avatar_id: str
+    avatar_id: AvatarId
 
 
 @attrs.define
@@ -587,7 +655,7 @@ class ArtifactSetInfo:
     """Artifact set information containing all pieces in the set."""
 
     set_name: str
-    set_id: str
+    set_id: ArtifactSetId
     artifacts: list[ArtifactInfo]
 
 

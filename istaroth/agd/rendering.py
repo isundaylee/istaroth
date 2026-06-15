@@ -15,10 +15,10 @@ class _TalkTextGraph:
 
     def __init__(self, talk: types.TalkInfo) -> None:
         """Build graph structure from talk dialog items."""
-        self.dialog_id_to_text: dict[int, types.TalkText] = {}
-        self.graph: dict[int, list[int]] = defaultdict(list)
-        self.incoming_edges: dict[int, int] = defaultdict(int)
-        self.outgoing_edges: dict[int, int] = defaultdict(int)
+        self.dialog_id_to_text: dict[types.DialogId, types.TalkText] = {}
+        self.graph: dict[types.DialogId, list[types.DialogId]] = defaultdict(list)
+        self.incoming_edges: dict[types.DialogId, int] = defaultdict(int)
+        self.outgoing_edges: dict[types.DialogId, int] = defaultdict(int)
 
         for talk_text in talk.text:
             dialog_id = talk_text.dialog_id
@@ -33,7 +33,7 @@ class _TalkTextGraph:
         self.incoming_edges = dict(self.incoming_edges)
         self.outgoing_edges = dict(self.outgoing_edges)
 
-    def find_entrypoints(self, talk: types.TalkInfo) -> list[int]:
+    def find_entrypoints(self, talk: types.TalkInfo) -> list[types.DialogId]:
         """Find entry points (dialogs with no incoming edges).
 
         If no entry points are found, falls back to finding cycles and using
@@ -53,7 +53,7 @@ class _TalkTextGraph:
         # Fallback: find all cycles and use smallest dialog ID from them
         return [min(min(cycle) for cycle in self._find_cycles())]
 
-    def _find_cycles(self) -> list[set[int]]:
+    def _find_cycles(self) -> list[set[types.DialogId]]:
         """Find all unique cycles in the graph.
 
         Uses DFS to detect cycles. When a back edge is found, extracts the cycle.
@@ -61,11 +61,11 @@ class _TalkTextGraph:
         Returns:
             List of sets, where each set contains the dialog IDs in a cycle.
         """
-        visited = set[int]()
-        rec_stack = set[int]()
+        visited = set[types.DialogId]()
+        rec_stack = set[types.DialogId]()
         cycles = []
 
-        def dfs(node: int, path: list[int]) -> None:
+        def dfs(node: types.DialogId, path: list[types.DialogId]) -> None:
             if node in rec_stack:
                 # Found a cycle - extract it
                 cycle_start_idx = path.index(node)
@@ -233,11 +233,11 @@ def _render_dialog_line(
 
 
 def _process_branch(
-    next_dialog_ids: list[int],
+    next_dialog_ids: list[types.DialogId],
     graph: _TalkTextGraph,
-    rendered: set[int],
+    rendered: set[types.DialogId],
     language: localization.Language,
-) -> tuple[int | None, list[list[str]]]:
+) -> tuple[types.DialogId | None, list[list[str]]]:
     """Process multiple branches until convergence point.
 
     Processes each branch from next_dialog_ids, rendering all dialogs until hitting
@@ -424,9 +424,9 @@ def _process_branch(
 
 
 def _render_talk_dialogs(
-    dialog_id: int,
+    dialog_id: types.DialogId,
     graph: _TalkTextGraph,
-    rendered: set[int],
+    rendered: set[types.DialogId],
     language: localization.Language,
 ) -> list[str]:
     """Render dialog following single paths until branching, then process branches.
@@ -439,7 +439,7 @@ def _render_talk_dialogs(
         language: Language for filtering
     """
     lines: list[str] = []
-    current_id: int | None = dialog_id
+    current_id: types.DialogId | None = dialog_id
 
     # Follow single next dialogues until we hit multiple next dialogues
     while current_id is not None:
@@ -515,14 +515,14 @@ def _render_talk_content(
     entrypoints = graph.find_entrypoints(talk)
     assert entrypoints, "No entrypoints found"
 
-    rendered: set[int] = set()
+    rendered: set[types.DialogId] = set()
     all_lines: list[str] = []
 
     for i, entrypoint in enumerate(entrypoints):
         if i > 0:
             all_lines.append("")
 
-        entrypoint_rendered = set[int]()
+        entrypoint_rendered = set[types.DialogId]()
         entrypoint_lines = _render_talk_dialogs(
             entrypoint, graph, entrypoint_rendered, language
         )
@@ -546,7 +546,7 @@ def _render_talk_content(
 def render_talk(
     talk: types.TalkInfo,
     *,
-    talk_id: str,
+    talk_id: types.TalkId,
     talk_file_path: str | None = None,
     language: localization.Language,
 ) -> types.RenderedItem:

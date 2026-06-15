@@ -10,7 +10,7 @@ from istaroth.agd import processing, repo, types
 _TYPE_ORDER = ["AQ", "LQ", "WQ", "EQ", "IQ"]
 
 
-def _chapter_title(chapter_id: int, *, data_repo: repo.DataRepo) -> str:
+def _chapter_title(chapter_id: types.ChapterId, *, data_repo: repo.DataRepo) -> str:
     """Resolve a chapter's display title."""
     if (chapter := data_repo.load_chapter_excel_config_data().get(chapter_id)) is None:
         raise ValueError(f"Unknown chapter {chapter_id}")
@@ -58,7 +58,7 @@ def _order_quests(
 
 
 def _make_chapters(
-    by_chapter: dict[int, list[types.QuestHierarchyQuest]],
+    by_chapter: dict[types.ChapterId, list[types.QuestHierarchyQuest]],
     *,
     main_quests: dict[int, types.MainQuestExcelConfigDataItem],
     data_repo: repo.DataRepo,
@@ -93,15 +93,18 @@ def build_quest_hierarchy(
     chapters = data_repo.load_chapter_excel_config_data()
 
     # type -> series_id -> chapter_id -> quests
-    series_buckets: dict[str, dict[int, dict[int, list[types.QuestHierarchyQuest]]]] = (
-        collections.defaultdict(
-            lambda: collections.defaultdict(lambda: collections.defaultdict(list))
-        )
+    series_buckets: dict[
+        str,
+        dict[
+            types.QuestSeriesId, dict[types.ChapterId, list[types.QuestHierarchyQuest]]
+        ],
+    ] = collections.defaultdict(
+        lambda: collections.defaultdict(lambda: collections.defaultdict(list))
     )
     # type -> chapter_id -> quests (chapters with no series)
-    chapter_buckets: dict[str, dict[int, list[types.QuestHierarchyQuest]]] = (
-        collections.defaultdict(lambda: collections.defaultdict(list))
-    )
+    chapter_buckets: dict[
+        str, dict[types.ChapterId, list[types.QuestHierarchyQuest]]
+    ] = collections.defaultdict(lambda: collections.defaultdict(list))
     # type -> quests (no chapter)
     standalone_buckets: dict[str, list[types.QuestHierarchyQuest]] = (
         collections.defaultdict(list)
