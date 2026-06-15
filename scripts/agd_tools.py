@@ -331,6 +331,11 @@ def cli() -> None:
     is_flag=True,
     help="Throw exceptions instead of catching them when processing fails",
 )
+@click.option(
+    "--allow-errors",
+    is_flag=True,
+    help="Exit 0 even when some items failed to generate (default: exit 1 on any error)",
+)
 def generate_all(
     output_dir: pathlib.Path,
     force: bool,
@@ -338,6 +343,7 @@ def generate_all(
     processes: int | None,
     sample_rate: float,
     strict: bool,
+    allow_errors: bool,
 ) -> None:
     """Generate content into RAG-suitable text files."""
     # Validate sample_rate parameter
@@ -603,13 +609,23 @@ def generate_all(
         if errors_file_path.exists():
             errors_file_path.unlink()
 
+    # Fail loudly on any per-item error unless explicitly allowed, so regen
+    # pipelines don't silently ship a corpus with missing items.
+    exit_code = 1 if total_error > 0 and not allow_errors else 0
+    if exit_code:
+        click.echo(
+            f"\n{total_error} item(s) failed to generate; "
+            "pass --allow-errors to exit 0 anyway.",
+            err=True,
+        )
+
     # Skip interpreter teardown: with gc disabled and the large forked caches still
     # alive, normal shutdown wastes seconds finalizing objects we're about to
     # discard. Flush first since os._exit bypasses atexit and buffer flushing.
     sys.stdout.flush()
     sys.stderr.flush()
     logging.shutdown()
-    os._exit(0)
+    os._exit(exit_code)
 
 
 @cli.group(name="render")
