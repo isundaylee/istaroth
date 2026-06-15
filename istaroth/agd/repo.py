@@ -8,7 +8,7 @@ import json
 import logging
 import os
 import pathlib
-from typing import Any
+from typing import Any, Generic, TypeVar
 
 import attrs
 from numpy import isin
@@ -18,31 +18,37 @@ from istaroth.agd import deobfuscation, localization, talk_parsing, types
 
 logger = logging.getLogger(__name__)
 
+_K = TypeVar("_K")
 
-class IdTracker:
-    """Base class for tracking which IDs have been accessed."""
 
-    def __init__(self, all_ids: set[str]) -> None:
+class IdTracker(Generic[_K]):
+    """Base class for tracking which IDs have been accessed.
+
+    Generic over the id type ``_K``: text-map hashes and readable paths are
+    ``str``, while talk and material ids are ``int`` (their on-disk wire type).
+    """
+
+    def __init__(self, all_ids: set[_K]) -> None:
         self._all_ids = all_ids
-        self._accessed_ids: set[str] = set()
+        self._accessed_ids: set[_K] = set()
         self._context_depth: int = 0
 
-    def _track_access(self, key: str) -> None:
+    def _track_access(self, key: _K) -> None:
         """Track that an ID has been accessed."""
         self._accessed_ids.add(key)
 
-    def get_all_ids(self) -> set[str]:
+    def get_all_ids(self) -> set[_K]:
         return self._all_ids.copy()
 
-    def has(self, key: str) -> bool:
+    def has(self, key: _K) -> bool:
         """Whether key is a known ID, without tracking access."""
         return key in self._all_ids
 
-    def get_accessed_ids(self) -> set[str]:
+    def get_accessed_ids(self) -> set[_K]:
         """Return set of accessed IDs."""
         return self._accessed_ids.copy()
 
-    def get_unused_ids(self) -> set[str]:
+    def get_unused_ids(self) -> set[_K]:
         """Return set of unused IDs."""
         return self._all_ids - self._accessed_ids
 
@@ -73,13 +79,13 @@ class IdTracker:
         self._context_depth -= 1
 
 
-class MaterialTracker(IdTracker):
+class MaterialTracker(IdTracker[types.MaterialId]):
     """Tracks which material IDs have been accessed."""
 
     def __init__(self, material_data: types.MaterialExcelConfigData) -> None:
         self._material_dict: dict[
             types.MaterialId, types.MaterialExcelConfigDataItem
-        ] = {str(material["id"]): material for material in material_data}
+        ] = {material["id"]: material for material in material_data}
         super().__init__(set(self._material_dict.keys()))
 
     def get(
@@ -96,7 +102,7 @@ class MaterialTracker(IdTracker):
         return list(self._material_dict.values())
 
 
-class TalkTracker(IdTracker):
+class TalkTracker(IdTracker[types.TalkId]):
     """Tracks which talk IDs have been accessed."""
 
     def __init__(
@@ -105,7 +111,7 @@ class TalkTracker(IdTracker):
         talk_file_mapping: dict[types.TalkId, str],
     ) -> None:
         self._talk_dict: dict[types.TalkId, types.TalkExcelConfigDataItem] = {
-            str(talk["id"]): talk for talk in talk_excel_data
+            talk["id"]: talk for talk in talk_excel_data
         }
         self._talk_file_mapping = talk_file_mapping
         super().__init__(set(self._talk_dict.keys()))
@@ -131,7 +137,7 @@ class TalkTracker(IdTracker):
         return self._talk_file_mapping.get(talk_id)
 
 
-class TextMapTracker(IdTracker):
+class TextMapTracker(IdTracker[str]):
     """Wrapper around TextMap that tracks which text IDs have been accessed."""
 
     def __init__(
@@ -158,7 +164,7 @@ class TextMapTracker(IdTracker):
         return None
 
 
-class ReadablesTracker(IdTracker):
+class ReadablesTracker(IdTracker[str]):
     """Tracks which readable file paths have been accessed."""
 
     def __init__(self, agd_path: pathlib.Path, language_short: str) -> None:
@@ -449,25 +455,24 @@ class DataRepo:
             quest_id = quest_data.get("id")
             assert isinstance(quest_id, int), relative_path_str
 
-            quest_id_str = str(quest_id)
-            canonical_path = f"BinOutput/Quest/{quest_id_str}.json"
-            if (existing := quest_id_to_path.get(quest_id_str)) is not None:
+            canonical_path = f"BinOutput/Quest/{quest_id}.json"
+            if (existing := quest_id_to_path.get(quest_id)) is not None:
                 if existing == canonical_path or relative_path_str != canonical_path:
                     logger.warning(
                         "Duplicate quest ID %s: keeping %s, ignoring %s",
-                        quest_id_str,
+                        quest_id,
                         existing,
                         relative_path_str,
                     )
                     continue
                 logger.warning(
                     "Duplicate quest ID %s: replacing %s with canonical %s",
-                    quest_id_str,
+                    quest_id,
                     existing,
                     relative_path_str,
                 )
 
-            quest_id_to_path[quest_id_str] = relative_path_str
+            quest_id_to_path[quest_id] = relative_path_str
 
         return quest_id_to_path
 
@@ -664,9 +669,9 @@ class DataRepo:
             data: types.ChapterExcelConfigData = json.load(f)
             return {chapter["id"]: chapter for chapter in data}
 
-    def _build_npc_id_to_name(self, text_map: TextMapTracker) -> dict[types.NpcId, str]:
+    def _build_npc_id_to_name(self, text_map: TextMapTracker) -> dict[str, str]:
         """Build NPC ID -> name using the given text map."""
-        npc_id_to_name: dict[types.NpcId, str] = {}
+        npc_id_to_name: dict[str, str] = {}
         for npc in self.load_npc_excel_config_data():
             npc_id = str(npc["id"])
             name_hash = str(npc["nameTextMapHash"])
@@ -676,12 +681,12 @@ class DataRepo:
         return npc_id_to_name
 
     @functools.lru_cache(maxsize=None)
-    def get_npc_id_to_name_mapping(self) -> dict[types.NpcId, str]:
+    def get_npc_id_to_name_mapping(self) -> dict[str, str]:
         """Get cached mapping from NPC ID to name."""
         return self._build_npc_id_to_name(self.load_text_map())
 
     @functools.lru_cache(maxsize=None)
-    def get_npc_id_to_source_name_mapping(self) -> dict[types.NpcId, str]:
+    def get_npc_id_to_source_name_mapping(self) -> dict[str, str]:
         """NPC ID -> CHS (source) name, for language-independent test/hidden filtering.
 
         Dev markers like ``$HIDDEN``/``(test)`` only exist in the CHS name text.

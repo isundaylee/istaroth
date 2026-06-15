@@ -128,7 +128,7 @@ def test_render_talk_basic() -> None:
 
     rendered = rendering.render_talk(
         talk_info,
-        talk_id="12345",
+        talk_id=12345,
         language=localization.Language.CHS,
         talk_file_path="BinOutput/Talk/Quest/12345.json",
     )
@@ -160,7 +160,7 @@ def test_render_talk_long_message() -> None:
 
     rendered = rendering.render_talk(
         talk_info,
-        talk_id="67890",
+        talk_id=67890,
         language=localization.Language.CHS,
         talk_file_path="BinOutput/Talk/NPC/67890.json",
     )
@@ -182,7 +182,7 @@ def test_render_talk_empty() -> None:
 
     rendered = rendering.render_talk(
         talk_info,
-        talk_id="99999",
+        talk_id=99999,
         language=localization.Language.CHS,
         talk_file_path="BinOutput/Talk/99999.json",
     )
@@ -206,7 +206,7 @@ def test_render_talk_special_characters() -> None:
 
     rendered = rendering.render_talk(
         talk_info,
-        talk_id="11111",
+        talk_id=11111,
         language=localization.Language.CHS,
         talk_file_path="BinOutput/Talk/Dialogue/11111.json",
     )
@@ -243,7 +243,7 @@ def test_render_talk_branching_convergence() -> None:
 
     rendered = rendering.render_talk(
         talk_info,
-        talk_id="99999",
+        talk_id=99999,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/99999.json",
     )
@@ -297,7 +297,7 @@ def test_render_talk_nested_branches() -> None:
 
     rendered = rendering.render_talk(
         talk_info,
-        talk_id="88888",
+        talk_id=88888,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/88888.json",
     )
@@ -365,7 +365,7 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
 
     rendered = rendering.render_talk(
         talk_info,
-        talk_id="77777",
+        talk_id=77777,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/77777.json",
     )
@@ -434,7 +434,7 @@ def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
 
     rendered = rendering.render_talk(
         types.TalkInfo(text=talk_texts),
-        talk_id="66666",
+        talk_id=66666,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/66666.json",
     )
@@ -491,7 +491,7 @@ def test_render_talk_menu_hub_no_blowup() -> None:
     ]
     rendered = rendering.render_talk(
         types.TalkInfo(text=talk_texts),
-        talk_id="88888",
+        talk_id=88888,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/88888.json",
     )
@@ -559,7 +559,7 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
     ]
     rendered = rendering.render_talk(
         types.TalkInfo(text=talk_texts),
-        talk_id="55555",
+        talk_id=55555,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/55555.json",
     )
@@ -591,7 +591,7 @@ def _quest_talk_step(
 def test_render_quest_numbers_variant_talks() -> None:
     """Multiple completing talks at one order get `(variant N)`; singletons don't."""
     quest = types.QuestInfo(
-        quest_id="73000",
+        quest_id=73000,
         title="Test Quest",
         chapter_title=None,
         description=None,
@@ -621,7 +621,7 @@ def test_render_character_story_constellations() -> None:
     story_info = types.CharacterStoryInfo(
         character_name="Tester",
         stories=[types.CharacterStory(title="Story 1", content="Once upon a time.")],
-        avatar_id="10000099",
+        avatar_id=10000099,
         constellations=[
             types.Constellation(
                 name="First Star", description="Line one.\nLine two.", element=None
@@ -645,7 +645,7 @@ def test_render_character_story_traveler_constellations_grouped() -> None:
     story_info = types.CharacterStoryInfo(
         character_name="Traveler",
         stories=[],
-        avatar_id="10000005",
+        avatar_id=10000005,
         constellations=[
             types.Constellation(name="Pyro One", description="P1", element="Pyro"),
             types.Constellation(name="Pyro Two", description="P2", element="Pyro"),

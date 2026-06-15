@@ -33,7 +33,7 @@ def test_furina_constellations(data_repo: repo.DataRepo) -> None:
     if data_repo.language is not localization.Language.CHS:
         pytest.skip("Constellation name assertion is CHS-specific")
 
-    story_info = processing.get_character_story_info("10000089", data_repo=data_repo)
+    story_info = processing.get_character_story_info(10000089, data_repo=data_repo)
 
     assert len(story_info.constellations) == 6
     assert all(c.element is None for c in story_info.constellations)
@@ -42,7 +42,7 @@ def test_furina_constellations(data_repo: repo.DataRepo) -> None:
 
 def test_traveler_constellations_grouped_by_element(data_repo: repo.DataRepo) -> None:
     """The Traveler's per-element constellations come tagged with their element."""
-    story_info = processing.get_character_story_info("10000005", data_repo=data_repo)
+    story_info = processing.get_character_story_info(10000005, data_repo=data_repo)
 
     # Multiple released elements, 6 constellations each, all element-tagged.
     assert story_info.constellations
@@ -92,7 +92,7 @@ def test_talk_6864003_narration_role(data_repo: repo.DataRepo) -> None:
 
 def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
     """Test retrieving quest info for 74078.json."""
-    quest_id = "74078"
+    quest_id = 74078
 
     quest_info = processing.get_quest_info(quest_id, data_repo=data_repo)
     assert quest_info is not None
@@ -225,21 +225,21 @@ def test_achievement_section_requires_active_localized_text() -> None:
 @pytest.mark.parametrize(
     "talk_id, expected_quest_id",
     [
-        ("7407804", "74078"),  # 7-digit: drop trailing index
-        ("1000401", "10004"),
-        ("602708", "6027"),  # 6-digit
-        ("100089906", "10008"),  # 9-digit "99" ambient bucket: drop 4
-        ("402217", "4022"),
+        ("7407804", 74078),  # 7-digit: drop trailing index
+        ("1000401", 10004),
+        ("602708", 6027),  # 6-digit
+        ("100089906", 10008),  # 9-digit "99" ambient bucket: drop 4
+        ("402217", 4022),
     ],
 )
-def test_free_group_quest_id(talk_id: str, expected_quest_id: str) -> None:
+def test_free_group_quest_id(talk_id: str, expected_quest_id: int) -> None:
     """The talkId-numbering heuristic maps a FreeGroup talk to its quest."""
     assert talk_parsing._free_group_quest_id(talk_id) == expected_quest_id
 
 
 def test_quest_10008_associated_free_talks(data_repo: repo.DataRepo) -> None:
     """FreeGroup "free talks" are attached to their owning quest."""
-    quest_info = processing.get_quest_info("10008", data_repo=data_repo)
+    quest_info = processing.get_quest_info(10008, data_repo=data_repo)
     assert quest_info is not None
 
     assert quest_info.associated_free_talks
