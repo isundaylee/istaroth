@@ -71,21 +71,24 @@ class RRFReranker(Reranker):
         Returns:
             Fused results sorted by score
         """
-        doc_scores: dict[str, tuple[float, Document]] = {}
+        doc_scores: dict[tuple[str, int], tuple[float, Document]] = {}
 
         assert len(results) == len(weights)
         for retriever_results, weight in zip(results, weights):
             for rank, scored_doc in enumerate(retriever_results, 1):
                 score = weight / (self.k + rank)
-                content = scored_doc.document.page_content
-                if content in doc_scores:
+                key = (
+                    scored_doc.document.metadata["file_id"],
+                    scored_doc.document.metadata["chunk_index"],
+                )
+                if key in doc_scores:
                     # Update score, keep first document encountered
-                    doc_scores[content] = (
-                        doc_scores[content][0] + score,
-                        doc_scores[content][1],
+                    doc_scores[key] = (
+                        doc_scores[key][0] + score,
+                        doc_scores[key][1],
                     )
                 else:
-                    doc_scores[content] = (score, scored_doc.document)
+                    doc_scores[key] = (score, scored_doc.document)
 
         # Sort by combined score (highest first) and return with document
         sorted_results = sorted(doc_scores.items(), key=lambda x: x[1][0], reverse=True)
