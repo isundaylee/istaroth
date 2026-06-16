@@ -60,6 +60,7 @@ function RetrievePage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const activeRequestIdRef = useRef(0)
+  const queryInputRef = useRef<HTMLInputElement>(null)
 
   const urlParams = useMemo((): SearchParams => {
     const params = new URLSearchParams(location.search)
@@ -134,6 +135,10 @@ function RetrievePage() {
   }
 
   useEffect(() => {
+    queryInputRef.current?.focus()
+  }, [])
+
+  useEffect(() => {
     if (initialQuerySubmitted) {
       return
     }
@@ -201,6 +206,7 @@ function RetrievePage() {
           <form onSubmit={handleSubmit} className="query-form">
             <div className="input-row">
               <TextInput
+                ref={queryInputRef}
                 value={formParams.query}
                 onChange={(e) => setFormParams({ ...formParams, query: e.target.value })}
                 placeholder={t('retrieve.placeholder')}
