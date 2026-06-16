@@ -303,6 +303,11 @@ body {
   75% { content: '...'; }
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 .answer p {
   margin-bottom: 16px;
 }
