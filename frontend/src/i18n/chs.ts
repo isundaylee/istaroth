@@ -108,6 +108,17 @@ export const chs = {
     library: '图书馆'
   },
 
+  keyboard: {
+    title: '键盘快捷键',
+    focusSearch: '聚焦搜索框',
+    deselect: '取消聚焦输入框',
+    goQuery: '前往问答',
+    goRetrieve: '前往文本检索',
+    goLibrary: '前往图书馆',
+    help: '显示/隐藏此帮助',
+    close: '关闭'
+  },
+
   retrieve: {
     title: '文本检索',
     placeholder: '输入文本以查找相关文档',

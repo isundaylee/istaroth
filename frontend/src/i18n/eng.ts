@@ -108,6 +108,17 @@ export const eng = {
     library: 'Library'
   },
 
+  keyboard: {
+    title: 'Keyboard shortcuts',
+    focusSearch: 'Focus search box',
+    deselect: 'Blur the focused input',
+    goQuery: 'Go to Q&A',
+    goRetrieve: 'Go to Text Retrieval',
+    goLibrary: 'Go to Library',
+    help: 'Toggle this help',
+    close: 'Close'
+  },
+
   retrieve: {
     title: 'Text Retrieval',
     placeholder: 'Enter text to find related documents',

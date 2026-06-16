@@ -3,6 +3,7 @@ import { LanguageProvider } from './contexts/LanguageContext'
 import { FooterProvider } from './contexts/FooterContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import DocumentTitle from './components/DocumentTitle'
+import KeyboardShortcuts from './components/KeyboardShortcuts'
 import Footer from './components/Footer'
 import ErrorBoundary from './components/ErrorBoundary'
 import QueryPage from './QueryPage'
@@ -21,6 +22,7 @@ function RootLayout() {
       <ThemeProvider>
       <FooterProvider>
         <DocumentTitle />
+        <KeyboardShortcuts />
         <div className="app">
           <Outlet />
           <Footer />
