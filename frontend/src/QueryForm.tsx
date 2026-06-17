@@ -5,7 +5,8 @@ import TextInput from './components/TextInput'
 import Select from './components/Select'
 import Button from './components/Button'
 import ErrorDisplay from './components/ErrorDisplay'
-import type { QueryRequest, QueryResponse, ErrorResponse, ModelsResponse, ExampleQuestionResponse } from './types/api'
+import { readNdjsonStream } from './utils/ndjson'
+import type { QueryRequest, ErrorResponse, ModelsResponse, ExampleQuestionResponse, ProgressMessage, ProgressStepStart } from './types/api'
 
 interface QueryFormProps {
   currentQuestion?: string
@@ -21,6 +22,8 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
   const [selectedModel, setSelectedModel] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  // Pipeline steps that have started but not yet ended, in start order.
+  const [activeSteps, setActiveSteps] = useState<ProgressStepStart[]>([])
   const [modelsLoading, setModelsLoading] = useState(true)
   const [exampleQuestion, setExampleQuestion] = useState<string>('')
   const [exampleLoading, setExampleLoading] = useState(true)
@@ -105,7 +108,16 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
   // Reset loading state when the question prop changes (e.g. after navigating to a new conversation)
   useEffect(() => {
     setLoading(false)
+    setActiveSteps([])
   }, [currentQuestion])
+
+  // Human-readable label for an in-flight pipeline step.
+  const stepLabel = (step: ProgressStepStart) => {
+    if (step.kind === 'searching') {
+      return `${t('query.progress.searching')} “${step.detail ?? ''}”`
+    }
+    return t(`query.progress.${step.kind}`)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -116,6 +128,7 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
 
     setLoading(true)
     setError(null)
+    setActiveSteps([])
     onSubmitStart?.()
 
     try {
@@ -126,7 +139,7 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
         k: 10,
         chunk_context: 5,
       }
-      const res = await fetch('/api/query', {
+      const res = await fetch('/api/query/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -134,18 +147,36 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
         body: JSON.stringify(req_body),
       })
 
-      const data = await res.json()
+      if (!res.ok || !res.body) {
+        const errorData = await res.json().catch(() => null) as ErrorResponse | null
+        setError(errorData?.error || t('query.errors.unknown'))
+        setLoading(false)
+        return
+      }
 
-      if (res.ok) {
-        const response = data as QueryResponse
-        // Clear the form and redirect to conversation page
-        // Don't reset loading here — the dots animation stays visible until the
-        // component unmounts (front page) or currentQuestion changes (conversation page).
-        setQuestion('')
-        navigate(`/conversation/${response.conversation_uuid}`)
-      } else {
-        const errorData = data as ErrorResponse
-        setError(errorData.error || t('query.errors.unknown'))
+      // Consume the progress events as they arrive.
+      let settled = false
+      for await (const event of readNdjsonStream<ProgressMessage>(res.body)) {
+        if (event.type === 'step_start') {
+          setActiveSteps((prev) => [...prev, event])
+        } else if (event.type === 'step_end') {
+          setActiveSteps((prev) => prev.filter((s) => s.id !== event.id))
+        } else if (event.type === 'done') {
+          // Don't reset loading here — the dots animation stays visible until the
+          // component unmounts (front page) or currentQuestion changes (conversation page).
+          settled = true
+          setQuestion('')
+          navigate(`/conversation/${event.result.conversation_uuid}`)
+        } else {
+          settled = true
+          setError(event.error || t('query.errors.unknown'))
+          setLoading(false)
+        }
+      }
+
+      // Stream closed without a terminal event (e.g. dropped connection).
+      if (!settled) {
+        setError(t('query.errors.noConnection'))
         setLoading(false)
       }
     } catch (err) {
@@ -191,6 +222,16 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
           </Button>
         </div>
       </form>
+
+      {loading && activeSteps.length > 0 && (
+        <ul className="query-progress">
+          {activeSteps.map((step) => (
+            <li key={step.id} className="query-progress-item">
+              <span className="loading-ellipsis">{stepLabel(step)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {error && <ErrorDisplay error={error} />}
     </>

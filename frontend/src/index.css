@@ -245,6 +245,21 @@ body {
   cursor: not-allowed;
 }
 
+.query-progress {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0 0 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.query-progress-item {
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+  animation: fadeIn 0.2s ease-in;
+}
+
 .error {
   background-color: var(--color-error-bg);
   color: var(--color-error-text);

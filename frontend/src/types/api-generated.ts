@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/query": {
+    "/api/query/stream": {
         parameters: {
             query?: never;
             header?: never;
@@ -14,10 +14,14 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Query
-         * @description Answer a question using the RAG pipeline.
+         * Query Stream
+         * @description Answer a question, streaming pipeline progress as newline-delimited JSON.
+         *
+         *     Emits ``step_start``/``step_end`` events as pipeline steps begin and finish,
+         *     followed by a terminal ``done`` event carrying the ``QueryResponse`` (or an
+         *     ``error`` event). The client shows every step that has started but not ended.
          */
-        post: operations["query_api_query_post"];
+        post: operations["query_stream_api_query_stream_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -489,6 +493,65 @@ export interface components {
             short_slug: string;
         };
         /**
+         * QueryStreamDone
+         * @description Terminal event carrying the completed answer.
+         */
+        QueryStreamDone: {
+            /**
+             * Type
+             * @default done
+             * @constant
+             */
+            type: "done";
+            result: components["schemas"]["QueryResponse"];
+        };
+        /**
+         * QueryStreamError
+         * @description Terminal event signalling the query failed.
+         */
+        QueryStreamError: {
+            /**
+             * Type
+             * @default error
+             * @constant
+             */
+            type: "error";
+            /** Error */
+            error: string;
+        };
+        /**
+         * QueryStreamStepEnd
+         * @description A previously started pipeline step has ended.
+         */
+        QueryStreamStepEnd: {
+            /**
+             * Type
+             * @default step_end
+             * @constant
+             */
+            type: "step_end";
+            /** Id */
+            id: string;
+        };
+        /**
+         * QueryStreamStepStart
+         * @description A pipeline step has started (shown until its matching step_end).
+         */
+        QueryStreamStepStart: {
+            /**
+             * Type
+             * @default step_start
+             * @constant
+             */
+            type: "step_start";
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Detail */
+            detail: string | null;
+        };
+        /**
          * QuestHierarchyChapter
          * @description One chapter (act) grouping a set of quests.
          */
@@ -604,7 +667,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    query_api_query_post: {
+    query_stream_api_query_stream_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -617,13 +680,13 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Successful Response */
+            /** @description Newline-delimited JSON (application/x-ndjson) stream of progress events, ending with a `done` or `error` event. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["QueryResponse"];
+                    "application/json": components["schemas"]["QueryStreamStepStart"] | components["schemas"]["QueryStreamStepEnd"] | components["schemas"]["QueryStreamDone"] | components["schemas"]["QueryStreamError"];
                 };
             };
             /** @description Validation Error */

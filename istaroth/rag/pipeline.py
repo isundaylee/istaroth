@@ -12,6 +12,7 @@ from istaroth import langsmith_utils, llm_manager
 from istaroth.agd import localization
 from istaroth.rag import (
     output_rendering,
+    progress,
     prompt_set,
     text_set,
     types,
@@ -72,16 +73,24 @@ class RAGPipeline:
         return queries[:3]
 
     @langsmith_utils.traceable(name="pipeline_query")
-    async def answer(self, question: str, *, k: int, chunk_context: int) -> str:
+    async def answer(
+        self,
+        question: str,
+        *,
+        k: int,
+        chunk_context: int,
+        reporter: progress.ProgressReporter = progress.NULL_REPORTER,
+    ) -> str:
         """Answer question with source documents using the specified LLM."""
         model = llm_manager.get_model_name(self._llm)
         language = self._language.value
 
         # Preprocess the question into multiple retrieval queries
         preprocess_start = time.perf_counter()
-        retrieval_queries = await anyio.to_thread.run_sync(
-            lambda: self._preprocess_question(question)
-        )
+        with reporter.step("augmenting"):
+            retrieval_queries = await anyio.to_thread.run_sync(
+                lambda: self._preprocess_question(question)
+            )
         metrics.rag_pipeline_stage_preprocessing_duration_seconds.observe(
             time.perf_counter() - preprocess_start
         )
@@ -96,9 +105,10 @@ class RAGPipeline:
         _retrieve_outputs: dict[int, types.RetrieveOutput] = {}
 
         async def _retrieve(i: int, q: str) -> None:
-            _retrieve_outputs[i] = await self._retriever.aretrieve(
-                q, k=k, chunk_context=chunk_context
-            )
+            with reporter.step("searching", q):
+                _retrieve_outputs[i] = await self._retriever.aretrieve(
+                    q, k=k, chunk_context=chunk_context
+                )
 
         async with anyio.create_task_group() as tg:
             for i, q in enumerate(retrieval_queries):
@@ -149,18 +159,19 @@ class RAGPipeline:
             }
         }
         gen_start = time.perf_counter()
-        response = await anyio.to_thread.run_sync(
-            lambda: chain.invoke(
-                {
-                    "user_question": question,
-                    "retrieved_context": output_rendering.render_retrieve_output(
-                        combined_retrieve_output.results,
-                        text_set=self._text_set,
-                    ),
-                },
-                config=config,
+        with reporter.step("generating"):
+            response = await anyio.to_thread.run_sync(
+                lambda: chain.invoke(
+                    {
+                        "user_question": question,
+                        "retrieved_context": output_rendering.render_retrieve_output(
+                            combined_retrieve_output.results,
+                            text_set=self._text_set,
+                        ),
+                    },
+                    config=config,
+                )
             )
-        )
         metrics.rag_pipeline_stage_generation_duration_seconds.labels(
             model=model, language=language
         ).observe(time.perf_counter() - gen_start)

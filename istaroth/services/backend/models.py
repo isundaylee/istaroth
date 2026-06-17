@@ -6,7 +6,7 @@ Any changes to request/response structures should be reflected in both files.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, field_validator
 
@@ -45,6 +45,44 @@ class QueryResponse(BaseModel):
     answer: str
     conversation_uuid: str
     short_slug: str
+
+
+# Events streamed (newline-delimited JSON) by POST /api/query/stream. The
+# step events mirror the wire format of ``istaroth.rag.progress``; the terminal
+# ``done``/``error`` events are emitted by the router.
+class QueryStreamStepStart(BaseModel):
+    """A pipeline step has started (shown until its matching step_end)."""
+
+    type: Literal["step_start"] = "step_start"
+    id: str
+    kind: str
+    detail: str | None
+
+
+class QueryStreamStepEnd(BaseModel):
+    """A previously started pipeline step has ended."""
+
+    type: Literal["step_end"] = "step_end"
+    id: str
+
+
+class QueryStreamDone(BaseModel):
+    """Terminal event carrying the completed answer."""
+
+    type: Literal["done"] = "done"
+    result: QueryResponse
+
+
+class QueryStreamError(BaseModel):
+    """Terminal event signalling the query failed."""
+
+    type: Literal["error"] = "error"
+    error: str
+
+
+QueryStreamEvent = (
+    QueryStreamStepStart | QueryStreamStepEnd | QueryStreamDone | QueryStreamError
+)
 
 
 class ConversationResponse(BaseModel):

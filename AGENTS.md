@@ -93,6 +93,7 @@ istaroth/
   is just that single commit on its own.)
 - ALWAYS run precommit separately and added resulted changes before you offer to git commit
 - When a commit fixes a GitHub issue, include a closing keyword in the commit message body (e.g. `Closes #55`) so GitHub auto-closes it on push; otherwise the issue must be closed manually.
+- ALWAYS pass PR/commit bodies via a file (`gh pr create --body-file <path>`, `git commit -F <path>`), NOT an inline `--body "..."` string. Bodies routinely contain backticks and apostrophes that the shell tries to expand inside double quotes, which breaks the command.
 - The `text/` directory is a git submodule (repo `istaroth-text`) holding the generated text corpus and manifests. Regenerated data (e.g. from `scripts/tps_shishu_tools.py`) is committed INSIDE the submodule first (its own commit on the submodule's `main`), then the parent repo records the pointer move by amending it into the code commit (`git add text && git commit --amend --no-edit`), not as a separate `Update text` commit. The submodule's own data commit stays on the submodule; only the parent-repo pointer move is folded into the code commit.
 
 ## Script Development Guidelines
