@@ -37,6 +37,18 @@ export interface ErrorResponse {
   error: string
 }
 
+// Progress events streamed (newline-delimited JSON) by POST /api/query/stream.
+export type ProgressStepStart = components['schemas']['QueryStreamStepStart']
+export type ProgressStepEnd = components['schemas']['QueryStreamStepEnd']
+export type ProgressDone = components['schemas']['QueryStreamDone']
+export type ProgressError = components['schemas']['QueryStreamError']
+
+export type ProgressMessage =
+  | ProgressStepStart
+  | ProgressStepEnd
+  | ProgressDone
+  | ProgressError
+
 export interface ExampleQuestionRequest {
   language: string
 }

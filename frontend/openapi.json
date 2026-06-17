@@ -6,14 +6,14 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/api/query": {
+    "/api/query/stream": {
       "post": {
         "tags": [
           "query"
         ],
-        "summary": "Query",
-        "description": "Answer a question using the RAG pipeline.",
-        "operationId": "query_api_query_post",
+        "summary": "Query Stream",
+        "description": "Answer a question, streaming pipeline progress as newline-delimited JSON.\n\nEmits ``step_start``/``step_end`` events as pipeline steps begin and finish,\nfollowed by a terminal ``done`` event carrying the ``QueryResponse`` (or an\n``error`` event). The client shows every step that has started but not ended.",
+        "operationId": "query_stream_api_query_stream_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -26,11 +26,25 @@
         },
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "Newline-delimited JSON (application/x-ndjson) stream of progress events, ending with a `done` or `error` event.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/QueryResponse"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/QueryStreamStepStart"
+                    },
+                    {
+                      "$ref": "#/components/schemas/QueryStreamStepEnd"
+                    },
+                    {
+                      "$ref": "#/components/schemas/QueryStreamDone"
+                    },
+                    {
+                      "$ref": "#/components/schemas/QueryStreamError"
+                    }
+                  ],
+                  "title": "Response 200 Query Stream Api Query Stream Post"
                 }
               }
             }
@@ -1025,6 +1039,102 @@
         ],
         "title": "QueryResponse",
         "description": "Response model for query endpoint."
+      },
+      "QueryStreamDone": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "done",
+            "title": "Type",
+            "default": "done"
+          },
+          "result": {
+            "$ref": "#/components/schemas/QueryResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "result"
+        ],
+        "title": "QueryStreamDone",
+        "description": "Terminal event carrying the completed answer."
+      },
+      "QueryStreamError": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "error",
+            "title": "Type",
+            "default": "error"
+          },
+          "error": {
+            "type": "string",
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "QueryStreamError",
+        "description": "Terminal event signalling the query failed."
+      },
+      "QueryStreamStepEnd": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "step_end",
+            "title": "Type",
+            "default": "step_end"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "QueryStreamStepEnd",
+        "description": "A previously started pipeline step has ended."
+      },
+      "QueryStreamStepStart": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "step_start",
+            "title": "Type",
+            "default": "step_start"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "detail"
+        ],
+        "title": "QueryStreamStepStart",
+        "description": "A pipeline step has started (shown until its matching step_end)."
       },
       "QuestHierarchyChapter": {
         "properties": {

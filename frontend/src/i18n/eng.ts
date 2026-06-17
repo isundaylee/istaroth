@@ -36,6 +36,11 @@ export const eng = {
       unknown: 'An unknown error occurred',
       noConnection: 'Unable to connect to server',
       modelsLoadFailed: 'Failed to load available models. Please refresh the page to try again'
+    },
+    progress: {
+      augmenting: 'Generating queries',
+      searching: 'Searching',
+      generating: 'Generating response'
     }
   },
 

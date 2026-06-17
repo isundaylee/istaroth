@@ -19,7 +19,7 @@ Istaroth is a **Retrieval-Augmented Generation (RAG) system** for Genshin Impact
 ├────────────────────────┬────────────────────────────────┤
 │  Web Backend           │  MCP Server                    │
 │  (FastAPI)             │  (FastMCP)                     │
-│  • /api/query          │  • retrieve() tool             │
+│  • /api/query/stream   │  • retrieve() tool             │
 │    (retrieve + LLM)    │    (retrieve only)             │
 │  Port: 8000            │  stdio                         │
 └────────────────────────┴────────────────────────────────┘
@@ -50,7 +50,7 @@ Istaroth is a **Retrieval-Augmented Generation (RAG) system** for Genshin Impact
 **Purpose**: Serves the React frontend and provides REST API for web clients.
 
 **Key Endpoints**:
-- `POST /api/query` — Submit a question, retrieve relevant documents, generate answer via LLM
+- `POST /api/query/stream` — Submit a question; streams pipeline progress (newline-delimited JSON `step_start`/`step_end` events) and a terminal `done`/`error` event after retrieving documents and generating the answer via LLM
 - `GET/POST /api/conversations` — Manage conversation history
 - `GET /api/library` — Browse categorized game text
 - `GET /api/citations` — Retrieve source documents by ID
