@@ -89,7 +89,7 @@ def build_quest_hierarchy(
     ``groupId``) and chapter; quests with a chapter but no series sit directly under
     the type, and quests with no chapter land in the type's standalone bucket.
     """
-    main_quests = {q["id"]: q for q in data_repo.load_main_quest_excel_config_data()}
+    main_quests = data_repo.load_main_quest_excel_config_data()
     chapters = data_repo.load_chapter_excel_config_data()
 
     # type -> series_id -> chapter_id -> quests

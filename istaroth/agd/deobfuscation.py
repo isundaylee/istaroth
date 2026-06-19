@@ -124,6 +124,19 @@ _COMMON_FIELD_MAPPINGS = {
     # 6.x-only finishCond string param (e.g. COMPLETE_ANY_TALK's talk-id list);
     # no cleartext lineage name exists, so use the CUSTOM_ convention.
     "PGEONGPJEPN": "CUSTOM_paramStr",
+    # CNRELWin6.6.0 Coop story graph (BinOutput/Coop/Coop*.json) node-graph fields.
+    # `coopNodeType` values are already cleartext enums (COOP_NODE_TALK/SELECT/END);
+    # a TALK node's `coopNodeId` equals the local talk id, so `talkConfig` is unused.
+    "NGKBJGGOPEG": "coopInteractionMap",
+    "CEKCHKLHGFL": "coopMap",
+    "KNDKMMOMHOG": "startNodeId",
+    "DACOOAMDHDE": "coopNodeId",
+    "HMLLJAMHHHG": "coopNodeType",
+    "MPEMBNCPNJO": "nextNodeArray",
+    "ICBFHNOKIDE": "selectList",
+    "LNKEDDLBLEP": "dialogId",
+    # DialogExcelConfigData dialog id (its other text fields are already cleartext).
+    "GFLDJMJKIKE": "id",
 }
 
 
@@ -229,6 +242,46 @@ def deobfuscate_talk_group_data(data: dict[str, Any]) -> dict[str, Any]:
     return _deobfuscate_data(
         data, _COMMON_FIELD_MAPPINGS, {"talks": _process_array_items}
     )
+
+
+def deobfuscate_coop_graph_data(data: dict[str, Any]) -> dict[str, Any]:
+    """De-obfuscate a Coop story-graph file (BinOutput/Coop/Coop*.json).
+
+    Renames the top-level keys and deeply de-obfuscates ``coopInteractionMap`` —
+    a dict keyed by coopStoryId, each holding a ``coopMap`` dict of nodes keyed by
+    node id. Other top-level sections (save points, temperaments, ...) are left
+    as-is since only the interaction node graph is consumed. Also handles the older
+    cleartext dumps, whose keys are already in their final form.
+    """
+    top = _deobfuscate_data(data, _COMMON_FIELD_MAPPINGS, {})
+    top["coopInteractionMap"] = {
+        story_id: _deobfuscate_coop_story(story)
+        for story_id, story in top["coopInteractionMap"].items()
+    }
+    return top
+
+
+def _deobfuscate_coop_story(story: dict[str, Any]) -> dict[str, Any]:
+    """De-obfuscate one coopInteractionMap entry and its node map."""
+    deobfuscated = _deobfuscate_data(story, _COMMON_FIELD_MAPPINGS, {})
+    deobfuscated["coopMap"] = {
+        node_id: _deobfuscate_data(
+            node, _COMMON_FIELD_MAPPINGS, {"selectList": _process_array_items}
+        )
+        for node_id, node in deobfuscated["coopMap"].items()
+    }
+    return deobfuscated
+
+
+def deobfuscate_dialog_excel_config_data(
+    data: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """De-obfuscate DialogExcelConfigData JSON by renaming obfuscated field names.
+
+    Exposes the dialog id (the rotating obfuscated key) as ``id``; the dialog's
+    text fields ship cleartext already.
+    """
+    return _process_array_items(data)
 
 
 def deobfuscate_document_excel_config_data(

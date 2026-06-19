@@ -33,6 +33,11 @@ export type QuestHierarchyType = components['schemas']['QuestHierarchyType']
 export type QuestHierarchySeries = components['schemas']['QuestHierarchySeries']
 export type QuestHierarchyChapter = components['schemas']['QuestHierarchyChapter']
 export type QuestHierarchyQuest = components['schemas']['QuestHierarchyQuest']
+export type CoopHierarchyResponse = components['schemas']['CoopHierarchyResponse']
+export type CoopCharacterResponse = components['schemas']['CoopCharacterResponse']
+export type CoopHierarchyCharacter = components['schemas']['CoopHierarchyCharacter']
+export type CoopHierarchyChapter = components['schemas']['CoopHierarchyChapter']
+export type CoopHierarchyQuest = components['schemas']['CoopHierarchyQuest']
 
 // Additional types that may not be in the OpenAPI spec but are used by the frontend
 export interface ErrorResponse {

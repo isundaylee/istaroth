@@ -1,11 +1,8 @@
 import React from 'react'
 import { useLoaderData, useSearchParams, type LoaderFunctionArgs } from 'react-router-dom'
 import { useT } from './contexts/LanguageContext'
-import Navigation from './components/Navigation'
 import Card from './components/Card'
-import TextInput from './components/TextInput'
-import PageCard from './components/PageCard'
-import LibraryHeader from './components/LibraryHeader'
+import HierarchyBrowser, { NavCard, CardGrid, type Crumb } from './components/HierarchyBrowser'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
@@ -94,70 +91,6 @@ function flattenQuests(
   return entries
 }
 
-interface NavCardProps {
-  label: string
-  count?: number
-  sublabel?: string
-  onClick: () => void
-}
-
-function NavCard({ label, count, sublabel, onClick }: NavCardProps) {
-  return (
-    <div
-      onClick={onClick}
-      onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => {
-        const card = e.currentTarget.querySelector('.card') as HTMLElement
-        if (card) {
-          card.style.backgroundColor = 'var(--color-surface-active)'
-          card.style.transform = 'translateY(-2px)'
-        }
-      }}
-      onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => {
-        const card = e.currentTarget.querySelector('.card') as HTMLElement
-        if (card) {
-          card.style.backgroundColor = 'var(--color-surface-secondary)'
-          card.style.transform = 'translateY(0)'
-        }
-      }}
-    >
-      <Card style={{ cursor: 'pointer', transition: 'all 0.2s', padding: '1rem', margin: 0 }}>
-        <p style={{ margin: 0, wordBreak: 'break-word' }}>
-          {label}
-          {count !== undefined && (
-            <span style={{ color: 'var(--color-text-secondary)' }}> ({count})</span>
-          )}
-        </p>
-        {sublabel && (
-          <p
-            style={{
-              margin: '0.25rem 0 0',
-              wordBreak: 'break-word',
-              color: 'var(--color-text-secondary)',
-              fontSize: 'var(--font-sm)',
-            }}
-          >
-            {sublabel}
-          </p>
-        )}
-      </Card>
-    </div>
-  )
-}
-
-function CardGrid({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-        gap: '1rem',
-      }}
-    >
-      {children}
-    </div>
-  )
-}
-
 function QuestHierarchyPage() {
   const t = useT()
   const navigate = useAppNavigate()
@@ -199,18 +132,18 @@ function QuestHierarchyPage() {
     navigate(`/library/agd_quest/${encodeURIComponent(id)}`)
   }
 
-  // Breadcrumb trail of clickable segments leading to the current view.
-  const crumbs: { label: string; onClick: () => void }[] = [
-    { label: t('library.categories.agd_quest'), onClick: reset },
-  ]
-  if (selectedType) {
+  const query = search.trim().toLowerCase()
+
+  // Breadcrumb trail of clickable segments leading to the current view (hidden
+  // while searching).
+  const crumbs: Crumb[] = query ? [] : [{ label: t('library.categories.agd_quest'), onClick: reset }]
+  if (!query && selectedType) {
     crumbs.push({ label: translateQuestType(selectedType.quest_type), onClick: () => openType(selectedType) })
-  }
-  if (showStandalone) {
-    crumbs.push({ label: t('library.standalone'), onClick: () => undefined })
+    if (showStandalone) {
+      crumbs.push({ label: t('library.standalone'), onClick: () => undefined })
+    }
   }
 
-  const query = search.trim().toLowerCase()
   const searchResults = query ? allQuests.filter((entry) => entry.haystack.includes(query)) : []
 
   let content: React.ReactNode
@@ -302,55 +235,17 @@ function QuestHierarchyPage() {
   }
 
   return (
-    <>
-      <Navigation />
-      <main className="main">
-        <PageCard>
-          <LibraryHeader
-            title={t('library.categories.agd_quest')}
-            backPath="/library"
-            backText={backText}
-            onBack={onBack}
-          />
-
-          <TextInput
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('library.questSearchPlaceholder')}
-            style={{ width: '100%', marginBottom: '1rem' }}
-          />
-
-          {!query && crumbs.length > 1 && (
-            <div style={{ margin: '0 0 1rem', display: 'flex', flexWrap: 'wrap', gap: '0.25rem', alignItems: 'center' }}>
-              {crumbs.map((crumb, index) => (
-                <React.Fragment key={index}>
-                  {index > 0 && <span style={{ color: 'var(--color-text-secondary)' }}>/</span>}
-                  {index < crumbs.length - 1 ? (
-                    <button
-                      onClick={crumb.onClick}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: '0.25rem',
-                        cursor: 'pointer',
-                        color: 'var(--color-primary-link)',
-                        fontSize: 'var(--font-sm)',
-                      }}
-                    >
-                      {crumb.label}
-                    </button>
-                  ) : (
-                    <span style={{ padding: '0.25rem', fontSize: 'var(--font-sm)' }}>{crumb.label}</span>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-          )}
-
-          {content}
-        </PageCard>
-      </main>
-    </>
+    <HierarchyBrowser
+      title={t('library.categories.agd_quest')}
+      backText={backText}
+      onBack={onBack}
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder={t('library.questSearchPlaceholder')}
+      crumbs={crumbs}
+    >
+      {content}
+    </HierarchyBrowser>
   )
 }
 

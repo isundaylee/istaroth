@@ -28,6 +28,7 @@ class TextCategory(Enum):
     AGD_VOICELINE = "agd_voiceline"
     AGD_TALK_GROUP = "agd_talk_group"
     AGD_TALK = "agd_talk"
+    AGD_COOP = "agd_coop"
     AGD_ARTIFACT_SET = "agd_artifact_set"
 
     TPS_SHISHU = "tps_shishu"
@@ -54,6 +55,7 @@ class TextCategory(Enum):
                 | TextCategory.AGD_VOICELINE
                 | TextCategory.AGD_TALK_GROUP
                 | TextCategory.AGD_TALK
+                | TextCategory.AGD_COOP
                 | TextCategory.AGD_ARTIFACT_SET
             ):
                 return "以下内容属于游戏内官方文本语料库"

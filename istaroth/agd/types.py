@@ -54,6 +54,15 @@ ChapterId: TypeAlias = int
 QuestSeriesId: TypeAlias = int
 """Series (questline) id: a chapter ``groupId`` grouping the acts of one story."""
 
+CoopStoryId: TypeAlias = int
+"""Coop (hangout) story id (``CoopInteractionExcelConfigDataItem.id``, e.g.
+``1900102``); the ``<coopStoryId>`` prefix of a ``Talk/Coop/<id>_<localTalkId>.json``
+file. Equals ``mainQuestId * 100 + sequence``."""
+
+CoopNodeId: TypeAlias = int
+"""Coop story-graph node id (a ``coopMap`` key). For a ``COOP_NODE_TALK`` node it
+equals the local talk id (the ``_<localTalkId>`` suffix of the talk filename)."""
+
 NpcId: TypeAlias = int
 """NPC id, as it ships in the master table (``NpcExcelConfigDataItem.id``).
 
@@ -150,7 +159,7 @@ class DialogTalkRole(TypedDict):
 class DialogExcelConfigDataItem(TypedDict):
     """Type definition for individual dialog configuration entries."""
 
-    GFLDJMJKIKE: DialogId
+    id: DialogId  # de-obfuscated from the rotating dialog-id key
     talkRole: DialogTalkRole
     talkContentTextMapHash: TextMapHash
     talkRoleNameTextMapHash: TextMapHash
@@ -443,11 +452,35 @@ FettersExcelConfigData: TypeAlias = list[FettersExcelConfigDataItem]
 class MainQuestExcelConfigDataItem(TypedDict):
     id: QuestId
     type: str  # AQ / LQ / WQ / EQ / IQ
+    titleTextMapHash: TextMapHash  # the quest (act) title
     chapterId: ChapterId  # 0 when the quest belongs to no chapter
     suggestTrackMainQuestList: list[QuestId]  # "next quest(s)" pointers
 
 
 MainQuestExcelConfigData: TypeAlias = list[MainQuestExcelConfigDataItem]
+
+
+class CoopInteractionExcelConfigDataItem(TypedDict):
+    """A hangout (Coop) story's link to its owning quest (only fields we use)."""
+
+    id: CoopStoryId
+    mainQuestId: QuestId  # the hangout quest this story belongs to
+
+
+CoopInteractionExcelConfigData: TypeAlias = list[CoopInteractionExcelConfigDataItem]
+"""Example file: ExcelBinOutput/CoopInteractionExcelConfigData.json"""
+
+
+class CoopChapterExcelConfigDataItem(TypedDict):
+    """A hangout (Coop) chapter: one character's hangout act (only fields we use)."""
+
+    id: ChapterId
+    avatarId: AvatarId  # the chapter's primary character
+    chapterNameTextMapHash: TextMapHash
+
+
+CoopChapterExcelConfigData: TypeAlias = list[CoopChapterExcelConfigDataItem]
+"""Example file: ExcelBinOutput/CoopChapterExcelConfigData.json"""
 
 
 class ChapterExcelConfigDataItem(TypedDict):
@@ -605,6 +638,47 @@ class TalkGroupInfo:
 
 
 @attrs.define
+class CoopChoiceOption:
+    """One branch of a hangout player choice: its prompt and the steps it leads to."""
+
+    prompt: str | None
+    steps: list[CoopStep]
+
+
+@attrs.define
+class CoopChoice:
+    """A hangout player-choice point fanning into one branch per option."""
+
+    options: list[CoopChoiceOption]
+
+
+@attrs.define
+class CoopStep:
+    """One play-ordered step of a hangout story: a talk OR a player choice."""
+
+    talk: TalkInfo | None
+    choice: CoopChoice | None
+
+
+@attrs.define
+class CoopStoryInfo:
+    """One hangout (Coop) story branch, its talks in play order."""
+
+    coop_story_id: CoopStoryId
+    steps: list[CoopStep]
+
+
+@attrs.define
+class HangoutInfo:
+    """A hangout quest: its primary character and play-ordered story branches."""
+
+    quest_id: QuestId
+    quest_title: str
+    primary_character: str | None
+    stories: list[CoopStoryInfo]
+
+
+@attrs.define
 class QuestStep:
     """A single quest-progression step at a subQuest ``order``.
 
@@ -710,6 +784,59 @@ class QuestHierarchy:
 
     def to_dict(self) -> dict[str, Any]:
         return {"types": [t.to_dict() for t in self.types]}
+
+
+@attrs.define
+class CoopHierarchyQuest:
+    """A single hangout quest leaf in the browsable hangout hierarchy."""
+
+    id: QuestId
+    title: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"id": self.id, "title": self.title}
+
+
+@attrs.define
+class CoopHierarchyChapter:
+    """One hangout chapter (act) grouping a character's hangout quests."""
+
+    chapter_id: ChapterId
+    chapter_title: str
+    quests: list[CoopHierarchyQuest]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "chapter_id": self.chapter_id,
+            "chapter_title": self.chapter_title,
+            "quests": [q.to_dict() for q in self.quests],
+        }
+
+
+@attrs.define
+class CoopHierarchyCharacter:
+    """One character and the hangout chapters (acts) under them."""
+
+    avatar_id: AvatarId
+    character_name: str
+    chapters: list[CoopHierarchyChapter]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "avatar_id": self.avatar_id,
+            "character_name": self.character_name,
+            "chapters": [c.to_dict() for c in self.chapters],
+        }
+
+
+@attrs.define
+class CoopHierarchy:
+    """The full browsable hangout hierarchy: character -> chapter -> quest."""
+
+    characters: list[CoopHierarchyCharacter]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"characters": [c.to_dict() for c in self.characters]}
 
 
 @attrs.define

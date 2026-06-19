@@ -269,13 +269,7 @@ class Quests(BaseRenderableType[types.QuestId]):
         """Find all quest IDs from MainQuestExcelConfigData."""
         # Sort by the string form: quest ids vary in digit width, so this keeps
         # the established (lexicographic) manifest ordering now that ids are int.
-        return sorted(
-            (
-                quest_entry["id"]
-                for quest_entry in data_repo.load_main_quest_excel_config_data()
-            ),
-            key=str,
-        )
+        return sorted(data_repo.load_main_quest_excel_config_data(), key=str)
 
     def process(
         self, renderable_key: types.QuestId, data_repo: repo.DataRepo
@@ -551,6 +545,30 @@ class TalkGroups(
             data_repo.language,
             group_name=group_name,
         )
+
+
+class Hangouts(BaseRenderableType[types.QuestId]):
+    """Hangout (Coop) content type: one file per hangout quest, in play order."""
+
+    text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_COOP
+    error_limit: ClassVar[int] = 50
+    error_limit_non_chinese: ClassVar[int] = 200
+
+    def discover(self, data_repo: repo.DataRepo) -> list[types.QuestId]:
+        """All hangout quest ids that have Coop talk files."""
+        return sorted(data_repo.build_hangout_quest_to_stories())
+
+    def process(
+        self, renderable_key: types.QuestId, data_repo: repo.DataRepo
+    ) -> types.RenderedItem | None:
+        """Render a hangout quest's Coop dialogue, or skip if it has no content."""
+        if (
+            hangout_info := processing.get_hangout_info(
+                renderable_key, data_repo=data_repo
+            )
+        ) is None:
+            return None
+        return rendering.render_hangout(hangout_info, language=data_repo.language)
 
 
 class Talks(BaseRenderableType[types.TalkId]):

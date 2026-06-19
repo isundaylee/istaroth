@@ -1002,3 +1002,63 @@ def render_talk_group(
         ),
         content=rendered_content,
     )
+
+
+def _render_coop_steps(
+    steps: list[types.CoopStep], language: localization.Language
+) -> list[str]:
+    """Render a hangout story's play-ordered steps, expanding choice branches."""
+    lines: list[str] = []
+    for step in steps:
+        if step.talk is not None:
+            lines.extend(_render_talk_content(step.talk, language))
+            lines.append("")
+        elif step.choice is not None:
+            options = step.choice.options
+            # A hangout fork is either a player choice (SELECT, whose options carry
+            # prompts) or a story-state branch (COND, no prompts). Label both with
+            # "Branch N" — distinct from the intra-talk "Option N:" lines so the
+            # conversation-level fork is not conflated with in-talk dialog options.
+            # Many player-choice prompts are absent from the current build's
+            # TextMap (HoYo dropped the strings but left the dialog refs), so a
+            # branch may legitimately show no prompt text; recovering them needs an
+            # older-build TextMap fallback (issue #142).
+            is_player_choice = any(option.prompt for option in options)
+            lines.append(
+                "[Player choice]" if is_player_choice else "[Conditional branch]"
+            )
+            for i, option in enumerate(options, 1):
+                lines.append("")
+                lines.append(
+                    f"Branch {i}: {option.prompt}" if option.prompt else f"Branch {i}"
+                )
+                lines.extend(_render_coop_steps(option.steps, language))
+            lines.append("")
+    return lines
+
+
+def render_hangout(
+    hangout: types.HangoutInfo, language: localization.Language
+) -> types.RenderedItem:
+    """Render a hangout quest's Coop story dialogue into RAG-suitable format."""
+    title = (
+        f"{hangout.primary_character} - {hangout.quest_title}"
+        if hangout.primary_character is not None
+        else hangout.quest_title
+    )
+    filename = f"{hangout.quest_id}_{utils.make_safe_filename_part(title)}.txt"
+
+    content_lines = [f"# Hangout: {title}\n"]
+    for i, story in enumerate(hangout.stories, 1):
+        content_lines.append(f"## Conversation {i}\n")
+        content_lines.extend(_render_coop_steps(story.steps, language))
+
+    return types.RenderedItem(
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_COOP,
+            title=title,
+            id=hangout.quest_id,
+            relative_path=f"{text_types.TextCategory.AGD_COOP.value}/{filename}",
+        ),
+        content="\n".join(content_lines).rstrip(),
+    )

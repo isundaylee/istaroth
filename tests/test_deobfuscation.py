@@ -101,6 +101,31 @@ def test_deobfuscate_talk_group_data(data_repo: repo.DataRepo) -> None:
     assert loaded_data["talks"][0]["id"] == 4011141
 
 
+def test_deobfuscate_coop_graph_data(data_repo: repo.DataRepo) -> None:
+    """De-obfuscate a Coop story graph, covering the node-graph play-order fields."""
+    deobfuscated_data = deobfuscation.deobfuscate_coop_graph_data(
+        _load_raw(data_repo, "BinOutput/Coop/Coop101401.json")
+    )
+
+    story = deobfuscated_data["coopInteractionMap"]["1900102"]
+    assert story["id"] == 1900102
+    assert story["startNodeId"] == 7
+
+    nodes = story["coopMap"]
+    # TALK node: its coopNodeId is the local talk id; nextNodeArray is the edge.
+    assert nodes["7"]["coopNodeType"] == "COOP_NODE_TALK"
+    assert nodes["7"]["coopNodeId"] == 7
+    assert nodes["7"]["nextNodeArray"] == [8]
+    # SELECT node: player choice fanning out into two branches; selectList option
+    # i pairs with nextNodeArray[i].
+    assert nodes["8"]["coopNodeType"] == "COOP_NODE_SELECT"
+    assert nodes["8"]["nextNodeArray"] == [10, 100]
+    assert [s["dialogId"] for s in nodes["8"]["selectList"]] == [1900102191, 1900102192]
+    # END node: terminal, no outgoing edges.
+    assert nodes["11"]["coopNodeType"] == "COOP_NODE_END"
+    assert nodes["11"]["nextNodeArray"] == []
+
+
 def test_deobfuscate_document_excel_config_data(data_repo: repo.DataRepo) -> None:
     """De-obfuscate DocumentExcelConfigData, covering the cleartext fields plus the
     obfuscated page-2 localization id field."""

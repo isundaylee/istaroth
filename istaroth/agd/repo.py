@@ -14,7 +14,13 @@ import attrs
 from numpy import isin
 
 from istaroth import text_cleanup
-from istaroth.agd import deobfuscation, localization, talk_parsing, types
+from istaroth.agd import (
+    coop_graph,
+    deobfuscation,
+    localization,
+    talk_parsing,
+    types,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -274,8 +280,9 @@ class DataRepo:
         """Load Dialog Excel configuration data."""
         file_path = self.agd_path / "ExcelBinOutput" / "DialogExcelConfigData.json"
         with open(file_path, encoding="utf-8") as f:
-            data: types.DialogExcelConfigData = json.load(f)
-            return data
+            raw_data: list[dict[str, Any]] = json.load(f)
+            data = deobfuscation.deobfuscate_dialog_excel_config_data(raw_data)
+            return data  # type: ignore[return-value]
 
     @functools.lru_cache(maxsize=None)
     def load_localization_excel_config_data(self) -> types.LocalizationExcelConfigData:
@@ -535,6 +542,87 @@ class DataRepo:
         return self._get_talk_parser().free_group_quest_to_paths
 
     @functools.lru_cache(maxsize=None)
+    def load_coop_interaction_excel_config_data(
+        self,
+    ) -> types.CoopInteractionExcelConfigData:
+        """Load CoopInteractionExcelConfigData.json (cleartext)."""
+        file_path = (
+            self.agd_path / "ExcelBinOutput" / "CoopInteractionExcelConfigData.json"
+        )
+        with open(file_path, encoding="utf-8") as f:
+            data: types.CoopInteractionExcelConfigData = json.load(f)
+            return data
+
+    @functools.lru_cache(maxsize=None)
+    def load_coop_chapter_excel_config_data(
+        self,
+    ) -> types.CoopChapterExcelConfigData:
+        """Load CoopChapterExcelConfigData.json (cleartext)."""
+        file_path = self.agd_path / "ExcelBinOutput" / "CoopChapterExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.CoopChapterExcelConfigData = json.load(f)
+            return data
+
+    def build_coop_story_mapping(self) -> dict[types.CoopStoryId, list[str]]:
+        """coopStoryId -> its Coop talk file paths, sorted by local talk id."""
+        return self._get_talk_parser().coop_story_to_paths
+
+    @functools.lru_cache(maxsize=None)
+    def build_coop_story_graph_mapping(
+        self,
+    ) -> dict[types.CoopStoryId, coop_graph.CoopStoryGraph]:
+        """coopStoryId -> play-order node graph, from the BinOutput/Coop/*.json files."""
+        graphs: dict[types.CoopStoryId, coop_graph.CoopStoryGraph] = {}
+        for json_file in (self.agd_path / "BinOutput" / "Coop").glob("*.json"):
+            raw_data = json.loads(json_file.read_text(encoding="utf-8"))
+            data = deobfuscation.deobfuscate_coop_graph_data(raw_data)
+            for story in data["coopInteractionMap"].values():
+                graphs[story["id"]] = coop_graph.build_story_graph(story)
+        return graphs
+
+    @functools.lru_cache(maxsize=None)
+    def build_hangout_quest_to_stories(
+        self,
+    ) -> dict[types.QuestId, list[types.CoopStoryId]]:
+        """hangout questId -> its coopStoryIds that have talk files, sorted."""
+        stories_with_files = self.build_coop_story_mapping()
+        mapping: dict[types.QuestId, list[types.CoopStoryId]] = {}
+        for entry in self.load_coop_interaction_excel_config_data():
+            if (coop_story_id := entry["id"]) in stories_with_files:
+                mapping.setdefault(entry["mainQuestId"], []).append(coop_story_id)
+        return {quest_id: sorted(stories) for quest_id, stories in mapping.items()}
+
+    @functools.lru_cache(maxsize=None)
+    def build_coop_chapter_to_avatar_mapping(
+        self,
+    ) -> dict[types.ChapterId, types.AvatarId]:
+        """Coop chapter id -> its primary character's avatar id."""
+        return {
+            chapter["id"]: chapter["avatarId"]
+            for chapter in self.load_coop_chapter_excel_config_data()
+        }
+
+    @functools.lru_cache(maxsize=None)
+    def build_avatar_id_to_name_mapping(self) -> dict[types.AvatarId, str]:
+        """Avatar id -> localized character name (only avatars whose name resolves)."""
+        text_map = self.load_text_map()
+        return {
+            avatar["id"]: name
+            for avatar in self.load_avatar_excel_config_data()
+            if (name := text_map.get_optional(avatar["nameTextMapHash"])) is not None
+        }
+
+    @functools.lru_cache(maxsize=None)
+    def get_dialog_id_to_content_hash_mapping(
+        self,
+    ) -> dict[types.DialogId, types.TextMapHash]:
+        """Dialog id -> talkContentTextMapHash, for resolving Coop choice prompts."""
+        return {
+            dialog_item["id"]: dialog_item["talkContentTextMapHash"]
+            for dialog_item in self.load_dialog_excel_config_data()
+        }
+
+    @functools.lru_cache(maxsize=None)
     def build_quest_mapping(self) -> dict[types.QuestId, str]:
         """Build a mapping from quest ID to BinOutput/Quest file path.
 
@@ -614,6 +702,16 @@ class DataRepo:
         # Warm the achievement section index so workers inherit the parsed
         # configs and do not each scan all achievements once per section.
         self.build_achievement_section_mapping()
+
+        # Warm the hangout (Coop) mappings so forked Hangouts workers inherit the
+        # parsed Coop story graphs, interaction/chapter configs, and the avatar /
+        # main-quest / dialog-content lookups instead of each re-parsing them.
+        self.build_coop_story_graph_mapping()
+        self.build_hangout_quest_to_stories()
+        self.load_main_quest_excel_config_data()
+        self.build_coop_chapter_to_avatar_mapping()
+        self.build_avatar_id_to_name_mapping()
+        self.get_dialog_id_to_content_hash_mapping()
 
         # Warm the avatar/constellation Excel configs (~1.8MB across the skill,
         # talent, and depot files) so forked character-story workers inherit them
@@ -751,12 +849,14 @@ class DataRepo:
             return data
 
     @functools.lru_cache(maxsize=None)
-    def load_main_quest_excel_config_data(self) -> types.MainQuestExcelConfigData:
-        """Load main quest Excel configuration data."""
+    def load_main_quest_excel_config_data(
+        self,
+    ) -> dict[types.QuestId, types.MainQuestExcelConfigDataItem]:
+        """Load main quest Excel config data as a dict keyed by quest id."""
         file_path = self.agd_path / "ExcelBinOutput" / "MainQuestExcelConfigData.json"
         with open(file_path, encoding="utf-8") as f:
             data: types.MainQuestExcelConfigData = json.load(f)
-            return data
+            return {quest["id"]: quest for quest in data}
 
     @functools.lru_cache(maxsize=None)
     def load_chapter_excel_config_data(
@@ -800,7 +900,7 @@ class DataRepo:
 
         dialog_id_to_role_hash: dict[types.DialogId, types.TextMapHash] = {}
         for dialog_item in dialog_data:
-            dialog_id = dialog_item["GFLDJMJKIKE"]
+            dialog_id = dialog_item["id"]
             role_name_hash = dialog_item["talkRoleNameTextMapHash"]
             dialog_id_to_role_hash[dialog_id] = role_name_hash
 

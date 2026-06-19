@@ -326,6 +326,47 @@ class QuestSeriesResponse(BaseModel):
     chapter: QuestHierarchyChapter | None = None
 
 
+class CoopHierarchyQuest(BaseModel):
+    """A single hangout quest leaf in the hangout hierarchy."""
+
+    id: int
+    title: str
+
+
+class CoopHierarchyChapter(BaseModel):
+    """One hangout chapter (act) grouping a character's hangout quests."""
+
+    chapter_id: int
+    chapter_title: str
+    quests: list[CoopHierarchyQuest]
+
+
+class CoopHierarchyCharacter(BaseModel):
+    """One character and the hangout chapters (acts) under them."""
+
+    avatar_id: int
+    character_name: str
+    chapters: list[CoopHierarchyChapter]
+
+
+class CoopHierarchyResponse(BaseModel):
+    """Response model for the hangout hierarchy endpoint."""
+
+    characters: list[CoopHierarchyCharacter]
+
+
+class CoopCharacterResponse(BaseModel):
+    """The character (and enclosing chapter) of a hangout quest, for its TOC.
+
+    Only returned for a hangout quest present in the hierarchy, so
+    ``character_name`` is always set; ``chapter`` is the enclosing act.
+    """
+
+    avatar_id: int
+    character_name: str
+    chapter: CoopHierarchyChapter
+
+
 class VersionResponse(BaseModel):
     """Response model for version endpoint."""
 

@@ -231,6 +231,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/library/coop-hierarchy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Coop Hierarchy
+         * @description Get the browsable hangout hierarchy (character -> chapter -> quest).
+         */
+        get: operations["get_coop_hierarchy_api_library_coop_hierarchy_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/library/coop-character/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Coop Character
+         * @description Get the character (and enclosing chapter) of a hangout quest, for its TOC.
+         */
+        get: operations["get_coop_character_api_library_coop_character__id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/library/retrieve": {
         parameters: {
             query?: never;
@@ -404,6 +444,62 @@ export interface components {
             model: string;
             /** Created At */
             created_at: number;
+        };
+        /**
+         * CoopCharacterResponse
+         * @description The character (and enclosing chapter) of a hangout quest, for its TOC.
+         *
+         *     Only returned for a hangout quest present in the hierarchy, so
+         *     ``character_name`` is always set; ``chapter`` is the enclosing act.
+         */
+        CoopCharacterResponse: {
+            /** Avatar Id */
+            avatar_id: number;
+            /** Character Name */
+            character_name: string;
+            chapter: components["schemas"]["CoopHierarchyChapter"];
+        };
+        /**
+         * CoopHierarchyChapter
+         * @description One hangout chapter (act) grouping a character's hangout quests.
+         */
+        CoopHierarchyChapter: {
+            /** Chapter Id */
+            chapter_id: number;
+            /** Chapter Title */
+            chapter_title: string;
+            /** Quests */
+            quests: components["schemas"]["CoopHierarchyQuest"][];
+        };
+        /**
+         * CoopHierarchyCharacter
+         * @description One character and the hangout chapters (acts) under them.
+         */
+        CoopHierarchyCharacter: {
+            /** Avatar Id */
+            avatar_id: number;
+            /** Character Name */
+            character_name: string;
+            /** Chapters */
+            chapters: components["schemas"]["CoopHierarchyChapter"][];
+        };
+        /**
+         * CoopHierarchyQuest
+         * @description A single hangout quest leaf in the hangout hierarchy.
+         */
+        CoopHierarchyQuest: {
+            /** Id */
+            id: number;
+            /** Title */
+            title: string;
+        };
+        /**
+         * CoopHierarchyResponse
+         * @description Response model for the hangout hierarchy endpoint.
+         */
+        CoopHierarchyResponse: {
+            /** Characters */
+            characters: components["schemas"]["CoopHierarchyCharacter"][];
         };
         /**
          * ExampleQuestionResponse
@@ -1062,6 +1158,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuestSeriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_coop_hierarchy_api_library_coop_hierarchy_get: {
+        parameters: {
+            query: {
+                /** @description Language code (CHS, ENG) */
+                language: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoopHierarchyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_coop_character_api_library_coop_character__id__get: {
+        parameters: {
+            query: {
+                /** @description Language code (CHS, ENG) */
+                language: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoopCharacterResponse"];
                 };
             };
             /** @description Validation Error */
