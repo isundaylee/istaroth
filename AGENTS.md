@@ -108,6 +108,11 @@ istaroth/
 
 See the [Web UI section](README.md#web-ui) in the README for environment setup and how to launch the backend and frontend.
 
+### Conductor Docker Compose Stack
+- When working in a Conductor workspace, the user may run the full Docker Compose dev stack through Conductor. Do not launch that stack yourself; if it is not running, ask the user to start it from Conductor.
+- To find the frontend URL for browser testing, inspect `.conductor/settings.toml` and the current `CONDUCTOR_PORT` env var. The Compose frontend publishes `${CONDUCTOR_PORT:-5173}:${CONDUCTOR_PORT:-5173}`, so the workspace frontend is usually `http://127.0.0.1:$CONDUCTOR_PORT/`.
+- Confirm with `docker ps` or a quick `curl -I http://127.0.0.1:$CONDUCTOR_PORT/` before browser testing. Companion ports are assigned by the run script as `CONDUCTOR_PORT+1` etc. for metrics/Jaeger.
+
 ## Regenerating the Text Corpus
 
 Use the `regen-text` skill for corpus regeneration, diff auditing, commits, and

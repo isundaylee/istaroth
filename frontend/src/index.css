@@ -190,6 +190,85 @@ body {
   width: 100%;
 }
 
+.query-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 8.5rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+
+.query-composer:focus-within {
+  border-color: var(--color-primary);
+}
+
+.query-textarea {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 3rem;
+  overflow: hidden;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-base);
+  line-height: 1.5;
+}
+
+.query-textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.query-textarea:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.query-composer-footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.query-composer .query-options-row {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: auto;
+  min-width: 0;
+}
+
+.query-composer .query-options-row .select {
+  width: auto;
+  height: 2.25rem;
+  min-width: 9.5rem;
+  max-width: 100%;
+  padding: 0.4rem 1.75rem 0.4rem 0.7rem;
+  border-color: var(--color-border-light);
+  background-color: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+  font-size: var(--font-sm);
+}
+
+.query-composer .query-options-row .model-select {
+  min-width: min(15rem, 100%);
+}
+
+.button.query-submit-button {
+  flex: 0 0 auto;
+  min-width: 5.25rem;
+  padding: 0.5rem 1.25rem;
+  font-size: var(--font-sm);
+}
+
 .text-input {
   flex: 1;
   padding: 0.6rem 1rem;
@@ -577,6 +656,27 @@ body {
 @media (max-width: 600px) {
   .query-input-row {
     grid-template-columns: 1fr;
+  }
+
+  .query-composer {
+    min-height: 14rem;
+    padding: 0.85rem;
+  }
+
+  .query-composer-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .query-composer .query-options-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .query-composer .query-options-row .select,
+  .query-submit-button {
+    width: 100%;
   }
 
   .text-input {
