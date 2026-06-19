@@ -372,6 +372,96 @@ class DataRepo:
         return mapping
 
     @functools.lru_cache(maxsize=None)
+    def load_book_suit_excel_config_data(
+        self,
+    ) -> dict[types.BookSuitId, types.BookSuitExcelConfigDataItem]:
+        """Load BookSuitExcelConfigData.json keyed by suit id."""
+        file_path = self.agd_path / "ExcelBinOutput" / "BookSuitExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.BookSuitExcelConfigData = json.load(f)
+        mapping = {suit["id"]: suit for suit in data}
+        if len(mapping) != len(data):
+            raise ValueError("Duplicate book suit ID")
+        return mapping
+
+    @functools.lru_cache(maxsize=None)
+    def load_books_codex_excel_config_data(self) -> types.BooksCodexExcelConfigData:
+        """Load BooksCodexExcelConfigData.json."""
+        file_path = self.agd_path / "ExcelBinOutput" / "BooksCodexExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.BooksCodexExcelConfigData = json.load(f)
+            return data
+
+    @functools.lru_cache(maxsize=None)
+    def build_book_series_mapping(
+        self,
+    ) -> dict[types.BookSuitId, list[types.ReadableFilename]]:
+        """Group multi-volume book series to their ordered volume readable filenames.
+
+        Active book-codex entries are grouped by their material's suit (``setID``)
+        and ordered by ``sortOrder``; only suits with two or more volumes count as a
+        series (single-volume and non-codex books stay standalone). Each volume
+        resolves material id -> document -> localization -> readable filename (the
+        material id and document id coincide for books). Raises if a volume claims a
+        suit or readable that can't be resolved, surfacing the data gap rather than
+        silently dropping the grouping.
+        """
+        materials = {
+            material["id"]: material
+            for material in self.load_material_excel_config_data().get_all()
+        }
+        suits = self.load_book_suit_excel_config_data()
+        documents = self.load_document_excel_config_data()
+        readable_paths = self.build_localization_id_to_readable_path()
+
+        grouped: dict[types.BookSuitId, list[types.ReadableFilename]] = {}
+        for codex in sorted(
+            self.load_books_codex_excel_config_data(),
+            key=lambda codex: codex["sortOrder"],
+        ):
+            if codex["isDisuse"]:
+                continue
+            material_id = codex["materialId"]
+            if (material := materials.get(material_id)) is None:
+                raise ValueError(
+                    f"Book codex {codex['id']} references unknown material "
+                    f"{material_id}"
+                )
+            if (suit_id := material["setID"]) == 0:
+                continue
+            if suit_id not in suits:
+                raise ValueError(
+                    f"Book material {material_id} claims unknown suit {suit_id}"
+                )
+            if (document := documents.get(material_id)) is None:
+                raise ValueError(
+                    f"Book material {material_id} (suit {suit_id}) has no document"
+                )
+            if (
+                filename := next(
+                    (
+                        readable_path
+                        for loc_id in itertools.chain(
+                            document["questIDList"],
+                            document["questContentLocalizedId"],
+                            document.get("CUSTOM_addlLocalID", []),
+                        )
+                        if (readable_path := readable_paths.get(loc_id)) is not None
+                    ),
+                    None,
+                )
+            ) is None:
+                raise ValueError(
+                    f"Book material {material_id} (suit {suit_id}) has no readable file"
+                )
+            grouped.setdefault(suit_id, []).append(filename)
+        return {
+            suit_id: filenames
+            for suit_id, filenames in grouped.items()
+            if len(filenames) >= 2
+        }
+
+    @functools.lru_cache(maxsize=None)
     def load_material_excel_config_data(self) -> MaterialTracker:
         """Load material Excel configuration data as MaterialTracker."""
         file_path = self.agd_path / "ExcelBinOutput" / "MaterialExcelConfigData.json"
@@ -510,6 +600,10 @@ class DataRepo:
         self.build_readable_stem_to_localization_id()
         self.build_localization_id_to_readable_path()
         self.build_localization_id_to_title_hash()
+
+        # Warm the book-series grouping so forked book workers inherit it instead
+        # of each re-scanning the codex/material/suit configs.
+        self.build_book_series_mapping()
 
         # Warm the NPC name mappings (output-language + CHS source) so forked
         # talk-group workers inherit them instead of each re-scanning the NPC

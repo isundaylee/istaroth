@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 
-from istaroth.agd import localization, processing, repo, talk_parsing
+from istaroth.agd import localization, processing, repo, talk_parsing, types
 
 
 def test_book100_metadata(data_repo: repo.DataRepo) -> None:
@@ -248,6 +248,151 @@ def test_quest_10008_associated_free_talks(data_repo: repo.DataRepo) -> None:
         for talk_text in talk_info.text:
             assert talk_text.role is None or talk_text.role.strip()
             assert talk_text.message.strip()
+
+
+def _book_material(material_id: int, suit_id: int) -> types.MaterialExcelConfigDataItem:
+    """A minimal book material entry carrying just the fields grouping reads."""
+    return {
+        "id": material_id,
+        "setID": suit_id,
+        "nameTextMapHash": 0,
+        "descTextMapHash": 0,
+        "materialType": "MATERIAL_QUEST",
+    }
+
+
+def _book_series_mock_repo() -> mock.Mock:
+    """Mock DataRepo wired with the configs build_book_series_mapping reads."""
+    data_repo = mock.Mock(spec=repo.DataRepo)
+    data_repo.load_book_suit_excel_config_data.return_value = {
+        7: {"id": 7, "suitNameTextMapHash": 700},
+        8: {"id": 8, "suitNameTextMapHash": 800},
+    }
+    data_repo.load_material_excel_config_data.return_value = repo.MaterialTracker(
+        [
+            _book_material(101, 7),
+            _book_material(102, 7),
+            _book_material(103, 8),  # single-volume suit -> not a series
+            _book_material(104, 0),  # codex book with no suit -> standalone
+            _book_material(105, 7),  # disused volume -> excluded
+        ]
+    )
+    data_repo.load_document_excel_config_data.return_value = {
+        material_id: {
+            "id": material_id,
+            "titleTextMapHash": material_id,
+            "questIDList": [material_id],
+            "questContentLocalizedId": [],
+        }
+        for material_id in (101, 102, 103, 104, 105)
+    }
+    data_repo.build_localization_id_to_readable_path.return_value = {
+        material_id: f"Book{material_id}_EN.txt"
+        for material_id in (101, 102, 103, 104, 105)
+    }
+    data_repo.load_books_codex_excel_config_data.return_value = [
+        {"id": 1, "materialId": 102, "sortOrder": 20, "isDisuse": False},
+        {"id": 2, "materialId": 101, "sortOrder": 10, "isDisuse": False},
+        {"id": 3, "materialId": 103, "sortOrder": 30, "isDisuse": False},
+        {"id": 4, "materialId": 104, "sortOrder": 40, "isDisuse": False},
+        {"id": 5, "materialId": 105, "sortOrder": 5, "isDisuse": True},
+    ]
+    return data_repo
+
+
+def test_build_book_series_mapping_groups_and_orders() -> None:
+    """Only multi-volume suits group, ordered by sortOrder; disused/suitless skip."""
+    data_repo = _book_series_mock_repo()
+
+    mapping = repo.DataRepo.build_book_series_mapping(data_repo)
+
+    # Suit 7 keeps its two active volumes ordered by sortOrder (101 before 102);
+    # the disused volume 105 is dropped. Suit 8 is single-volume and suit-less
+    # book 104 are both excluded from series grouping.
+    assert mapping == {7: ["Book101_EN.txt", "Book102_EN.txt"]}
+
+
+def test_get_book_series_info_assembles_volumes() -> None:
+    """A series resolves its name and volumes (titles + bodies) in reading order."""
+    data_repo = mock.Mock(spec=repo.DataRepo)
+    data_repo.language = localization.Language.ENG
+    data_repo.language_short = "EN"
+    data_repo.build_book_series_mapping.return_value = {
+        7: ["Book101_EN.txt", "Book102_EN.txt"]
+    }
+    data_repo.load_book_suit_excel_config_data.return_value = {
+        7: {"id": 7, "suitNameTextMapHash": 700}
+    }
+    data_repo.load_text_map.return_value = repo.TextMapTracker(
+        {"700": "My Series", "101": "Volume One", "102": "Volume Two"},
+        localization.Language.ENG,
+    )
+    data_repo.build_readable_stem_to_localization_id.return_value = {
+        "Book101_EN": 101,
+        "Book102_EN": 102,
+    }
+    data_repo.build_localization_id_to_title_hash.return_value = {101: 101, 102: 102}
+    readables = mock.Mock()
+    readables.get_content.side_effect = lambda filename: {
+        "Book101_EN.txt": "First body.",
+        "Book102_EN.txt": "Second body.",
+    }[filename]
+    data_repo.get_readables.return_value = readables
+
+    series = processing.get_book_series_info(7, data_repo=data_repo)
+
+    assert series is not None
+    assert series.suit_id == 7
+    assert series.series_name == "My Series"
+    assert [(volume.title, volume.content) for volume in series.volumes] == [
+        ("Volume One", "First body."),
+        ("Volume Two", "Second body."),
+    ]
+
+
+def test_get_book_series_info_filters_placeholder_volumes() -> None:
+    """Placeholder/test volumes are dropped, mirroring standalone book filtering."""
+    data_repo = mock.Mock(spec=repo.DataRepo)
+    data_repo.language = localization.Language.ENG
+    data_repo.language_short = "EN"
+    data_repo.build_book_series_mapping.return_value = {
+        7: ["Book101_EN.txt", "Book102_EN.txt"]
+    }
+    data_repo.load_book_suit_excel_config_data.return_value = {
+        7: {"id": 7, "suitNameTextMapHash": 700}
+    }
+    data_repo.load_text_map.return_value = repo.TextMapTracker(
+        {"700": "My Series", "102": "Volume Two"}, localization.Language.ENG
+    )
+    data_repo.build_readable_stem_to_localization_id.return_value = {"Book102_EN": 102}
+    data_repo.build_localization_id_to_title_hash.return_value = {102: 102}
+    readables = mock.Mock()
+    readables.get_content.side_effect = lambda filename: {
+        "Book101_EN.txt": "test",  # placeholder content -> filtered
+        "Book102_EN.txt": "Second body.",
+    }[filename]
+    data_repo.get_readables.return_value = readables
+
+    series = processing.get_book_series_info(7, data_repo=data_repo)
+
+    assert series is not None
+    assert [volume.title for volume in series.volumes] == ["Volume Two"]
+
+
+def test_drunkards_tale_series_grouped(data_repo: repo.DataRepo) -> None:
+    """The four-volume 'A Drunkard's Tale' (suit 1019) groups its volumes in order."""
+    series = processing.get_book_series_info(1019, data_repo=data_repo)
+
+    assert series is not None
+    assert len(series.volumes) == 4
+    if data_repo.language is localization.Language.CHS:
+        assert series.series_name == "醉客轶事"
+        assert [volume.title for volume in series.volumes] == [
+            "醉客轶事·一",
+            "醉客轶事·二",
+            "醉客轶事·三",
+            "醉客轶事·四",
+        ]
 
 
 @pytest.fixture
