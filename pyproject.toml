@@ -70,6 +70,28 @@ dev = [
     "types-tqdm",
 ]
 
+[project.optional-dependencies]
+# Mutually exclusive torch builds. Default `uv sync` (no extra) keeps the PyPI
+# build, which is CUDA-enabled on Linux, so local/GPU embedding builds are
+# unaffected. CI uses `uv sync --extra cpu` to pull the slim CPU wheels and skip
+# the ~4GB CUDA/GPU stack it never uses.
+cpu = ["torch"]
+gpu = ["torch"]
+
+[tool.uv]
+conflicts = [[{ extra = "cpu" }, { extra = "gpu" }]]
+# Keep torch pinned so adding the CPU index doesn't silently bump the default
+# (CUDA) build used by local/prod; CI's --extra cpu gets the matching CPU wheel.
+constraint-dependencies = ["torch==2.10.0"]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", extra = "cpu" }]
+
 [tool.setuptools.packages.find]
 include = ["istaroth*"]
 
