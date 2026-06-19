@@ -29,7 +29,7 @@ Pre-commit hooks are configured with:
 - Add dev dependency: `uv add --group dev <package>`
 - Update lockfile: `uv lock`
 - Install pre-commit: `pre-commit install`
-- Run pre-commit manually: `pre-commit run --all-files`
+- Run pre-commit manually on changed files: `pre-commit run`
 - Type checking: `mypy`
 
 ### Project Structure

@@ -14,6 +14,14 @@ interface QueryFormProps {
   onSubmitStart?: () => void
 }
 
+const retrievalPresets = {
+  fast: { k: 4, chunk_context: 1 },
+  balanced: { k: 7, chunk_context: 2 },
+  thorough: { k: 10, chunk_context: 5 },
+} as const
+
+type RetrievalPreset = keyof typeof retrievalPresets
+
 function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
   const navigate = useAppNavigate()
   const t = useT()
@@ -21,6 +29,7 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
   const [question, setQuestion] = useState('')
   const [availableModels, setAvailableModels] = useState<string[]>([])
   const [selectedModel, setSelectedModel] = useState('')
+  const [retrievalPreset, setRetrievalPreset] = useState<RetrievalPreset>('balanced')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   // Pipeline steps that have started but not yet ended, in start order.
@@ -133,12 +142,13 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
     onSubmitStart?.()
 
     try {
+      const retrievalParams = retrievalPresets[retrievalPreset]
       const req_body: QueryRequest = {
         language: language.toUpperCase(),
         question: questionToSubmit,
         model: selectedModel,
-        k: 10,
-        chunk_context: 5,
+        k: retrievalParams.k,
+        chunk_context: retrievalParams.chunk_context,
         client_id: getClientId(),
       }
       const res = await fetch('/api/query/stream', {
@@ -190,7 +200,7 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
   return (
     <>
       <form onSubmit={handleSubmit} className="query-form">
-        <div className="input-row">
+        <div className="input-row query-input-row">
           <TextInput
             ref={inputRef}
             value={question}
@@ -198,10 +208,22 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
             placeholder={exampleLoading ? t('query.exampleLoading') : exampleQuestion || t('query.placeholder')}
             disabled={loading}
           />
+          <Button
+            type="submit"
+            disabled={loading || (!question.trim() && !exampleQuestion) || availableModels.length === 0}
+          >
+            <span className="button-text-sizer">
+              <span className={loading ? 'button-text-active' : 'button-text-hidden'}><span className="loading-ellipsis">{t('query.submitting')}</span></span>
+              <span className={loading ? 'button-text-hidden' : 'button-text-active'}>{t('query.submitButton')}</span>
+            </span>
+          </Button>
+        </div>
+        <div className="query-options-row">
           <Select
             value={selectedModel}
             onChange={(e) => setSelectedModel(e.target.value)}
             disabled={loading || modelsLoading}
+            className="model-select"
           >
             {modelsLoading ? (
               <option value="">{t('common.loading')}</option>
@@ -213,15 +235,18 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
               ))
             )}
           </Select>
-          <Button
-            type="submit"
-            disabled={loading || (!question.trim() && !exampleQuestion) || availableModels.length === 0}
+          <Select
+            value={retrievalPreset}
+            onChange={(e) => setRetrievalPreset(e.target.value as RetrievalPreset)}
+            disabled={loading}
+            className="retrieval-select"
+            aria-label={t('query.retrievalPresetLabel')}
+            title={t('query.retrievalPresetLabel')}
           >
-            <span className="button-text-sizer">
-              <span className={loading ? 'button-text-active' : 'button-text-hidden'}><span className="loading-ellipsis">{t('query.submitting')}</span></span>
-              <span className={loading ? 'button-text-hidden' : 'button-text-active'}>{t('query.submitButton')}</span>
-            </span>
-          </Button>
+            <option value="fast">{t('query.retrievalPresets.fast')}</option>
+            <option value="balanced">{t('query.retrievalPresets.balanced')}</option>
+            <option value="thorough">{t('query.retrievalPresets.thorough')}</option>
+          </Select>
         </div>
       </form>
 
