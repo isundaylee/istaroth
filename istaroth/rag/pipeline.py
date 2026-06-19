@@ -2,10 +2,13 @@
 
 import logging
 import time
+from typing import Any
 
 import anyio
 import attrs
-from langchain_core import language_models, prompts
+from langchain_core import language_models
+from langchain_core import messages as langchain_messages
+from langchain_core import prompts
 from langchain_core.runnables import RunnableConfig
 
 from istaroth import langsmith_utils, llm_manager
@@ -80,7 +83,7 @@ class RAGPipeline:
         k: int,
         chunk_context: int,
         reporter: progress.ProgressReporter = progress.NULL_REPORTER,
-    ) -> str:
+    ) -> types.AnswerResult:
         """Answer question with source documents using the specified LLM."""
         model = llm_manager.get_model_name(self._llm)
         language = self._language.value
@@ -143,6 +146,17 @@ class RAGPipeline:
 
         # Create the chain with the provided LLM
         chain = self._generation_prompt | self._llm
+        retrieved_context = output_rendering.render_retrieve_output(
+            combined_retrieve_output.results,
+            text_set=self._text_set,
+        )
+        generation_inputs = {
+            "user_question": question,
+            "retrieved_context": retrieved_context,
+        }
+        final_generation_input_text_length = _count_message_text_length(
+            self._generation_prompt.format_messages(**generation_inputs)
+        )
 
         # Generate answer with tracing context
         config: RunnableConfig = {
@@ -162,13 +176,7 @@ class RAGPipeline:
         with reporter.step("generating"):
             response = await anyio.to_thread.run_sync(
                 lambda: chain.invoke(
-                    {
-                        "user_question": question,
-                        "retrieved_context": output_rendering.render_retrieve_output(
-                            combined_retrieve_output.results,
-                            text_set=self._text_set,
-                        ),
-                    },
+                    generation_inputs,
                     config=config,
                 )
             )
@@ -177,4 +185,23 @@ class RAGPipeline:
         ).observe(time.perf_counter() - gen_start)
 
         # Extract answer text
-        return llm_manager.extract_text_from_response(response)
+        return types.AnswerResult(
+            answer=llm_manager.extract_text_from_response(response),
+            stats=types.GenerationStats(
+                final_generation_input_text_length=final_generation_input_text_length,
+                retrieval_unique_chunk_count=combined_retrieve_output.total_documents,
+                retrieval_unique_file_count=len(combined_retrieve_output.results),
+            ),
+        )
+
+
+def _count_message_text_length(
+    messages: list[langchain_messages.BaseMessage],
+) -> int:
+    return sum(_message_content_text_length(message.content) for message in messages)
+
+
+def _message_content_text_length(content: str | list[Any]) -> int:
+    if isinstance(content, str):
+        return len(content)
+    raise TypeError(f"Unexpected non-text generation prompt content: {content!r}")

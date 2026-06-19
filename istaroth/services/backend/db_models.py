@@ -45,6 +45,15 @@ class Conversation(Base):
     generation_time_seconds: Mapped[Optional[float]] = mapped_column(
         Float, nullable=True
     )
+    final_generation_input_text_length: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True
+    )
+    retrieval_unique_chunk_count: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True
+    )
+    retrieval_unique_file_count: Mapped[Optional[int]] = mapped_column(
+        Integer, nullable=True
+    )
 
     __table_args__ = (Index("ix_conversations_client_id_id", "client_id", "id"),)
 

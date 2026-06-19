@@ -86,6 +86,11 @@ async def get_conversation(
         ).timestamp(),
         generation_time_seconds=conversation.generation_time_seconds
         or 0.0,  # Handle Optional[float]
+        final_generation_input_text_length=(
+            conversation.final_generation_input_text_length or 0
+        ),
+        retrieval_unique_chunk_count=conversation.retrieval_unique_chunk_count or 0,
+        retrieval_unique_file_count=conversation.retrieval_unique_file_count or 0,
         language=conversation.language,
         short_slug=short_url.slug,
     )

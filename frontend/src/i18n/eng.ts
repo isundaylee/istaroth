@@ -62,7 +62,10 @@ export const eng = {
       language: 'Language',
       model: 'Model',
       generationTime: 'Generation Time',
-      seconds: 's'
+      seconds: 's',
+      inputChars: 'input chars',
+      chunks: 'chunks',
+      files: 'files'
     },
     errors: {
       invalidId: 'Invalid conversation ID',

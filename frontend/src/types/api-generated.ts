@@ -378,6 +378,12 @@ export interface components {
             created_at: number;
             /** Generation Time Seconds */
             generation_time_seconds: number;
+            /** Final Generation Input Text Length */
+            final_generation_input_text_length: number;
+            /** Retrieval Unique Chunk Count */
+            retrieval_unique_chunk_count: number;
+            /** Retrieval Unique File Count */
+            retrieval_unique_file_count: number;
             /** Short Slug */
             short_slug: string;
         };
@@ -539,6 +545,12 @@ export interface components {
             conversation_uuid: string;
             /** Short Slug */
             short_slug: string;
+            /** Final Generation Input Text Length */
+            final_generation_input_text_length: number;
+            /** Retrieval Unique Chunk Count */
+            retrieval_unique_chunk_count: number;
+            /** Retrieval Unique File Count */
+            retrieval_unique_file_count: number;
         };
         /**
          * QueryStreamDone

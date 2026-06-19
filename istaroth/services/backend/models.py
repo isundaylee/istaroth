@@ -46,6 +46,9 @@ class QueryResponse(BaseModel):
     answer: str
     conversation_uuid: str
     short_slug: str
+    final_generation_input_text_length: int
+    retrieval_unique_chunk_count: int
+    retrieval_unique_file_count: int
 
 
 # Events streamed (newline-delimited JSON) by POST /api/query/stream. The
@@ -97,6 +100,9 @@ class ConversationResponse(BaseModel):
     k: int
     created_at: float  # Unix timestamp as float
     generation_time_seconds: float
+    final_generation_input_text_length: int
+    retrieval_unique_chunk_count: int
+    retrieval_unique_file_count: int
     short_slug: str
 
 
