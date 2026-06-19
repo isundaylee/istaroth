@@ -10,7 +10,7 @@ This project uses uv for dependency management:
 - Dependencies are declared in `pyproject.toml` (`[project.dependencies]` for app deps, `[dependency-groups]` for ml and dev deps)
 - Run `uv lock` to update the lockfile (`uv.lock`)
 - Run `uv sync` to install/sync dependencies into `.venv/`
-- After changing dependencies, regenerate Docker export files:
+- After changing dependencies, regenerate Docker export files with shell redirect (`>`, not `-o`; CI diffs stdout and `-o` embeds a different header comment):
   `uv export --frozen --only-group ml --no-hashes --no-emit-project > requirements-ml.txt && uv export --frozen --no-group dev --no-group ml --no-hashes --no-emit-project > requirements-app.txt`
 - For Docker dev environment, re-sync deps with `docker compose run --rm backend-deps` (Python) or `docker compose run --rm frontend-deps` (Node)
 

@@ -75,7 +75,7 @@ click==8.3.1
     #   uvicorn
 cohere==5.20.6
     # via langchain-cohere
-colorama==0.4.6 ; os_name == 'nt' or sys_platform == 'win32'
+colorama==0.4.6 ; (os_name != 'nt' and sys_platform == 'win32') or (os_name == 'nt' and sys_platform != 'darwin')
     # via
     #   build
     #   click
