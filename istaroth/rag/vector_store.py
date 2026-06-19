@@ -17,7 +17,7 @@ from langchain_core.documents import Document
 from opentelemetry import trace
 
 from istaroth import utils
-from istaroth.rag import embeddings, types
+from istaroth.rag import embeddings, embedding_cache, types
 
 logger = logging.getLogger(__name__)
 _tracer = trace.get_tracer(__name__)
@@ -133,6 +133,7 @@ class ChromaVectorStore(ChromaBaseVectorStore):
         documents: list[tuple[str, types.DocumentMetadata]],
         *,
         concurrency: int,
+        embedding_cache_dir: pathlib.Path | None = None,
     ) -> "ChromaVectorStore":
         """Build vector store from document tuples."""
         with utils.timer(
@@ -154,9 +155,15 @@ class ChromaVectorStore(ChromaBaseVectorStore):
                 texts = [text for text, _ in documents]
                 metadatas = [metadata for _, metadata in documents]
 
+                cache = (
+                    embedding_cache.EmbeddingCache(embedding_cache_dir)
+                    if embedding_cache_dir is not None
+                    else None
+                )
+
                 # Compute embeddings in parallel, bounded-size batches
-                embeddings_list = embeddings.embed_documents_parallel(
-                    emb, texts, concurrency=concurrency
+                embeddings_list = embeddings.embed_documents_with_cache(
+                    emb, texts, concurrency=concurrency, cache=cache
                 )
 
                 # Add documents in batches to avoid ChromaDB batch size limits

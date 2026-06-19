@@ -22,6 +22,7 @@ from istaroth.agd import localization
 from istaroth.rag import (
     document_store,
     document_store_set,
+    embedding_cache as embedding_cache_mod,
     output_rendering,
     pipeline,
     retrieval_diff,
@@ -73,11 +74,19 @@ def cli() -> None:
 @click.option(
     "--concurrency", default=8, help="Concurrent embedding requests in flight"
 )
+@click.option(
+    "--embedding-cache",
+    type=click.Path(path_type=pathlib.Path, file_okay=False),
+    envvar="ISTAROTH_EMBEDDING_CACHE",
+    default=None,
+    help="Directory for caching chunk embeddings across builds (default: ~/.cache/istaroth/embeddings)",
+)
 def build(
     text_path: pathlib.Path,
     checkpoint_path: pathlib.Path,
     force: bool,
     concurrency: int,
+    embedding_cache: pathlib.Path | None,
 ) -> None:
     """Build document store from a file or folder."""
     # Check if target exists
@@ -110,11 +119,15 @@ def build(
     logger.info(
         "Building document store from %d files in: %s", len(files_to_process), text_path
     )
+    cache_dir = embedding_cache or embedding_cache_mod.get_default_embedding_cache_dir()
+    logger.info("Using embedding cache at %s", cache_dir)
+
     store = document_store.DocumentStore.build(
         files_to_process,
         text_root=text_path,
         chunk_size_multiplier=chunk_size_multiplier,
         concurrency=concurrency,
+        embedding_cache_dir=cache_dir,
         show_progress=True,
     )
 

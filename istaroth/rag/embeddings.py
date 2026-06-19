@@ -3,10 +3,14 @@
 import functools
 import logging
 import os
+from typing import TYPE_CHECKING, cast
 
 import anyio
 import pydantic
 from langchain_core import embeddings as lc_embeddings
+
+if TYPE_CHECKING:
+    from istaroth.rag import embedding_cache
 
 logger = logging.getLogger(__name__)
 
@@ -93,3 +97,51 @@ def embed_documents_parallel(
             _aembed_documents_batched, emb, texts, concurrency=concurrency
         )
     )
+
+
+def embed_documents_with_cache(
+    emb: lc_embeddings.Embeddings,
+    texts: list[str],
+    *,
+    concurrency: int,
+    cache: "embedding_cache.EmbeddingCache | None",
+) -> list[list[float]]:
+    """Embed documents, reusing cached vectors for unchanged chunk text."""
+    if cache is None or not texts:
+        return embed_documents_parallel(emb, texts, concurrency=concurrency)
+
+    results: list[list[float] | None] = [None] * len(texts)
+    miss_indices: list[int] = []
+    miss_texts: list[str] = []
+
+    cached_results, cache_stats = cache.get_many(texts)
+    for i, cached in enumerate(cached_results):
+        if cached is not None:
+            results[i] = cached
+        else:
+            miss_indices.append(i)
+            miss_texts.append(texts[i])
+
+    total = len(texts)
+    hit_rate = 100.0 * cache_stats.hits / total if total else 0.0
+    logger.info(
+        "Embedding cache loads: %d hits, %d misses (%.1f%% cached) in %.2fs "
+        "(lookup %.2fs, read %.2fs)",
+        cache_stats.hits,
+        cache_stats.misses,
+        hit_rate,
+        cache_stats.total_seconds,
+        cache_stats.lookup_seconds,
+        cache_stats.load_seconds,
+    )
+
+    if miss_texts:
+        new_embeddings = embed_documents_parallel(
+            emb, miss_texts, concurrency=concurrency
+        )
+        for idx, embedding in zip(miss_indices, new_embeddings, strict=True):
+            results[idx] = embedding
+            cache.put(texts[idx], embedding)
+
+    assert all(result is not None for result in results)
+    return cast(list[list[float]], results)

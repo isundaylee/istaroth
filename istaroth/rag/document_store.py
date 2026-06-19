@@ -313,6 +313,7 @@ class DocumentStore:
         text_root: pathlib.Path,
         chunk_size_multiplier: float,
         concurrency: int,
+        embedding_cache_dir: pathlib.Path | None = None,
         query_transformer: query_transform.QueryTransformer | None = None,
         reranker: rerank.Reranker | None = None,
         show_progress: bool = False,
@@ -339,7 +340,9 @@ class DocumentStore:
         vs: vector_store.VectorStore
         if store_type == vector_store.VectorStoreType.CHROMA:
             vs = vector_store.ChromaVectorStore.build(
-                document_tuples, concurrency=concurrency
+                document_tuples,
+                concurrency=concurrency,
+                embedding_cache_dir=embedding_cache_dir,
             )
         elif store_type == vector_store.VectorStoreType.CHROMA_EXTERNAL:
             raise RuntimeError("Cannot use external Chroma store when building.")

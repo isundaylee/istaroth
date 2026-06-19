@@ -32,6 +32,14 @@ jobs:
     - name: Set up uv
       uses: astral-sh/setup-uv@v5
 
+    - name: Cache chunk embeddings
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/istaroth/embeddings
+        key: embeddings-${{ runner.os }}-deepinfra-bge-m3
+        restore-keys: |
+          embeddings-${{ runner.os }}-deepinfra-
+
     - name: Install dependencies
       run: uv sync --no-default-groups
 
