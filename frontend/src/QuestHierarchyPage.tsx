@@ -333,7 +333,7 @@ function QuestHierarchyPage() {
                         border: 'none',
                         padding: '0.25rem',
                         cursor: 'pointer',
-                        color: 'var(--color-link)',
+                        color: 'var(--color-primary-link)',
                         fontSize: 'var(--font-sm)',
                       }}
                     >

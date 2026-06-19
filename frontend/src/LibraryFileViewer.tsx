@@ -151,7 +151,7 @@ function LibraryFileViewer() {
                                 border: 'none',
                                 padding: 0,
                                 cursor: 'pointer',
-                                color: 'var(--color-link)',
+                                color: 'var(--color-primary-link)',
                                 fontSize: 'inherit',
                                 textAlign: 'left'
                               }}
