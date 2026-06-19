@@ -79,7 +79,11 @@ def build(
     force: bool,
     concurrency: int,
 ) -> None:
-    """Build document store from a file or folder."""
+    """Build document store from a file or folder.
+
+    Set ISTAROTH_EMBEDDING_CACHE to a .npz path to reuse embeddings for
+    unchanged chunk text across builds.
+    """
     # Check if target exists
     if checkpoint_path.exists():
         if not force:
