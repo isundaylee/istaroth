@@ -43,4 +43,4 @@ jobs:
         restore-keys: |
           mypy-${{ runner.os }}-${{ hashFiles('uv.lock') }}-
           mypy-${{ runner.os }}-
-    - run: uv run mypy
+    - run: uv run --extra cpu --no-sync mypy

@@ -39,4 +39,4 @@ jobs:
     - name: Set up Python ${{ matrix.python-version }}
       run: uv python install ${{ matrix.python-version }}
     - run: uv sync --extra cpu
-    - run: uv run pytest -v
+    - run: uv run --extra cpu --no-sync pytest -v
