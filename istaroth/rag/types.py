@@ -44,6 +44,23 @@ class ScoredDocument:
 
 
 @attrs.define
+class GenerationStats:
+    """Statistics for the final answer generation input."""
+
+    final_generation_input_text_length: int
+    retrieval_unique_chunk_count: int
+    retrieval_unique_file_count: int
+
+
+@attrs.define
+class AnswerResult:
+    """Answer text and associated generation statistics."""
+
+    answer: str
+    stats: GenerationStats
+
+
+@attrs.define
 class RetrieveQuery:
     query: str
     k: int

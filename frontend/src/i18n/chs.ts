@@ -62,7 +62,10 @@ export const chs = {
       language: '语言',
       model: '模型',
       generationTime: '生成时间',
-      seconds: '秒'
+      seconds: '秒',
+      inputChars: '输入字符',
+      chunks: '片段',
+      files: '文件'
     },
     errors: {
       invalidId: '无效的对话ID',

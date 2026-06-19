@@ -14,7 +14,7 @@ from sqlalchemy.exc import IntegrityError
 
 from istaroth import llm_errors
 from istaroth.agd import localization
-from istaroth.rag import pipeline, progress
+from istaroth.rag import pipeline, progress, types
 from istaroth.services.backend import db_models, models, slugs
 from istaroth.services.backend.dependencies import (
     DBSession,
@@ -32,18 +32,23 @@ router = APIRouter()
 async def _save_conversation(
     db_session: DBSession,
     request: models.QueryRequest,
-    answer: str,
+    result: types.AnswerResult,
     generation_time: float,
 ) -> tuple[str, str]:
     """Save conversation to database and return (uuid, short_slug)."""
     conversation = db_models.Conversation(
         question=request.question,
-        answer=answer,
+        answer=result.answer,
         model=request.model,
         k=request.k,
         language=request.language,
         client_id=request.client_id,
         generation_time_seconds=generation_time,
+        final_generation_input_text_length=(
+            result.stats.final_generation_input_text_length
+        ),
+        retrieval_unique_chunk_count=result.stats.retrieval_unique_chunk_count,
+        retrieval_unique_file_count=result.stats.retrieval_unique_file_count,
     )
     db_session.add(conversation)
     await db_session.flush()
@@ -148,7 +153,7 @@ async def query_stream(
         async def _run() -> None:
             try:
                 start_time = time.perf_counter()
-                answer = await rag_pipeline.answer(
+                result = await rag_pipeline.answer(
                     request.question,
                     k=request.k,
                     chunk_context=request.chunk_context,
@@ -162,15 +167,24 @@ async def query_stream(
                     "Streaming query completed in %.2f seconds", generation_time
                 )
                 conversation_uuid, short_slug = await _save_conversation(
-                    db_session, request, answer, generation_time
+                    db_session, request, result, generation_time
                 )
                 terminal["event"] = models.QueryStreamDone(
                     result=models.QueryResponse(
                         question=request.question,
-                        answer=answer,
+                        answer=result.answer,
                         conversation_uuid=conversation_uuid,
                         language=language_name,
                         short_slug=short_slug,
+                        final_generation_input_text_length=(
+                            result.stats.final_generation_input_text_length
+                        ),
+                        retrieval_unique_chunk_count=(
+                            result.stats.retrieval_unique_chunk_count
+                        ),
+                        retrieval_unique_file_count=(
+                            result.stats.retrieval_unique_file_count
+                        ),
                     )
                 )
             except Exception as exc:

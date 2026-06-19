@@ -58,6 +58,7 @@ function ConversationPage() {
         hour: '2-digit',
         minute: '2-digit'
       })
+    const numberFormatter = new Intl.NumberFormat()
     const content = (
       <>
         {t('conversation.metadata.conversation')} {conversation.short_slug}
@@ -68,6 +69,9 @@ function ConversationPage() {
         {' · '}
         {conversation.model}
         {conversation.generation_time_seconds != null && ` · ${conversation.generation_time_seconds.toFixed(2)}${t('conversation.metadata.seconds')}`}
+        {conversation.final_generation_input_text_length > 0 && ` · ${numberFormatter.format(conversation.final_generation_input_text_length)} ${t('conversation.metadata.inputChars')}`}
+        {conversation.retrieval_unique_chunk_count > 0 && ` · ${numberFormatter.format(conversation.retrieval_unique_chunk_count)} ${t('conversation.metadata.chunks')}`}
+        {conversation.retrieval_unique_file_count > 0 && ` · ${numberFormatter.format(conversation.retrieval_unique_file_count)} ${t('conversation.metadata.files')}`}
       </>
     )
     setExtraContent(content)

@@ -824,6 +824,18 @@
             "type": "number",
             "title": "Generation Time Seconds"
           },
+          "final_generation_input_text_length": {
+            "type": "integer",
+            "title": "Final Generation Input Text Length"
+          },
+          "retrieval_unique_chunk_count": {
+            "type": "integer",
+            "title": "Retrieval Unique Chunk Count"
+          },
+          "retrieval_unique_file_count": {
+            "type": "integer",
+            "title": "Retrieval Unique File Count"
+          },
           "short_slug": {
             "type": "string",
             "title": "Short Slug"
@@ -839,6 +851,9 @@
           "k",
           "created_at",
           "generation_time_seconds",
+          "final_generation_input_text_length",
+          "retrieval_unique_chunk_count",
+          "retrieval_unique_file_count",
           "short_slug"
         ],
         "title": "ConversationResponse",
@@ -1163,6 +1178,18 @@
           "short_slug": {
             "type": "string",
             "title": "Short Slug"
+          },
+          "final_generation_input_text_length": {
+            "type": "integer",
+            "title": "Final Generation Input Text Length"
+          },
+          "retrieval_unique_chunk_count": {
+            "type": "integer",
+            "title": "Retrieval Unique Chunk Count"
+          },
+          "retrieval_unique_file_count": {
+            "type": "integer",
+            "title": "Retrieval Unique File Count"
           }
         },
         "type": "object",
@@ -1171,7 +1198,10 @@
           "question",
           "answer",
           "conversation_uuid",
-          "short_slug"
+          "short_slug",
+          "final_generation_input_text_length",
+          "retrieval_unique_chunk_count",
+          "retrieval_unique_file_count"
         ],
         "title": "QueryResponse",
         "description": "Response model for query endpoint."
