@@ -12,7 +12,9 @@ if [[ -z "$TEXT_PATH" || -z "$CHECKPOINT_PATH" ]]; then
   exit 1
 fi
 
-# Build the document store (vectorstore + BM25 + documents)
+# Build the document store (vectorstore + BM25 + documents).
+# Set ISTAROTH_EMBEDDING_CACHE to reuse embeddings across builds; it is read
+# directly by Python (inherited by the subprocess), like the other env vars.
 uv run python scripts/rag_tools.py build -f "$TEXT_PATH" "$CHECKPOINT_PATH"
 
 # Bundle the source text and its git provenance into the checkpoint

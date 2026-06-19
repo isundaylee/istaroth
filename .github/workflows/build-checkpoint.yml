@@ -35,16 +35,28 @@ jobs:
     - name: Install dependencies
       run: uv sync --no-default-groups
 
+    # Reuse embeddings for unchanged chunks across builds. The key is unique per
+    # run so the (possibly augmented) cache is always saved; restore-keys falls
+    # back to the most recent prior cache.
+    - name: Restore embedding cache
+      uses: actions/cache@v4
+      with:
+        path: tmp/embedding-cache
+        key: embedding-cache-${{ github.run_id }}
+        restore-keys: |
+          embedding-cache-
+
     - name: Build checkpoints
       env:
         ISTAROTH_EMBEDDINGS: deepinfra
         DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
         LANGUAGES: ${{ github.event.inputs.languages || 'chs eng' }}
       run: |
-        mkdir -p tmp/checkpoints
+        mkdir -p tmp/checkpoints tmp/embedding-cache
         pids=()
         for lang in $LANGUAGES; do
-          scripts/package_checkpoint.sh "text/$lang" "tmp/checkpoints/$lang" &
+          ISTAROTH_EMBEDDING_CACHE="$PWD/tmp/embedding-cache/$lang.npz" \
+            scripts/package_checkpoint.sh "text/$lang" "tmp/checkpoints/$lang" &
           pids+=($!)
         done
         status=0

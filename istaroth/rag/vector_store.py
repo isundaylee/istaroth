@@ -154,10 +154,11 @@ class ChromaVectorStore(ChromaBaseVectorStore):
                 texts = [text for text, _ in documents]
                 metadatas = [metadata for _, metadata in documents]
 
-                # Compute embeddings in parallel, bounded-size batches
-                embeddings_list = embeddings.embed_documents_parallel(
-                    emb, texts, concurrency=concurrency
-                )
+                # Compute embeddings in parallel, bounded-size batches,
+                # reusing cached vectors for unchanged chunk text when
+                # ISTAROTH_EMBEDDING_CACHE is set.
+                with embeddings.EmbeddingCache.from_env() as cache:
+                    embeddings_list = cache.embed(emb, texts, concurrency=concurrency)
 
                 # Add documents in batches to avoid ChromaDB batch size limits
                 batch_size = 5000
