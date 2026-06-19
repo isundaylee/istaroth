@@ -34,7 +34,7 @@ jobs:
         enable-cache: true
         cache-dependency-glob: uv.lock
     - run: uv python install 3.12
-    - run: uv sync --extra cpu
+    - run: uv sync
     - name: Cache mypy results
       uses: actions/cache@v4
       with:
@@ -43,4 +43,4 @@ jobs:
         restore-keys: |
           mypy-${{ runner.os }}-${{ hashFiles('uv.lock') }}-
           mypy-${{ runner.os }}-
-    - run: uv run --extra cpu --no-sync mypy
+    - run: uv run mypy
