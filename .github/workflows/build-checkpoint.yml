@@ -19,11 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: build-checkpoint
     steps:
-    - name: Free disk space
-      uses: jlumbroso/free-disk-space@main
-      with:
-        tool-cache: false
-
     - name: Checkout code
       uses: actions/checkout@v4
       with:
