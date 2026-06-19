@@ -206,6 +206,19 @@ export const eng = {
     standalone: 'Standalone Quests',
     questSeriesToc: 'Quests in this series',
     questSearchPlaceholder: 'Search quests across all types...',
-    noSearchResults: 'No quests match your search'
+    noSearchResults: 'No quests match your search',
+    selection: {
+      keywordSearch: 'Keyword search',
+      ask: 'Ask',
+      searching: 'Searching...',
+      noResults: 'No matching documents found',
+      score: 'Score',
+      openRetrieve: 'Open full retrieval page',
+      openConversation: 'Open saved conversation',
+      errors: {
+        searchFailed: 'Search failed',
+        noConnection: 'Failed to connect to server'
+      }
+    }
   }
 }

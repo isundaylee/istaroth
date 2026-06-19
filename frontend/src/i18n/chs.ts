@@ -206,6 +206,19 @@ export const chs = {
     standalone: '独立任务',
     questSeriesToc: '本系列任务',
     questSearchPlaceholder: '搜索所有类型的任务...',
-    noSearchResults: '没有匹配的任务'
+    noSearchResults: '没有匹配的任务',
+    selection: {
+      keywordSearch: '关键词检索',
+      ask: '提问',
+      searching: '检索中...',
+      noResults: '未找到匹配文档',
+      score: '分数',
+      openRetrieve: '打开完整检索页',
+      openConversation: '打开已保存对话',
+      errors: {
+        searchFailed: '检索失败',
+        noConnection: '无法连接到服务器'
+      }
+    }
   }
 }

@@ -1,18 +1,81 @@
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
-import { useT } from './contexts/LanguageContext'
+import { useT, useTranslation } from './contexts/LanguageContext'
+import { AppLink } from './components/AppLink'
 import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
 import LibraryHeader from './components/LibraryHeader'
 import NavButton from './components/NavButton'
+import CitationRenderer from './components/CitationRenderer'
+import QueryProgress from './components/QueryProgress'
 import { translate } from './i18n'
-import { getLanguageFromUrl } from './utils/language'
+import { buildUrlWithLanguage, getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
-import type { LibraryFileResponse, LibraryFilesResponse, LibraryFileInfo, QuestSeriesResponse } from './types/api'
+import { buildLibraryFilePath } from './utils/library'
+import { getClientId } from './utils/clientId'
+import { consumeQueryStream } from './utils/queryStream'
+import type {
+  ErrorResponse,
+  LibraryFileResponse,
+  LibraryFilesResponse,
+  LibraryFileInfo,
+  LibraryRetrieveRequest,
+  LibraryRetrieveResponse,
+  ModelsResponse,
+  ProgressStepStart,
+  QueryRequest,
+  QuestSeriesResponse
+} from './types/api'
 
 const QUEST_CATEGORY = 'agd_quest'
+const MAX_SELECTION_LENGTH = 80
+const MAX_SELECTION_TERMS = 8
+
+interface SelectionState {
+  text: string
+  top: number
+  left: number
+  placement: 'above' | 'below'
+}
+
+type SelectionPanel =
+  | {
+      kind: 'search'
+      query: string
+      loading: boolean
+      results: LibraryRetrieveResponse['results']
+      error: string | null
+    }
+  | {
+      kind: 'ask'
+      query: string
+      question: string
+      loading: boolean
+      activeSteps: ProgressStepStart[]
+      answer: string
+      conversationUuid: string | null
+      error: string | null
+    }
+
+interface SelectionPanelFrameProps {
+  panel: SelectionPanel
+  placement: SelectionState['placement']
+  top: number
+  left: number
+  retrievePagePath: (query: string) => string
+  onClose: () => void
+}
+
+interface RetrievalSelectionPanelProps {
+  panel: Extract<SelectionPanel, { kind: 'search' }>
+}
+
+interface QuerySelectionPanelProps {
+  panel: Extract<SelectionPanel, { kind: 'ask' }>
+}
 
 interface LoaderData {
   fileContent: string
@@ -22,6 +85,111 @@ interface LoaderData {
   category: string
   questId: number | null
   questSeries: QuestSeriesResponse | null
+}
+
+function RetrievalSelectionPanel({ panel }: RetrievalSelectionPanelProps) {
+  const t = useT()
+
+  if (panel.loading) {
+    return <p className="library-selection-muted">{t('library.selection.searching')}</p>
+  }
+  if (panel.error) {
+    return <p className="library-selection-error">{panel.error}</p>
+  }
+  if (panel.results.length === 0) {
+    return <p className="library-selection-muted">{t('library.selection.noResults')}</p>
+  }
+
+  return (
+    <div className="library-selection-results">
+      {panel.results.map((result) => (
+        <div key={`${result.file_info.category}-${result.file_info.id}`} className="library-selection-result">
+          <AppLink to={buildLibraryFilePath(result.file_info)}>
+            {result.file_info.title || t('library.noFileName')}
+          </AppLink>
+          <p>{result.snippet}</p>
+          <span>{t('library.selection.score')}: {result.score.toFixed(3)}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function QuerySelectionPanel({ panel }: QuerySelectionPanelProps) {
+  const t = useT()
+
+  return (
+    <>
+      {panel.loading && panel.activeSteps.length === 0 && (
+        <p className="library-selection-muted loading-ellipsis">{t('query.submitting')}</p>
+      )}
+      {panel.loading && panel.activeSteps.length > 0 && (
+        <QueryProgress steps={panel.activeSteps} className="library-selection-progress" />
+      )}
+      {panel.error && <p className="library-selection-error">{panel.error}</p>}
+      {panel.answer && (
+        <CitationRenderer content={panel.answer}>
+          {({ answer, citationList }) => (
+            <>
+              <div className="answer library-selection-answer">{answer}</div>
+              {citationList && (
+                <div className="library-selection-citations" data-citation-container>
+                  {citationList}
+                </div>
+              )}
+            </>
+          )}
+        </CitationRenderer>
+      )}
+    </>
+  )
+}
+
+function SelectionPanelFrame({
+  panel,
+  placement,
+  top,
+  left,
+  retrievePagePath,
+  onClose
+}: SelectionPanelFrameProps) {
+  const t = useT()
+  const panelBody = panel.kind === 'search'
+    ? <RetrievalSelectionPanel panel={panel} />
+    : <QuerySelectionPanel panel={panel} />
+
+  return (
+    <div
+      className={`library-selection-panel library-selection--${placement}`}
+      style={{
+        top: `${top}px`,
+        left: `${left}px`,
+        maxHeight: placement === 'above' ? `calc(${top}px - 1rem)` : `calc(100vh - ${top}px - 1rem)`
+      }}
+      onMouseDown={(event) => event.stopPropagation()}
+    >
+      <div className="library-selection-panel__header">
+        <div>
+          <p className="library-selection-panel__eyebrow">
+            {panel.kind === 'search' ? t('library.selection.keywordSearch') : t('library.selection.ask')}
+          </p>
+          <h3>{panel.kind === 'ask' ? panel.question : panel.query}</h3>
+          {panel.kind === 'search' && (
+            <AppLink className="library-selection-panel__top-link" to={retrievePagePath(panel.query)}>
+              {t('library.selection.openRetrieve')}
+            </AppLink>
+          )}
+          {panel.kind === 'ask' && panel.conversationUuid && (
+            <AppLink className="library-selection-panel__top-link" to={`/conversation/${panel.conversationUuid}`}>
+              {t('library.selection.openConversation')}
+            </AppLink>
+          )}
+        </div>
+        <button type="button" className="library-selection-panel__close" onClick={onClose} aria-label={t('common.close')}>×</button>
+      </div>
+      {panelBody}
+    </div>
+  )
 }
 
 export async function libraryFileViewerLoader({ params, request }: LoaderFunctionArgs): Promise<LoaderData> {
@@ -76,8 +244,15 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
 
 function LibraryFileViewer() {
   const t = useT()
+  const { language } = useTranslation()
   const navigate = useAppNavigate()
   const { fileContent, fileTitle, previousFile, nextFile, category, questId, questSeries } = useLoaderData() as LoaderData
+  const answerRef = useRef<HTMLDivElement>(null)
+  const selectionUiRef = useRef<HTMLDivElement>(null)
+  const activeRequestIdRef = useRef(0)
+  const defaultModelRef = useRef<string | null>(null)
+  const [selection, setSelection] = useState<SelectionState | null>(null)
+  const [panel, setPanel] = useState<SelectionPanel | null>(null)
 
   // Group the enclosing series' chapters (or the lone chapter) into TOC sections.
   const series = questSeries?.series
@@ -103,6 +278,212 @@ function LibraryFileViewer() {
     ? [{ title: chapter.chapter_title, quests: chapter.quests }]
     : []
   const tocQuestCount = tocGroups.reduce((sum, group) => sum + group.quests.length, 0)
+  const normalizeSelectionText = (text: string) => text.replace(/\s+/g, ' ').trim()
+  const isEntityLikeSelection = (text: string) =>
+    text.length > 0 && text.length <= MAX_SELECTION_LENGTH && text.split(/\s+/).length <= MAX_SELECTION_TERMS
+  const getErrorMessage = (data: unknown, fallback: string) => {
+    if (data && typeof data === 'object') {
+      if ('error' in data && typeof data.error === 'string') return data.error
+      if ('detail' in data && typeof data.detail === 'string') return data.detail
+    }
+    return fallback
+  }
+  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+
+  const captureSelection = useCallback(() => {
+    const currentSelection = window.getSelection()
+    const container = answerRef.current
+    if (!currentSelection || !container || currentSelection.rangeCount === 0 || currentSelection.isCollapsed) {
+      setSelection(null)
+      setPanel(null)
+      return
+    }
+
+    const range = currentSelection.getRangeAt(0)
+    if (
+      !container.contains(range.commonAncestorContainer) ||
+      !container.contains(currentSelection.anchorNode) ||
+      !container.contains(currentSelection.focusNode)
+    ) {
+      return
+    }
+
+    const selectedText = normalizeSelectionText(currentSelection.toString())
+    if (!isEntityLikeSelection(selectedText)) {
+      setSelection(null)
+      setPanel(null)
+      return
+    }
+
+    const rect = range.getBoundingClientRect()
+    if (rect.width === 0 && rect.height === 0) {
+      setSelection(null)
+      setPanel(null)
+      return
+    }
+
+    const placement = rect.top > window.innerHeight / 2 ? 'above' : 'below'
+    setSelection({
+      text: selectedText,
+      top: placement === 'above' ? clamp(rect.top - 8, 8, window.innerHeight - 8) : clamp(rect.bottom + 8, 8, window.innerHeight - 8),
+      left: clamp(rect.left + rect.width / 2, 140, window.innerWidth - 140),
+      placement
+    })
+    setPanel(null)
+  }, [])
+
+  useEffect(() => {
+    setSelection(null)
+    setPanel(null)
+    activeRequestIdRef.current += 1
+  }, [fileContent])
+
+  useEffect(() => {
+    const handleMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node
+      if (answerRef.current?.contains(target) || selectionUiRef.current?.contains(target)) return
+      setSelection(null)
+      setPanel(null)
+      activeRequestIdRef.current += 1
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setSelection(null)
+      setPanel(null)
+      activeRequestIdRef.current += 1
+    }
+    document.addEventListener('mousedown', handleMouseDown)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
+  const runKeywordSearch = async () => {
+    if (!selection) return
+    const query = selection.text
+    const requestId = activeRequestIdRef.current + 1
+    activeRequestIdRef.current = requestId
+    setPanel({ kind: 'search', query, loading: true, results: [], error: null })
+
+    try {
+      const reqBody: LibraryRetrieveRequest = {
+        language: language.toUpperCase(),
+        query,
+        k: 10,
+        semantic: false,
+        chunk_context: 0
+      }
+      const res = await fetch('/api/library/retrieve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqBody)
+      })
+      const data = await res.json().catch(() => null)
+      if (activeRequestIdRef.current !== requestId) return
+      if (!res.ok) {
+        setPanel({ kind: 'search', query, loading: false, results: [], error: getErrorMessage(data, t('library.selection.errors.searchFailed')) })
+        return
+      }
+      setPanel({ kind: 'search', query, loading: false, results: (data as LibraryRetrieveResponse).results, error: null })
+    } catch {
+      if (activeRequestIdRef.current === requestId) {
+        setPanel({ kind: 'search', query, loading: false, results: [], error: t('library.selection.errors.noConnection') })
+      }
+    }
+  }
+
+  const fetchDefaultModel = async () => {
+    if (defaultModelRef.current) return defaultModelRef.current
+    const res = await fetch('/api/models')
+    const data = await res.json().catch(() => null)
+    if (!res.ok) {
+      throw new Error(getErrorMessage(data as ErrorResponse | null, t('query.errors.modelsLoadFailed')))
+    }
+    const response = data as ModelsResponse
+    if (!response.default) {
+      throw new Error(t('query.errors.modelsLoadFailed'))
+    }
+    defaultModelRef.current = response.default
+    return response.default
+  }
+
+  const updateAskPanel = (requestId: number, updater: (panel: Extract<SelectionPanel, { kind: 'ask' }>) => Extract<SelectionPanel, { kind: 'ask' }>) => {
+    if (activeRequestIdRef.current !== requestId) return
+    setPanel((current) => current?.kind === 'ask' ? updater(current) : current)
+  }
+
+  const retrievePagePath = (query: string) =>
+    buildUrlWithLanguage('/retrieve', `?q=${encodeURIComponent(query)}&semantic=0`, language)
+
+  const runAsk = async () => {
+    if (!selection) return
+    const query = selection.text
+    const question = language === 'chs' ? `“${query}”是什么？` : `What is “${query}”?`
+    const requestId = activeRequestIdRef.current + 1
+    activeRequestIdRef.current = requestId
+    setPanel({
+      kind: 'ask',
+      query,
+      question,
+      loading: true,
+      activeSteps: [],
+      answer: '',
+      conversationUuid: null,
+      error: null
+    })
+
+    try {
+      const reqBody: QueryRequest = {
+        language: language.toUpperCase(),
+        question,
+        model: await fetchDefaultModel(),
+        k: 7,
+        chunk_context: 2,
+        client_id: getClientId()
+      }
+      const res = await fetch('/api/query/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqBody)
+      })
+      if (!res.ok || !res.body) {
+        const data = await res.json().catch(() => null)
+        updateAskPanel(requestId, (current) => ({ ...current, loading: false, error: getErrorMessage(data, t('query.errors.unknown')) }))
+        return
+      }
+
+      await consumeQueryStream(res.body, {
+        onStepStart: (step) => updateAskPanel(requestId, (current) => ({ ...current, activeSteps: [...current.activeSteps, step] })),
+        onStepEnd: (id) => updateAskPanel(requestId, (current) => ({ ...current, activeSteps: current.activeSteps.filter((step) => step.id !== id) })),
+        onDone: (result) => updateAskPanel(requestId, (current) => ({
+            ...current,
+            loading: false,
+            activeSteps: [],
+            answer: result.answer,
+            conversationUuid: result.conversation_uuid,
+            error: null
+          })),
+        onError: (message) => updateAskPanel(requestId, (current) => ({ ...current, loading: false, activeSteps: [], error: message })),
+        noConnectionError: t('query.errors.noConnection'),
+        unknownError: t('query.errors.unknown')
+      })
+    } catch (error) {
+      updateAskPanel(requestId, (current) => ({
+        ...current,
+        loading: false,
+        activeSteps: [],
+        error: error instanceof Error ? error.message : t('query.errors.noConnection')
+      }))
+    }
+  }
+
+  const closeSelectionPanel = () => {
+    setSelection(null)
+    setPanel(null)
+    activeRequestIdRef.current += 1
+  }
 
   return (
     <>
@@ -169,7 +550,7 @@ function LibraryFileViewer() {
             </details>
           )}
 
-          <div className="answer">
+          <div ref={answerRef} className="answer" onMouseUp={captureSelection} onKeyUp={captureSelection}>
             <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{fileContent}</ReactMarkdown>
           </div>
           {previousFile && (
@@ -195,6 +576,30 @@ function LibraryFileViewer() {
             marginTop={previousFile || nextFile ? '1rem' : '2rem'}
           />
         </PageCard>
+        {selection && (
+          <div ref={selectionUiRef}>
+            {!panel && (
+              <div
+                className={`library-selection-toolbar library-selection--${selection.placement}`}
+                style={{ top: `${selection.top}px`, left: `${selection.left}px` }}
+                onMouseDown={(event) => event.preventDefault()}
+              >
+                <button type="button" onClick={runKeywordSearch}>{t('library.selection.keywordSearch')}</button>
+                <button type="button" onClick={runAsk}>{t('library.selection.ask')}</button>
+              </div>
+            )}
+            {panel && (
+              <SelectionPanelFrame
+                panel={panel}
+                placement={selection.placement}
+                top={selection.top}
+                left={selection.left}
+                retrievePagePath={retrievePagePath}
+                onClose={closeSelectionPanel}
+              />
+            )}
+          </div>
+        )}
       </main>
     </>
   )

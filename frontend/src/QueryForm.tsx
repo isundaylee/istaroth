@@ -4,9 +4,10 @@ import { useAppNavigate } from './hooks/useAppNavigate'
 import Select from './components/Select'
 import Button from './components/Button'
 import ErrorDisplay from './components/ErrorDisplay'
-import { readNdjsonStream } from './utils/ndjson'
+import QueryProgress from './components/QueryProgress'
 import { getClientId } from './utils/clientId'
-import type { QueryRequest, ErrorResponse, ModelsResponse, ExampleQuestionResponse, ProgressMessage, ProgressStepStart } from './types/api'
+import { consumeQueryStream } from './utils/queryStream'
+import type { QueryRequest, ErrorResponse, ModelsResponse, ExampleQuestionResponse, ProgressStepStart } from './types/api'
 
 interface QueryFormProps {
   currentQuestion?: string
@@ -130,14 +131,6 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
     setActiveSteps([])
   }, [currentQuestion])
 
-  // Human-readable label for an in-flight pipeline step.
-  const stepLabel = (step: ProgressStepStart) => {
-    if (step.kind === 'searching') {
-      return `${t('query.progress.searching')} “${step.detail ?? ''}”`
-    }
-    return t(`query.progress.${step.kind}`)
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -175,31 +168,22 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
         return
       }
 
-      // Consume the progress events as they arrive.
-      let settled = false
-      for await (const event of readNdjsonStream<ProgressMessage>(res.body)) {
-        if (event.type === 'step_start') {
-          setActiveSteps((prev) => [...prev, event])
-        } else if (event.type === 'step_end') {
-          setActiveSteps((prev) => prev.filter((s) => s.id !== event.id))
-        } else if (event.type === 'done') {
+      await consumeQueryStream(res.body, {
+        onStepStart: (step) => setActiveSteps((prev) => [...prev, step]),
+        onStepEnd: (id) => setActiveSteps((prev) => prev.filter((step) => step.id !== id)),
+        onDone: (result) => {
           // Don't reset loading here — the dots animation stays visible until the
           // component unmounts (front page) or currentQuestion changes (conversation page).
-          settled = true
           setQuestion('')
-          navigate(`/conversation/${event.result.conversation_uuid}`)
-        } else {
-          settled = true
-          setError(event.error || t('query.errors.unknown'))
+          navigate(`/conversation/${result.conversation_uuid}`)
+        },
+        onError: (message) => {
+          setError(message)
           setLoading(false)
-        }
-      }
-
-      // Stream closed without a terminal event (e.g. dropped connection).
-      if (!settled) {
-        setError(t('query.errors.noConnection'))
-        setLoading(false)
-      }
+        },
+        noConnectionError: t('query.errors.noConnection'),
+        unknownError: t('query.errors.unknown')
+      })
     } catch (err) {
       setError(t('query.errors.noConnection'))
       setLoading(false)
@@ -274,13 +258,7 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
       </form>
 
       {loading && activeSteps.length > 0 && (
-        <ul className="query-progress">
-          {activeSteps.map((step) => (
-            <li key={step.id} className="query-progress-item">
-              <span className="loading-ellipsis">{stepLabel(step)}</span>
-            </li>
-          ))}
-        </ul>
+        <QueryProgress steps={activeSteps} />
       )}
 
       {error && <ErrorDisplay error={error} />}
