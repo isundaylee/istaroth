@@ -12,6 +12,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import IntegrityError
 
+from istaroth import llm_errors
 from istaroth.agd import localization
 from istaroth.rag import pipeline, progress
 from istaroth.services.backend import db_models, models, slugs
@@ -172,10 +173,15 @@ async def query_stream(
                         short_slug=short_slug,
                     )
                 )
-            except Exception:
+            except Exception as exc:
                 logger.error("Error in streaming query", exc_info=True)
+                llm_error = llm_errors.classify_llm_error(exc)
                 terminal["event"] = models.QueryStreamError(
-                    error="Internal server error"
+                    error=(
+                        llm_error.message
+                        if llm_error is not None
+                        else "Internal server error"
+                    )
                 )
             finally:
                 send_stream.close()
