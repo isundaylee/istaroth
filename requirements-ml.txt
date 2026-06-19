@@ -8,7 +8,7 @@ colorama==0.4.6 ; sys_platform == 'win32'
     # via tqdm
 cuda-bindings==12.9.4 ; platform_machine == 'x86_64' and sys_platform == 'linux'
     # via torch
-cuda-pathfinder==1.3.4 ; platform_machine == 'x86_64' and sys_platform == 'linux'
+cuda-pathfinder==1.5.5 ; platform_machine == 'x86_64' and sys_platform == 'linux'
     # via cuda-bindings
 faiss-cpu==1.13.2
 filelock==3.24.3
