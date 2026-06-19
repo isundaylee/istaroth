@@ -24,6 +24,8 @@ uv sync              # creates .venv and installs all dependencies
 pre-commit install   # if you plan on doing development
 ```
 
+By default, `uv sync` installs CPU-only PyTorch from the [pytorch-cpu index](https://download.pytorch.org/whl/cpu) (~200MB on Linux instead of ~4GB of CUDA wheels). Local embedding builds use `ISTAROTH_TRAINING_DEVICE=cpu` by default; override via `.env.common` if needed.
+
 After changing dependencies, regenerate the Docker export files:
 
 ```bash
