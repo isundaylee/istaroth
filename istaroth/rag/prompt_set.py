@@ -38,10 +38,21 @@ def _get_chinese_prompts() -> RAGPrompts:
         - 或一个单独的关键词（人物名、地点名、物品名等）
 
         规则：
-        - 如果一个查询就能覆盖问题，只输出一个
-        - 如果问题涉及多个独立概念，可以分解为多个查询（最多3个）
-        - 每个查询聚焦于一个特定概念或关系
+        - 默认只输出一个查询
+        - 只有当问题涉及多个需要分别检索证据的独立概念或关系时，才分解为多个查询（最多3个）
+        - 不要输出同一查询的改写、同义表达、不同措辞或关键词变体
+        - 每个查询必须对应一个不同的信息需求
         - 移除口语化表达和不必要的修饰词
+
+        示例：
+        问题：钟离的真实身份是什么？
+        输出：
+        钟离的真实身份
+
+        问题：雷电将军为什么实行眼狩令，珊瑚宫反抗军为什么反抗？
+        输出：
+        雷电将军实行眼狩令的原因
+        珊瑚宫反抗军反抗眼狩令的原因
 
         用户问题：{question}
 
@@ -106,10 +117,21 @@ def _get_english_prompts() -> RAGPrompts:
         - Or a single keyword (character name, location name, item name, etc.)
 
         Rules:
-        - If one query can cover the question, output only one
-        - If the question involves multiple independent concepts, decompose into multiple queries (max 3)
-        - Each query should focus on a specific concept or relationship
+        - Default to one query
+        - Only decompose when the question contains multiple independent concepts or relationships that need separate evidence retrieval (max 3)
+        - Do not output rewrites, paraphrases, alternate wording, or keyword variants of the same query
+        - Each query must represent a distinct information need
         - Remove colloquial expressions and unnecessary modifiers
+
+        Examples:
+        Question: What is Zhongli's true identity?
+        Output:
+        Zhongli's true identity
+
+        Question: Why did the Raiden Shogun enforce the Vision Hunt Decree, and why did the Sangonomiya Resistance oppose it?
+        Output:
+        Why the Raiden Shogun enforced the Vision Hunt Decree
+        Why the Sangonomiya Resistance opposed the Vision Hunt Decree
 
         User question: {question}
 
