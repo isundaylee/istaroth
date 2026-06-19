@@ -24,6 +24,12 @@ export const chs = {
     exampleLoading: '正在加载示例问题...',
     submitButton: '提问',
     submitting: '回答中',
+    retrievalPresetLabel: '检索深度',
+    retrievalPresets: {
+      fast: '精简',
+      balanced: '均衡',
+      thorough: '深入'
+    },
     models: {
       'gemini-3_1-flash-lite-preview': '超快速 (gemini-3.1-flash-lite-preview)',
       'gemini-3-flash-preview:minimal': '快速 (gemini-3-flash, 极简思考)',
@@ -137,9 +143,9 @@ export const chs = {
   retrieve: {
     title: '文本检索',
     placeholder: '输入文本以查找相关文档',
-    submitButton: '搜索',
-    submitting: '搜索中...',
-    semantic: '语义搜索',
+    submitButton: '检索',
+    submitting: '检索中...',
+    semantic: '语义检索',
     searchModeBm25: '仅关键词',
     searchModeSemantic: '语义',
     noResults: '未找到相关文档',

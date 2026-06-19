@@ -24,6 +24,12 @@ export const eng = {
     exampleLoading: 'Loading example question...',
     submitButton: 'Ask',
     submitting: 'Answering',
+    retrievalPresetLabel: 'Retrieval thoroughness',
+    retrievalPresets: {
+      fast: 'Focused',
+      balanced: 'Balanced',
+      thorough: 'Thorough'
+    },
     models: {
       'gemini-3_1-flash-lite-preview': 'Ultra Fast (gemini-3.1-flash-lite-preview)',
       'gemini-3-flash-preview:minimal': 'Fast (gemini-3-flash, minimal thinking)',
