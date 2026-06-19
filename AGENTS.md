@@ -46,7 +46,7 @@ istaroth/
 ```
 
 ## Project Terminology
-- `<AGD>` is used to refer to a separate AnimeGameData path containing the actual data extracted from the game.
+- `<AGD>` is used to refer to a separate AnimeGameData path containing the actual data extracted from the game. Its location on disk is `AGD_PATH` in `.env.common`; check there to find the AGD repo.
 
 ## AGD Deobfuscation
 - Current AGD JSON uses obfuscated field names (random keys); `istaroth/agd/deobfuscation.py` maps them to cleartext per game version.
