@@ -42,9 +42,16 @@ jobs:
         LANGUAGES: ${{ github.event.inputs.languages || 'chs eng' }}
       run: |
         mkdir -p tmp/checkpoints
+        pids=()
         for lang in $LANGUAGES; do
-          scripts/package_checkpoint.sh "text/$lang" "tmp/checkpoints/$lang"
+          scripts/package_checkpoint.sh "text/$lang" "tmp/checkpoints/$lang" &
+          pids+=($!)
         done
+        status=0
+        for pid in "${pids[@]}"; do
+          wait "$pid" || status=1
+        done
+        exit "$status"
 
     - name: Upload checkpoint artifacts
       uses: actions/upload-artifact@v4
