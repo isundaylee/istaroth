@@ -6,6 +6,7 @@ from typing import Awaitable, Callable, ParamSpec, TypeVar
 
 from fastapi import HTTPException
 
+from istaroth import llm_errors
 from istaroth.rag import text_set
 from istaroth.services.backend import models
 from istaroth.text import types as text_types
@@ -28,8 +29,13 @@ def handle_unexpected_exception(
         except HTTPException:
             # Re-raise HTTP exceptions (these are expected)
             raise
-        except Exception:
+        except Exception as exc:
             logger.error("Error in %s", func.__name__, exc_info=True)
+            llm_error = llm_errors.classify_llm_error(exc)
+            if llm_error is not None:
+                raise HTTPException(
+                    status_code=llm_error.http_status, detail=llm_error.message
+                )
             raise HTTPException(status_code=500, detail="Internal server error")
 
     return wrapper
