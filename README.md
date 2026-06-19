@@ -26,11 +26,11 @@ pre-commit install   # if you plan on doing development
 
 By default, `uv sync` installs CPU-only PyTorch from the [pytorch-cpu index](https://download.pytorch.org/whl/cpu) (~200MB on Linux instead of ~4GB of CUDA wheels). Local embedding builds use `ISTAROTH_TRAINING_DEVICE=cpu` by default; override via `.env.common` if needed.
 
-After changing dependencies, regenerate the Docker export files:
+After changing dependencies, regenerate the Docker export files (use shell redirect, not `-o`; CI diffs stdout and the header comment must match):
 
 ```bash
-uv export --frozen --only-group ml --no-hashes --no-emit-project -o requirements-ml.txt
-uv export --frozen --no-group dev --no-group ml --no-hashes --no-emit-project -o requirements-app.txt
+uv export --frozen --only-group ml --no-hashes --no-emit-project > requirements-ml.txt
+uv export --frozen --no-group dev --no-group ml --no-hashes --no-emit-project > requirements-app.txt
 ```
 
 ### Checkpoint
