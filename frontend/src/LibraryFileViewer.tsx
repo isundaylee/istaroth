@@ -136,11 +136,12 @@ function LibraryFileViewer() {
                         {group.title}
                       </p>
                     )}
-                    <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
-                      {group.quests.map((quest) => (
-                        <li key={quest.id}>
+                    <div style={{ fontSize: 'var(--font-sm)', lineHeight: 1.8 }}>
+                      {group.quests.map((quest, questIndex) => (
+                        <span key={quest.id}>
+                          {questIndex > 0 && <span style={{ color: 'var(--color-text-muted)' }}> / </span>}
                           {quest.id === questId ? (
-                            <span style={{ fontWeight: 600, color: 'var(--color-primary)' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--color-primary-link)' }}>
                               {quest.title || t('library.noFileName')}
                             </span>
                           ) : (
@@ -151,7 +152,7 @@ function LibraryFileViewer() {
                                 border: 'none',
                                 padding: 0,
                                 cursor: 'pointer',
-                                color: 'var(--color-primary-link)',
+                                color: 'var(--color-text)',
                                 fontSize: 'inherit',
                                 textAlign: 'left'
                               }}
@@ -159,9 +160,9 @@ function LibraryFileViewer() {
                               {quest.title || t('library.noFileName')}
                             </button>
                           )}
-                        </li>
+                        </span>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 ))}
               </div>
