@@ -653,6 +653,173 @@ body {
   text-align: center;
 }
 
+.library-selection-toolbar {
+  position: fixed;
+  z-index: 1200;
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.35rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  transform: translateX(-50%);
+}
+
+.library-selection-toolbar.library-selection--above,
+.library-selection-panel.library-selection--above {
+  transform: translate(-50%, -100%);
+}
+
+.library-selection-toolbar button {
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.6rem;
+  background: transparent;
+  color: var(--color-text);
+  font-size: var(--font-sm);
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.library-selection-toolbar button:hover {
+  background: var(--color-surface-hover);
+}
+
+.library-selection-panel {
+  position: fixed;
+  z-index: 1200;
+  width: min(36rem, calc(100vw - 2rem));
+  max-height: min(34rem, calc(100vh - 2rem));
+  overflow: auto;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+  transform: translateX(-50%);
+}
+
+.library-selection-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.library-selection-panel__header h3 {
+  margin: 0;
+  color: var(--color-heading);
+  font-size: var(--font-lg);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.library-selection-panel__top-link {
+  display: inline-block;
+  margin-top: 0.25rem;
+  color: var(--color-primary-link);
+  font-size: var(--font-sm);
+  text-decoration: none;
+}
+
+.library-selection-panel__eyebrow {
+  margin: 0 0 0.15rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.library-selection-panel__close {
+  flex: 0 0 auto;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.library-selection-panel__close:hover {
+  background: var(--color-surface-hover);
+}
+
+.library-selection-muted,
+.library-selection-error {
+  margin: 0.5rem 0;
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+
+.library-selection-muted {
+  color: var(--color-text-muted);
+}
+
+.library-selection-error {
+  color: var(--color-error-text);
+}
+
+.library-selection-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.library-selection-result {
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.library-selection-result:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.library-selection-result a {
+  color: var(--color-heading);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.library-selection-result a:hover,
+.library-selection-panel__top-link:hover {
+  text-decoration: underline;
+}
+
+.library-selection-result p {
+  margin: 0.35rem 0;
+  color: var(--color-text-subtle);
+  font-size: var(--font-sm);
+  line-height: 1.5;
+}
+
+.library-selection-result span {
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+}
+
+.library-selection-progress {
+  margin: 0.5rem 0;
+}
+
+.library-selection-answer {
+  margin-top: 0.75rem;
+  font-size: var(--font-sm);
+}
+
+.library-selection-citations {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-border-divider);
+  font-size: var(--font-sm);
+}
+
 @media (max-width: 600px) {
   .query-input-row {
     grid-template-columns: 1fr;
@@ -736,6 +903,17 @@ body {
   .library-header__actions {
     flex: 0 0 auto;
     justify-content: center;
+  }
+
+  .library-selection-toolbar {
+    left: 50% !important;
+    max-width: calc(100vw - 1rem);
+  }
+
+  .library-selection-panel {
+    left: 50% !important;
+    width: calc(100vw - 1rem);
+    max-height: calc(100vh - 1rem);
   }
 
   /* Citation list mobile styles */
