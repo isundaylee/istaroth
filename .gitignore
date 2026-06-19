@@ -135,6 +135,7 @@ celerybeat.pid
 
 # Environments
 .env
+.dev-stack.env
 .env.common
 .env.mcp
 .env.web
