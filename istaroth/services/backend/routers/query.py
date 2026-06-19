@@ -41,6 +41,7 @@ async def _save_conversation(
         model=request.model,
         k=request.k,
         language=request.language,
+        client_id=request.client_id,
         generation_time_seconds=generation_time,
     )
     db_session.add(conversation)

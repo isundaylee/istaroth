@@ -6,6 +6,7 @@ import Select from './components/Select'
 import Button from './components/Button'
 import ErrorDisplay from './components/ErrorDisplay'
 import { readNdjsonStream } from './utils/ndjson'
+import { getClientId } from './utils/clientId'
 import type { QueryRequest, ErrorResponse, ModelsResponse, ExampleQuestionResponse, ProgressMessage, ProgressStepStart } from './types/api'
 
 interface QueryFormProps {
@@ -138,6 +139,7 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
         model: selectedModel,
         k: 10,
         chunk_context: 5,
+        client_id: getClientId(),
       }
       const res = await fetch('/api/query/stream', {
         method: 'POST',

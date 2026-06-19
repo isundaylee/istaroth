@@ -9,6 +9,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import QueryPage from './QueryPage'
 import RetrievePage from './RetrievePage'
 import ConversationPage, { conversationPageLoader } from './ConversationPage'
+import HistoryPage, { historyPageLoader } from './HistoryPage'
 import ShortURLRedirect, { shortURLLoader } from './ShortURLRedirect'
 import LibraryCategoriesPage, { libraryCategoriesPageLoader } from './LibraryCategoriesPage'
 import QuestHierarchyPage, { questHierarchyPageLoader } from './QuestHierarchyPage'
@@ -42,6 +43,7 @@ const router = createBrowserRouter([
       { path: "/retrieve", element: <RetrievePage /> },
       { path: "/s/:slug", element: <ShortURLRedirect />, loader: shortURLLoader, errorElement: <ErrorBoundary /> },
       { path: "/conversation/:id", element: <ConversationPage />, loader: conversationPageLoader, errorElement: <ErrorBoundary /> },
+      { path: "/history", element: <HistoryPage />, loader: historyPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/library", element: <LibraryCategoriesPage />, loader: libraryCategoriesPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/library/agd_quest", element: <QuestHierarchyPage />, loader: questHierarchyPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/library/:category", element: <LibraryFilesPage />, loader: libraryFilesPageLoader, errorElement: <ErrorBoundary /> },

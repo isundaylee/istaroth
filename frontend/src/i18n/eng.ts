@@ -110,7 +110,17 @@ export const eng = {
   navigation: {
     home: 'Q&A',
     retrieve: 'Text Retrieval',
-    library: 'Library'
+    library: 'Library',
+    history: 'Q&A History'
+  },
+
+  history: {
+    title: 'My Conversations',
+    empty: 'No conversations yet. Your past questions will appear here.',
+    loadMore: 'Load more',
+    errors: {
+      loadFailed: 'Failed to load conversation history'
+    }
   },
 
   keyboard: {

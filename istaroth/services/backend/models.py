@@ -21,6 +21,7 @@ class QueryRequest(BaseModel):
     model: str
     k: int
     chunk_context: int
+    client_id: str | None = None
 
     @field_validator("k")
     @classmethod
@@ -97,6 +98,23 @@ class ConversationResponse(BaseModel):
     created_at: float  # Unix timestamp as float
     generation_time_seconds: float
     short_slug: str
+
+
+class ConversationSummary(BaseModel):
+    """Lightweight conversation metadata for the history list."""
+
+    id: int
+    uuid: str
+    question: str
+    language: str
+    model: str
+    created_at: float  # Unix timestamp as float
+
+
+class ConversationListResponse(BaseModel):
+    """Response model for listing a client's conversations, newest first."""
+
+    conversations: list[ConversationSummary]
 
 
 class ShortURLResponse(BaseModel):

@@ -91,6 +91,11 @@ istaroth/
   than keeping a separate `Update text` commit. Squash incremental work into that
   one commit before opening/updating a PR. (A pure text regen with no code change
   is just that single commit on its own.)
+- During review, commit (or amend into the single commit) the already-addressed
+  work after each round of review comments but BEFORE you start addressing the
+  next round. This way every new round of changes you make shows up as
+  uncommitted working-tree changes, so the user can review just the latest
+  iteration incrementally. The end state stays a single commit per the rule above.
 - ALWAYS run precommit separately and added resulted changes before you offer to git commit
 - When a commit fixes a GitHub issue, include a closing keyword in the commit message body (e.g. `Closes #55`) so GitHub auto-closes it on push; otherwise the issue must be closed manually.
 - ALWAYS pass PR/commit bodies via a file (`gh pr create --body-file <path>`, `git commit -F <path>`), NOT an inline `--body "..."` string. Bodies routinely contain backticks and apostrophes that the shell tries to expand inside double quotes, which breaks the command.
