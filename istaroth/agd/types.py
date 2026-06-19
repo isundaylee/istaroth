@@ -67,6 +67,13 @@ AvatarId: TypeAlias = int
 MaterialId: TypeAlias = int
 """Material id (``MaterialExcelConfigDataItem.id``); carried as ``int``."""
 
+BookSuitId: TypeAlias = int
+"""Book-series (suit) id (``BookSuitExcelConfigDataItem.id``;
+``MaterialExcelConfigDataItem.setID`` for a book volume's series, 0 when none)."""
+
+BooksCodexId: TypeAlias = int
+"""Book-archive codex entry id (``BooksCodexExcelConfigDataItem.id``)."""
+
 ReliquaryId: TypeAlias = int
 """Individual artifact (reliquary piece) id."""
 
@@ -210,12 +217,43 @@ class MaterialExcelConfigDataItem(TypedDict):
     nameTextMapHash: TextMapHash
     descTextMapHash: TextMapHash
     materialType: str
+    setID: BookSuitId
 
 
 MaterialExcelConfigData: TypeAlias = list[MaterialExcelConfigDataItem]
 """List of material configuration items.
 
 Example file: ExcelBinOutput/MaterialExcelConfigData.json
+"""
+
+
+class BookSuitExcelConfigDataItem(TypedDict):
+    """A book series (suit): its id and the hash of its localized series name."""
+
+    id: BookSuitId
+    suitNameTextMapHash: TextMapHash
+
+
+BookSuitExcelConfigData: TypeAlias = list[BookSuitExcelConfigDataItem]
+"""List of book series (suits).
+
+Example file: ExcelBinOutput/BookSuitExcelConfigData.json
+"""
+
+
+class BooksCodexExcelConfigDataItem(TypedDict):
+    """A book-archive codex entry tying a book material to its display order."""
+
+    id: BooksCodexId
+    materialId: MaterialId
+    sortOrder: int
+    isDisuse: bool
+
+
+BooksCodexExcelConfigData: TypeAlias = list[BooksCodexExcelConfigDataItem]
+"""List of book-archive codex entries.
+
+Example file: ExcelBinOutput/BooksCodexExcelConfigData.json
 """
 
 
@@ -524,6 +562,23 @@ class ReadableMetadata:
 
     localization_id: LocalizationId
     title: str
+
+
+@attrs.define
+class BookVolumeInfo:
+    """A single volume's title and cleaned body within a book series."""
+
+    title: str
+    content: str
+
+
+@attrs.define
+class BookSeriesInfo:
+    """A multi-volume book series with its volumes in reading order."""
+
+    suit_id: BookSuitId
+    series_name: str
+    volumes: list[BookVolumeInfo]
 
 
 @attrs.define

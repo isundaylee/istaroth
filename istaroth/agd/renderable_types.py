@@ -1,11 +1,9 @@
 """Renderable content type classes for different AGD content."""
 
-import pathlib
 from abc import ABC, abstractmethod
 from collections import Counter
-from typing import ClassVar, Generic, TypeVar
+from typing import Callable, ClassVar, Generic, NamedTuple, TypeVar, assert_never
 
-from istaroth import text_cleanup
 from istaroth.agd import (
     localization,
     processing,
@@ -46,6 +44,19 @@ class BaseRenderableType(ABC, Generic[TKey]):
         pass
 
 
+def _process_single_readable(
+    renderable_key: str,
+    data_repo: repo.DataRepo,
+    render: Callable[[str, types.ReadableMetadata], types.RenderedItem],
+) -> types.RenderedItem | None:
+    """Render a single readable file, or skip empty/placeholder ones."""
+    if (
+        loaded := processing.load_readable(renderable_key, data_repo=data_repo)
+    ) is None:
+        return None
+    return render(*loaded)
+
+
 class BaseReadables(BaseRenderableType[str]):
     """Base renderable for readable content."""
 
@@ -63,25 +74,7 @@ class BaseReadables(BaseRenderableType[str]):
         self, renderable_key: str, data_repo: repo.DataRepo
     ) -> types.RenderedItem | None:
         """Process readable file into rendered content."""
-        readables_tracker = data_repo.get_readables()
-        readable_filename = pathlib.Path(renderable_key).name
-        content = readables_tracker.get_content(readable_filename)
-        if content is None:
-            raise FileNotFoundError(f"Readable not found: {renderable_key}")
-        content = text_cleanup.clean_text_markers(content, data_repo.language)
-
-        # Skip empty readables and dev placeholders (e.g. multi-page weapon base
-        # files, or "测试"/"暂无" stubs) -- nothing worth rendering, and skipping
-        # before the metadata lookup avoids erroring on files with no localization
-        # id.
-        if text_utils.should_skip_readable_content(content, data_repo.language):
-            return None
-
-        metadata = processing.get_readable_metadata(renderable_key, data_repo=data_repo)
-        if text_utils.should_skip_text(metadata.title, data_repo.language):
-            return None
-
-        return self._render(content, metadata)
+        return _process_single_readable(renderable_key, data_repo, self._render)
 
 
 class Readables(BaseReadables):
@@ -111,27 +104,71 @@ class Readables(BaseReadables):
         ]
 
 
-class Books(BaseReadables):
-    """Book content type."""
+class _BookSeriesKey(NamedTuple):
+    """Renderable key for a multi-volume book series, identified by its suit id."""
+
+    suit_id: types.BookSuitId
+
+
+class _BookStandaloneKey(NamedTuple):
+    """Renderable key for a single book not grouped into a series."""
+
+    readable_path: str
+
+
+_BookKey = _BookSeriesKey | _BookStandaloneKey
+
+
+class Books(BaseRenderableType[_BookKey]):
+    """Book content type.
+
+    Multi-volume series (per BookSuit/BooksCodex) render into a single grouped file
+    with a per-volume series annotation; every other ``Book*`` readable renders on
+    its own as before. Reading a series volume's content during ``process`` claims
+    its file, keeping it out of the standalone catch-all below.
+    """
 
     text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_BOOK
+    error_limit: ClassVar[int] = 50
+    error_limit_non_chinese: ClassVar[int] = 200
 
-    def _render(
-        self, content: str, metadata: types.ReadableMetadata
-    ) -> types.RenderedItem:
-        return rendering.render_book(content, metadata)
-
-    def discover(self, data_repo: repo.DataRepo) -> list[str]:
-        """Find all readable files whose filename starts with Book."""
+    def discover(self, data_repo: repo.DataRepo) -> list[_BookKey]:
+        """Enumerate book series, then standalone book files not in any series."""
+        series_mapping = data_repo.build_book_series_mapping()
+        grouped_filenames = {
+            filename for filenames in series_mapping.values() for filename in filenames
+        }
         readables_tracker = data_repo.get_readables()
         return [
-            f"Readable/{data_repo.language_short}/{filename}"
-            for filename in sorted(
-                filename
-                for filename in readables_tracker.get_all_ids()
-                if filename.startswith("Book")
-            )
+            *(_BookSeriesKey(suit_id) for suit_id in sorted(series_mapping)),
+            *(
+                _BookStandaloneKey(f"Readable/{data_repo.language_short}/{filename}")
+                for filename in sorted(
+                    filename
+                    for filename in readables_tracker.get_all_ids()
+                    if filename.startswith("Book") and filename not in grouped_filenames
+                )
+            ),
         ]
+
+    def process(
+        self, renderable_key: _BookKey, data_repo: repo.DataRepo
+    ) -> types.RenderedItem | None:
+        """Render a book series into one file, or a standalone book on its own."""
+        match renderable_key:
+            case _BookSeriesKey(suit_id=suit_id):
+                series_info = processing.get_book_series_info(
+                    suit_id, data_repo=data_repo
+                )
+                if series_info is None:
+                    return None
+                return rendering.render_book_series(series_info, data_repo.language)
+            case _BookStandaloneKey(readable_path=readable_path):
+                return _process_single_readable(
+                    readable_path, data_repo, rendering.render_book
+                )
+            case _:
+                assert_never(renderable_key)
 
 
 class Weapons(BaseRenderableType[str]):

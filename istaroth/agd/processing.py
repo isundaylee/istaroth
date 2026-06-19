@@ -4,6 +4,7 @@ import json
 import pathlib
 import typing
 
+from istaroth import text_cleanup
 from istaroth.agd import (
     issues,
     localization,
@@ -58,6 +59,72 @@ def get_readable_metadata(
         title = "Unknown Title"
 
     return types.ReadableMetadata(localization_id=localization_id, title=title)
+
+
+def load_readable(
+    readable_path: str, *, data_repo: repo.DataRepo
+) -> tuple[str, types.ReadableMetadata] | None:
+    """Read and clean a readable's content and metadata.
+
+    Returns None for empty/placeholder/dev-test readables (matching the per-file
+    skip rules) so callers can drop them; raises if the file itself is missing.
+    Reading the content marks it accessed in the readables tracker.
+    """
+    readables = data_repo.get_readables()
+    if (content := readables.get_content(pathlib.Path(readable_path).name)) is None:
+        raise FileNotFoundError(f"Readable not found: {readable_path}")
+    content = text_cleanup.clean_text_markers(content, data_repo.language)
+
+    # Skip empty readables and dev placeholders (e.g. multi-page weapon base files,
+    # or "测试"/"暂无" stubs) before the metadata lookup, which avoids erroring on
+    # files with no localization id.
+    if text_utils.should_skip_readable_content(content, data_repo.language):
+        return None
+
+    metadata = get_readable_metadata(readable_path, data_repo=data_repo)
+    if text_utils.should_skip_text(metadata.title, data_repo.language):
+        return None
+
+    return content, metadata
+
+
+def get_book_series_info(
+    suit_id: types.BookSuitId, *, data_repo: repo.DataRepo
+) -> types.BookSeriesInfo | None:
+    """Assemble a multi-volume book series: its name and ordered volume bodies.
+
+    Reading each volume's content marks it accessed, keeping the per-volume files
+    out of the standalone Books and generic Readables catch-alls. A grouped volume
+    whose readable file is missing raises rather than being silently dropped;
+    empty/placeholder/test volumes are filtered the same way standalone books are.
+    Returns None if no volume survives filtering.
+    """
+    if (filenames := data_repo.build_book_series_mapping().get(suit_id)) is None:
+        raise ValueError(f"Book suit {suit_id} is not a multi-volume series")
+
+    suit = data_repo.load_book_suit_excel_config_data()[suit_id]
+    if (
+        series_name := data_repo.load_text_map().get_optional(
+            suit["suitNameTextMapHash"]
+        )
+    ) is None:
+        raise ValueError(f"Missing series name for book suit {suit_id}")
+
+    volumes = []
+    for filename in filenames:
+        if (
+            loaded := load_readable(
+                f"Readable/{data_repo.language_short}/{filename}", data_repo=data_repo
+            )
+        ) is None:
+            continue
+        content, metadata = loaded
+        volumes.append(types.BookVolumeInfo(title=metadata.title, content=content))
+    if not volumes:
+        return None
+    return types.BookSeriesInfo(
+        suit_id=suit_id, series_name=series_name, volumes=volumes
+    )
 
 
 def get_talk_info_by_id(

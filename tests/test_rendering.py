@@ -661,3 +661,43 @@ def test_render_character_story_traveler_constellations_grouped() -> None:
     assert content.index("### Pyro") < content.index("Pyro One: P1")
     assert content.index("Pyro Two: P2") < content.index("### Hydro")
     assert "Hydro One: H1" in content
+
+
+def test_render_book_series_english() -> None:
+    """A series renders one file with a per-volume English annotation line."""
+    series_info = types.BookSeriesInfo(
+        suit_id=1019,
+        series_name="A Drunkard's Tale",
+        volumes=[
+            types.BookVolumeInfo(title="A Drunkard's Tale (I)", content="First."),
+            types.BookVolumeInfo(title="A Drunkard's Tale (II)", content="Second."),
+        ],
+    )
+
+    rendered = rendering.render_book_series(series_info, localization.Language.ENG)
+
+    assert rendered.text_metadata.relative_path == "agd_book/1019_A_Drunkards_Tale.txt"
+    assert rendered.text_metadata.id == 1019
+    assert rendered.text_metadata.title == "A Drunkard's Tale"
+    assert rendered.content == (
+        "# A Drunkard's Tale\n\n"
+        "## A Drunkard's Tale (I)\n\n"
+        "*A Drunkard's Tale — Volume 1 of 2*\n\n"
+        "First.\n\n"
+        "## A Drunkard's Tale (II)\n\n"
+        "*A Drunkard's Tale — Volume 2 of 2*\n\n"
+        "Second."
+    )
+
+
+def test_render_book_series_chinese_annotation() -> None:
+    """The per-volume annotation localizes for Chinese output."""
+    series_info = types.BookSeriesInfo(
+        suit_id=3,
+        series_name="维莉的忧郁",
+        volumes=[types.BookVolumeInfo(title="维莉的忧郁·一", content="正文。")],
+    )
+
+    rendered = rendering.render_book_series(series_info, localization.Language.CHS)
+
+    assert "*维莉的忧郁·第 1 卷，共 1 卷*" in rendered.content
