@@ -16,7 +16,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Layer 1: Heavy ML packages (only rebuilds when ML deps change)
 COPY requirements-ml.txt /tmp/
 RUN uv pip install --no-cache -r /tmp/requirements-ml.txt \
-    --find-links https://download.pytorch.org/whl/cpu
+    --torch-backend cpu
 
 # Layer 2: App packages (rebuilds more often, but fast)
 COPY requirements-app.txt /tmp/
