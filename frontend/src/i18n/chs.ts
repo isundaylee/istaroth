@@ -110,7 +110,17 @@ export const chs = {
   navigation: {
     home: '问答',
     retrieve: '文本检索',
-    library: '图书馆'
+    library: '图书馆',
+    history: '问答历史'
+  },
+
+  history: {
+    title: '我的对话',
+    empty: '暂无对话。你提过的问题会显示在这里。',
+    loadMore: '加载更多',
+    errors: {
+      loadFailed: '加载历史对话失败'
+    }
   },
 
   keyboard: {

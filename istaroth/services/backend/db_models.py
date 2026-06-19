@@ -34,6 +34,8 @@ class Conversation(Base):
     k: Mapped[int] = mapped_column(Integer, nullable=False)
     language: Mapped[str] = mapped_column(String(10), nullable=False)
 
+    client_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
+
     created_at: Mapped[datetime.datetime] = mapped_column(
         DateTime,
         default=lambda: datetime.datetime.now(datetime.timezone.utc).replace(
@@ -43,6 +45,8 @@ class Conversation(Base):
     generation_time_seconds: Mapped[Optional[float]] = mapped_column(
         Float, nullable=True
     )
+
+    __table_args__ = (Index("ix_conversations_client_id_id", "client_id", "id"),)
 
 
 class ShortURL(Base):

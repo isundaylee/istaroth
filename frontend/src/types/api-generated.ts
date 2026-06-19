@@ -28,6 +28,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Conversations
+         * @description List a client's conversations, newest first, with cursor pagination.
+         */
+        get: operations["list_conversations_api_conversations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/conversations/{conversation_uuid}": {
         parameters: {
             query?: never;
@@ -330,6 +350,14 @@ export interface components {
             file_info: components["schemas"]["LibraryFileInfo"];
         };
         /**
+         * ConversationListResponse
+         * @description Response model for listing a client's conversations, newest first.
+         */
+        ConversationListResponse: {
+            /** Conversations */
+            conversations: components["schemas"]["ConversationSummary"][];
+        };
+        /**
          * ConversationResponse
          * @description Response model for conversation retrieval.
          */
@@ -352,6 +380,24 @@ export interface components {
             generation_time_seconds: number;
             /** Short Slug */
             short_slug: string;
+        };
+        /**
+         * ConversationSummary
+         * @description Lightweight conversation metadata for the history list.
+         */
+        ConversationSummary: {
+            /** Id */
+            id: number;
+            /** Uuid */
+            uuid: string;
+            /** Question */
+            question: string;
+            /** Language */
+            language: string;
+            /** Model */
+            model: string;
+            /** Created At */
+            created_at: number;
         };
         /**
          * ExampleQuestionResponse
@@ -475,6 +521,8 @@ export interface components {
             k: number;
             /** Chunk Context */
             chunk_context: number;
+            /** Client Id */
+            client_id?: string | null;
         };
         /**
          * QueryResponse
@@ -687,6 +735,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QueryStreamStepStart"] | components["schemas"]["QueryStreamStepEnd"] | components["schemas"]["QueryStreamDone"] | components["schemas"]["QueryStreamError"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_conversations_api_conversations_get: {
+        parameters: {
+            query: {
+                client_id: string;
+                limit?: number;
+                before_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationListResponse"];
                 };
             };
             /** @description Validation Error */

@@ -15,6 +15,41 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+@router.get("/api/conversations", response_model=models.ConversationListResponse)
+@handle_unexpected_exception
+async def list_conversations(
+    client_id: str,
+    db_session: DBSession,
+    limit: int = 50,
+    before_id: int | None = None,
+) -> models.ConversationListResponse:
+    """List a client's conversations, newest first, with cursor pagination."""
+    limit = max(1, min(limit, 100))
+    stmt = select(db_models.Conversation).where(
+        db_models.Conversation.client_id == client_id
+    )
+    if before_id is not None:
+        stmt = stmt.where(db_models.Conversation.id < before_id)
+    stmt = stmt.order_by(db_models.Conversation.id.desc()).limit(limit)
+
+    result = await db_session.execute(stmt)
+    return models.ConversationListResponse(
+        conversations=[
+            models.ConversationSummary(
+                id=conversation.id,
+                uuid=conversation.uuid,
+                question=conversation.question,
+                language=conversation.language,
+                model=conversation.model or "",
+                created_at=conversation.created_at.replace(
+                    tzinfo=datetime.timezone.utc
+                ).timestamp(),
+            )
+            for conversation in result.scalars().all()
+        ]
+    )
+
+
 @router.get(
     "/api/conversations/{conversation_uuid}", response_model=models.ConversationResponse
 )
