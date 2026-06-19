@@ -1,7 +1,7 @@
 "$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
 
 [scripts]
-archive = "docker compose -p \"conductor-$CONDUCTOR_WORKSPACE_NAME\" down --volumes --remove-orphans"
-run = "(export COMPOSE_PROJECT_NAME=conductor-$CONDUCTOR_WORKSPACE_NAME && cd docker-compose/web && docker compose up)"
+archive = "(cd docker-compose/web && docker compose -p \"conductor-$CONDUCTOR_WORKSPACE_NAME\" down --volumes --remove-orphans)"
+run = "(export COMPOSE_PROJECT_NAME=conductor-$CONDUCTOR_WORKSPACE_NAME && export CONDUCTOR_BACKEND_METRICS_HOST_PORT=$((CONDUCTOR_PORT+1)) && export CONDUCTOR_RETRIEVAL_METRICS_HOST_PORT=$((CONDUCTOR_PORT+2)) && export CONDUCTOR_JAEGER_UI_HOST_PORT=$((CONDUCTOR_PORT+3)) && export CONDUCTOR_JAEGER_OTLP_HOST_PORT=$((CONDUCTOR_PORT+4)) && cd docker-compose/web && docker compose up)"
 run_mode = "concurrent"
 setup = "ln -s \"$CONDUCTOR_ROOT_PATH/.env.common\" .\nln -s \"$CONDUCTOR_ROOT_PATH/.env.mcp\" .\nln -s \"$CONDUCTOR_ROOT_PATH/.env.web\" .\nln -s \"$CONDUCTOR_ROOT_PATH/tmp\" ."

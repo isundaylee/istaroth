@@ -68,7 +68,7 @@ services:
       jaeger:
         condition: service_started
     ports:
-      - "8092:8092"
+      - "${CONDUCTOR_RETRIEVAL_METRICS_HOST_PORT:-8092}:8092"
     volumes:
       - checkpoints:/data/checkpoints
       - ./data:/data/state
@@ -108,7 +108,7 @@ services:
       - backend-venv:/app/.venv
       - uv-cache:/root/.cache/uv:ro
     ports:
-      - "8090:8090"
+      - "${CONDUCTOR_BACKEND_METRICS_HOST_PORT:-8090}:8090"
     environment:
       - PATH=/app/.venv/bin:/usr/local/bin:/usr/bin:/bin
       - ISTAROTH_DOCUMENT_STORE_SET=CHS:/data/checkpoints/chs
@@ -147,8 +147,8 @@ services:
   jaeger:
     image: cr.jaegertracing.io/jaegertracing/jaeger:2.15.0
     ports:
-      - "16686:16686"  # Jaeger UI
-      - "4317:4317"    # OTLP gRPC receiver
+      - "${CONDUCTOR_JAEGER_UI_HOST_PORT:-16686}:16686"  # Jaeger UI
+      - "${CONDUCTOR_JAEGER_OTLP_HOST_PORT:-4317}:4317"  # OTLP gRPC receiver
 
 volumes:
   checkpoints:
