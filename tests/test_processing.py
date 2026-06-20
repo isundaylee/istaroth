@@ -90,6 +90,36 @@ def test_talk_6864003_narration_role(data_repo: repo.DataRepo) -> None:
     assert all(role is None or "TALK_ROLE_NONE" not in role for role in roles)
 
 
+def test_talk_role_name_hash_ignores_fallback_text() -> None:
+    """Fallback TextMap recovers messages, not stale role-name hashes."""
+    data_repo = mock.Mock(spec=repo.DataRepo)
+    data_repo.language = localization.Language.ENG
+    data_repo.load_talk_data.return_value = {
+        "dialogList": [
+            {
+                "id": 1,
+                "talkContentTextMapHash": 100,
+                "talkRoleNameTextMapHash": 200,
+                "talkRole": {"type": "TALK_ROLE_PLAYER"},
+            }
+        ]
+    }
+    data_repo.load_text_map.return_value = repo.TextMapTracker(
+        {"100": "Hello"},
+        localization.Language.ENG,
+        {"200": "Stale role"},
+    )
+    data_repo.get_npc_id_to_name_mapping.return_value = {}
+    data_repo.get_dialog_id_to_role_name_hash_mapping.return_value = {}
+
+    talk_info = processing.get_talk_info(
+        "BinOutput/Talk/Quest/1.json", data_repo=data_repo
+    )
+
+    assert talk_info.text[0].role == "Traveler"
+    assert talk_info.text[0].message == "Hello"
+
+
 def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
     """Test retrieving quest info for 74078.json."""
     quest_id = 74078
@@ -125,6 +155,17 @@ def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
         for talk_text in talk_info.text:
             assert talk_text.role is None or talk_text.role.strip()
             assert talk_text.message.strip()
+
+
+def test_fallback_text_map_does_not_break_talk_collision_resolution(
+    data_repo: repo.DataRepo,
+) -> None:
+    """Fallback hash collisions dedupe by resolved text."""
+    for quest_id in [11020, 75079]:
+        quest_info = processing.get_quest_info(quest_id, data_repo=data_repo)
+
+        assert quest_info is not None
+        assert quest_info.steps
 
 
 def test_achievement_section_46_info(data_repo: repo.DataRepo) -> None:

@@ -48,6 +48,10 @@ class _TalkSignature(NamedTuple):
 
     dialogs: tuple[tuple[int, int], ...]
     """The (dialog id, content hash) sequence, for byte-identity checks."""
+    dialog_texts: tuple[tuple[int, str], ...]
+    """The (dialog id, resolved text) sequence for hashes that resolve."""
+    text_counts: collections.Counter[str]
+    """Resolved text multiplicities, independent of remapped dialog ids."""
     text_dialogs: frozenset[tuple[int, int]]
     """(dialog id, content hash) pairs whose hash resolves to real text."""
     text_ids: frozenset[int]
@@ -299,13 +303,18 @@ class TalkParser:
                 continue
 
             textful = [p for p in usable if signatures[p].text_ids]
-            if len({signatures[p].dialogs for p in textful}) <= 1:
-                # Equivalent content (byte-identical or all empty): prefer the
-                # canonically-named `<talkId>.json` copy over a hash-named one.
-                # They share the same (id, content-hash) signature but can come
-                # from different builds, and the hash-named copy may use a
-                # newer/unmapped obfuscation key (e.g. a missing nextDialogs),
-                # so the canonical name is the safer authoritative pick.
+            if (
+                len({signatures[p].dialogs for p in textful}) <= 1
+                or len({signatures[p].dialog_texts for p in textful}) <= 1
+                or len(
+                    {tuple(sorted(signatures[p].text_counts.items())) for p in textful}
+                )
+                <= 1
+            ):
+                # Equivalent content: prefer the canonically-named `<talkId>.json`
+                # copy over a hash-named one. Hash-identical files can come from
+                # different builds, and text-identical files can carry remapped
+                # hashes for the same displayed dialogue.
                 self.talk_id_to_path[talk_id] = min(
                     textful or usable,
                     key=lambda p: (pathlib.Path(p).stem != str(talk_id), p),
@@ -330,6 +339,25 @@ class TalkParser:
                         for p in textful
                         if signatures[p].text_dialogs
                         == signatures[superset].text_dialogs
+                    ),
+                    key=lambda p: (pathlib.Path(p).stem != str(talk_id), p),
+                )
+                stats["superset"] += 1
+                continue
+
+            text_superset = max(
+                textful, key=lambda p: signatures[p].text_counts.total()
+            )
+            if all(
+                signatures[p].text_counts <= signatures[text_superset].text_counts
+                for p in textful
+            ):
+                self.talk_id_to_path[talk_id] = min(
+                    (
+                        p
+                        for p in textful
+                        if signatures[p].text_counts
+                        == signatures[text_superset].text_counts
                     ),
                     key=lambda p: (pathlib.Path(p).stem != str(talk_id), p),
                 )
@@ -367,15 +395,22 @@ class TalkParser:
             dialogs = data["dialogList"]
         except KeyError:
             return None
+        raw_dialogs = tuple(
+            (d["id"], d.get("talkContentTextMapHash", 0)) for d in dialogs
+        )
+        resolved_texts = list[tuple[int, str]]()
+        for dialog_id, content_hash in raw_dialogs:
+            if (text := text_map.get_optional_untracked(content_hash)) is not None:
+                resolved_texts.append((dialog_id, text))
         text_dialogs = frozenset(
-            (d["id"], d.get("talkContentTextMapHash", 0))
-            for d in dialogs
-            if text_map.has(d.get("talkContentTextMapHash", 0))
+            (dialog_id, content_hash)
+            for dialog_id, content_hash in raw_dialogs
+            if text_map.has(content_hash)
         )
         return _TalkSignature(
-            dialogs=tuple(
-                (d["id"], d.get("talkContentTextMapHash", 0)) for d in dialogs
-            ),
+            dialogs=raw_dialogs,
+            dialog_texts=tuple(resolved_texts),
+            text_counts=collections.Counter(text for _, text in resolved_texts),
             text_dialogs=text_dialogs,
             text_ids=frozenset(i for i, _ in text_dialogs),
         )

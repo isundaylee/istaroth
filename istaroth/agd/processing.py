@@ -168,7 +168,11 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
             "talkRoleNameTextMapHash"
         ) or dialog_id_to_role_hash.get(dialog_id)
 
-        return None if role_name_hash is None else text_map.get_optional(role_name_hash)
+        return (
+            None
+            if role_name_hash is None
+            else text_map.get_current_optional(role_name_hash)
+        )
 
     def _get_role_name_by_role(talk_role: types.TalkRole) -> str | None:
         role_type = talk_role.get("type")

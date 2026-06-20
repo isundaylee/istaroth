@@ -1019,10 +1019,8 @@ def _render_coop_steps(
             # prompts) or a story-state branch (COND, no prompts). Label both with
             # "Branch N" — distinct from the intra-talk "Option N:" lines so the
             # conversation-level fork is not conflated with in-talk dialog options.
-            # Many player-choice prompts are absent from the current build's
-            # TextMap (HoYo dropped the strings but left the dialog refs), so a
-            # branch may legitimately show no prompt text; recovering them needs an
-            # older-build TextMap fallback (issue #142).
+            # Some non-player story-state branches have no prompt text, unlike
+            # player choices whose dropped TextMap strings are recovered globally.
             is_player_choice = any(option.prompt for option in options)
             lines.append(
                 "[Player choice]" if is_player_choice else "[Conditional branch]"
