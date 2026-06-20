@@ -41,7 +41,22 @@ _rebase_onto_upstream() {
     echo "dev-compose.sh: no upstream configured for current branch, using $upstream" >&2
   fi
   remote="${upstream%%/*}"
-  git -C "$REPO_ROOT" fetch "$remote"
+  # Worktrees share refs/remotes, so concurrent stack startups can race on the
+  # remote-tracking ref lock ("cannot lock ref ... unable to update local ref").
+  # The failure is transient — the ref is already moving to its new value — so
+  # retry a few times with a short backoff before giving up.
+  local attempt
+  for attempt in 1 2 3 4 5; do
+    if git -C "$REPO_ROOT" fetch "$remote"; then
+      break
+    elif [[ "$attempt" -eq 5 ]]; then
+      echo "dev-compose.sh: git fetch $remote failed after $attempt attempts" >&2
+      return 1
+    else
+      echo "dev-compose.sh: git fetch $remote failed (attempt $attempt), retrying..." >&2
+      sleep "$attempt"
+    fi
+  done
   git -C "$REPO_ROOT" rebase --autostash "$upstream"
 }
 

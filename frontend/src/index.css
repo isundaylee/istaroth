@@ -604,6 +604,11 @@ body {
   color: var(--color-text-secondary);
 }
 
+/* Keep scrolling contained to the popup; never chain to the page behind it */
+.citation-popup-content {
+  overscroll-behavior: contain;
+}
+
 /* Citation popup custom scrollbar */
 .citation-popup-content::-webkit-scrollbar {
   width: 12px;
