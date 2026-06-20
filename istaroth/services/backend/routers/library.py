@@ -1,7 +1,6 @@
 """Library endpoints for browsing text files by category."""
 
 import logging
-import pathlib
 from typing import cast
 
 from fastapi import APIRouter, HTTPException, Query
@@ -15,6 +14,7 @@ from istaroth.services.backend.utils import (
     handle_unexpected_exception,
     text_metadata_to_library_file_info,
 )
+from istaroth.text import proper_nouns
 from istaroth.text import types as text_types
 
 logger = logging.getLogger(__name__)
@@ -175,10 +175,6 @@ async def get_file(
     return models.LibraryFileResponse(file_info=file_info, content=content)
 
 
-# Same list jieba loads as a custom tokenizer dict (see rag.document_store).
-_PROPER_NOUNS_RELATIVE_PATH = "misc/proper_nouns.txt"
-
-
 @router.get("/api/library/proper-nouns", response_model=models.ProperNounsResponse)
 @handle_unexpected_exception
 async def get_proper_nouns(
@@ -204,13 +200,16 @@ async def get_proper_nouns(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    content = text_set_obj.get_content(_PROPER_NOUNS_RELATIVE_PATH)
-    nouns = (
-        [line.strip() for line in content.splitlines() if line.strip()]
-        if content
-        else []
+    return models.ProperNounsResponse(
+        nouns=proper_nouns.filter_terms_from_content(
+            text_set_obj.get_content(
+                proper_nouns.PROPER_NOUNS_RELATIVE_PATH.as_posix()
+            ),
+            text_set_obj.get_content(
+                proper_nouns.PROPER_NOUNS_NEGATIVE_RELATIVE_PATH.as_posix()
+            ),
+        )
     )
-    return models.ProperNounsResponse(nouns=nouns)
 
 
 @router.get(
