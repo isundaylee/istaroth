@@ -5,11 +5,15 @@ import remarkBreaks from 'remark-breaks'
 import { useTranslation, useT } from '../contexts/LanguageContext'
 import type { CitationResponse, LibraryFileInfo } from '../types/api'
 import { buildLibraryFilePath } from '../utils/library'
+import { buildProperNounMatcher } from '../utils/properNouns'
+import { rehypeProperNouns } from '../utils/rehypeProperNouns'
 import CitationPopup from './CitationPopup'
 import { preprocessCitationsForDisplay, formatCitationId, parseCitationId } from '../utils/citations'
 
 interface CitationRendererProps {
   content: string
+  /** Proper nouns to highlight within the rendered answer (citation links are left untouched). */
+  properNouns?: string[]
   children?: (props: { answer: React.ReactNode; citationList: React.ReactNode }) => React.ReactNode
 }
 
@@ -23,7 +27,7 @@ interface CitationContentData {
   chunkIndexWithPrefix?: string
 }
 
-function CitationRenderer({ content, children }: CitationRendererProps) {
+function CitationRenderer({ content, properNouns, children }: CitationRendererProps) {
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
   const [stickyCitation, setStickyCitation] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false)
@@ -39,6 +43,13 @@ function CitationRenderer({ content, children }: CitationRendererProps) {
   const preprocessResult = useMemo(() => preprocessCitationsForDisplay(content), [content])
   const processedContent = preprocessResult.processedText
   const uniqueCitedWorks = preprocessResult.uniqueFileIds
+
+  // Trie matcher that highlights proper nouns in the rendered answer. The rehype
+  // plugin skips citation/code nodes, so citation links are unaffected.
+  const properNounMatcher = useMemo(
+    () => (properNouns && properNouns.length > 0 ? buildProperNounMatcher(properNouns) : null),
+    [properNouns]
+  )
 
   // Calculate optimal popup position and size to avoid going off-screen
   const calculatePopupPosition = useCallback((citationRect: DOMRect) => {
@@ -479,7 +490,11 @@ function CitationRenderer({ content, children }: CitationRendererProps) {
           }}
         />
       )}
-      <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>{processedContent}</ReactMarkdown>
+      <ReactMarkdown
+        remarkPlugins={[remarkBreaks]}
+        rehypePlugins={properNounMatcher ? [rehypeProperNouns(properNounMatcher)] : []}
+        components={components}
+      >{processedContent}</ReactMarkdown>
     </>
   )
 

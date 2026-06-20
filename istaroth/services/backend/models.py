@@ -46,6 +46,7 @@ class QueryResponse(BaseModel):
     answer: str
     conversation_uuid: str
     short_slug: str
+    proper_nouns: list[str]
     final_generation_input_text_length: int
     retrieval_unique_chunk_count: int
     retrieval_unique_file_count: int
@@ -104,6 +105,7 @@ class ConversationResponse(BaseModel):
     retrieval_unique_chunk_count: int
     retrieval_unique_file_count: int
     short_slug: str
+    proper_nouns: list[str]
 
 
 class ConversationSummary(BaseModel):

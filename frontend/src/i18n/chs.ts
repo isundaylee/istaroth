@@ -46,7 +46,8 @@ export const chs = {
     progress: {
       augmenting: '正在生成检索查询',
       searching: '正在检索',
-      generating: '正在生成回答'
+      generating: '正在生成回答',
+      extracting_proper_nouns: '正在提取专有名词'
     }
   },
 

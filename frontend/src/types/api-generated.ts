@@ -472,6 +472,8 @@ export interface components {
             retrieval_unique_file_count: number;
             /** Short Slug */
             short_slug: string;
+            /** Proper Nouns */
+            proper_nouns: string[];
         };
         /**
          * ConversationSummary
@@ -699,6 +701,8 @@ export interface components {
             conversation_uuid: string;
             /** Short Slug */
             short_slug: string;
+            /** Proper Nouns */
+            proper_nouns: string[];
             /** Final Generation Input Text Length */
             final_generation_input_text_length: number;
             /** Retrieval Unique Chunk Count */

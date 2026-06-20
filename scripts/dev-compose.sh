@@ -99,11 +99,13 @@ cmd_setup() {
 }
 
 cmd_up() {
-  local detach=-d
-  if [[ "${1:-}" == "--foreground" ]]; then
-    detach=""
-    shift
-  fi
+  local detach=""
+  while [[ "${1:-}" == -* ]]; do
+    case "$1" in
+      --detach | -d | --background) detach=-d; shift ;;
+      *) break ;;
+    esac
+  done
   _load_env
   # When run as a Paseo service, bind the Web UI to the port Paseo proxies.
   if [[ -n "${PASEO_PORT:-}" ]]; then
@@ -130,7 +132,7 @@ cmd_urls() {
 }
 
 usage() {
-  echo "Usage: $(basename "$0") {setup|up|down|urls} [--foreground]" >&2
+  echo "Usage: $(basename "$0") {setup|up|down|urls} [--detach|-d]" >&2
   exit 1
 }
 
