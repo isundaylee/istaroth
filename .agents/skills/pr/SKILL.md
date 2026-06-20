@@ -30,9 +30,11 @@ summary rather than reporting a fabricated number.
   ```
   Re-run until it passes, staging its edits each time. (Per project rule: always
   run pre-commit separately and add the resulting changes before committing.)
-- Run the relevant checks for what changed (e.g. `uv run mypy`, and for frontend
-  `cd frontend && node_modules/.bin/tsc --noEmit`). Fix failures before opening
-  the PR — don't put up a red branch.
+- Run only the checks that pre-commit does NOT already cover. pre-commit runs
+  eslint (whole `frontend/src/`) and mypy (changed files), so don't re-run those.
+  The notable gap is frontend type-checking — eslint does not type-check — so for
+  frontend changes run `cd frontend && node_modules/.bin/tsc --noEmit`. Fix
+  failures before opening the PR — don't put up a red branch.
 
 ### 3. Squash the initial work into ONE clean commit
 When first opening the PR, collapse the branch's incremental work into one
