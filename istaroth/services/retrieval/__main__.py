@@ -4,15 +4,22 @@ import logging
 
 import fastapi
 
-from istaroth.rag import document_store_set
 from istaroth.services.common import runner, tracing
-from istaroth.services.retrieval import app as app_module
 
 _logger = logging.getLogger(__name__)
 
 
 def _create_app_factory() -> fastapi.FastAPI:
-    """Factory that initializes resources and creates the retrieval app (for uvicorn reload)."""
+    """Factory that initializes resources and creates the retrieval app (for uvicorn reload).
+
+    The heavy RAG stack is imported here rather than at module top level so the
+    uvicorn ``--reload`` parent process (which only spawns the worker and never
+    calls this factory) avoids loading it; only the worker pays the import cost.
+    """
+    # Deferred: see docstring — keeps the reload parent's import light.
+    from istaroth.rag import document_store_set
+    from istaroth.services.retrieval import app as app_module
+
     tracing.setup_tracing("istaroth-retrieval")
     _logger.info("Loading document store set from environment...")
     app_module._store_set = document_store_set.DocumentStoreSet.from_env()

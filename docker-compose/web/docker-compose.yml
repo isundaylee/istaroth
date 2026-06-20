@@ -63,7 +63,10 @@ services:
       - hf-cache:/root/.cache/huggingface
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/docs')"]
-      interval: 10s
+      # Probe every 1s while starting up (fast readiness detection), but relax to
+      # 30s once healthy so the per-second python launch + log line don't run forever.
+      start_interval: 1s
+      interval: 30s
       timeout: 5s
       start_period: 3600s
       retries: 3

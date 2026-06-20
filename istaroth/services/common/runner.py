@@ -30,12 +30,16 @@ def run_service(
             "Starting %s on %s:%d (reload=%s)", service_name, host, port, reload
         )
         if reload:
+            # Watch only the source package, not the whole cwd. The venv is
+            # mounted under cwd in the dev stack, so watching everything makes
+            # WatchFiles churn through thousands of first-import .pyc writes.
             uvicorn.run(
                 factory_import_path,
                 factory=True,
                 host=host,
                 port=port,
                 reload=True,
+                reload_dirs=["istaroth"],
                 log_level=log_level,
             )
         else:

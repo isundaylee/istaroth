@@ -2,13 +2,20 @@
 
 import fastapi
 
-from istaroth.services.backend import app as app_module
-from istaroth.services.backend import dependencies
 from istaroth.services.common import runner, tracing
 
 
 def _create_app_factory() -> fastapi.FastAPI:
-    """Factory that initializes resources and creates the app (for uvicorn reload)."""
+    """Factory that initializes resources and creates the app (for uvicorn reload).
+
+    The heavy RAG stack is imported here rather than at module top level so the
+    uvicorn ``--reload`` parent process (which only spawns the worker and never
+    calls this factory) avoids loading it; only the worker pays the import cost.
+    """
+    # Deferred: see docstring — keeps the reload parent's import light.
+    from istaroth.services.backend import app as app_module
+    from istaroth.services.backend import dependencies
+
     tracing.setup_tracing("istaroth-backend")
     dependencies.init_resources()
     fastapi_app = app_module.create_app()
