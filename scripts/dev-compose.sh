@@ -62,8 +62,15 @@ EOF
 }
 
 _load_env() {
-  _export_ports
-  _write_env_file
+  if [[ ! -f "$ENV_FILE" ]]; then
+    echo "dev-compose.sh: $ENV_FILE not found — run 'scripts/dev-compose.sh setup' first" >&2
+    exit 1
+  fi
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  export COMPOSE_PROJECT_NAME CONDUCTOR_PORT \
+    CONDUCTOR_BACKEND_METRICS_HOST_PORT CONDUCTOR_RETRIEVAL_METRICS_HOST_PORT \
+    CONDUCTOR_JAEGER_UI_HOST_PORT CONDUCTOR_JAEGER_OTLP_HOST_PORT
 }
 
 cmd_setup() {
@@ -72,6 +79,9 @@ cmd_setup() {
     target="$REPO_ROOT/$name"
     [[ -e "$target" ]] || ln -s "$MAIN_ROOT/$name" "$target"
   done
+  _resolve_identity
+  _export_ports
+  _write_env_file
 }
 
 cmd_up() {
@@ -80,7 +90,6 @@ cmd_up() {
     detach=""
     shift
   fi
-  cmd_setup
   _load_env
   cd "$COMPOSE_DIR"
   # shellcheck disable=SC2086
@@ -94,16 +103,7 @@ cmd_down() {
 }
 
 cmd_urls() {
-  if [[ -f "$ENV_FILE" ]]; then
-    # shellcheck disable=SC1090
-    source "$ENV_FILE"
-  else
-    _load_env
-  fi
-  if [[ -z "${COMPOSE_PROJECT_NAME:-}" ]]; then
-    echo "dev-compose.sh: COMPOSE_PROJECT_NAME is empty" >&2
-    exit 1
-  fi
+  _load_env
   echo "COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME"
   echo "Web UI:            http://localhost:$CONDUCTOR_PORT"
   echo "Backend metrics:   http://localhost:$CONDUCTOR_BACKEND_METRICS_HOST_PORT"
