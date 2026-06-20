@@ -137,7 +137,7 @@ function ConversationPage() {
             <h3 style={{ margin: 0 }}>{conversation.question}</h3>
           </Card>
 
-          <CitationRenderer content={conversation.answer}>
+          <CitationRenderer content={conversation.answer} properNouns={conversation.proper_nouns}>
             {({ answer, citationList }) => (
               <>
                 <Card borderColor="blue">

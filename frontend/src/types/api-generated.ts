@@ -448,6 +448,8 @@ export interface components {
             retrieval_unique_file_count: number;
             /** Short Slug */
             short_slug: string;
+            /** Proper Nouns */
+            proper_nouns: string[];
         };
         /**
          * ConversationSummary
@@ -680,6 +682,8 @@ export interface components {
             retrieval_unique_chunk_count: number;
             /** Retrieval Unique File Count */
             retrieval_unique_file_count: number;
+            /** Proper Nouns */
+            proper_nouns: string[];
         };
         /**
          * QueryStreamDone

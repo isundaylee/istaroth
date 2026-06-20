@@ -58,6 +58,7 @@ class AnswerResult:
 
     answer: str
     stats: GenerationStats
+    proper_nouns: list[str]
 
 
 @attrs.define

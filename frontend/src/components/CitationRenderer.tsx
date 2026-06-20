@@ -5,11 +5,14 @@ import remarkBreaks from 'remark-breaks'
 import { useTranslation, useT } from '../contexts/LanguageContext'
 import type { CitationResponse, LibraryFileInfo } from '../types/api'
 import { buildLibraryFilePath } from '../utils/library'
+import { buildProperNounMatcher, type ProperNounMatcher } from '../utils/properNouns'
+import { rehypeProperNouns } from '../utils/rehypeProperNouns'
 import CitationPopup from './CitationPopup'
 import { preprocessCitationsForDisplay, formatCitationId, parseCitationId } from '../utils/citations'
 
 interface CitationRendererProps {
   content: string
+  properNouns?: string[]
   children?: (props: { answer: React.ReactNode; citationList: React.ReactNode }) => React.ReactNode
 }
 
@@ -23,7 +26,7 @@ interface CitationContentData {
   chunkIndexWithPrefix?: string
 }
 
-function CitationRenderer({ content, children }: CitationRendererProps) {
+function CitationRenderer({ content, properNouns, children }: CitationRendererProps) {
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
   const [stickyCitation, setStickyCitation] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false)
@@ -33,6 +36,12 @@ function CitationRenderer({ content, children }: CitationRendererProps) {
   const { language } = useTranslation()
   const t = useT()
   const popupRef = useRef<HTMLDivElement>(null)
+
+  // Build proper noun matcher from the provided list
+  const properNounMatcher: ProperNounMatcher | null = useMemo(
+    () => (properNouns && properNouns.length > 0 ? buildProperNounMatcher(properNouns) : null),
+    [properNouns]
+  )
 
   // Preprocess content to convert XML citations to markdown links with document:chunk numbering
   // Also extract unique cited works in the same pass
@@ -479,7 +488,11 @@ function CitationRenderer({ content, children }: CitationRendererProps) {
           }}
         />
       )}
-      <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>{processedContent}</ReactMarkdown>
+      <ReactMarkdown
+        remarkPlugins={[remarkBreaks]}
+        rehypePlugins={properNounMatcher ? [rehypeProperNouns(properNounMatcher)] : []}
+        components={components}
+      >{processedContent}</ReactMarkdown>
     </>
   )
 

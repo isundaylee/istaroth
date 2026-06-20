@@ -983,6 +983,13 @@
           "short_slug": {
             "type": "string",
             "title": "Short Slug"
+          },
+          "proper_nouns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Proper Nouns"
           }
         },
         "type": "object",
@@ -998,7 +1005,8 @@
           "final_generation_input_text_length",
           "retrieval_unique_chunk_count",
           "retrieval_unique_file_count",
-          "short_slug"
+          "short_slug",
+          "proper_nouns"
         ],
         "title": "ConversationResponse",
         "description": "Response model for conversation retrieval."
@@ -1464,6 +1472,13 @@
           "retrieval_unique_file_count": {
             "type": "integer",
             "title": "Retrieval Unique File Count"
+          },
+          "proper_nouns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Proper Nouns"
           }
         },
         "type": "object",
@@ -1475,7 +1490,8 @@
           "short_slug",
           "final_generation_input_text_length",
           "retrieval_unique_chunk_count",
-          "retrieval_unique_file_count"
+          "retrieval_unique_file_count",
+          "proper_nouns"
         ],
         "title": "QueryResponse",
         "description": "Response model for query endpoint."

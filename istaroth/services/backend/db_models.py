@@ -2,9 +2,10 @@
 
 import datetime
 import uuid
-from typing import Optional
+from typing import Any, Optional
 
 from sqlalchemy import DateTime, Float, Index, Integer, String, Text
+from sqlalchemy.types import JSON
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -53,6 +54,9 @@ class Conversation(Base):
     )
     retrieval_unique_file_count: Mapped[Optional[int]] = mapped_column(
         Integer, nullable=True
+    )
+    proper_nouns: Mapped[Optional[list[Any]]] = mapped_column(
+        JSON, nullable=True
     )
 
     __table_args__ = (Index("ix_conversations_client_id_id", "client_id", "id"),)

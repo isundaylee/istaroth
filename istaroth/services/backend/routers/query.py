@@ -39,6 +39,7 @@ async def _save_conversation(
     conversation = db_models.Conversation(
         question=request.question,
         answer=result.answer,
+        proper_nouns=result.proper_nouns,
         model=request.model,
         k=request.k,
         language=request.language,
@@ -185,6 +186,7 @@ async def query_stream(
                         retrieval_unique_file_count=(
                             result.stats.retrieval_unique_file_count
                         ),
+                        proper_nouns=result.proper_nouns,
                     )
                 )
             except Exception as exc:

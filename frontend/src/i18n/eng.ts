@@ -46,7 +46,8 @@ export const eng = {
     progress: {
       augmenting: 'Generating queries',
       searching: 'Searching',
-      generating: 'Generating response'
+      generating: 'Generating response',
+      extracting: 'Extracting proper nouns'
     }
   },
 

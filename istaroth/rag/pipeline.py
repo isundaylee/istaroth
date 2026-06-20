@@ -21,6 +21,7 @@ from istaroth.rag import (
     types,
 )
 from istaroth.services.common import metrics
+from istaroth.text import proper_nouns
 
 logger = logging.getLogger(__name__)
 
@@ -184,9 +185,19 @@ class RAGPipeline:
             model=model, language=language
         ).observe(time.perf_counter() - gen_start)
 
-        # Extract answer text
+        answer_text = llm_manager.extract_text_from_response(response)
+
+        # Extract proper nouns from the answer
+        with reporter.step("extracting"):
+            terms = await anyio.to_thread.run_sync(
+                proper_nouns.load_terms, self._text_set.text_path
+            )
+            answer_lower = answer_text.lower()
+            answer_proper_nouns = [t for t in terms if t.lower() in answer_lower]
+
         return types.AnswerResult(
-            answer=llm_manager.extract_text_from_response(response),
+            answer=answer_text,
+            proper_nouns=answer_proper_nouns,
             stats=types.GenerationStats(
                 final_generation_input_text_length=final_generation_input_text_length,
                 retrieval_unique_chunk_count=combined_retrieve_output.total_documents,

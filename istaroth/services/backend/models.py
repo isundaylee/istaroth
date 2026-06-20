@@ -49,6 +49,7 @@ class QueryResponse(BaseModel):
     final_generation_input_text_length: int
     retrieval_unique_chunk_count: int
     retrieval_unique_file_count: int
+    proper_nouns: list[str]
 
 
 # Events streamed (newline-delimited JSON) by POST /api/query/stream. The
@@ -104,6 +105,7 @@ class ConversationResponse(BaseModel):
     retrieval_unique_chunk_count: int
     retrieval_unique_file_count: int
     short_slug: str
+    proper_nouns: list[str]
 
 
 class ConversationSummary(BaseModel):
