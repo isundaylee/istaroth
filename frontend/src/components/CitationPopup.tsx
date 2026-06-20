@@ -4,28 +4,6 @@ import { useTranslation } from '../contexts/LanguageContext'
 import { FloatingPanel } from './FloatingPanel'
 import type { FloatingPlacement } from '../utils/floatingPanel'
 
-interface MainLoadButtonProps {
-  onClick: () => void
-  disabled?: boolean
-  loading?: boolean
-  block?: boolean
-  children: React.ReactNode
-}
-
-const MainLoadButton = ({ onClick, disabled = false, loading = false, block = false, children }: MainLoadButtonProps) => {
-  const { t } = useTranslation()
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled || loading}
-      className={`floating-panel__action-btn${block ? ' floating-panel__action-btn--block' : ''}`}
-    >
-      {loading ? t.citation.loadingButton : children}
-    </button>
-  )
-}
-
 interface CitationPopupProps {
   /** File title (the "Source" eyebrow is added by the shared frame). */
   title: string
@@ -120,127 +98,80 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
 
     const body = isSticky && chunks && fileId ? (
       <div ref={contentRef}>
-        {onLoadChunk && chunks.length > 0 && chunks[0].chunk_index > 0 && (
-          <div style={{ marginBottom: '12px' }}>
-            <MainLoadButton
-              block
-              onClick={() => {
-                const prevChunkIndex = chunks[0].chunk_index - 1
-                onLoadChunk(`${fileId}:ck${prevChunkIndex}`)
-              }}
-              loading={loadingCitations?.has(`${fileId}:ck${chunks[0]?.chunk_index - 1}`)}
+        {onLoadChunk && chunks.length > 0 && chunks[0].chunk_index > 0 && (() => {
+          const prevId = `${fileId}:ck${chunks[0].chunk_index - 1}`
+          return (
+            <button
+              onClick={() => onLoadChunk(prevId)}
+              disabled={loadingCitations?.has(prevId)}
+              className="citation-gap"
             >
-              {t.citation.loadPrevious}
-            </MainLoadButton>
-          </div>
-        )}
+              {loadingCitations?.has(prevId) ? t.citation.loadingButton : t.citation.loadPrevious}
+            </button>
+          )
+        })()}
 
         {chunks.map((chunk, index) => {
-          const currentChunkNum = chunk.chunk_index
           const nextChunk = chunks[index + 1]
-          const nextChunkNum = nextChunk ? nextChunk.chunk_index : null
-          const hasGap = nextChunkNum !== null && nextChunkNum !== currentChunkNum + 1
+          const gapSize = nextChunk ? nextChunk.chunk_index - chunk.chunk_index - 1 : 0
+          const isCited = chunk.chunk_index === currentChunkIndex
+          // Expand the gap from the side nearer the cited chunk (cited is never inside a gap).
+          const gapLoadIndex = currentChunkIndex <= chunk.chunk_index
+            ? chunk.chunk_index + 1
+            : (nextChunk ? nextChunk.chunk_index - 1 : 0)
+          const gapStartId = `${fileId}:ck${gapLoadIndex}`
 
           return (
             <div key={chunk.chunk_index} data-chunk-id={`chunk-${chunk.chunk_index}`}>
-              <div style={{ marginBottom: index < chunks.length - 1 || hasGap ? '16px' : '0' }}>
-                <div style={{
-                  fontSize: 'var(--font-xs)',
-                  color: 'var(--color-text-secondary)',
-                  marginBottom: '4px',
-                  fontWeight: chunk.chunk_index === currentChunkIndex ? 'bold' : 'normal',
-                  background: 'var(--color-citation-label-bg)',
-                  padding: '4px 8px',
-                  borderRadius: 'var(--radius-sm)',
-                  textAlign: 'right',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <span>
-                    {chunk.chunk_index === currentChunkIndex && (
-                      <span style={{
-                        color: 'var(--color-primary-dark)',
-                        fontSize: 'var(--font-xs)',
-                        fontWeight: 'normal',
-                        marginRight: '8px'
-                      }}>
-                        {t.citation.current}
-                      </span>
-                    )}
-                  </span>
-                  <span>
-                    {t.citation.chunk} {chunk.chunk_index}
-                  </span>
-                </div>
+              <div style={{
+                borderLeft: `3px solid ${isCited ? 'var(--color-primary)' : 'transparent'}`,
+                paddingLeft: '12px'
+              }}>
+                {isCited && (
+                  <div style={{
+                    display: 'inline-block',
+                    marginBottom: '6px',
+                    padding: '2px 8px',
+                    borderRadius: 'var(--radius-sm)',
+                    background: 'var(--color-citation-label-bg)',
+                    color: 'var(--color-primary-dark)',
+                    fontSize: 'var(--font-xs)'
+                  }}>
+                    {t.citation.current}
+                  </div>
+                )}
                 <div style={{ whiteSpace: 'pre-wrap' }}>{chunk.content}</div>
               </div>
 
-              {hasGap && onLoadChunk && (
-                <div style={{ margin: '16px 0', color: 'var(--color-text-muted)' }}>
-                  {(() => {
-                    const gapSize = nextChunkNum! - currentChunkNum - 1
-                    const firstMissingIndex = currentChunkNum + 1
-                    const lastMissingIndex = nextChunkNum! - 1
-
-                    if (gapSize === 1) {
-                      return (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ fontSize: 'var(--font-lg)', fontWeight: 'bold', textAlign: 'center', flex: 1 }}>⋯</div>
-                          <div style={{ padding: '0 8px' }}>
-                            <MainLoadButton
-                              onClick={() => onLoadChunk(`${fileId}:ck${firstMissingIndex}`)}
-                              loading={loadingCitations?.has(`${fileId}:ck${firstMissingIndex}`)}
-                            >
-                              {t.citation.loadChunk} {firstMissingIndex}
-                            </MainLoadButton>
-                          </div>
-                          <div style={{ fontSize: 'var(--font-lg)', fontWeight: 'bold', textAlign: 'center', flex: 1 }}>⋯</div>
-                        </div>
-                      )
-                    }
-                    return (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{ padding: '0 8px' }}>
-                          <MainLoadButton
-                            onClick={() => onLoadChunk(`${fileId}:ck${firstMissingIndex}`)}
-                            loading={loadingCitations?.has(`${fileId}:ck${firstMissingIndex}`)}
-                          >
-                            {t.citation.loadChunkUp} {firstMissingIndex}
-                          </MainLoadButton>
-                        </div>
-                        <div style={{ fontSize: 'var(--font-lg)', fontWeight: 'bold', textAlign: 'center', flex: 1 }}>⋯</div>
-                        <div style={{ padding: '0 8px' }}>
-                          <MainLoadButton
-                            onClick={() => onLoadChunk(`${fileId}:ck${lastMissingIndex}`)}
-                            loading={loadingCitations?.has(`${fileId}:ck${lastMissingIndex}`)}
-                          >
-                            {t.citation.loadChunkDown} {lastMissingIndex}
-                          </MainLoadButton>
-                        </div>
-                      </div>
-                    )
-                  })()}
-                </div>
-              )}
+              {nextChunk && (gapSize > 0 && onLoadChunk ? (
+                <button
+                  onClick={() => onLoadChunk(gapStartId)}
+                  disabled={loadingCitations?.has(gapStartId)}
+                  className="citation-gap"
+                >
+                  {loadingCitations?.has(gapStartId)
+                    ? t.citation.loadingButton
+                    : `⋯ ${gapSize} ${t.citation.chunksHidden}`}
+                </button>
+              ) : (
+                <hr className="citation-divider" />
+              ))}
             </div>
           )
         })}
 
-        {onLoadChunk && chunks.length > 0 && chunks[chunks.length - 1].chunk_index < chunks[chunks.length - 1].total_chunks - 1 && (
-          <div style={{ marginTop: '12px' }}>
-            <MainLoadButton
-              block
-              onClick={() => {
-                const nextChunkIndex = chunks[chunks.length - 1].chunk_index + 1
-                onLoadChunk(`${fileId}:ck${nextChunkIndex}`)
-              }}
-              loading={loadingCitations?.has(`${fileId}:ck${chunks[chunks.length - 1]?.chunk_index + 1}`)}
+        {onLoadChunk && chunks.length > 0 && chunks[chunks.length - 1].chunk_index < chunks[chunks.length - 1].total_chunks - 1 && (() => {
+          const nextId = `${fileId}:ck${chunks[chunks.length - 1].chunk_index + 1}`
+          return (
+            <button
+              onClick={() => onLoadChunk(nextId)}
+              disabled={loadingCitations?.has(nextId)}
+              className="citation-gap"
             >
-              {t.citation.loadNext}
-            </MainLoadButton>
-          </div>
-        )}
+              {loadingCitations?.has(nextId) ? t.citation.loadingButton : t.citation.loadNext}
+            </button>
+          )
+        })()}
       </div>
     ) : (
       <div style={{ whiteSpace: 'pre-wrap' }}>{content}</div>
