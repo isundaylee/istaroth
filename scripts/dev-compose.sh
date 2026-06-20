@@ -62,6 +62,37 @@ _export_ports() {
   export CONDUCTOR_JAEGER_OTLP_HOST_PORT=$((CONDUCTOR_PORT + 4))
 }
 
+# Clone the shared checkpoints into a per-worktree directory so each stack gets
+# an isolated, writable copy (Chroma opens its SQLite read-write even for
+# queries, so concurrent stacks must not share one on-disk database). Uses
+# copy-on-write (APFS clonefile / reflink) where the filesystem supports it so
+# the clone is instant and near-zero disk; otherwise it degrades to a full copy.
+# Clones only when the destination doesn't already exist.
+_clone_checkpoints() {
+  local src="$MAIN_ROOT/tmp/checkpoints"
+  local dest="$COMPOSE_DIR/checkpoints"
+  if [[ ! -d "$src" ]]; then
+    echo "dev-compose.sh: checkpoint source $src not found — skipping clone" >&2
+    return
+  fi
+  if [[ -e "$dest" ]]; then
+    echo "dev-compose.sh: docker-compose/web/checkpoints already exists, skipping clone."
+    return
+  fi
+  echo "dev-compose.sh: cloning checkpoints -> docker-compose/web/checkpoints ..."
+  local how=""
+  if [[ "$(uname)" == "Darwin" ]]; then
+    cp -cR "$src" "$dest" 2>/dev/null && how="copy-on-write clone"
+  else
+    cp -R --reflink=auto "$src" "$dest" 2>/dev/null && how="reflink/copy"
+  fi
+  if [[ -z "$how" ]]; then
+    cp -R "$src" "$dest"
+    how="full copy (copy-on-write unavailable)"
+  fi
+  echo "dev-compose.sh: checkpoint clone done ($how)."
+}
+
 _write_env_file() {
   cat >"$ENV_FILE" <<EOF
 COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME
@@ -93,6 +124,7 @@ cmd_setup() {
     target="$REPO_ROOT/$name"
     [[ -e "$target" ]] || ln -s "$MAIN_ROOT/$name" "$target"
   done
+  _clone_checkpoints
   _resolve_identity
   _export_ports
   _write_env_file
