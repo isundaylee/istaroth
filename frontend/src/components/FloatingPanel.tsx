@@ -16,6 +16,9 @@ interface FloatingPanelProps {
   /** When provided, a close button is shown and Escape dismisses the panel. */
   onClose?: () => void
   fullscreen?: boolean
+  /** When false, the panel is rendered ``pointer-events: none`` so it never
+   * intercepts hit-testing (used for non-sticky hover popups). */
+  interactive?: boolean
   bodyClassName?: string
   children: ReactNode
   panelRef?: Ref<HTMLDivElement>
@@ -37,6 +40,7 @@ export function FloatingPanel({
   actions,
   onClose,
   fullscreen = false,
+  interactive = true,
   bodyClassName,
   children,
   panelRef
@@ -52,9 +56,11 @@ export function FloatingPanel({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
 
-  const className = fullscreen
-    ? 'floating-panel floating-panel--fullscreen'
-    : `floating-panel floating-panel--${placement}`
+  const className = [
+    'floating-panel',
+    fullscreen ? 'floating-panel--fullscreen' : `floating-panel--${placement}`,
+    interactive ? '' : 'floating-panel--static'
+  ].filter(Boolean).join(' ')
 
   const style: CSSProperties | undefined = fullscreen
     ? undefined

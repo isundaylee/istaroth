@@ -253,6 +253,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
         top={top}
         left={left}
         fullscreen={isFullscreen}
+        interactive={isSticky}
         eyebrow={t.citation.source}
         title={title}
         actions={actions}
