@@ -67,23 +67,19 @@ _export_ports() {
 # queries, so concurrent stacks must not share one on-disk database). Uses
 # copy-on-write (APFS clonefile / reflink) where the filesystem supports it so
 # the clone is instant and near-zero disk; otherwise it degrades to a full copy.
-# Re-clones only when the source release markers differ from the existing clone.
+# Clones only when the destination doesn't already exist.
 _clone_checkpoints() {
   local src="$MAIN_ROOT/tmp/checkpoints"
-  local dest="$COMPOSE_DIR/.dev-checkpoints"
+  local dest="$COMPOSE_DIR/checkpoints"
   if [[ ! -d "$src" ]]; then
     echo "dev-compose.sh: checkpoint source $src not found — skipping clone" >&2
     return
   fi
-  local src_sig dest_sig
-  src_sig="$(cat "$src"/chs.release "$src"/eng.release 2>/dev/null)"
-  dest_sig="$(cat "$dest"/chs.release "$dest"/eng.release 2>/dev/null)"
-  if [[ -n "$src_sig" && "$src_sig" == "$dest_sig" ]]; then
-    echo "dev-compose.sh: .dev-checkpoints already matches source release, skipping clone."
+  if [[ -e "$dest" ]]; then
+    echo "dev-compose.sh: docker-compose/web/checkpoints already exists, skipping clone."
     return
   fi
-  echo "dev-compose.sh: cloning checkpoints -> docker-compose/web/.dev-checkpoints ..."
-  rm -rf "$dest"
+  echo "dev-compose.sh: cloning checkpoints -> docker-compose/web/checkpoints ..."
   local how=""
   if [[ "$(uname)" == "Darwin" ]]; then
     cp -cR "$src" "$dest" 2>/dev/null && how="copy-on-write clone"
@@ -91,7 +87,6 @@ _clone_checkpoints() {
     cp -R --reflink=auto "$src" "$dest" 2>/dev/null && how="reflink/copy"
   fi
   if [[ -z "$how" ]]; then
-    rm -rf "$dest"
     cp -R "$src" "$dest"
     how="full copy (copy-on-write unavailable)"
   fi
