@@ -2,7 +2,7 @@ x-backend-common: &backend-common
   image: python:3.12-slim
   working_dir: /app
   volumes:
-    - checkpoints:/data/checkpoints
+    - ./.dev-checkpoints:/data/checkpoints
     - ./data:/data/state
     - ../../istaroth:/app/istaroth:ro
     - ../../scripts:/app/scripts:ro
@@ -22,22 +22,6 @@ x-backend-common: &backend-common
     - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
 
 services:
-  seed-checkpoints:
-    image: python:3.12-slim
-    volumes:
-      - ../../tmp/checkpoints:/src/checkpoints:ro
-      - checkpoints:/data/checkpoints
-    command: >-
-      sh -c '
-        if [ -z "$$(ls -A /data/checkpoints 2>/dev/null)" ]; then
-          echo "Seeding checkpoints volume from host...";
-          cp -a /src/checkpoints/. /data/checkpoints/;
-          echo "Done.";
-        else
-          echo "Checkpoints volume already populated, skipping seed.";
-        fi
-      '
-
   backend-deps:
     <<: *backend-common
     image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
@@ -63,14 +47,12 @@ services:
     depends_on:
       backend-deps:
         condition: service_completed_successfully
-      seed-checkpoints:
-        condition: service_completed_successfully
       jaeger:
         condition: service_started
     ports:
       - "${CONDUCTOR_RETRIEVAL_METRICS_HOST_PORT:-8092}:8092"
     volumes:
-      - checkpoints:/data/checkpoints
+      - ./.dev-checkpoints:/data/checkpoints
       - ./data:/data/state
       - ../../istaroth:/app/istaroth
       - ../../scripts:/app/scripts:ro
@@ -99,7 +81,7 @@ services:
       jaeger:
         condition: service_started
     volumes:
-      - checkpoints:/data/checkpoints
+      - ./.dev-checkpoints:/data/checkpoints
       - ./data:/data/state
       - ../../istaroth:/app/istaroth
       - ../../scripts:/app/scripts
@@ -143,6 +125,7 @@ services:
     volumes:
       - ../../frontend:/app
       - frontend-node-modules:/app/node_modules
+      - npm-cache:/root/.npm
 
   jaeger:
     image: cr.jaegertracing.io/jaegertracing/jaeger:2.15.0
@@ -151,7 +134,6 @@ services:
       - "${CONDUCTOR_JAEGER_OTLP_HOST_PORT:-4317}:4317"  # OTLP gRPC receiver
 
 volumes:
-  checkpoints:
   backend-venv:
   frontend-node-modules:
   uv-cache:
@@ -160,3 +142,6 @@ volumes:
   hf-cache:
     external: true
     name: hf-cache
+  npm-cache:
+    external: true
+    name: npm-cache

@@ -69,11 +69,19 @@ Runs all services in Docker with source code mounted from the host for live-relo
 # One-time setup: create shared cache volumes
 docker volume create uv-cache
 docker volume create hf-cache
+docker volume create npm-cache
 
 # Make sure .env.common and .env.web are set up (copy from .env.*.example)
 cd docker-compose/web
 docker compose up     # first run installs deps automatically
 ```
+
+Checkpoints are bind-mounted from `docker-compose/web/.dev-checkpoints`, a
+per-stack copy of `tmp/checkpoints`. `scripts/dev-compose.sh setup` populates it
+(copy-on-write clone where the filesystem supports it, e.g. APFS/btrfs/XFS;
+otherwise a full copy), so each worktree's stack gets its own writable copy —
+Chroma opens its SQLite read-write even for queries, so stacks must not share one
+on-disk database. Re-run `setup` to refresh after updating `tmp/checkpoints`.
 
 After changing `pyproject.toml` or `frontend/package.json`:
 
