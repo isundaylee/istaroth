@@ -1,6 +1,7 @@
 """Library endpoints for browsing text files by category."""
 
 import logging
+import os
 from typing import cast
 
 from fastapi import APIRouter, HTTPException, Query
@@ -9,17 +10,25 @@ from istaroth.agd import localization
 from istaroth.rag import text_set
 from istaroth.rag import types as rag_types
 from istaroth.services.backend import models
-from istaroth.services.backend.dependencies import DocumentStoreSet
+from istaroth.services.backend.dependencies import DocumentStoreSet, LLMManager
 from istaroth.services.backend.utils import (
     handle_unexpected_exception,
     text_metadata_to_library_file_info,
 )
-from istaroth.text import proper_nouns
+from istaroth.text import proper_noun_extraction, proper_nouns
 from istaroth.text import types as text_types
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Model for on-the-fly proper-noun extraction. Defaults to the pipeline default
+# (not thinking-level-expanded, so always selectable under ISTAROTH_AVAILABLE_MODELS=all).
+# Highlighting is supplementary, so a misconfigured/unavailable model surfaces as a
+# 500 the frontend treats as "no highlights" rather than breaking the page.
+_PROPER_NOUN_MODEL = os.environ.get(
+    "ISTAROTH_PROPER_NOUN_MODEL", "gemini-3.1-flash-lite-preview"
+)
 
 
 def _format_snippet(content: str) -> str:
@@ -181,9 +190,10 @@ async def get_proper_nouns(
     document_store_set: DocumentStoreSet,
     language: str = Query(..., description="Language code (CHS, ENG)"),
 ) -> models.ProperNounsResponse:
-    """Get the Genshin-specific proper-noun list for highlighting.
+    """Get the static curated proper-noun list for a language.
 
-    Returns an empty list when no list ships for the language (e.g. ENG).
+    Empty when no list ships for the language (e.g. ENG). The frontend uses this
+    as a fast fallback while per-file on-the-fly extraction is in flight.
     """
     try:
         language_enum = localization.Language(language.upper())
@@ -210,6 +220,90 @@ async def get_proper_nouns(
             ),
         )
     )
+
+
+@router.get(
+    "/api/library/file/{category}/{id}/proper-nouns",
+    response_model=models.ProperNounsResponse,
+)
+@handle_unexpected_exception
+async def get_file_proper_nouns(
+    category: str,
+    id: str,
+    document_store_set: DocumentStoreSet,
+    llm_manager: LLMManager,
+    language: str = Query(..., description="Language code (CHS, ENG)"),
+) -> models.ProperNounsResponse:
+    """Extract a single file's proper nouns for highlighting.
+
+    Runs an LLM over the exact rendered content on the fly (cached by content
+    hash). Only CHS is supported; ENG returns an empty list.
+    """
+    try:
+        language_enum = localization.Language(language.upper())
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid language: {language}. Available: CHS, ENG",
+        )
+
+    if language_enum is not localization.Language.CHS:
+        return models.ProperNounsResponse(nouns=[])
+
+    try:
+        text_set_obj = document_store_set.get_text_set(language_enum)
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    manifest_item = text_set_obj.get_manifest_item(
+        text_types.TextCategory(category), int(id)
+    )
+    if manifest_item is None:
+        raise HTTPException(
+            status_code=404, detail=f"File not found: category={category}, id={id}"
+        )
+
+    content = text_set_obj.get_content(manifest_item.relative_path)
+    if content is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"File not found on disk: {manifest_item.relative_path}",
+        )
+
+    negative_terms = proper_nouns.parse_terms(
+        text_set_obj.get_content(
+            proper_nouns.PROPER_NOUNS_NEGATIVE_RELATIVE_PATH.as_posix()
+        )
+    )
+    try:
+        extracted = await proper_noun_extraction.extract_proper_nouns_cached(
+            content, llm=llm_manager.get_llm(_PROPER_NOUN_MODEL)
+        )
+    except proper_noun_extraction.CharBudgetExceededError:
+        # Over the daily budget: degrade to the static, curated proper-noun list.
+        logger.warning("Proper-noun extraction budget exceeded; serving static list")
+        return models.ProperNounsResponse(
+            nouns=proper_nouns.filter_terms(
+                proper_nouns.parse_terms(
+                    text_set_obj.get_content(
+                        proper_nouns.PROPER_NOUNS_RELATIVE_PATH.as_posix()
+                    )
+                ),
+                negative_terms,
+            )
+        )
+    # Keep only terms that actually appear in the content so the frontend trie can
+    # highlight them (guards against LLM paraphrase/hallucination).
+    nouns = sorted(
+        {
+            term
+            for term in proper_nouns.filter_terms(extracted, negative_terms)
+            if term in content
+        }
+    )
+    return models.ProperNounsResponse(nouns=nouns)
 
 
 @router.get(

@@ -85,6 +85,7 @@ interface QuerySelectionPanelProps {
 interface LoaderData {
   fileContent: string
   fileTitle: string
+  fileId: string
   previousFile: LibraryFileInfo | null
   nextFile: LibraryFileInfo | null
   category: string
@@ -248,6 +249,7 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
   return {
     fileContent: fileData.content,
     fileTitle: fileData.file_info.title,
+    fileId: id,
     previousFile,
     nextFile,
     category,
@@ -261,18 +263,23 @@ function LibraryFileViewer() {
   const t = useT()
   const { language } = useTranslation()
   const navigate = useAppNavigate()
-  const { fileContent, fileTitle, previousFile, nextFile, category, currentId, questSeries, coopCharacter } = useLoaderData() as LoaderData
+  const { fileContent, fileTitle, fileId, previousFile, nextFile, category, currentId, questSeries, coopCharacter } = useLoaderData() as LoaderData
   const answerRef = useRef<HTMLDivElement>(null)
   const selectionUiRef = useRef<HTMLDivElement>(null)
   const activeRequestIdRef = useRef(0)
   const defaultModelRef = useRef<string | null>(null)
   const [selection, setSelection] = useState<SelectionState | null>(null)
   const [panel, setPanel] = useState<SelectionPanel | null>(null)
-  const [properNouns, setProperNouns] = useState<string[]>([])
-  const properNounMatcher = useMemo(
-    () => (properNouns.length > 0 ? buildProperNounMatcher(properNouns) : null),
-    [properNouns]
-  )
+  // Static curated list (per language, fast) and the per-file LLM extraction
+  // (null = still in flight). We highlight nothing for the first 2s, then fall
+  // back to the static list; the LLM result replaces it whenever it arrives.
+  const [staticNouns, setStaticNouns] = useState<string[]>([])
+  const [llmNouns, setLlmNouns] = useState<string[] | null>(null)
+  const [fallbackElapsed, setFallbackElapsed] = useState(false)
+  const properNounMatcher = useMemo(() => {
+    const nouns = llmNouns !== null ? llmNouns : fallbackElapsed ? staticNouns : []
+    return nouns.length > 0 ? buildProperNounMatcher(nouns) : null
+  }, [llmNouns, fallbackElapsed, staticNouns])
 
   // Group the enclosing series' chapters (or the lone chapter) into TOC sections.
   const series = questSeries?.series
@@ -387,20 +394,45 @@ function LibraryFileViewer() {
     activeRequestIdRef.current += 1
   }, [fileContent])
 
+  // Static curated list: fetched once per language, reused across files.
   useEffect(() => {
     let cancelled = false
     fetch(`/api/library/proper-nouns?language=${encodeURIComponent(language.toUpperCase())}`)
       .then((res) => (res.ok ? (res.json() as Promise<ProperNounsResponse>) : null))
       .then((data) => {
-        if (!cancelled) setProperNouns(data?.nouns ?? [])
+        if (!cancelled) setStaticNouns(data?.nouns ?? [])
       })
       .catch(() => {
-        if (!cancelled) setProperNouns([])
+        if (!cancelled) setStaticNouns([])
       })
     return () => {
       cancelled = true
     }
   }, [language])
+
+  // Per-file LLM extraction: show nothing for 2s, then fall back to the static
+  // list; replace with the LLM result whenever it arrives. On failure we leave
+  // llmNouns null so the static fallback stays.
+  useEffect(() => {
+    let cancelled = false
+    setLlmNouns(null)
+    setFallbackElapsed(false)
+    const timer = window.setTimeout(() => {
+      if (!cancelled) setFallbackElapsed(true)
+    }, 2000)
+    fetch(
+      `/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(fileId)}/proper-nouns?language=${encodeURIComponent(language.toUpperCase())}`
+    )
+      .then((res) => (res.ok ? (res.json() as Promise<ProperNounsResponse>) : null))
+      .then((data) => {
+        if (!cancelled && data) setLlmNouns(data.nouns)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [language, category, fileId])
 
   useEffect(() => {
     const handleMouseDown = (event: MouseEvent) => {
