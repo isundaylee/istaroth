@@ -493,6 +493,34 @@ class ArtifactSets(BaseRenderableType[types.ArtifactSetId]):
         return rendering.render_artifact_set(artifact_set_info)
 
 
+class Creatures(BaseRenderableType[str]):
+    """Living-beings archive content type, one file per codex subType group."""
+
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_CREATURE
+    )
+    error_limit: ClassVar[int] = 0
+    error_limit_non_chinese: ClassVar[int] = 2
+
+    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+        """All codex subType groups that have at least one non-disused entry."""
+        return sorted(
+            {
+                entry["subType"]
+                for entry in data_repo.load_animal_codex_excel_config_data().values()
+                if not entry["isDisuse"]
+            }
+        )
+
+    def process(
+        self, renderable_key: str, data_repo: repo.DataRepo
+    ) -> types.RenderedItem | None:
+        """Process a codex subType group into a single rendered file."""
+        return rendering.render_creature_group(
+            processing.get_creature_group_info(renderable_key, data_repo=data_repo)
+        )
+
+
 class TalkGroups(
     BaseRenderableType[tuple[talk_parsing.TalkGroupType, talk_parsing.TalkGroupId]]
 ):

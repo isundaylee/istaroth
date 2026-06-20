@@ -40,6 +40,7 @@ from istaroth.agd.renderable_types import (
     Books,
     CharacterStories,
     Costumes,
+    Creatures,
     Hangouts,
     MaterialTypes,
     Quests,
@@ -486,6 +487,9 @@ def generate_all(
         only_category is None
         or only_category == text_types.TextCategory.AGD_ARTIFACT_SET
     )
+    generate_creatures = (
+        only_category is None or only_category == text_types.TextCategory.AGD_CREATURE
+    )
 
     # Set up multiprocessing pool to reuse across all content generation
     if processes is None:
@@ -511,6 +515,7 @@ def generate_all(
         multiprocessing.Pool(processes=processes) as pool,
     ):
         process_content_type(generate_artifact_sets, ArtifactSets())
+        process_content_type(generate_creatures, Creatures())
         process_content_type(generate_quest, Quests())
         process_content_type(generate_character_stories, CharacterStories())
         process_content_type(generate_subtitles, Subtitles())

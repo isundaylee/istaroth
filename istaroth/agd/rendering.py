@@ -916,6 +916,40 @@ def render_voiceline(voiceline_info: types.VoicelineInfo) -> types.RenderedItem:
     )
 
 
+def render_creature_group(group_info: types.CreatureGroupInfo) -> types.RenderedItem:
+    """Render one codex subType group of creatures into a single RAG-suitable file."""
+    # Hash the subType enum to a JS-safe id (48 bits), mirroring material types.
+    group_id = int(
+        hashlib.sha256(group_info.subtype.encode("utf-8")).hexdigest()[:12], base=16
+    )
+    filename = f"{group_id}_{group_info.subtype}.txt"
+    # Frontend/manifest title is the clean group name (e.g. "Automatons"); the
+    # in-file header keeps the parent type for RAG context, mirroring how material
+    # types use a clean title with a decorated "# Materials: ..." header.
+    title = group_info.subtype_label
+
+    content_lines = [f"# {title} ({group_info.type_label})\n"]
+    for creature in group_info.creatures:
+        content_lines.append(f"## {creature.name}")
+        if creature.special_name is not None:
+            content_lines.append(creature.special_name)
+        if creature.title is not None:
+            content_lines.append(f"Also known as: {creature.title}")
+        content_lines.append("")
+        content_lines.append(creature.description)
+        content_lines.append("")
+
+    return types.RenderedItem(
+        text_metadata=text_types.TextMetadata(
+            category=text_types.TextCategory.AGD_CREATURE,
+            title=title,
+            id=group_id,
+            relative_path=f"{text_types.TextCategory.AGD_CREATURE.value}/{filename}",
+        ),
+        content="\n".join(content_lines).rstrip(),
+    )
+
+
 def render_artifact_set(artifact_set_info: types.ArtifactSetInfo) -> types.RenderedItem:
     """Render artifact set content into RAG-suitable format."""
     # Generate filename based on set name and ID

@@ -180,6 +180,7 @@ export const eng = {
       agd_talk: 'Talks',
       agd_coop: 'Hangout Events',
       agd_voiceline: 'Voicelines',
+      agd_creature: 'Living Beings',
       tps_shishu: 'Shishu Lore Manual'
     },
     errors: {

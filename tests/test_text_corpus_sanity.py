@@ -26,6 +26,9 @@ def test_chinese_corpus_sanity():
         "agd_talk_group/1255_NpcGroup.txt": "遗迹的铭文 (铭文): 「风带来故事的种子，时间使之发芽。」",
         "agd_voiceline/10000089_芙宁娜.txt": "没想到你会对我的事这么上心，这是否意味着你仍然需要我的「力量」呢？然而如今的我…或许无法给你足够的回报…你说看重的是我「本人」？既然这样，就让你我共同出演我们的未来吧。",
         "agd_coop/19017_云堇_-_郊野觅芳踪.txt": "韵宁: 能不能再派几位冒险家？这看着又要过去半天了…",
+        # Verifies the bestiary special name (谢尔比乌斯式机关) and title are
+        # captured alongside the entry's name and description.
+        "agd_creature/97990234451511_CODEX_SUBTYPE_AUTOMATRON.txt": "## 攻坚特化型机关\n谢尔比乌斯式机关\nAlso known as: 攻坚特化型\n\n与「侦察记录型」一样，是最早设计制造的新式发条机关机械之一",
     }
 
     # Test each file and its expected content
@@ -59,6 +62,9 @@ def test_english_corpus_sanity():
         "agd_talk_group/1255_NpcGroup.txt": 'Carving Marks (Inscription): "Seeds of stories, brought by the wind and cultivated by time."',
         "agd_voiceline/10000089_Furina.txt": "I didn't know you cared so much about me. Does that mean that you still need my power? But given the way I am now... there's a chance I won't be able to give you everything you need. Hmm? All you really care about is... me? In that case, then let us act out our future journey together!",
         "agd_coop/19017_Yun_Jin_-_Countryside_Wandering.txt": "Yun Jin: I do apologize, I didn't see you there.",
+        # Verifies the bestiary special name (Meka, Cal. Scherbius) is captured
+        # alongside the entry's name and description.
+        "agd_creature/97990234451511_CODEX_SUBTYPE_AUTOMATRON.txt": "## Assault Specialist Mek\nMeka, Cal. Scherbius\n\nAlongside the Recon Log Mek, this was one of the first new-type clockwork meka to be made",
     }
 
     # Test each file and its expected content

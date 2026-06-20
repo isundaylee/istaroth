@@ -119,6 +119,23 @@ SkillId: TypeAlias = int
 """Avatar skill id (``AvatarSkillExcelConfigDataItem.id``;
 ``AvatarSkillDepotExcelConfigDataItem.energySkill``)."""
 
+AnimalCodexId: TypeAlias = int
+"""Living-beings archive entry id (``AnimalCodexExcelConfigDataItem.id``); the
+creature renderable key. Covers both monsters and wildlife."""
+
+CreatureDescribeId: TypeAlias = int
+"""Creature describe id (``AnimalCodexExcelConfigDataItem.describeId``). Keys
+``MonsterDescribeExcelConfigData`` for ``CODEX_MONSTER`` entries and
+``AnimalDescribeExcelConfigData`` for ``CODEX_ANIMAL`` entries (disjoint ranges)."""
+
+MonsterTitleId: TypeAlias = int
+"""Monster title id (``MonsterDescribeExcelConfigDataItem.titleID``;
+``MonsterTitleExcelConfigDataItem.titleID``)."""
+
+MonsterSpecialNameId: TypeAlias = int
+"""Monster special-name id (``MonsterDescribeExcelConfigDataItem.specialNameLabID``;
+``MonsterSpecialNameExcelConfigDataItem.specialNameLabID``)."""
+
 TextMapHash: TypeAlias = int
 """A TextMap hash (the ``*TextMapHash`` fields); carried as ``int`` end-to-end.
 
@@ -147,6 +164,80 @@ NpcExcelConfigData: TypeAlias = list[NpcExcelConfigDataItem]
 
 Example file: ExcelBinOutput/NpcExcelConfigData.json
 """
+
+
+class AnimalCodexExcelConfigDataItem(TypedDict):
+    """A living-beings archive entry (monster or wildlife).
+
+    Example file: ExcelBinOutput/AnimalCodexExcelConfigData.json
+    """
+
+    id: AnimalCodexId
+    type: str  # CODEX_MONSTER | CODEX_ANIMAL
+    subType: str  # CODEX_SUBTYPE_*
+    describeId: CreatureDescribeId
+    descTextMapHash: TextMapHash
+    sortOrder: int  # in-archive display order within the subType group
+    isDisuse: bool
+
+
+AnimalCodexExcelConfigData: TypeAlias = list[AnimalCodexExcelConfigDataItem]
+
+
+class MonsterDescribeExcelConfigDataItem(TypedDict):
+    """A monster's archive name/title metadata.
+
+    Example file: ExcelBinOutput/MonsterDescribeExcelConfigData.json
+    """
+
+    id: CreatureDescribeId
+    nameTextMapHash: TextMapHash
+    titleID: MonsterTitleId
+    specialNameLabID: MonsterSpecialNameId
+
+
+MonsterDescribeExcelConfigData: TypeAlias = list[MonsterDescribeExcelConfigDataItem]
+
+
+class MonsterTitleExcelConfigDataItem(TypedDict):
+    """A monster title (e.g. ``火之咏者``) referenced by its describe entry.
+
+    Example file: ExcelBinOutput/MonsterTitleExcelConfigData.json
+    """
+
+    titleID: MonsterTitleId
+    titleNameTextMapHash: TextMapHash
+
+
+MonsterTitleExcelConfigData: TypeAlias = list[MonsterTitleExcelConfigDataItem]
+
+
+class MonsterSpecialNameExcelConfigDataItem(TypedDict):
+    """A monster's special/instance name (e.g. ``风魔龙·特瓦林``).
+
+    Example file: ExcelBinOutput/MonsterSpecialNameExcelConfigData.json
+    """
+
+    specialNameLabID: MonsterSpecialNameId
+    specialNameTextMapHash: TextMapHash
+
+
+MonsterSpecialNameExcelConfigData: TypeAlias = list[
+    MonsterSpecialNameExcelConfigDataItem
+]
+
+
+class AnimalDescribeExcelConfigDataItem(TypedDict):
+    """A wildlife animal's archive name metadata.
+
+    Example file: ExcelBinOutput/AnimalDescribeExcelConfigData.json
+    """
+
+    id: CreatureDescribeId
+    nameTextMapHash: TextMapHash
+
+
+AnimalDescribeExcelConfigData: TypeAlias = list[AnimalDescribeExcelConfigDataItem]
 
 
 class DialogTalkRole(TypedDict):
@@ -902,6 +993,35 @@ class AchievementSectionInfo:
     section_id: AchievementGoalId
     section_name: str
     achievements: list[AchievementInfo]
+
+
+@attrs.define
+class CreatureInfo:
+    """A single living-beings archive entry: names and archive description.
+
+    ``special_name``/``title`` are populated for monsters when they differ from
+    ``name`` (wildlife carry only ``name``).
+    """
+
+    codex_id: AnimalCodexId
+    name: str
+    special_name: str | None
+    title: str | None
+    description: str
+
+
+@attrs.define
+class CreatureGroupInfo:
+    """All creatures in one codex ``subType`` group, in archive order.
+
+    ``subtype`` is the raw enum (filename/id); ``type_label``/``subtype_label``
+    are the localized codex group names.
+    """
+
+    subtype: str
+    type_label: str
+    subtype_label: str
+    creatures: list[CreatureInfo]
 
 
 @attrs.define
