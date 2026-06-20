@@ -9,6 +9,7 @@ the same underlying text files; a DocumentStoreSet exposes both views.
 import concurrent.futures
 import functools
 import hashlib
+import io
 import json
 import logging
 import pathlib
@@ -28,6 +29,7 @@ from tqdm import tqdm
 from istaroth import langsmith_utils, utils
 from istaroth.langsmith_utils import traceable
 from istaroth.rag import query_transform, rerank, types, vector_store
+from istaroth.text import proper_nouns
 
 logger = logging.getLogger(__name__)
 _tracer = trace.get_tracer(__name__)
@@ -57,15 +59,14 @@ def _merge_small_chunks(chunks: list[str], min_size: float) -> list[str]:
     return merged_chunks
 
 
-_CUSTOM_DICT_RELATIVE = pathlib.Path("misc/proper_nouns.txt")
-
-
 def _load_custom_jieba_dict(text_path: pathlib.Path) -> None:
     """Load Genshin-specific proper noun dictionary into jieba if available."""
-    dict_path = text_path / _CUSTOM_DICT_RELATIVE
-    if dict_path.exists():
-        jieba.load_userdict(str(dict_path))
-        logger.info("Loaded custom jieba dictionary from %s", dict_path)
+    if terms := proper_nouns.load_terms(text_path):
+        jieba.load_userdict(io.StringIO("\n".join(terms)))
+        logger.info(
+            "Loaded custom jieba dictionary from %s",
+            text_path / proper_nouns.PROPER_NOUNS_RELATIVE_PATH,
+        )
 
 
 @attrs.define
