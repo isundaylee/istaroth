@@ -177,6 +177,8 @@ class CitationResponse(BaseModel):
     metadata: dict[str, Any]
     total_chunks: int
     file_info: LibraryFileInfo
+    start_index: int
+    end_index: int
 
 
 class CitationBatchRequest(BaseModel):

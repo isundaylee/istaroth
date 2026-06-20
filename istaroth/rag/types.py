@@ -23,6 +23,8 @@ class DocumentMetadata(TypedDict):
     path: str
     file_id: str
     chunk_index: int
+    start_index: int
+    end_index: int
 
 
 @attrs.define

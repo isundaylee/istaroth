@@ -40,23 +40,32 @@ def _chinese_tokenizer(text: str) -> list[str]:
     return list(jieba.cut(text))
 
 
-def _merge_small_chunks(chunks: list[str], min_size: float) -> list[str]:
-    """Merge chunks smaller than min_size with the next chunk."""
-    merged_chunks = []
+def _merge_small_chunks(
+    splits: list[Document], min_size: float
+) -> list[tuple[str, int, int]]:
+    """Merge splits smaller than min_size with the following splits.
+
+    Returns (content, start_index, end_index) tuples whose offsets are relative
+    to the text passed to the splitter; end_index is one past the last character
+    of the final merged split, so the merged chunk spans [start_index, end_index).
+    """
+    merged: list[tuple[str, int, int]] = []
     i = 0
-    while i < len(chunks):
-        current_chunk = chunks[i]
+    while i < len(splits):
+        content = splits[i].page_content
+        start = splits[i].metadata["start_index"]
+        end = start + len(splits[i].page_content)
 
-        # Keep merging with next chunks until we get a chunk of sufficient size
-        # or we reach the last chunk
-        while len(current_chunk) < min_size and i + 1 < len(chunks):
+        # Keep merging with next splits until we reach sufficient size or the end
+        while len(content) < min_size and i + 1 < len(splits):
             i += 1
-            current_chunk += "\n\n" + chunks[i]
+            content += "\n\n" + splits[i].page_content
+            end = splits[i].metadata["start_index"] + len(splits[i].page_content)
 
-        merged_chunks.append(current_chunk)
+        merged.append((content, start, end))
         i += 1
 
-    return merged_chunks
+    return merged
 
 
 def _load_custom_jieba_dict(text_path: pathlib.Path) -> None:
@@ -166,6 +175,7 @@ def chunk_documents(
         chunk_overlap=int(chunk_size_multiplier * 100),
         length_function=len,
         is_separator_regex=False,
+        add_start_index=True,
     )
 
     all_documents = {}
@@ -193,17 +203,25 @@ def chunk_documents(
         seen_paths[file_id] = file_path
 
         content = file_path.read_text(encoding="utf-8")
-        chunks = text_splitter.split_text(content.strip())
-        merged_chunks = _merge_small_chunks(chunks, 100 * chunk_size_multiplier)
+        # create_documents records each split's start_index relative to the
+        # stripped text; lead converts those offsets back to the raw file content
+        # that the library file endpoint serves.
+        merged_chunks = _merge_small_chunks(
+            text_splitter.create_documents([content.strip()]),
+            100 * chunk_size_multiplier,
+        )
+        lead = len(content) - len(content.lstrip())
 
         file_docs = dict[int, Document]()
-        for chunk_index, chunk in enumerate(merged_chunks):
+        for chunk_index, (chunk, start, end) in enumerate(merged_chunks):
             metadata: types.DocumentMetadata = {
                 "source": str(file_path),
                 "type": "document",
                 "path": relative_path,
                 "file_id": file_id,
                 "chunk_index": chunk_index,
+                "start_index": start + lead,
+                "end_index": end + lead,
             }
 
             doc = Document(page_content=chunk, metadata=metadata)

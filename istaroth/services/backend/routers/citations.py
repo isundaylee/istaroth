@@ -107,6 +107,8 @@ async def get_citations_batch(
                     metadata=chunk.metadata,
                     total_chunks=total_chunks,
                     file_info=file_info,
+                    start_index=chunk.metadata["start_index"],
+                    end_index=chunk.metadata["end_index"],
                 )
             )
 
