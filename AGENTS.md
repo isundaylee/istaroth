@@ -86,19 +86,13 @@ istaroth/
 - Pass arguments that are not primary inputs to the function itself but rather toolkit objects (e.g. DataRepo) as kw-only args
 
 ## Git Workflow Best Practices
-- Each PR should be a SINGLE commit. Fold the `text/` submodule pointer change
-  into the code commit (`git add text && git commit --amend --no-edit`) rather
-  than keeping a separate `Update text` commit. Squash incremental work into that
-  one commit before opening/updating a PR. (A pure text regen with no code change
-  is just that single commit on its own.)
-- During review, commit (or amend into the single commit) the already-addressed
-  work after each round of review comments but BEFORE you start addressing the
-  next round. This way every new round of changes you make shows up as
-  uncommitted working-tree changes, so the user can review just the latest
-  iteration incrementally. The end state stays a single commit per the rule above.
-- ALWAYS run precommit separately and added resulted changes before you offer to git commit
-- When a commit fixes a GitHub issue, include a closing keyword in the commit message body (e.g. `Closes #55`) so GitHub auto-closes it on push; otherwise the issue must be closed manually.
-- ALWAYS pass PR/commit bodies via a file (`gh pr create --body-file <path>`, `git commit -F <path>`), NOT an inline `--body "..."` string. Bodies routinely contain backticks and apostrophes that the shell tries to expand inside double quotes, which breaks the command.
+- For creating or updating a pull request, follow the `pr` skill
+  (`.agents/skills/pr/SKILL.md`): squashing into a single commit, running
+  pre-commit, passing commit/PR bodies via a file, issue-closing keywords, and
+  the review-iteration flow all live there. The invariant it enforces: each PR is
+  a SINGLE commit, with the `text/` submodule pointer folded into it (not a
+  separate `Update text` commit). A pure text regen with no code change is just
+  that single commit on its own.
 - The `text/` directory is a git submodule (repo `istaroth-text`) holding the generated text corpus and manifests. Regenerated data (e.g. from `scripts/tps_shishu_tools.py`) is committed INSIDE the submodule first (its own commit on the submodule's `main`), then the parent repo records the pointer move by amending it into the code commit (`git add text && git commit --amend --no-edit`), not as a separate `Update text` commit. The submodule's own data commit stays on the submodule; only the parent-repo pointer move is folded into the code commit.
 
 ## Script Development Guidelines
@@ -108,10 +102,26 @@ istaroth/
 
 See the [Web UI section](README.md#web-ui) in the README for environment setup and how to launch the backend and frontend.
 
-### Conductor Docker Compose Stack
-- When working in a Conductor workspace, the user may run the full Docker Compose dev stack through Conductor. Do not launch that stack yourself; if it is not running, ask the user to start it from Conductor.
-- To find the frontend URL for browser testing, inspect `.conductor/settings.toml` and the current `CONDUCTOR_PORT` env var. The Compose frontend publishes `${CONDUCTOR_PORT:-5173}:${CONDUCTOR_PORT:-5173}`, so the workspace frontend is usually `http://127.0.0.1:$CONDUCTOR_PORT/`.
-- Confirm with `docker ps` or a quick `curl -I http://127.0.0.1:$CONDUCTOR_PORT/` before browser testing. Companion ports are assigned by the run script as `CONDUCTOR_PORT+1` etc. for metrics/Jaeger.
+### Per-Worktree Docker Compose Stack
+- Don't launch the stack by default. Only bring it up when the task actually
+  needs a running app (e.g. browser/end-to-end verification); for code, type
+  checks, and unit tests you don't need it.
+- When you do need it, launch the full dev stack for the current worktree
+  yourself with `scripts/dev-compose.sh`. It derives a per-worktree compose
+  project name and port from the workspace, so each worktree gets its own
+  isolated stack:
+  - `scripts/dev-compose.sh setup` — symlink shared env files (`.env.common`,
+    `.env.mcp`, `.env.web`, `tmp`) from the main checkout and write
+    `.dev-stack.env` (run once per worktree).
+  - `scripts/dev-compose.sh up` (add `--foreground` to stream logs) — start the
+    stack; `down` to tear it down; `urls` to print the Web UI / metrics / Jaeger
+    URLs for this worktree.
+- Run `scripts/dev-compose.sh urls` to get the Web UI URL for this worktree; the
+  script derives its port and companion ports (`+1`/`+2`/`+3`/`+4` for
+  metrics/Jaeger) and persists them in `.dev-stack.env`.
+- Confirm with `docker ps` or a quick `curl -I` against the Web UI URL before
+  browser testing. Note that another worktree's stack may also be running with a
+  different project name, so match the project name to this worktree.
 
 ## Regenerating the Text Corpus
 

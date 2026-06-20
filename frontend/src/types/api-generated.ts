@@ -191,6 +191,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/library/proper-nouns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Proper Nouns
+         * @description Get the Genshin-specific proper-noun list for highlighting.
+         *
+         *     Returns an empty list when no list ships for the language (e.g. ENG).
+         */
+        get: operations["get_proper_nouns_api_library_proper_nouns_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/library/quest-hierarchy": {
         parameters: {
             query?: never;
@@ -607,6 +629,17 @@ export interface components {
             models: string[];
             /** Default */
             default: string;
+        };
+        /**
+         * ProperNounsResponse
+         * @description Response model for the library proper-nouns endpoint.
+         *
+         *     ``nouns`` is the Genshin-specific proper-noun list for the language (empty
+         *     when no list ships for it, e.g. ENG), used by the frontend to highlight terms.
+         */
+        ProperNounsResponse: {
+            /** Nouns */
+            nouns: string[];
         };
         /**
          * QueryRequest
@@ -1092,6 +1125,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LibraryFileResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_proper_nouns_api_library_proper_nouns_get: {
+        parameters: {
+            query: {
+                /** @description Language code (CHS, ENG) */
+                language: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProperNounsResponse"];
                 };
             };
             /** @description Validation Error */

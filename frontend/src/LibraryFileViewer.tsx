@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
@@ -17,6 +17,8 @@ import { useAppNavigate } from './hooks/useAppNavigate'
 import { buildLibraryFilePath } from './utils/library'
 import { getClientId } from './utils/clientId'
 import { consumeQueryStream } from './utils/queryStream'
+import { buildProperNounMatcher } from './utils/properNouns'
+import { rehypeProperNouns } from './utils/rehypeProperNouns'
 import type {
   ErrorResponse,
   LibraryFileResponse,
@@ -25,6 +27,7 @@ import type {
   LibraryRetrieveRequest,
   LibraryRetrieveResponse,
   ModelsResponse,
+  ProperNounsResponse,
   ProgressStepStart,
   QueryRequest,
   QuestSeriesResponse,
@@ -265,6 +268,11 @@ function LibraryFileViewer() {
   const defaultModelRef = useRef<string | null>(null)
   const [selection, setSelection] = useState<SelectionState | null>(null)
   const [panel, setPanel] = useState<SelectionPanel | null>(null)
+  const [properNouns, setProperNouns] = useState<string[]>([])
+  const properNounMatcher = useMemo(
+    () => (properNouns.length > 0 ? buildProperNounMatcher(properNouns) : null),
+    [properNouns]
+  )
 
   // Group the enclosing series' chapters (or the lone chapter) into TOC sections.
   const series = questSeries?.series
@@ -318,7 +326,19 @@ function LibraryFileViewer() {
     }
     return fallback
   }
-  const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+  const openSelectionAtRect = useCallback((text: string, rect: DOMRect): boolean => {
+    if (rect.width === 0 && rect.height === 0) return false
+    const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
+    const placement = rect.top > window.innerHeight / 2 ? 'above' : 'below'
+    setSelection({
+      text,
+      top: placement === 'above' ? clamp(rect.top - 8, 8, window.innerHeight - 8) : clamp(rect.bottom + 8, 8, window.innerHeight - 8),
+      left: clamp(rect.left + rect.width / 2, 140, window.innerWidth - 140),
+      placement
+    })
+    setPanel(null)
+    return true
+  }, [])
 
   const captureSelection = useCallback(() => {
     const currentSelection = window.getSelection()
@@ -345,28 +365,42 @@ function LibraryFileViewer() {
       return
     }
 
-    const rect = range.getBoundingClientRect()
-    if (rect.width === 0 && rect.height === 0) {
+    if (!openSelectionAtRect(selectedText, range.getBoundingClientRect())) {
       setSelection(null)
       setPanel(null)
-      return
     }
+  }, [openSelectionAtRect])
 
-    const placement = rect.top > window.innerHeight / 2 ? 'above' : 'below'
-    setSelection({
-      text: selectedText,
-      top: placement === 'above' ? clamp(rect.top - 8, 8, window.innerHeight - 8) : clamp(rect.bottom + 8, 8, window.innerHeight - 8),
-      left: clamp(rect.left + rect.width / 2, 140, window.innerWidth - 140),
-      placement
-    })
-    setPanel(null)
-  }, [])
+  const handleProperNounClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const target = (event.target as HTMLElement).closest('.proper-noun')
+      if (!target || !answerRef.current?.contains(target)) return
+      const text = target.textContent?.trim()
+      if (text) openSelectionAtRect(text, target.getBoundingClientRect())
+    },
+    [openSelectionAtRect]
+  )
 
   useEffect(() => {
     setSelection(null)
     setPanel(null)
     activeRequestIdRef.current += 1
   }, [fileContent])
+
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/library/proper-nouns?language=${encodeURIComponent(language.toUpperCase())}`)
+      .then((res) => (res.ok ? (res.json() as Promise<ProperNounsResponse>) : null))
+      .then((data) => {
+        if (!cancelled) setProperNouns(data?.nouns ?? [])
+      })
+      .catch(() => {
+        if (!cancelled) setProperNouns([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [language])
 
   useEffect(() => {
     const handleMouseDown = (event: MouseEvent) => {
@@ -580,8 +614,13 @@ function LibraryFileViewer() {
             </details>
           )}
 
-          <div ref={answerRef} className="answer" onMouseUp={captureSelection} onKeyUp={captureSelection}>
-            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{fileContent}</ReactMarkdown>
+          <div ref={answerRef} className="answer" onMouseUp={captureSelection} onKeyUp={captureSelection} onClick={handleProperNounClick}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkBreaks]}
+              rehypePlugins={properNounMatcher ? [rehypeProperNouns(properNounMatcher)] : []}
+            >
+              {fileContent}
+            </ReactMarkdown>
           </div>
           {previousFile && (
             <NavButton

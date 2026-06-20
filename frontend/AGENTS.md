@@ -27,6 +27,28 @@ return <button>{t.common.submit}</button>
 - Auto-detects browser language, persists to localStorage
 - Use nested keys for organization (e.g., `citation.*`, `query.*`)
 
+## Type Checking
+
+`tsc`, `eslint`, and `vite` all need `frontend/node_modules`, which is NOT
+populated in a fresh worktree (the Docker dev stack installs deps into its own
+container, not the host worktree). Before running any type check or lint in a
+worktree, install host deps once:
+
+```bash
+cd frontend
+npm ci                       # populates frontend/node_modules from package-lock.json
+node_modules/.bin/tsc --noEmit   # type-check without emitting
+node_modules/.bin/eslint src/    # lint
+```
+
+Notes:
+- `npx tsc` resolves to an unrelated system binary; use `node_modules/.bin/tsc`
+  (or `npm run build`, which calls `tsc && vite build`).
+- `tsc` needs the full dependency tree for module/type resolution, so a partial
+  install (just `typescript`) is not enough — run `npm ci`.
+- This host install is independent of `docker compose run --rm frontend-deps`,
+  which syncs deps inside the container for the running dev stack.
+
 ## API Type Generation
 
 ### Overview
