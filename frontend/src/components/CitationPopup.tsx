@@ -44,7 +44,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
     ref
   ) => {
     const { t } = useTranslation()
-    const citedRef = useRef<HTMLSpanElement>(null)
+    const citedRef = useRef<HTMLDivElement>(null)
 
     // Keep the cited span in view as the cited chunk loads and again once the full text expands.
     useEffect(() => {
@@ -66,22 +66,29 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
       </button>
     )
 
-    const citedSpan = (text: string) => (
-      <span ref={citedRef} className="citation-cited" title={t.citation.current}>
+    // The cited region is rendered as a block marked with a left accent bar and a "cited" badge.
+    const citedBlock = (text: string) => (
+      <div ref={citedRef} className="citation-cited">
+        <div className="citation-cited-label">{t.citation.current}</div>
         {text}
-      </span>
+      </div>
     )
 
     const body = isSticky && citedChunk ? (
       <div style={{ whiteSpace: 'pre-wrap' }}>
-        {fullText != null ? (
-          <>
-            {fullText.slice(0, citedChunk.start_index)}
-            {citedSpan(fullText.slice(citedChunk.start_index, citedChunk.end_index))}
-            {fullText.slice(citedChunk.end_index)}
-          </>
-        ) : (
-          citedSpan(citedChunk.content)
+        {fullText != null ? (() => {
+          // Trim newlines at the cut points so the surrounding context sits flush against the bar.
+          const before = fullText.slice(0, citedChunk.start_index).replace(/\n+$/, '')
+          const after = fullText.slice(citedChunk.end_index).replace(/^\n+/, '')
+          return (
+            <>
+              {before && <div>{before}</div>}
+              {citedBlock(fullText.slice(citedChunk.start_index, citedChunk.end_index).trim())}
+              {after && <div>{after}</div>}
+            </>
+          )
+        })() : (
+          citedBlock(citedChunk.content)
         )}
       </div>
     ) : (

@@ -626,14 +626,21 @@ body {
   background-clip: content-box;
 }
 
-/* Cited span highlighted within the full document text */
+/* Cited chunk marked with a left accent bar within the full document text */
 .citation-cited {
+  margin: 12px 0;
+  border-left: 3px solid var(--color-primary);
+  padding-left: 12px;
+}
+
+.citation-cited-label {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
   background: var(--color-citation-label-bg);
   color: var(--color-primary-dark);
-  border-radius: var(--radius-sm);
-  padding: 0 2px;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
+  font-size: var(--font-xs);
 }
 
 .library-header {
