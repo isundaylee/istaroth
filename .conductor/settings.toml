@@ -2,6 +2,6 @@
 
 [scripts]
 archive = "scripts/dev-compose.sh down"
-run = "scripts/dev-compose.sh up --foreground"
+run = "scripts/dev-compose.sh up"
 run_mode = "concurrent"
 setup = "scripts/dev-compose.sh setup"

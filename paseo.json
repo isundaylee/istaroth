@@ -6,7 +6,7 @@
   "scripts": {
     "dev-compose": {
       "type": "service",
-      "command": "scripts/dev-compose.sh up --foreground"
+      "command": "scripts/dev-compose.sh up"
     }
   }
 }
