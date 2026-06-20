@@ -9,6 +9,9 @@ _resolve_identity() {
   if [[ -n "${CONDUCTOR_WORKSPACE_NAME:-}" ]]; then
     WORKSPACE_NAME="$CONDUCTOR_WORKSPACE_NAME"
     COMPOSE_PROJECT_NAME="conductor-${WORKSPACE_NAME}"
+  elif [[ -n "${PASEO_BRANCH_NAME:-}" ]]; then
+    WORKSPACE_NAME="$PASEO_BRANCH_NAME"
+    COMPOSE_PROJECT_NAME="paseo-${WORKSPACE_NAME}"
   else
     WORKSPACE_NAME="$(basename "$(git -C "$REPO_ROOT" rev-parse --show-toplevel)")"
     COMPOSE_PROJECT_NAME="cursor-${WORKSPACE_NAME}"
@@ -22,6 +25,8 @@ _resolve_identity() {
 _resolve_main_root() {
   if [[ -n "${CONDUCTOR_ROOT_PATH:-}" ]]; then
     MAIN_ROOT="$CONDUCTOR_ROOT_PATH"
+  elif [[ -n "${PASEO_SOURCE_CHECKOUT_PATH:-}" ]]; then
+    MAIN_ROOT="$PASEO_SOURCE_CHECKOUT_PATH"
   else
     MAIN_ROOT="$(git -C "$REPO_ROOT" worktree list --porcelain | awk '/^worktree/ {print $2; exit}')"
   fi
@@ -30,8 +35,12 @@ _resolve_main_root() {
 _export_ports() {
   _resolve_identity
   if [[ -z "${CONDUCTOR_PORT:-}" ]]; then
-    OFFSET=$(( $(echo -n "$WORKSPACE_NAME" | cksum | awk '{print $1}') % 50 * 10 ))
-    export CONDUCTOR_PORT=$((5173 + OFFSET))
+    if [[ -n "${PASEO_WORKTREE_PORT:-}" ]]; then
+      export CONDUCTOR_PORT="$PASEO_WORKTREE_PORT"
+    else
+      OFFSET=$(( $(echo -n "$WORKSPACE_NAME" | cksum | awk '{print $1}') % 50 * 10 ))
+      export CONDUCTOR_PORT=$((5173 + OFFSET))
+    fi
   fi
   export COMPOSE_PROJECT_NAME
   export CONDUCTOR_BACKEND_METRICS_HOST_PORT=$((CONDUCTOR_PORT + 1))
