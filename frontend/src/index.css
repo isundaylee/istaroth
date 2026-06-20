@@ -941,6 +941,8 @@ body {
   color: var(--color-text-subtle);
   font-size: var(--font-sm);
   line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .library-selection-result span {
