@@ -54,24 +54,23 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
       return () => clearTimeout(timer)
     }, [isSticky, citedChunk, fullText])
 
-    // The fullscreen toggle is rendered by FloatingPanel via onToggleFullscreen; actions only adds "Load full text".
-    const actions = isSticky && onLoadFullText && citedChunk && fullText == null && (
-      <button
-        onClick={onLoadFullText}
-        disabled={isLoadingFullText}
-        className="floating-panel__action-btn"
-        title={t.citation.loadAllChunks}
-      >
-        {isLoadingFullText ? t.citation.loadingButton : t.citation.loadAllChunks}
-      </button>
-    )
-
     // The cited region is rendered as a block marked with a left accent bar and a "cited" badge.
     const citedBlock = (text: string) => (
       <div ref={citedRef} className="citation-cited">
         <div className="citation-cited-label">{t.citation.current}</div>
         {text}
       </div>
+    )
+
+    // Dashed gap button (top/bottom); clicking either loads the entire file text.
+    const loadGap = (label: string) => onLoadFullText && (
+      <button
+        onClick={onLoadFullText}
+        disabled={isLoadingFullText}
+        className="citation-gap"
+      >
+        {isLoadingFullText ? t.citation.loadingButton : label}
+      </button>
     )
 
     const body = isSticky && citedChunk ? (
@@ -88,7 +87,11 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
             </>
           )
         })() : (
-          citedBlock(citedChunk.content)
+          <>
+            {citedChunk.chunk_index > 0 && loadGap(t.citation.loadPrevious)}
+            {citedBlock(citedChunk.content)}
+            {citedChunk.chunk_index < citedChunk.total_chunks - 1 && loadGap(t.citation.loadNext)}
+          </>
         )}
       </div>
     ) : (
@@ -106,7 +109,6 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
         interactive={isSticky}
         eyebrow={t.citation.source}
         title={title}
-        actions={actions}
         onClose={isSticky ? onClose : undefined}
         bodyClassName="citation-popup-content"
       >
