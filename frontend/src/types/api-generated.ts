@@ -434,6 +434,10 @@ export interface components {
             /** Total Chunks */
             total_chunks: number;
             file_info: components["schemas"]["LibraryFileInfo"];
+            /** Start Index */
+            start_index: number;
+            /** End Index */
+            end_index: number;
         };
         /**
          * ConversationListResponse

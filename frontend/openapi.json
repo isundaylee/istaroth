@@ -966,6 +966,14 @@
           },
           "file_info": {
             "$ref": "#/components/schemas/LibraryFileInfo"
+          },
+          "start_index": {
+            "type": "integer",
+            "title": "Start Index"
+          },
+          "end_index": {
+            "type": "integer",
+            "title": "End Index"
           }
         },
         "type": "object",
@@ -975,7 +983,9 @@
           "content",
           "metadata",
           "total_chunks",
-          "file_info"
+          "file_info",
+          "start_index",
+          "end_index"
         ],
         "title": "CitationResponse",
         "description": "Response model for citation content endpoint."
