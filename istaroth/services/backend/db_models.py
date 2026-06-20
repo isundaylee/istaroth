@@ -4,7 +4,17 @@ import datetime
 import uuid
 from typing import Optional
 
-from sqlalchemy import JSON, DateTime, Float, Index, Integer, String, Text
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -77,3 +87,28 @@ class ShortURL(Base):
     )
 
     __table_args__ = (Index("ix_short_urls_slug", "slug"),)
+
+
+class QueryCache(Base):
+    """Caches a query's conversation by cache key for instant replay.
+
+    ``cache_key`` is a normalized, language-namespaced opaque string composed by
+    the backend from the client-provided key. First write wins: once an answer
+    exists for a key it is reused as-is.
+    """
+
+    __tablename__ = "query_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    cache_key: Mapped[str] = mapped_column(Text, nullable=False)
+    conversation_uuid: Mapped[str] = mapped_column(
+        String(36), ForeignKey("conversations.uuid"), nullable=False
+    )
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        DateTime,
+        default=lambda: datetime.datetime.now(datetime.timezone.utc).replace(
+            tzinfo=None
+        ),
+    )
+
+    __table_args__ = (UniqueConstraint("cache_key", name="uq_query_cache_key"),)

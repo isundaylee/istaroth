@@ -685,6 +685,8 @@ export interface components {
             chunk_context: number;
             /** Client Id */
             client_id?: string | null;
+            /** Cache Key */
+            cache_key?: string | null;
         };
         /**
          * QueryResponse
