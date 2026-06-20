@@ -58,7 +58,8 @@ Released checkpoints are built by the **Build and Release Checkpoint** GitHub
 Actions workflow (`.github/workflows/build-checkpoint.yml`), triggered manually
 via *workflow_dispatch*. It builds the committed `text/` corpus with the
 DeepInfra embedding backend on a standard runner (no GPU) and publishes a
-`checkpoint/YYYYMMDD-<commit>` release with `chs.tar.gz` / `eng.tar.gz` assets.
+`checkpoint/YYYYMMDD-HHMMSS-<commit>` release with `chs.tar.gz` / `eng.tar.gz`
+assets.
 Requires the `DEEPINFRA_API_KEY` repository secret.
 
 ## Docker Compose (Dev)
