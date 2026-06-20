@@ -1,4 +1,5 @@
 import { useEffect, type CSSProperties, type ReactNode, type Ref } from 'react'
+import { createPortal } from 'react-dom'
 import { useT } from '../contexts/LanguageContext'
 import type { FloatingPlacement } from '../utils/floatingPanel'
 
@@ -77,11 +78,17 @@ export function FloatingPanel({
           : undefined
       }
 
-  return (
+  // Portalled to body so the fixed-positioned panel is anchored to the viewport
+  // even when rendered inside another panel: an ancestor with `transform`
+  // (the centering on `.floating-panel`) would otherwise become its containing
+  // block and `overflow: hidden` would clip it. `data-floating-popup` lets
+  // outside-click handlers recognise clicks landing in any (nested) popup.
+  return createPortal(
     <div
       ref={panelRef}
       className={className}
       style={style}
+      data-floating-popup
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="floating-panel__header">
@@ -119,6 +126,7 @@ export function FloatingPanel({
       <div className={`floating-panel__body${bodyClassName ? ` ${bodyClassName}` : ''}`}>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

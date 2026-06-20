@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useT, useTranslation } from '../contexts/LanguageContext'
 import { SelectionPanelFrame, type SelectionPanel, type SelectionState } from '../components/SelectionPanel'
 import { calculateFloatingPlacement } from '../utils/floatingPanel'
@@ -41,7 +42,6 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   const t = useT()
   const { language } = useTranslation()
   const answerRef = useRef<HTMLDivElement>(null)
-  const selectionUiRef = useRef<HTMLDivElement>(null)
   const activeRequestIdRef = useRef(0)
   const defaultModelRef = useRef<string | null>(null)
   const [selection, setSelection] = useState<SelectionState | null>(null)
@@ -118,8 +118,10 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
 
   useEffect(() => {
     const handleMouseDown = (event: MouseEvent) => {
-      const target = event.target as Node
-      if (answerRef.current?.contains(target) || selectionUiRef.current?.contains(target)) return
+      const target = event.target as HTMLElement
+      // Keep this panel open for clicks in its own answer or in any floating
+      // popup (including nested ones, which portal out of this subtree).
+      if (answerRef.current?.contains(target) || target.closest?.('[data-floating-popup]')) return
       setSelection(null)
       setPanel(null)
       setIsFullscreen(false)
@@ -270,30 +272,33 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   }
 
   const selectionUi = selection ? (
-    <div ref={selectionUiRef}>
-      {!panel && (
+    panel ? (
+      <SelectionPanelFrame
+        panel={panel}
+        placement={selection.placement}
+        top={selection.top}
+        left={selection.left}
+        fullscreen={isFullscreen}
+        retrievePagePath={retrievePagePath}
+        onClose={closeSelectionPanel}
+        onToggleFullscreen={() => setIsFullscreen((value) => !value)}
+      />
+    ) : (
+      // Portalled to body (like FloatingPanel) so the fixed toolbar escapes any
+      // transformed/clipping ancestor when this panel is itself nested.
+      createPortal(
         <div
           className={`library-selection-toolbar library-selection--${selection.placement}`}
           style={{ top: `${selection.top}px`, left: `${selection.left}px` }}
+          data-floating-popup
           onMouseDown={(event) => event.preventDefault()}
         >
           <button type="button" onClick={runKeywordSearch}>{t('library.selection.keywordSearch')}</button>
           <button type="button" onClick={runAsk}>{t('library.selection.ask')}</button>
-        </div>
-      )}
-      {panel && (
-        <SelectionPanelFrame
-          panel={panel}
-          placement={selection.placement}
-          top={selection.top}
-          left={selection.left}
-          fullscreen={isFullscreen}
-          retrievePagePath={retrievePagePath}
-          onClose={closeSelectionPanel}
-          onToggleFullscreen={() => setIsFullscreen((value) => !value)}
-        />
-      )}
-    </div>
+        </div>,
+        document.body
+      )
+    )
   ) : null
 
   return {

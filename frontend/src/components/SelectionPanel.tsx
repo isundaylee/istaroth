@@ -1,4 +1,5 @@
 import { useT } from '../contexts/LanguageContext'
+import { useProperNounSelection } from '../hooks/useProperNounSelection'
 import type { LibraryRetrieveResponse, ProgressStepStart } from '../types/api'
 import { buildLibraryFilePath } from '../utils/library'
 import { AppLink } from './AppLink'
@@ -74,6 +75,9 @@ function RetrievalSelectionPanel({ panel }: { panel: Extract<SelectionPanel, { k
 
 function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind: 'ask' }> }) {
   const t = useT()
+  // Recurse: proper nouns highlighted inside this answer become clickable and
+  // open their own nested selection panel, exactly like the page-level answer.
+  const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(panel.answer)
 
   return (
     <>
@@ -88,12 +92,21 @@ function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind:
         <CitationRenderer content={panel.answer} properNouns={panel.properNouns}>
           {({ answer, citationList }) => (
             <>
-              <div className="answer library-selection-answer">{answer}</div>
+              <div
+                ref={answerRef}
+                className="answer library-selection-answer"
+                onMouseUp={answerHandlers.onMouseUp}
+                onKeyUp={answerHandlers.onKeyUp}
+                onClick={answerHandlers.onClick}
+              >
+                {answer}
+              </div>
               {citationList && (
                 <div className="library-selection-citations" data-citation-container>
                   {citationList}
                 </div>
               )}
+              {selectionUi}
             </>
           )}
         </CitationRenderer>
