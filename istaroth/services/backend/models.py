@@ -271,10 +271,11 @@ class LibraryRetrieveResponse(BaseModel):
 
 
 class ProperNounsResponse(BaseModel):
-    """Response model for the library proper-nouns endpoint.
+    """Response model for the proper-nouns endpoints.
 
-    ``nouns`` is the Genshin-specific proper-noun list for the language (empty
-    when no list ships for it, e.g. ENG), used by the frontend to highlight terms.
+    ``nouns`` are proper nouns the frontend highlights: either the static curated
+    list for a language or those extracted on the fly from a single file's
+    content (empty for languages without support, e.g. ENG).
     """
 
     nouns: list[str]

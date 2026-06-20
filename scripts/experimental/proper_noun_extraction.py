@@ -10,30 +10,13 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent.parent))
 
-from langchain_core import messages
-
 from istaroth import llm_manager, logging_utils
+from istaroth.text import proper_noun_extraction
 
 logging_utils.setup_logging()
 _log = logging.getLogger(__name__)
 
 _SKIP_DIRS = {"manifest", "stats", "misc"}
-
-_SYSTEM_PROMPT = """\
-你是一个专门从文本中提取专有名词的工具。请从给定文本中提取所有专有名词，包括：
-- 人名（角色、历史人物、神明等）
-- 地名（城市、区域、遗迹、自然地标等）
-- 组织名（骑士团、教会、势力等）
-- 特殊物品名（武器、圣遗物、书名等）
-- 种族/物种名
-- 事件名（战争、仪式等）
-- 头衔/称号
-
-规则：
-- 每行输出一个专有名词，不要编号
-- 只输出原文中出现的原始文本，不要翻译或解释
-- 不要输出普通名词或形容词
-- 不要输出任何说明文字"""
 
 _CHECKPOINT_DIR = pathlib.Path("tmp/proper_noun_extraction")
 _OUTPUT_PATH = pathlib.Path("text/chs/misc/proper_nouns.txt")
@@ -61,17 +44,6 @@ def _load_checkpoint(progress_file: pathlib.Path) -> dict[str, list[str]]:
     return completed
 
 
-async def _extract_proper_nouns(text: str, *, llm) -> list[str]:
-    response = await llm.ainvoke(
-        [
-            messages.SystemMessage(content=_SYSTEM_PROMPT),
-            messages.HumanMessage(content=text),
-        ]
-    )
-    raw = llm_manager.extract_text_from_response(response)
-    return [line.strip() for line in raw.strip().splitlines() if line.strip()]
-
-
 def _write_output(completed: dict[str, list[str]]) -> None:
     all_nouns = sorted({noun for nouns in completed.values() for noun in nouns})
     _OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -84,7 +56,7 @@ async def _process_file(
 ) -> tuple[str, list[str]]:
     async with semaphore:
         text = filepath.read_text()
-        nouns = await _extract_proper_nouns(text, llm=llm)
+        nouns = await proper_noun_extraction.extract_proper_nouns(text, llm=llm)
         return str(filepath), nouns
 
 
