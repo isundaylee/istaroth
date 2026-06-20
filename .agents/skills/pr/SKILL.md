@@ -9,6 +9,16 @@ Best Practices" in the root `AGENTS.md`).
 
 ## Workflow
 
+Time each step so the final report can show where the pre-PR work went. Wrap
+each significant command (or group) so its wall-clock duration is captured, e.g.:
+```bash
+s=$(date +%s); pre-commit run; echo "[timing] pre-commit: $(( $(date +%s) - s ))s"
+```
+Keep a running tally of the per-step seconds (pre-commit, type/other checks,
+squash/commit, push, PR create/edit) and surface it in step 6. Don't let timing
+get in the way of the actual work — if a step wasn't run, just omit it from the
+summary rather than reporting a fabricated number.
+
 ### 1. Confirm the branch
 - Never open a PR from the default branch (`main`). If `git rev-parse --abbrev-ref HEAD` is `main`, create a feature branch first (`git switch -c <descriptive-name>`) carrying the working-tree changes.
 - `git fetch origin` and note how the branch relates to `origin/main` so the PR diff is what you expect.
@@ -78,6 +88,13 @@ When the scope grows over review rounds, refresh the description (`gh pr edit
 
 ### 6. Report back
 Print the PR URL (from `gh pr create`/`gh pr view`) so the user can open it.
+
+Also print a short timing summary of the pre-PR steps, using the per-step
+seconds tracked above — one line per step plus a total, e.g.:
+```
+Timing — pre-commit 12s · checks 34s · commit 2s · push 3s · PR create 4s · total 55s
+```
+Only include the steps that actually ran this invocation.
 
 ## Notes
 - Do NOT push or open the PR until the user has had a chance to review when the

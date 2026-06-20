@@ -72,28 +72,15 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
       }
     }, [chunks])
 
-    const actions = isSticky && (
-      <>
-        {onLoadAllChunks && fileId && chunks && chunks.length > 0 && (
-          <button
-            onClick={() => onLoadAllChunks(fileId)}
-            disabled={isLoadingAllChunks}
-            className="floating-panel__action-btn"
-            title={t.citation.loadAllChunks}
-          >
-            {isLoadingAllChunks ? t.citation.loadingButton : t.citation.loadAllChunks}
-          </button>
-        )}
-        {onToggleFullscreen && (
-          <button
-            onClick={onToggleFullscreen}
-            className="floating-panel__action-btn"
-            title={isFullscreen ? t.citation.exitFullscreen : t.citation.enterFullscreen}
-          >
-            {isFullscreen ? '⧉' : '⛶'}
-          </button>
-        )}
-      </>
+    const actions = isSticky && onLoadAllChunks && fileId && chunks && chunks.length > 0 && (
+      <button
+        onClick={() => onLoadAllChunks(fileId)}
+        disabled={isLoadingAllChunks}
+        className="floating-panel__action-btn"
+        title={t.citation.loadAllChunks}
+      >
+        {isLoadingAllChunks ? t.citation.loadingButton : t.citation.loadAllChunks}
+      </button>
     )
 
     const body = isSticky && chunks && fileId ? (
@@ -184,6 +171,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
         top={top}
         left={left}
         fullscreen={isFullscreen}
+        onToggleFullscreen={isSticky ? onToggleFullscreen : undefined}
         interactive={isSticky}
         eyebrow={t.citation.source}
         title={title}
