@@ -99,7 +99,7 @@ export const chs = {
     enterFullscreen: '进入全屏',
     exitFullscreen: '退出全屏',
     close: '关闭',
-    current: '引用位置',
+    current: '引用段落',
     list: {
       title: '引用文献'
     },
