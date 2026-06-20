@@ -7,20 +7,21 @@ import type { FloatingPlacement } from '../utils/floatingPanel'
 interface CitationPopupProps {
   /** File title (the "Source" eyebrow is added by the shared frame). */
   title: string
+  /** Plain content shown in the hover popup (and as a fallback while the cited chunk loads). */
   content?: string
-  chunks?: CitationResponse[]
-  fileId?: string
-  currentChunkIndex: number
+  /** The cited chunk; its start/end offsets locate the cited span within the full text. */
+  citedChunk?: CitationResponse
+  /** Full file text; when present the whole document is rendered with the cited span highlighted. */
+  fullText?: string
   isSticky?: boolean
   isFullscreen?: boolean
   placement: FloatingPlacement
   top: number
   left: number
   onClose?: () => void
-  onLoadChunk?: (citationId: string) => void
-  onLoadAllChunks?: (fileId: string) => void
+  onLoadFullText?: () => void
+  isLoadingFullText?: boolean
   onToggleFullscreen?: () => void
-  loadingCitations?: Set<string>
 }
 
 const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
@@ -28,137 +29,70 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
     {
       title,
       content,
-      chunks,
-      fileId,
-      currentChunkIndex,
+      citedChunk,
+      fullText,
       isSticky = false,
       isFullscreen = false,
       placement,
       top,
       left,
       onClose,
-      onLoadChunk,
-      onLoadAllChunks,
-      onToggleFullscreen,
-      loadingCitations
+      onLoadFullText,
+      isLoadingFullText = false,
+      onToggleFullscreen
     },
     ref
   ) => {
     const { t } = useTranslation()
-    const contentRef = useRef<HTMLDivElement>(null)
-    const previousChunkIdsRef = useRef<Set<string>>(new Set())
+    const citedRef = useRef<HTMLDivElement>(null)
 
-    const isLoadingAllChunks = fileId && loadingCitations
-      ? Array.from(loadingCitations).some(id => id.startsWith(`${fileId}:`))
-      : false
-
-    // Scroll to newly loaded chunk when chunks array changes
+    // Keep the cited span in view as the cited chunk loads and again once the full text expands.
     useEffect(() => {
-      if (chunks && chunks.length > 0 && contentRef.current) {
-        const currentChunkIds = new Set(chunks.map(c => c.chunk_index.toString()))
-        const newChunkIds = [...currentChunkIds].filter(id => !previousChunkIdsRef.current.has(id))
+      if (!isSticky || !citedRef.current) return
+      const el = citedRef.current
+      const timer = setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }), 100)
+      return () => clearTimeout(timer)
+    }, [isSticky, citedChunk, fullText])
 
-        if (newChunkIds.length > 0) {
-          const firstNewChunkId = newChunkIds[0]
-          const chunkElement = contentRef.current.querySelector(`[data-chunk-id="chunk-${firstNewChunkId}"]`)
-          if (chunkElement) {
-            setTimeout(() => {
-              chunkElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })
-            }, 100)
-          }
-        }
+    // The cited region is rendered as a block marked with a left accent bar and a "cited" badge.
+    const citedBlock = (text: string) => (
+      <div ref={citedRef} className="citation-cited">
+        <div className="citation-cited-label">{t.citation.current}</div>
+        {text}
+      </div>
+    )
 
-        previousChunkIdsRef.current = currentChunkIds
-      }
-    }, [chunks])
-
-    const actions = isSticky && onLoadAllChunks && fileId && chunks && chunks.length > 0 && (
+    // Dashed gap button (top/bottom); clicking either loads the entire file text.
+    const loadGap = () => onLoadFullText && (
       <button
-        onClick={() => onLoadAllChunks(fileId)}
-        disabled={isLoadingAllChunks}
-        className="floating-panel__action-btn"
-        title={t.citation.loadAllChunks}
+        onClick={onLoadFullText}
+        disabled={isLoadingFullText}
+        className="citation-gap"
       >
-        {isLoadingAllChunks ? t.citation.loadingButton : t.citation.loadAllChunks}
+        {isLoadingFullText ? t.citation.loadingButton : t.citation.loadAllChunks}
       </button>
     )
 
-    const body = isSticky && chunks && fileId ? (
-      <div ref={contentRef}>
-        {onLoadChunk && chunks.length > 0 && chunks[0].chunk_index > 0 && (() => {
-          const prevId = `${fileId}:ck${chunks[0].chunk_index - 1}`
+    const body = isSticky && citedChunk ? (
+      <div style={{ whiteSpace: 'pre-wrap' }}>
+        {fullText != null ? (() => {
+          // Trim newlines at the cut points so the surrounding context sits flush against the bar.
+          const before = fullText.slice(0, citedChunk.start_index).replace(/\n+$/, '')
+          const after = fullText.slice(citedChunk.end_index).replace(/^\n+/, '')
           return (
-            <button
-              onClick={() => onLoadChunk(prevId)}
-              disabled={loadingCitations?.has(prevId)}
-              className="citation-gap"
-            >
-              {loadingCitations?.has(prevId) ? t.citation.loadingButton : t.citation.loadPrevious}
-            </button>
+            <>
+              {before && <div className="citation-context">{before}</div>}
+              {citedBlock(fullText.slice(citedChunk.start_index, citedChunk.end_index).trim())}
+              {after && <div className="citation-context">{after}</div>}
+            </>
           )
-        })()}
-
-        {chunks.map((chunk, index) => {
-          const nextChunk = chunks[index + 1]
-          const gapSize = nextChunk ? nextChunk.chunk_index - chunk.chunk_index - 1 : 0
-          const isCited = chunk.chunk_index === currentChunkIndex
-          // Expand the gap from the side nearer the cited chunk (cited is never inside a gap).
-          const gapLoadIndex = currentChunkIndex <= chunk.chunk_index
-            ? chunk.chunk_index + 1
-            : (nextChunk ? nextChunk.chunk_index - 1 : 0)
-          const gapStartId = `${fileId}:ck${gapLoadIndex}`
-
-          return (
-            <div key={chunk.chunk_index} data-chunk-id={`chunk-${chunk.chunk_index}`}>
-              <div style={{
-                borderLeft: `3px solid ${isCited ? 'var(--color-primary)' : 'transparent'}`,
-                paddingLeft: '12px'
-              }}>
-                {isCited && (
-                  <div style={{
-                    display: 'inline-block',
-                    marginBottom: '6px',
-                    padding: '2px 8px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--color-citation-label-bg)',
-                    color: 'var(--color-primary-dark)',
-                    fontSize: 'var(--font-xs)'
-                  }}>
-                    {t.citation.current}
-                  </div>
-                )}
-                <div style={{ whiteSpace: 'pre-wrap' }}>{chunk.content}</div>
-              </div>
-
-              {nextChunk && (gapSize > 0 && onLoadChunk ? (
-                <button
-                  onClick={() => onLoadChunk(gapStartId)}
-                  disabled={loadingCitations?.has(gapStartId)}
-                  className="citation-gap"
-                >
-                  {loadingCitations?.has(gapStartId)
-                    ? t.citation.loadingButton
-                    : `⋯ ${gapSize} ${t.citation.chunksHidden}`}
-                </button>
-              ) : (
-                <hr className="citation-divider" />
-              ))}
-            </div>
-          )
-        })}
-
-        {onLoadChunk && chunks.length > 0 && chunks[chunks.length - 1].chunk_index < chunks[chunks.length - 1].total_chunks - 1 && (() => {
-          const nextId = `${fileId}:ck${chunks[chunks.length - 1].chunk_index + 1}`
-          return (
-            <button
-              onClick={() => onLoadChunk(nextId)}
-              disabled={loadingCitations?.has(nextId)}
-              className="citation-gap"
-            >
-              {loadingCitations?.has(nextId) ? t.citation.loadingButton : t.citation.loadNext}
-            </button>
-          )
-        })()}
+        })() : (
+          <>
+            {citedChunk.chunk_index > 0 && loadGap()}
+            {citedBlock(citedChunk.content)}
+            {citedChunk.chunk_index < citedChunk.total_chunks - 1 && loadGap()}
+          </>
+        )}
       </div>
     ) : (
       <div style={{ whiteSpace: 'pre-wrap' }}>{content}</div>
@@ -175,7 +109,6 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
         interactive={isSticky}
         eyebrow={t.citation.source}
         title={title}
-        actions={actions}
         onClose={isSticky ? onClose : undefined}
         bodyClassName="citation-popup-content"
       >

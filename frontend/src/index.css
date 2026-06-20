@@ -626,14 +626,31 @@ body {
   background-clip: content-box;
 }
 
-/* Hairline divider between contiguous chunks */
-.citation-divider {
-  border: none;
-  border-top: 1px solid var(--color-border-light);
-  margin: 16px 0;
+/* Cited chunk marked with a left accent bar within the full document text */
+.citation-cited {
+  margin: 12px 0;
+  border-left: 3px solid var(--color-primary);
+  padding-left: 12px;
 }
 
-/* Collapsed gap between non-contiguous chunks; click to expand */
+/* Context blocks reserve the cited bar's width (transparent) so their text aligns with the cited chunk */
+.citation-context {
+  border-left: 3px solid transparent;
+  padding-left: 12px;
+}
+
+.citation-cited-label {
+  display: block;
+  width: fit-content;
+  margin-bottom: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-citation-label-bg);
+  color: var(--color-primary-dark);
+  font-size: var(--font-xs);
+}
+
+/* Dashed top/bottom button; loads the full document text when clicked */
 .citation-gap {
   display: block;
   width: 100%;
