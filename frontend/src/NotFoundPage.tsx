@@ -33,14 +33,14 @@ function NotFoundPage() {
                 display: 'inline-block',
                 marginTop: '1rem',
                 padding: '0.5rem 1rem',
-                backgroundColor: 'var(--color-primary-link)',
+                backgroundColor: 'var(--color-primary-fill)',
                 color: 'white',
                 textDecoration: 'none',
                 borderRadius: 'var(--radius-md)',
                 transition: 'background-color 0.2s'
               }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-link-hover)'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-link)'}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-fill-hover)'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary-fill)'}
             >
               {t('notFound.backButton')}
             </AppLink>

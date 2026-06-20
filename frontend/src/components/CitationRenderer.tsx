@@ -358,7 +358,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
               onMouseEnter={(e) => handleCitationHover(e, citationId)}
               onClick={(e) => handleCitationClick(e, citationId)}
               style={{
-                color: stickyCitation === citationId ? 'var(--color-primary-link)' : 'var(--color-citation-link)',
+                color: 'var(--color-primary-text)',
                 fontWeight: 500,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
@@ -481,7 +481,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
             >
               <span
                   style={{
-                    color: 'var(--color-citation-link)',
+                    color: 'var(--color-primary-text)',
                     textDecoration: 'none',
                     fontSize: 'var(--font-base)',
                   fontWeight: 500,

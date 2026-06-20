@@ -77,7 +77,7 @@ function KeyboardShortcutsModal({ open, onClose }: KeyboardShortcutsModalProps) 
         <div
           style={{
             padding: '12px 16px',
-            background: 'var(--color-primary)',
+            background: 'var(--color-primary-fill)',
             color: 'white',
             fontWeight: 600,
             fontSize: 'var(--font-sm)',
