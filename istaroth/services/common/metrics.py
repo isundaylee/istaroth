@@ -42,3 +42,9 @@ retrieval_duration_seconds = prometheus_client.Histogram(
     "Retrieval operation duration in seconds",
     ["operation", "language"],
 )
+
+query_cache_total = prometheus_client.Counter(
+    "istaroth_query_cache_total",
+    "Cached query-result lookups",
+    ["language", "result"],  # result: hit | miss
+)

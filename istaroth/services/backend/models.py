@@ -22,6 +22,9 @@ class QueryRequest(BaseModel):
     k: int
     chunk_context: int
     client_id: str | None = None
+    # When set, the result is cached under this key (composed with the language
+    # by the backend) so repeat lookups replay the stored conversation directly.
+    cache_key: str | None = None
 
     @field_validator("k")
     @classmethod

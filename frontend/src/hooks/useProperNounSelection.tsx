@@ -222,7 +222,8 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
         model: await fetchDefaultModel(),
         k: 7,
         chunk_context: 2,
-        client_id: getClientId()
+        client_id: getClientId(),
+        cache_key: query
       }
       const res = await fetch('/api/query/stream', {
         method: 'POST',

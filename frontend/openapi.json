@@ -1489,6 +1489,17 @@
               }
             ],
             "title": "Client Id"
+          },
+          "cache_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cache Key"
           }
         },
         "type": "object",

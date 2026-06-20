@@ -10,6 +10,7 @@ from typing import Any, AsyncIterator
 import anyio
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from istaroth import llm_errors
@@ -151,6 +152,89 @@ async def _extract_answer_proper_nouns(
             return []
 
 
+def _compose_cache_key(request: models.QueryRequest) -> str:
+    """Build the stored cache key: ``{language}:{normalized client key}``.
+
+    The backend namespaces by language (an ENG answer is not valid for a CHS
+    query) and normalizes for case-insensitive matching. Returns an empty string
+    when the client supplied no key (caching disabled for the request).
+    """
+    client_key = (request.cache_key or "").strip().lower()
+    if not client_key:
+        return ""
+    return f"{request.language.strip().lower()}:{client_key}"
+
+
+async def _lookup_query_cache(
+    db_session: DBSession, cache_key: str
+) -> models.QueryResponse | None:
+    """Return the cached answer for ``cache_key``, or ``None`` on miss."""
+    cache_row = (
+        await db_session.execute(
+            select(db_models.QueryCache).where(
+                db_models.QueryCache.cache_key == cache_key
+            )
+        )
+    ).scalar_one_or_none()
+    if cache_row is None:
+        return None
+    conversation = (
+        await db_session.execute(
+            select(db_models.Conversation).where(
+                db_models.Conversation.uuid == cache_row.conversation_uuid
+            )
+        )
+    ).scalar_one_or_none()
+    if conversation is None:
+        # A cache row pointing at a missing conversation is a data-integrity
+        # bug (the FK should forbid it); surface it rather than mask as a miss.
+        raise AssertionError(
+            f"query_cache entry {cache_key!r} references missing conversation "
+            f"{cache_row.conversation_uuid!r}"
+        )
+    short_url = (
+        await db_session.execute(
+            select(db_models.ShortURL).where(
+                db_models.ShortURL.target_path == f"/conversation/{conversation.uuid}"
+            )
+        )
+    ).scalar_one_or_none()
+    if short_url is None:
+        raise AssertionError(
+            f"No short URL found for conversation {conversation.uuid!r}"
+        )
+    return models.QueryResponse(
+        question=conversation.question,
+        answer=conversation.answer,
+        conversation_uuid=conversation.uuid,
+        language=conversation.language,
+        short_slug=short_url.slug,
+        proper_nouns=conversation.proper_nouns or [],
+        final_generation_input_text_length=(
+            conversation.final_generation_input_text_length or 0
+        ),
+        retrieval_unique_chunk_count=conversation.retrieval_unique_chunk_count or 0,
+        retrieval_unique_file_count=conversation.retrieval_unique_file_count or 0,
+    )
+
+
+async def _populate_query_cache(
+    db_session: DBSession, cache_key: str, conversation_uuid: str
+) -> None:
+    """Record the cache_key → conversation mapping (first write wins)."""
+    try:
+        async with db_session.begin_nested():
+            db_session.add(
+                db_models.QueryCache(
+                    cache_key=cache_key,
+                    conversation_uuid=conversation_uuid,
+                )
+            )
+        await db_session.commit()
+    except IntegrityError:
+        await db_session.rollback()
+
+
 @router.post(
     "/api/query/stream",
     responses={
@@ -176,6 +260,27 @@ async def query_stream(
     followed by a terminal ``done`` event carrying the ``QueryResponse`` (or an
     ``error`` event). The client shows every step that has started but not ended.
     """
+    language_name = request.language.upper()
+    cache_key = _compose_cache_key(request)
+
+    if cache_key:
+        cached = await _lookup_query_cache(db_session, cache_key)
+        if cached is not None:
+            metrics.query_cache_total.labels(language=language_name, result="hit").inc()
+            logger.info("Query cache hit for %r", cache_key)
+
+            async def _generate_cached() -> AsyncIterator[bytes]:
+                event = models.QueryStreamDone(result=cached)
+                yield (json.dumps(event.model_dump()) + "\n").encode()
+
+            return StreamingResponse(
+                _generate_cached(),
+                media_type="application/x-ndjson",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+            )
+        metrics.query_cache_total.labels(language=language_name, result="miss").inc()
+        logger.info("Query cache miss for %r", cache_key)
+
     rag_pipeline, language_name, language_enum, text_set_obj = _build_pipeline(
         request, document_store_set, llm_manager
     )
@@ -221,6 +326,10 @@ async def query_stream(
                 conversation_uuid, short_slug = await _save_conversation(
                     db_session, request, result, generation_time, proper_nouns
                 )
+                if cache_key:
+                    await _populate_query_cache(
+                        db_session, cache_key, conversation_uuid
+                    )
                 terminal["event"] = models.QueryStreamDone(
                     result=models.QueryResponse(
                         question=request.question,
