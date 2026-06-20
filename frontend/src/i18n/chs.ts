@@ -180,6 +180,7 @@ export const chs = {
       agd_talk: '对话',
       agd_coop: '邀约事件',
       agd_voiceline: '语音台词',
+      agd_creature: '生物志',
       tps_shishu: '诗漱原神世界观手册'
     },
     errors: {

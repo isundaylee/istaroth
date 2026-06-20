@@ -5,7 +5,14 @@ from unittest import mock
 
 import pytest
 
-from istaroth.agd import localization, processing, repo, talk_parsing, types
+from istaroth.agd import (
+    localization,
+    processing,
+    renderable_types,
+    repo,
+    talk_parsing,
+    types,
+)
 
 
 def test_book100_metadata(data_repo: repo.DataRepo) -> None:
@@ -492,3 +499,61 @@ def test_english_language_support(english_data_repo: repo.DataRepo) -> None:
         # If the test fails due to missing English text maps, skip the test
         if "TextMapENG.json" in str(e):
             pytest.skip(f"English text map not available: {e}")
+
+
+def test_creature_24068801_info(data_repo: repo.DataRepo) -> None:
+    """The Fontaine Assault Specialist Mek resolves its names and description."""
+    info = processing.get_creature_info(24068801, data_repo=data_repo)
+
+    assert info.codex_id == 24068801
+    if data_repo.language is not localization.Language.CHS:
+        pytest.skip("Name/description assertions are CHS-specific")
+    assert info.name == "攻坚特化型机关"
+    assert info.special_name == "谢尔比乌斯式机关"
+    assert info.title == "攻坚特化型"
+    assert info.description.startswith("与「侦察记录型」一样")
+
+
+def test_creature_wildlife_info_has_no_monster_names(data_repo: repo.DataRepo) -> None:
+    """Wildlife entries carry only a name; no special name or title."""
+    info = processing.get_creature_info(28020101, data_repo=data_repo)
+
+    assert info.special_name is None
+    assert info.title is None
+    if data_repo.language is localization.Language.CHS:
+        assert info.name == "雪狐"
+
+
+def test_creature_group_automatron_info(data_repo: repo.DataRepo) -> None:
+    """The Automatron group is ordered by sortOrder and includes the mek."""
+    group = processing.get_creature_group_info(
+        "CODEX_SUBTYPE_AUTOMATRON", data_repo=data_repo
+    )
+
+    assert group.subtype == "CODEX_SUBTYPE_AUTOMATRON"
+    assert 24068801 in {c.codex_id for c in group.creatures}
+    codex = data_repo.load_animal_codex_excel_config_data()
+    expected_order = sorted(
+        (
+            entry
+            for entry in codex.values()
+            if entry["subType"] == "CODEX_SUBTYPE_AUTOMATRON" and not entry["isDisuse"]
+        ),
+        key=lambda e: (e["sortOrder"], e["id"]),
+    )
+    assert [c.codex_id for c in group.creatures] == [e["id"] for e in expected_order]
+    if data_repo.language is localization.Language.CHS:
+        assert group.type_label == "魔物"
+        assert group.subtype_label == "自律机关"
+
+
+def test_creatures_discover_returns_subtype_groups(data_repo: repo.DataRepo) -> None:
+    """Discovery enumerates the codex subType groups with non-disused entries."""
+    codex = data_repo.load_animal_codex_excel_config_data()
+    discovered = renderable_types.Creatures().discover(data_repo)
+
+    assert discovered == sorted(
+        {entry["subType"] for entry in codex.values() if not entry["isDisuse"]}
+    )
+    # Far fewer files than entries: a dozen-ish groups vs. hundreds of creatures.
+    assert len(discovered) < 20 < len(codex)

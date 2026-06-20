@@ -663,6 +663,73 @@ def test_render_character_story_traveler_constellations_grouped() -> None:
     assert "Hydro One: H1" in content
 
 
+def test_render_creature_group_monster() -> None:
+    """A monster group renders a group header plus each entry's names and description."""
+    rendered = rendering.render_creature_group(
+        types.CreatureGroupInfo(
+            subtype="CODEX_SUBTYPE_AUTOMATRON",
+            type_label="魔物",
+            subtype_label="自律机关",
+            creatures=[
+                types.CreatureInfo(
+                    codex_id=24068801,
+                    name="攻坚特化型机关",
+                    special_name="谢尔比乌斯式机关",
+                    title="攻坚特化型",
+                    description="与「侦察记录型」一样，是最早设计制造的新式发条机关机械之一。",
+                ),
+                types.CreatureInfo(
+                    codex_id=20070101,
+                    name="遗迹守卫",
+                    special_name=None,
+                    title=None,
+                    description="古代文明的造物。",
+                ),
+            ],
+        )
+    )
+
+    assert (
+        rendered.text_metadata.relative_path
+        == "agd_creature/"
+        + str(rendered.text_metadata.id)
+        + "_CODEX_SUBTYPE_AUTOMATRON.txt"
+    )
+    assert rendered.text_metadata.title == "自律机关"
+    assert rendered.content == (
+        "# 自律机关 (魔物)\n\n"
+        "## 攻坚特化型机关\n"
+        "谢尔比乌斯式机关\n"
+        "Also known as: 攻坚特化型\n\n"
+        "与「侦察记录型」一样，是最早设计制造的新式发条机关机械之一。\n\n"
+        "## 遗迹守卫\n\n"
+        "古代文明的造物。"
+    )
+
+
+def test_render_creature_group_stable_id() -> None:
+    """The group id/filename derive deterministically from the subType enum."""
+    a = rendering.render_creature_group(
+        types.CreatureGroupInfo(
+            subtype="CODEX_SUBTYPE_FISH",
+            type_label="野生生物",
+            subtype_label="鱼类",
+            creatures=[
+                types.CreatureInfo(
+                    codex_id=28040101,
+                    name="黑背鲈鱼",
+                    special_name=None,
+                    title=None,
+                    description="常见的鱼类。",
+                )
+            ],
+        )
+    )
+
+    assert a.text_metadata.relative_path.endswith("_CODEX_SUBTYPE_FISH.txt")
+    assert a.content == "# 鱼类 (野生生物)\n\n## 黑背鲈鱼\n\n常见的鱼类。"
+
+
 def test_render_book_series_english() -> None:
     """A series renders one file with a per-volume English annotation line."""
     series_info = types.BookSeriesInfo(

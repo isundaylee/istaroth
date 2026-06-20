@@ -811,6 +811,15 @@ class DataRepo:
         self.load_avatar_talent_excel_config_data()
         self.load_avatar_skill_excel_config_data()
 
+        # Warm the living-beings archive configs so forked creature workers inherit
+        # the parsed codex index and describe/title/special-name lookups instead of
+        # each re-parsing them.
+        self.load_animal_codex_excel_config_data()
+        self.load_monster_describe_excel_config_data()
+        self.load_monster_title_excel_config_data()
+        self.load_monster_special_name_excel_config_data()
+        self.load_animal_describe_excel_config_data()
+
     @functools.lru_cache(maxsize=None)
     def load_talk_excel_config_data(self) -> types.TalkExcelConfigData:
         """Load and return the raw talk Excel configuration data."""
@@ -937,6 +946,64 @@ class DataRepo:
         with open(file_path, encoding="utf-8") as f:
             data: types.FettersExcelConfigData = json.load(f)
             return data
+
+    @functools.lru_cache(maxsize=None)
+    def load_animal_codex_excel_config_data(
+        self,
+    ) -> dict[types.AnimalCodexId, types.AnimalCodexExcelConfigDataItem]:
+        """Load AnimalCodexExcelConfigData.json keyed by codex entry id."""
+        file_path = self.agd_path / "ExcelBinOutput" / "AnimalCodexExcelConfigData.json"
+        with open(file_path, encoding="utf-8") as f:
+            data: types.AnimalCodexExcelConfigData = json.load(f)
+            return {entry["id"]: entry for entry in data}
+
+    @functools.lru_cache(maxsize=None)
+    def load_monster_describe_excel_config_data(
+        self,
+    ) -> dict[types.CreatureDescribeId, types.MonsterDescribeExcelConfigDataItem]:
+        """Load MonsterDescribeExcelConfigData.json keyed by describe id."""
+        file_path = (
+            self.agd_path / "ExcelBinOutput" / "MonsterDescribeExcelConfigData.json"
+        )
+        with open(file_path, encoding="utf-8") as f:
+            data: types.MonsterDescribeExcelConfigData = json.load(f)
+            return {entry["id"]: entry for entry in data}
+
+    @functools.lru_cache(maxsize=None)
+    def load_monster_title_excel_config_data(
+        self,
+    ) -> dict[types.MonsterTitleId, types.MonsterTitleExcelConfigDataItem]:
+        """Load MonsterTitleExcelConfigData.json keyed by title id."""
+        file_path = (
+            self.agd_path / "ExcelBinOutput" / "MonsterTitleExcelConfigData.json"
+        )
+        with open(file_path, encoding="utf-8") as f:
+            data: types.MonsterTitleExcelConfigData = json.load(f)
+            return {entry["titleID"]: entry for entry in data}
+
+    @functools.lru_cache(maxsize=None)
+    def load_monster_special_name_excel_config_data(
+        self,
+    ) -> dict[types.MonsterSpecialNameId, types.MonsterSpecialNameExcelConfigDataItem]:
+        """Load MonsterSpecialNameExcelConfigData.json keyed by special-name id."""
+        file_path = (
+            self.agd_path / "ExcelBinOutput" / "MonsterSpecialNameExcelConfigData.json"
+        )
+        with open(file_path, encoding="utf-8") as f:
+            data: types.MonsterSpecialNameExcelConfigData = json.load(f)
+            return {entry["specialNameLabID"]: entry for entry in data}
+
+    @functools.lru_cache(maxsize=None)
+    def load_animal_describe_excel_config_data(
+        self,
+    ) -> dict[types.CreatureDescribeId, types.AnimalDescribeExcelConfigDataItem]:
+        """Load AnimalDescribeExcelConfigData.json keyed by describe id."""
+        file_path = (
+            self.agd_path / "ExcelBinOutput" / "AnimalDescribeExcelConfigData.json"
+        )
+        with open(file_path, encoding="utf-8") as f:
+            data: types.AnimalDescribeExcelConfigData = json.load(f)
+            return {entry["id"]: entry for entry in data}
 
     @functools.lru_cache(maxsize=None)
     def load_main_quest_excel_config_data(
