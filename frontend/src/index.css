@@ -653,6 +653,16 @@ body {
   text-align: center;
 }
 
+.answer .proper-noun {
+  border-bottom: 1px dotted var(--color-primary);
+  cursor: pointer;
+}
+
+.answer .proper-noun:hover {
+  background: var(--color-primary-active-bg);
+  border-radius: var(--radius-sm);
+}
+
 .library-selection-toolbar {
   position: fixed;
   z-index: 1200;

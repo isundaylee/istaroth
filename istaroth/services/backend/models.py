@@ -270,6 +270,16 @@ class LibraryRetrieveResponse(BaseModel):
     results: list[LibraryRetrieveResult]
 
 
+class ProperNounsResponse(BaseModel):
+    """Response model for the library proper-nouns endpoint.
+
+    ``nouns`` is the Genshin-specific proper-noun list for the language (empty
+    when no list ships for it, e.g. ENG), used by the frontend to highlight terms.
+    """
+
+    nouns: list[str]
+
+
 class QuestHierarchyQuest(BaseModel):
     """A single quest leaf in the quest hierarchy."""
 

@@ -175,6 +175,44 @@ async def get_file(
     return models.LibraryFileResponse(file_info=file_info, content=content)
 
 
+# Same list jieba loads as a custom tokenizer dict (see rag.document_store).
+_PROPER_NOUNS_RELATIVE_PATH = "misc/proper_nouns.txt"
+
+
+@router.get("/api/library/proper-nouns", response_model=models.ProperNounsResponse)
+@handle_unexpected_exception
+async def get_proper_nouns(
+    document_store_set: DocumentStoreSet,
+    language: str = Query(..., description="Language code (CHS, ENG)"),
+) -> models.ProperNounsResponse:
+    """Get the Genshin-specific proper-noun list for highlighting.
+
+    Returns an empty list when no list ships for the language (e.g. ENG).
+    """
+    try:
+        language_enum = localization.Language(language.upper())
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid language: {language}. Available: CHS, ENG",
+        )
+
+    try:
+        text_set_obj = document_store_set.get_text_set(language_enum)
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    content = text_set_obj.get_content(_PROPER_NOUNS_RELATIVE_PATH)
+    nouns = (
+        [line.strip() for line in content.splitlines() if line.strip()]
+        if content
+        else []
+    )
+    return models.ProperNounsResponse(nouns=nouns)
+
+
 @router.get(
     "/api/library/quest-hierarchy",
     response_model=models.QuestHierarchyResponse,

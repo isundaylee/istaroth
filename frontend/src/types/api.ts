@@ -27,6 +27,7 @@ export type LibraryCategoriesResponse = components['schemas']['LibraryCategories
 export type LibraryFileInfo = components['schemas']['LibraryFileInfo']
 export type LibraryFilesResponse = components['schemas']['LibraryFilesResponse']
 export type LibraryFileResponse = components['schemas']['LibraryFileResponse']
+export type ProperNounsResponse = components['schemas']['ProperNounsResponse']
 export type QuestHierarchyResponse = components['schemas']['QuestHierarchyResponse']
 export type QuestSeriesResponse = components['schemas']['QuestSeriesResponse']
 export type QuestHierarchyType = components['schemas']['QuestHierarchyType']

@@ -444,6 +444,51 @@
         }
       }
     },
+    "/api/library/proper-nouns": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Get Proper Nouns",
+        "description": "Get the Genshin-specific proper-noun list for highlighting.\n\nReturns an empty list when no list ships for the language (e.g. ENG).",
+        "operationId": "get_proper_nouns_api_library_proper_nouns_get",
+        "parameters": [
+          {
+            "name": "language",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Language code (CHS, ENG)",
+              "title": "Language"
+            },
+            "description": "Language code (CHS, ENG)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProperNounsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/library/quest-hierarchy": {
       "get": {
         "tags": [
@@ -1323,6 +1368,23 @@
         ],
         "title": "ModelsResponse",
         "description": "Response model for available models endpoint."
+      },
+      "ProperNounsResponse": {
+        "properties": {
+          "nouns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Nouns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nouns"
+        ],
+        "title": "ProperNounsResponse",
+        "description": "Response model for the library proper-nouns endpoint.\n\n``nouns`` is the Genshin-specific proper-noun list for the language (empty\nwhen no list ships for it, e.g. ENG), used by the frontend to highlight terms."
       },
       "QueryRequest": {
         "properties": {
