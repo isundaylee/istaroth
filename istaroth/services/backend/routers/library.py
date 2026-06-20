@@ -282,15 +282,21 @@ async def get_file_proper_nouns(
 
 
 @router.get(
-    "/api/library/quest-hierarchy",
-    response_model=models.QuestHierarchyResponse,
+    "/api/library/hierarchy/{category}",
+    response_model=models.HierarchyResponse,
 )
 @handle_unexpected_exception
-async def get_quest_hierarchy(
+async def get_hierarchy(
+    category: str,
     document_store_set: DocumentStoreSet,
     language: str = Query(..., description="Language code (CHS, ENG)"),
-) -> models.QuestHierarchyResponse:
-    """Get the browsable quest hierarchy (type -> series -> chapter -> quest)."""
+) -> models.HierarchyResponse:
+    """Get the browsable document hierarchy for a category.
+
+    Categories with a dedicated builder (quests, hangouts) return their pre-baked
+    multi-level tree; any other category returns a flat, depth-1 list of file
+    leaves synthesized from the manifest.
+    """
     try:
         language_enum = localization.Language(language.upper())
     except ValueError:
@@ -306,148 +312,27 @@ async def get_quest_hierarchy(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    hierarchy = text_set_obj.get_quest_hierarchy()
-    if hierarchy is None:
-        raise HTTPException(status_code=404, detail="Quest hierarchy not available")
+    if (hierarchy := text_set_obj.get_hierarchy(category)) is not None:
+        return models.HierarchyResponse.model_validate(hierarchy)
 
-    return models.QuestHierarchyResponse.model_validate(hierarchy)
-
-
-@router.get(
-    "/api/library/quest-series/{id}",
-    response_model=models.QuestSeriesResponse,
-)
-@handle_unexpected_exception
-async def get_quest_series(
-    id: str,
-    document_store_set: DocumentStoreSet,
-    language: str = Query(..., description="Language code (CHS, ENG)"),
-) -> models.QuestSeriesResponse:
-    """Get the series (or lone chapter) enclosing a quest, for its detail-page TOC."""
+    # Flat category: synthesize a depth-1 tree of file leaves from the manifest.
     try:
-        language_enum = localization.Language(language.upper())
+        text_category = text_types.TextCategory(category)
     except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid language: {language}. Available: CHS, ENG",
-        )
-
-    try:
-        text_set_obj = document_store_set.get_text_set(language_enum)
-    except KeyError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-    # 404 when there is no hierarchy or the quest is absent from it; the detail
-    # page treats the TOC as supplementary and simply omits it on failure.
-    hierarchy = text_set_obj.get_quest_hierarchy()
-    if hierarchy is None:
-        raise HTTPException(status_code=404, detail="Quest hierarchy not available")
-
-    quest_id = int(id)
-    for type_node in hierarchy["types"]:
-        quest_type = type_node["quest_type"]
-        for series in type_node["series"]:
-            if any(
-                quest["id"] == quest_id
-                for chapter in series["chapters"]
-                for quest in chapter["quests"]
-            ):
-                return models.QuestSeriesResponse(
-                    quest_type=quest_type,
-                    series=models.QuestHierarchySeries.model_validate(series),
-                )
-        for chapter in type_node["chapters"]:
-            if any(quest["id"] == quest_id for quest in chapter["quests"]):
-                return models.QuestSeriesResponse(
-                    quest_type=quest_type,
-                    chapter=models.QuestHierarchyChapter.model_validate(chapter),
-                )
-        if any(quest["id"] == quest_id for quest in type_node["standalone_quests"]):
-            return models.QuestSeriesResponse(quest_type=quest_type)
-
-    raise HTTPException(
-        status_code=404, detail=f"Quest {quest_id} not found in hierarchy"
+        raise HTTPException(status_code=404, detail=f"Unknown category: {category}")
+    items = sorted(
+        (
+            item
+            for item in text_set_obj.get_manifest()
+            if item.category == text_category
+        ),
+        key=lambda item: item.id,
     )
-
-
-@router.get(
-    "/api/library/coop-hierarchy",
-    response_model=models.CoopHierarchyResponse,
-)
-@handle_unexpected_exception
-async def get_coop_hierarchy(
-    document_store_set: DocumentStoreSet,
-    language: str = Query(..., description="Language code (CHS, ENG)"),
-) -> models.CoopHierarchyResponse:
-    """Get the browsable hangout hierarchy (character -> chapter -> quest)."""
-    try:
-        language_enum = localization.Language(language.upper())
-    except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid language: {language}. Available: CHS, ENG",
-        )
-
-    try:
-        text_set_obj = document_store_set.get_text_set(language_enum)
-    except KeyError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-    hierarchy = text_set_obj.get_coop_hierarchy()
-    if hierarchy is None:
-        raise HTTPException(status_code=404, detail="Hangout hierarchy not available")
-
-    return models.CoopHierarchyResponse.model_validate(hierarchy)
-
-
-@router.get(
-    "/api/library/coop-character/{id}",
-    response_model=models.CoopCharacterResponse,
-)
-@handle_unexpected_exception
-async def get_coop_character(
-    id: str,
-    document_store_set: DocumentStoreSet,
-    language: str = Query(..., description="Language code (CHS, ENG)"),
-) -> models.CoopCharacterResponse:
-    """Get the character (and enclosing chapter) of a hangout quest, for its TOC."""
-    try:
-        language_enum = localization.Language(language.upper())
-    except ValueError:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid language: {language}. Available: CHS, ENG",
-        )
-
-    try:
-        text_set_obj = document_store_set.get_text_set(language_enum)
-    except KeyError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-    # 404 when there is no hierarchy or the quest is absent from it; the detail
-    # page treats the TOC as supplementary and simply omits it on failure.
-    hierarchy = text_set_obj.get_coop_hierarchy()
-    if hierarchy is None:
-        raise HTTPException(status_code=404, detail="Hangout hierarchy not available")
-
-    quest_id = int(id)
-    for character in hierarchy["characters"]:
-        for chapter in character["chapters"]:
-            if any(quest["id"] == quest_id for quest in chapter["quests"]):
-                return models.CoopCharacterResponse(
-                    avatar_id=character["avatar_id"],
-                    character_name=character["character_name"],
-                    chapter=models.CoopHierarchyChapter.model_validate(chapter),
-                )
-
-    raise HTTPException(
-        status_code=404, detail=f"Hangout quest {quest_id} not found in hierarchy"
+    return models.HierarchyResponse(
+        nodes=[
+            models.HierarchyNode(key=f"q{item.id}", title=item.title, file_id=item.id)
+            for item in items
+        ]
     )
 
 

@@ -12,9 +12,7 @@ import ConversationPage, { conversationPageLoader } from './ConversationPage'
 import HistoryPage, { historyPageLoader } from './HistoryPage'
 import ShortURLRedirect, { shortURLLoader } from './ShortURLRedirect'
 import LibraryCategoriesPage, { libraryCategoriesPageLoader } from './LibraryCategoriesPage'
-import QuestHierarchyPage, { questHierarchyPageLoader } from './QuestHierarchyPage'
-import CoopHierarchyPage, { coopHierarchyPageLoader } from './CoopHierarchyPage'
-import LibraryFilesPage, { libraryFilesPageLoader } from './LibraryFilesPage'
+import HierarchyPage, { libraryCategoryLoader } from './HierarchyPage'
 import LibraryFileViewer, { libraryFileViewerLoader } from './LibraryFileViewer'
 import NotFoundPage from './NotFoundPage'
 
@@ -46,10 +44,17 @@ const router = createBrowserRouter([
       { path: "/conversation/:id", element: <ConversationPage />, loader: conversationPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/history", element: <HistoryPage />, loader: historyPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/library", element: <LibraryCategoriesPage />, loader: libraryCategoriesPageLoader, errorElement: <ErrorBoundary /> },
-      { path: "/library/agd_quest", element: <QuestHierarchyPage />, loader: questHierarchyPageLoader, errorElement: <ErrorBoundary /> },
-      { path: "/library/agd_coop", element: <CoopHierarchyPage />, loader: coopHierarchyPageLoader, errorElement: <ErrorBoundary /> },
-      { path: "/library/:category", element: <LibraryFilesPage />, loader: libraryFilesPageLoader, errorElement: <ErrorBoundary /> },
-      { path: "/library/:category/:id", element: <LibraryFileViewer />, loader: libraryFileViewerLoader, errorElement: <ErrorBoundary /> },
+      {
+        path: "/library/:category",
+        id: "library-category",
+        loader: libraryCategoryLoader,
+        errorElement: <ErrorBoundary />,
+        children: [
+          { index: true, element: <HierarchyPage /> },
+          { path: "browse/*", element: <HierarchyPage /> },
+          { path: ":id", element: <LibraryFileViewer />, loader: libraryFileViewerLoader },
+        ],
+      },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

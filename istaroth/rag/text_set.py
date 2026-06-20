@@ -122,16 +122,19 @@ class TextSet:
             return None
         return file_path.read_text(encoding="utf-8")
 
-    def get_quest_hierarchy(self) -> dict[str, Any] | None:
-        """Return the generated quest hierarchy tree, or None if absent."""
-        path = self.text_path / "metadata" / "agd" / "quest_hierarchy.json"
+    @functools.cached_property
+    def _hierarchies(self) -> dict[str, Any]:
+        """All pre-baked document hierarchies, keyed by category value."""
+        path = self.text_path / "metadata" / "agd" / "hierarchy.json"
         if not path.exists():
-            return None
+            return {}
         return json.loads(path.read_text(encoding="utf-8"))
 
-    def get_coop_hierarchy(self) -> dict[str, Any] | None:
-        """Return the generated hangout (Coop) hierarchy tree, or None if absent."""
-        path = self.text_path / "metadata" / "agd" / "coop_hierarchy.json"
-        if not path.exists():
-            return None
-        return json.loads(path.read_text(encoding="utf-8"))
+    def get_hierarchy(self, category: str) -> dict[str, Any] | None:
+        """Return the pre-baked document hierarchy for a category, or None.
+
+        Only categories with a dedicated builder (quests, hangouts) are pre-baked;
+        flat categories return None and are synthesized from the manifest by the
+        caller.
+        """
+        return self._hierarchies.get(category)

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
+import { useLoaderData, useRouteLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
-import { useT, useTranslation } from './contexts/LanguageContext'
+import { useTranslation, useT } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
 import LibraryHeader from './components/LibraryHeader'
+import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
 import NavButton from './components/NavButton'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
@@ -14,28 +15,20 @@ import { useAppNavigate } from './hooks/useAppNavigate'
 import { useProperNounSelection } from './hooks/useProperNounSelection'
 import { buildProperNounMatcher } from './utils/properNouns'
 import { rehypeProperNouns } from './utils/rehypeProperNouns'
+import { categoryLabel, findLeafPath, flattenLeaves, nodeLabel } from './utils/hierarchy'
 import type {
+  HierarchyNode,
+  HierarchyResponse,
   LibraryFileResponse,
-  LibraryFilesResponse,
-  LibraryFileInfo,
   ProperNounsResponse,
-  QuestSeriesResponse,
-  CoopCharacterResponse
 } from './types/api'
-
-const QUEST_CATEGORY = 'agd_quest'
-const COOP_CATEGORY = 'agd_coop'
 
 interface LoaderData {
   fileContent: string
   fileTitle: string
   fileId: string
-  previousFile: LibraryFileInfo | null
-  nextFile: LibraryFileInfo | null
   category: string
-  currentId: number | null
-  questSeries: QuestSeriesResponse | null
-  coopCharacter: CoopCharacterResponse | null
+  currentId: number
 }
 
 export async function libraryFileViewerLoader({ params, request }: LoaderFunctionArgs): Promise<LoaderData> {
@@ -45,56 +38,20 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
   }
 
   const language = getLanguageFromUrl(request.url)
-  const isQuest = category === QUEST_CATEGORY
-  const isCoop = category === COOP_CATEGORY
-
-  const [fileRes, filesRes, tocRes] = await Promise.all([
-    fetch(`/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(id)}?language=${language}`),
-    fetch(`/api/library/files/${encodeURIComponent(category)}?language=${language}`),
-    isQuest
-      ? fetch(`/api/library/quest-series/${encodeURIComponent(id)}?language=${language}`)
-      : isCoop
-      ? fetch(`/api/library/coop-character/${encodeURIComponent(id)}?language=${language}`)
-      : Promise.resolve(null)
-  ])
-
-  if (!fileRes.ok) {
-    throw new Response(translate(language, 'library.errors.loadFailed'), { status: fileRes.status })
+  const res = await fetch(
+    `/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(id)}?language=${language}`
+  )
+  if (!res.ok) {
+    throw new Response(translate(language, 'library.errors.loadFailed'), { status: res.status })
   }
 
-  const fileData = (await fileRes.json()) as LibraryFileResponse
-  let previousFile: LibraryFileInfo | null = null
-  let nextFile: LibraryFileInfo | null = null
-
-  if (filesRes.ok) {
-    const filesData = (await filesRes.json()) as LibraryFilesResponse
-    const currentId = parseInt(id, 10)
-    const currentIndex = filesData.files.findIndex((file) => file.id === currentId)
-    if (currentIndex > 0) previousFile = filesData.files[currentIndex - 1]
-    if (currentIndex >= 0 && currentIndex < filesData.files.length - 1) nextFile = filesData.files[currentIndex + 1]
-  }
-
-  // The TOC is supplementary; a failed fetch must not break the viewer.
-  let questSeries: QuestSeriesResponse | null = null
-  let coopCharacter: CoopCharacterResponse | null = null
-  if (tocRes && tocRes.ok) {
-    if (isQuest) {
-      questSeries = (await tocRes.json()) as QuestSeriesResponse
-    } else if (isCoop) {
-      coopCharacter = (await tocRes.json()) as CoopCharacterResponse
-    }
-  }
-
+  const fileData = (await res.json()) as LibraryFileResponse
   return {
     fileContent: fileData.content,
     fileTitle: fileData.file_info.title,
     fileId: id,
-    previousFile,
-    nextFile,
     category,
-    currentId: isQuest || isCoop ? parseInt(id, 10) : null,
-    questSeries,
-    coopCharacter
+    currentId: parseInt(id, 10),
   }
 }
 
@@ -102,7 +59,8 @@ function LibraryFileViewer() {
   const t = useT()
   const { language } = useTranslation()
   const navigate = useAppNavigate()
-  const { fileContent, fileTitle, fileId, previousFile, nextFile, category, currentId, questSeries, coopCharacter } = useLoaderData() as LoaderData
+  const { fileContent, fileTitle, fileId, category, currentId } = useLoaderData() as LoaderData
+  const { nodes } = useRouteLoaderData('library-category') as HierarchyResponse
   const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(fileContent)
   // Static curated list (per language, fast) and the per-file LLM extraction
   // (null = still in flight). We highlight nothing for the first 2s, then fall
@@ -115,48 +73,54 @@ function LibraryFileViewer() {
     return nouns.length > 0 ? buildProperNounMatcher(nouns) : null
   }, [llmNouns, fallbackElapsed, staticNouns])
 
-  // Group the enclosing series' chapters (or the lone chapter) into TOC sections.
-  const series = questSeries?.series
-  const chapter = questSeries?.chapter
+  const catLabel = categoryLabel(category, t)
 
-  // For quests/hangouts, return to the enclosing hierarchy view (the quest type,
-  // or the hangout's character + chapter) rather than the flat category root.
-  let backPath: string
-  if (category === QUEST_CATEGORY && questSeries?.quest_type) {
-    backPath = `/library/${QUEST_CATEGORY}?type=${encodeURIComponent(questSeries.quest_type)}${
-      !series && !chapter ? '&standalone=1' : ''
-    }`
-  } else if (category === COOP_CATEGORY && coopCharacter) {
-    backPath = `/library/${COOP_CATEGORY}?avatar=${encodeURIComponent(
-      coopCharacter.avatar_id
-    )}&chapter=${encodeURIComponent(coopCharacter.chapter.chapter_id)}`
-  } else {
-    backPath = `/library/${encodeURIComponent(category)}`
-  }
+  // Locate the file within the shared category tree to derive the breadcrumb
+  // trail, the table of contents, and prev/next. A file absent from the tree
+  // (e.g. a quest with no hierarchy placement) simply degrades to no ancestors.
+  const path = findLeafPath(nodes, currentId)
+  const ancestors = path ? path.slice(0, -1) : []
+  const browseTo = (depth: number) =>
+    `/library/${encodeURIComponent(category)}/browse/${ancestors
+      .slice(0, depth)
+      .map((node) => node.key)
+      .join('/')}`
 
-  const translateCategory = (category: string): string => {
-    const translationKey = `library.categories.${category}`
-    const translated = t(translationKey)
-    return translated === translationKey ? category : translated
+  const crumbs: Crumb[] = [
+    { label: t('library.title'), to: '/library' },
+    { label: catLabel, to: `/library/${encodeURIComponent(category)}` },
+    ...ancestors.map((node, index) => ({
+      label: nodeLabel(node, t) || t('library.noFileName'),
+      to: browseTo(index + 1),
+    })),
+    { label: fileTitle || catLabel },
+  ]
+
+  const backPath =
+    ancestors.length > 0 ? browseTo(ancestors.length) : `/library/${encodeURIComponent(category)}`
+  const backText =
+    ancestors.length > 0 ? nodeLabel(ancestors[ancestors.length - 1], t) || catLabel : catLabel
+
+  // TOC: rooted at the "section" node (the series/chapter/character grouping),
+  // i.e. the ancestor just below the top-level type/character node.
+  const tocRoot: HierarchyNode | null =
+    ancestors.length >= 2 ? ancestors[1] : ancestors.length === 1 ? ancestors[0] : null
+  let tocSections: { title: string; leaves: HierarchyNode[] }[] = []
+  let tocTitle = ''
+  if (tocRoot?.children) {
+    tocSections = tocRoot.children.some((child) => child.children != null)
+      ? tocRoot.children.map((group) => ({ title: nodeLabel(group, t), leaves: flattenLeaves([group]) }))
+      : [{ title: '', leaves: tocRoot.children }]
+    tocTitle = nodeLabel(tocRoot, t) || t('library.tableOfContents')
   }
-  // TOC sections and header come from the quest series/chapter or, for hangouts,
-  // the character's enclosing act.
-  let tocGroups: { title: string; quests: { id: number; title: string }[] }[]
-  let tocTitle: string
-  if (series) {
-    tocGroups = series.chapters.map((c) => ({ title: c.chapter_title, quests: c.quests }))
-    tocTitle = series.series_title
-  } else if (chapter) {
-    tocGroups = [{ title: chapter.chapter_title, quests: chapter.quests }]
-    tocTitle = t('library.questSeriesToc')
-  } else if (coopCharacter) {
-    tocGroups = [{ title: coopCharacter.chapter.chapter_title, quests: coopCharacter.chapter.quests }]
-    tocTitle = t('library.coopCharacterToc')
-  } else {
-    tocGroups = []
-    tocTitle = ''
-  }
-  const tocQuestCount = tocGroups.reduce((sum, group) => sum + group.quests.length, 0)
+  const tocLeafCount = tocSections.reduce((sum, section) => sum + section.leaves.length, 0)
+
+  // prev/next span the whole category in tree (depth-first) order.
+  const leaves = flattenLeaves(nodes)
+  const currentIndex = leaves.findIndex((leaf) => leaf.file_id === currentId)
+  const previousFile = currentIndex > 0 ? leaves[currentIndex - 1] : null
+  const nextFile =
+    currentIndex >= 0 && currentIndex < leaves.length - 1 ? leaves[currentIndex + 1] : null
 
   // Static curated list: fetched once per language, reused across files.
   useEffect(() => {
@@ -204,12 +168,14 @@ function LibraryFileViewer() {
       <main className="main">
         <PageCard>
           <LibraryHeader
-            title={fileTitle || translateCategory(category)}
+            title={fileTitle || catLabel}
             backPath={backPath}
-            backText={t('library.backToFiles')}
+            backText={backText}
           />
 
-          {tocQuestCount > 1 && (
+          <Breadcrumbs crumbs={crumbs} />
+
+          {tocLeafCount > 1 && (
             <details
               open
               style={{
@@ -223,24 +189,24 @@ function LibraryFileViewer() {
                 {tocTitle}
               </summary>
               <div style={{ marginTop: '0.5rem' }}>
-                {tocGroups.map((group, groupIndex) => (
-                  <div key={groupIndex} style={{ marginBottom: '0.5rem' }}>
-                    {tocGroups.length > 1 && (
+                {tocSections.map((section, sectionIndex) => (
+                  <div key={sectionIndex} style={{ marginBottom: '0.5rem' }}>
+                    {tocSections.length > 1 && (
                       <p style={{ margin: '0.25rem 0', color: 'var(--color-text-secondary)', fontSize: 'var(--font-sm)' }}>
-                        {group.title}
+                        {section.title}
                       </p>
                     )}
                     <div style={{ fontSize: 'var(--font-sm)', lineHeight: 1.8 }}>
-                      {group.quests.map((quest, questIndex) => (
-                        <span key={quest.id}>
-                          {questIndex > 0 && <span style={{ color: 'var(--color-text-muted)' }}> / </span>}
-                          {quest.id === currentId ? (
+                      {section.leaves.map((leaf, leafIndex) => (
+                        <span key={leaf.key}>
+                          {leafIndex > 0 && <span style={{ color: 'var(--color-text-muted)' }}> / </span>}
+                          {leaf.file_id === currentId ? (
                             <span style={{ fontWeight: 600, color: 'var(--color-primary-text)' }}>
-                              {quest.title || t('library.noFileName')}
+                              {leaf.title || t('library.noFileName')}
                             </span>
                           ) : (
                             <button
-                              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(quest.id)}`)}
+                              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(leaf.file_id!)}`)}
                               style={{
                                 background: 'none',
                                 border: 'none',
@@ -251,7 +217,7 @@ function LibraryFileViewer() {
                                 textAlign: 'left'
                               }}
                             >
-                              {quest.title || t('library.noFileName')}
+                              {leaf.title || t('library.noFileName')}
                             </button>
                           )}
                         </span>
@@ -273,7 +239,7 @@ function LibraryFileViewer() {
           </div>
           {previousFile && (
             <NavButton
-              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(previousFile.id)}`)}
+              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(previousFile.file_id!)}`)}
               label={t('library.previous')}
               title={previousFile.title || t('library.noFileName')}
               marginTop="2rem"
@@ -281,7 +247,7 @@ function LibraryFileViewer() {
           )}
           {nextFile && (
             <NavButton
-              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(nextFile.id)}`)}
+              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(nextFile.file_id!)}`)}
               label={t('library.next')}
               title={nextFile.title || t('library.noFileName')}
               marginTop={previousFile ? '1rem' : '2rem'}
@@ -290,7 +256,7 @@ function LibraryFileViewer() {
           <NavButton
             onClick={() => navigate(backPath)}
             label={t('library.backToFiles')}
-            title={translateCategory(category)}
+            title={backText}
             marginTop={previousFile || nextFile ? '1rem' : '2rem'}
           />
         </PageCard>

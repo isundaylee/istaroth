@@ -189,6 +189,8 @@ export const chs = {
       invalidCategory: '无效分类'
     },
     noFileName: '未命名',
+    tableOfContents: '目录',
+    breadcrumbAriaLabel: '面包屑导航',
     filterPlaceholder: '按标题筛选...',
     noFilterResults: '没有匹配的文档',
     previous: '上一篇',

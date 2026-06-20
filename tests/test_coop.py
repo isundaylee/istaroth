@@ -120,11 +120,17 @@ def test_build_coop_hierarchy_character_chapter_quest(data_repo: repo.DataRepo) 
     ]
     hierarchy = coop_hierarchy.build_coop_hierarchy(coop_items, data_repo=data_repo)
 
-    yunjin = next(c for c in hierarchy.characters if c.character_name == "云堇")
-    [chapter] = yunjin.chapters
-    assert chapter.chapter_title == "弦歌知雅意"
-    assert (19017, "郊野觅芳踪") in [(q.id, q.title) for q in chapter.quests]
+    # Yunjin has a single act, so its quest leaves hang directly off the character.
+    yunjin = next(c for c in hierarchy.nodes if c.title == "云堇")
+    assert yunjin.children is not None
+    assert all(leaf.file_id is not None for leaf in yunjin.children)
+    assert (19017, "郊野觅芳踪") in [
+        (leaf.file_id, leaf.title) for leaf in yunjin.children
+    ]
 
-    # Noelle is the one character split across two hangout chapters (acts).
-    noelle = next(c for c in hierarchy.characters if c.character_name == "诺艾尔")
-    assert len(noelle.chapters) == 2
+    # Noelle is the one character split across two hangout chapters (acts), so her
+    # children are chapter groups rather than bare quest leaves.
+    noelle = next(c for c in hierarchy.nodes if c.title == "诺艾尔")
+    assert noelle.children is not None
+    assert len(noelle.children) == 2
+    assert all(ch.children is not None and ch.file_id is None for ch in noelle.children)

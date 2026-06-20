@@ -552,67 +552,22 @@
         }
       }
     },
-    "/api/library/quest-hierarchy": {
+    "/api/library/hierarchy/{category}": {
       "get": {
         "tags": [
           "library"
         ],
-        "summary": "Get Quest Hierarchy",
-        "description": "Get the browsable quest hierarchy (type -> series -> chapter -> quest).",
-        "operationId": "get_quest_hierarchy_api_library_quest_hierarchy_get",
+        "summary": "Get Hierarchy",
+        "description": "Get the browsable document hierarchy for a category.\n\nCategories with a dedicated builder (quests, hangouts) return their pre-baked\nmulti-level tree; any other category returns a flat, depth-1 list of file\nleaves synthesized from the manifest.",
+        "operationId": "get_hierarchy_api_library_hierarchy__category__get",
         "parameters": [
           {
-            "name": "language",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Language code (CHS, ENG)",
-              "title": "Language"
-            },
-            "description": "Language code (CHS, ENG)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QuestHierarchyResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/library/quest-series/{id}": {
-      "get": {
-        "tags": [
-          "library"
-        ],
-        "summary": "Get Quest Series",
-        "description": "Get the series (or lone chapter) enclosing a quest, for its detail-page TOC.",
-        "operationId": "get_quest_series_api_library_quest_series__id__get",
-        "parameters": [
-          {
-            "name": "id",
+            "name": "category",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Id"
+              "title": "Category"
             }
           },
           {
@@ -633,106 +588,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/QuestSeriesResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/library/coop-hierarchy": {
-      "get": {
-        "tags": [
-          "library"
-        ],
-        "summary": "Get Coop Hierarchy",
-        "description": "Get the browsable hangout hierarchy (character -> chapter -> quest).",
-        "operationId": "get_coop_hierarchy_api_library_coop_hierarchy_get",
-        "parameters": [
-          {
-            "name": "language",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Language code (CHS, ENG)",
-              "title": "Language"
-            },
-            "description": "Language code (CHS, ENG)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CoopHierarchyResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/library/coop-character/{id}": {
-      "get": {
-        "tags": [
-          "library"
-        ],
-        "summary": "Get Coop Character",
-        "description": "Get the character (and enclosing chapter) of a hangout quest, for its TOC.",
-        "operationId": "get_coop_character_api_library_coop_character__id__get",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Id"
-            }
-          },
-          {
-            "name": "language",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Language code (CHS, ENG)",
-              "title": "Language"
-            },
-            "description": "Language code (CHS, ENG)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CoopCharacterResponse"
+                  "$ref": "#/components/schemas/HierarchyResponse"
                 }
               }
             }
@@ -1123,119 +979,6 @@
         "title": "ConversationSummary",
         "description": "Lightweight conversation metadata for the history list."
       },
-      "CoopCharacterResponse": {
-        "properties": {
-          "avatar_id": {
-            "type": "integer",
-            "title": "Avatar Id"
-          },
-          "character_name": {
-            "type": "string",
-            "title": "Character Name"
-          },
-          "chapter": {
-            "$ref": "#/components/schemas/CoopHierarchyChapter"
-          }
-        },
-        "type": "object",
-        "required": [
-          "avatar_id",
-          "character_name",
-          "chapter"
-        ],
-        "title": "CoopCharacterResponse",
-        "description": "The character (and enclosing chapter) of a hangout quest, for its TOC.\n\nOnly returned for a hangout quest present in the hierarchy, so\n``character_name`` is always set; ``chapter`` is the enclosing act."
-      },
-      "CoopHierarchyChapter": {
-        "properties": {
-          "chapter_id": {
-            "type": "integer",
-            "title": "Chapter Id"
-          },
-          "chapter_title": {
-            "type": "string",
-            "title": "Chapter Title"
-          },
-          "quests": {
-            "items": {
-              "$ref": "#/components/schemas/CoopHierarchyQuest"
-            },
-            "type": "array",
-            "title": "Quests"
-          }
-        },
-        "type": "object",
-        "required": [
-          "chapter_id",
-          "chapter_title",
-          "quests"
-        ],
-        "title": "CoopHierarchyChapter",
-        "description": "One hangout chapter (act) grouping a character's hangout quests."
-      },
-      "CoopHierarchyCharacter": {
-        "properties": {
-          "avatar_id": {
-            "type": "integer",
-            "title": "Avatar Id"
-          },
-          "character_name": {
-            "type": "string",
-            "title": "Character Name"
-          },
-          "chapters": {
-            "items": {
-              "$ref": "#/components/schemas/CoopHierarchyChapter"
-            },
-            "type": "array",
-            "title": "Chapters"
-          }
-        },
-        "type": "object",
-        "required": [
-          "avatar_id",
-          "character_name",
-          "chapters"
-        ],
-        "title": "CoopHierarchyCharacter",
-        "description": "One character and the hangout chapters (acts) under them."
-      },
-      "CoopHierarchyQuest": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "title": {
-            "type": "string",
-            "title": "Title"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "title"
-        ],
-        "title": "CoopHierarchyQuest",
-        "description": "A single hangout quest leaf in the hangout hierarchy."
-      },
-      "CoopHierarchyResponse": {
-        "properties": {
-          "characters": {
-            "items": {
-              "$ref": "#/components/schemas/CoopHierarchyCharacter"
-            },
-            "type": "array",
-            "title": "Characters"
-          }
-        },
-        "type": "object",
-        "required": [
-          "characters"
-        ],
-        "title": "CoopHierarchyResponse",
-        "description": "Response model for the hangout hierarchy endpoint."
-      },
       "ExampleQuestionResponse": {
         "properties": {
           "question": {
@@ -1267,6 +1010,84 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HierarchyNode": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "title_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title Key"
+          },
+          "children": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/HierarchyNode"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Children"
+          },
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "title": "HierarchyNode",
+        "description": "One node in a browsable document hierarchy.\n\nA node is either a group (``children`` set) or a leaf (``file_id`` set, a\nviewable file). Data-derived labels use ``title``; labels translated on the\nfrontend (a quest type, \"standalone\") carry an i18n ``title_key`` instead."
+      },
+      "HierarchyResponse": {
+        "properties": {
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/HierarchyNode"
+            },
+            "type": "array",
+            "title": "Nodes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nodes"
+        ],
+        "title": "HierarchyResponse",
+        "description": "Response model for the document hierarchy of a single category."
       },
       "LibraryCategoriesResponse": {
         "properties": {
@@ -1675,168 +1496,6 @@
         ],
         "title": "QueryStreamStepStart",
         "description": "A pipeline step has started (shown until its matching step_end)."
-      },
-      "QuestHierarchyChapter": {
-        "properties": {
-          "chapter_id": {
-            "type": "integer",
-            "title": "Chapter Id"
-          },
-          "chapter_title": {
-            "type": "string",
-            "title": "Chapter Title"
-          },
-          "quests": {
-            "items": {
-              "$ref": "#/components/schemas/QuestHierarchyQuest"
-            },
-            "type": "array",
-            "title": "Quests"
-          }
-        },
-        "type": "object",
-        "required": [
-          "chapter_id",
-          "chapter_title",
-          "quests"
-        ],
-        "title": "QuestHierarchyChapter",
-        "description": "One chapter (act) grouping a set of quests."
-      },
-      "QuestHierarchyQuest": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "title": {
-            "type": "string",
-            "title": "Title"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "title"
-        ],
-        "title": "QuestHierarchyQuest",
-        "description": "A single quest leaf in the quest hierarchy."
-      },
-      "QuestHierarchyResponse": {
-        "properties": {
-          "types": {
-            "items": {
-              "$ref": "#/components/schemas/QuestHierarchyType"
-            },
-            "type": "array",
-            "title": "Types"
-          }
-        },
-        "type": "object",
-        "required": [
-          "types"
-        ],
-        "title": "QuestHierarchyResponse",
-        "description": "Response model for the quest hierarchy endpoint."
-      },
-      "QuestHierarchySeries": {
-        "properties": {
-          "series_id": {
-            "type": "integer",
-            "title": "Series Id"
-          },
-          "series_title": {
-            "type": "string",
-            "title": "Series Title"
-          },
-          "chapters": {
-            "items": {
-              "$ref": "#/components/schemas/QuestHierarchyChapter"
-            },
-            "type": "array",
-            "title": "Chapters"
-          }
-        },
-        "type": "object",
-        "required": [
-          "series_id",
-          "series_title",
-          "chapters"
-        ],
-        "title": "QuestHierarchySeries",
-        "description": "A series (questline) grouping chapters that share a chapter group."
-      },
-      "QuestHierarchyType": {
-        "properties": {
-          "quest_type": {
-            "type": "string",
-            "title": "Quest Type"
-          },
-          "series": {
-            "items": {
-              "$ref": "#/components/schemas/QuestHierarchySeries"
-            },
-            "type": "array",
-            "title": "Series"
-          },
-          "chapters": {
-            "items": {
-              "$ref": "#/components/schemas/QuestHierarchyChapter"
-            },
-            "type": "array",
-            "title": "Chapters"
-          },
-          "standalone_quests": {
-            "items": {
-              "$ref": "#/components/schemas/QuestHierarchyQuest"
-            },
-            "type": "array",
-            "title": "Standalone Quests"
-          }
-        },
-        "type": "object",
-        "required": [
-          "quest_type",
-          "series",
-          "chapters",
-          "standalone_quests"
-        ],
-        "title": "QuestHierarchyType",
-        "description": "A top-level quest type and the quests under it.\n\n``chapters`` holds chapters with no series; ``standalone_quests`` holds quests\nwith no chapter."
-      },
-      "QuestSeriesResponse": {
-        "properties": {
-          "quest_type": {
-            "type": "string",
-            "title": "Quest Type"
-          },
-          "series": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/QuestHierarchySeries"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "chapter": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/QuestHierarchyChapter"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "quest_type"
-        ],
-        "title": "QuestSeriesResponse",
-        "description": "The series (or lone chapter) enclosing a quest, for the detail-page TOC.\n\nOnly returned for a quest present in the hierarchy, so ``quest_type`` (the\nenclosing top-level type, used to point the back button at the right type\nlisting) is always set. ``series`` and ``chapter`` are mutually exclusive and\nboth null for a standalone quest."
       },
       "ShortURLResponse": {
         "properties": {

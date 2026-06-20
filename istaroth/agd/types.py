@@ -803,131 +803,44 @@ class QuestInfo:
 
 
 @attrs.define
-class QuestHierarchyQuest:
-    """A single quest leaf in the browsable quest hierarchy."""
+class HierarchyNode:
+    """One node in a browsable document hierarchy.
 
-    id: QuestId
-    title: str
-
-    def to_dict(self) -> dict[str, Any]:
-        return {"id": self.id, "title": self.title}
-
-
-@attrs.define
-class QuestHierarchyChapter:
-    """One chapter (act) grouping a set of quests."""
-
-    chapter_id: ChapterId
-    chapter_title: str
-    quests: list[QuestHierarchyQuest]
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "chapter_id": self.chapter_id,
-            "chapter_title": self.chapter_title,
-            "quests": [q.to_dict() for q in self.quests],
-        }
-
-
-@attrs.define
-class QuestHierarchySeries:
-    """A series (questline) grouping the chapters that share a chapter ``groupId``."""
-
-    series_id: QuestSeriesId
-    series_title: str
-    chapters: list[QuestHierarchyChapter]
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "series_id": self.series_id,
-            "series_title": self.series_title,
-            "chapters": [c.to_dict() for c in self.chapters],
-        }
-
-
-@attrs.define
-class QuestHierarchyType:
-    """A top-level quest type (AQ/LQ/WQ/EQ/IQ) and the quests under it.
-
-    ``chapters`` holds chapters that have no series; ``standalone_quests`` holds
-    quests with no chapter at all.
+    A node is either a group (``children`` set) or a leaf (``file_id`` set, a
+    viewable file). Data-derived labels use ``title``; labels that are translated
+    on the frontend (the library root, a category, a quest type, "standalone")
+    carry an i18n ``title_key`` instead. ``title`` and ``title_key`` are mutually
+    exclusive.
     """
 
-    quest_type: str
-    series: list[QuestHierarchySeries]
-    chapters: list[QuestHierarchyChapter]
-    standalone_quests: list[QuestHierarchyQuest]
+    key: str
+    """URL-safe identifier, unique among siblings."""
+    title: str | None = None
+    title_key: str | None = None
+    children: list[HierarchyNode] | None = None
+    file_id: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        return {
-            "quest_type": self.quest_type,
-            "series": [s.to_dict() for s in self.series],
-            "chapters": [c.to_dict() for c in self.chapters],
-            "standalone_quests": [q.to_dict() for q in self.standalone_quests],
-        }
+        result: dict[str, Any] = {"key": self.key}
+        if self.title is not None:
+            result["title"] = self.title
+        if self.title_key is not None:
+            result["title_key"] = self.title_key
+        if self.children is not None:
+            result["children"] = [child.to_dict() for child in self.children]
+        if self.file_id is not None:
+            result["file_id"] = self.file_id
+        return result
 
 
 @attrs.define
-class QuestHierarchy:
-    """The full browsable quest hierarchy: type -> series -> chapter -> quest."""
+class Hierarchy:
+    """The browsable document hierarchy of a single category."""
 
-    types: list[QuestHierarchyType]
-
-    def to_dict(self) -> dict[str, Any]:
-        return {"types": [t.to_dict() for t in self.types]}
-
-
-@attrs.define
-class CoopHierarchyQuest:
-    """A single hangout quest leaf in the browsable hangout hierarchy."""
-
-    id: QuestId
-    title: str
+    nodes: list[HierarchyNode]
 
     def to_dict(self) -> dict[str, Any]:
-        return {"id": self.id, "title": self.title}
-
-
-@attrs.define
-class CoopHierarchyChapter:
-    """One hangout chapter (act) grouping a character's hangout quests."""
-
-    chapter_id: ChapterId
-    chapter_title: str
-    quests: list[CoopHierarchyQuest]
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "chapter_id": self.chapter_id,
-            "chapter_title": self.chapter_title,
-            "quests": [q.to_dict() for q in self.quests],
-        }
-
-
-@attrs.define
-class CoopHierarchyCharacter:
-    """One character and the hangout chapters (acts) under them."""
-
-    avatar_id: AvatarId
-    character_name: str
-    chapters: list[CoopHierarchyChapter]
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "avatar_id": self.avatar_id,
-            "character_name": self.character_name,
-            "chapters": [c.to_dict() for c in self.chapters],
-        }
-
-
-@attrs.define
-class CoopHierarchy:
-    """The full browsable hangout hierarchy: character -> chapter -> quest."""
-
-    characters: list[CoopHierarchyCharacter]
-
-    def to_dict(self) -> dict[str, Any]:
-        return {"characters": [c.to_dict() for c in self.characters]}
+        return {"nodes": [node.to_dict() for node in self.nodes]}
 
 
 @attrs.define

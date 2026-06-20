@@ -17,13 +17,22 @@ def _chapter_title(chapter_id: types.ChapterId, *, data_repo: repo.DataRepo) -> 
     return processing.get_chapter_title(chapter, data_repo=data_repo)
 
 
+def _quest_leaf(quest_id: types.QuestId, title: str) -> types.HierarchyNode:
+    return types.HierarchyNode(key=f"q{quest_id}", title=title, file_id=quest_id)
+
+
+def _leaf_id(node: types.HierarchyNode) -> types.QuestId:
+    assert node.file_id is not None, "quest leaf must carry a file_id"
+    return node.file_id
+
+
 def _order_quests(
-    quests: list[types.QuestHierarchyQuest],
+    quests: list[types.HierarchyNode],
     begin_quest_id: types.QuestId,
     *,
     main_quests: dict[types.QuestId, types.MainQuestExcelConfigDataItem],
-) -> list[types.QuestHierarchyQuest]:
-    """Order a chapter's quests by narrative sequence.
+) -> list[types.HierarchyNode]:
+    """Order a chapter's quest leaves by narrative sequence.
 
     Quest ids do not track play order, so follow each quest's
     ``suggestTrackMainQuestList`` "next quest" pointers, seeded from the
@@ -31,7 +40,7 @@ def _order_quests(
     the chain never reaches (parallel/branching world quests, or chapters with
     no begin quest) are appended in id order as a fallback.
     """
-    by_id = {q.id: q for q in quests}
+    by_id = {_leaf_id(q): q for q in quests}
 
     def _next(quest_id: types.QuestId) -> list[types.QuestId]:
         # Every quest reached here is in by_id, which build_quest_hierarchy only
@@ -45,7 +54,7 @@ def _order_quests(
     starts = [begin_quest_id] if begin_quest_id in by_id else []
     starts += [quest_id for quest_id in sorted(by_id) if quest_id not in pointed]
 
-    ordered: list[types.QuestHierarchyQuest] = []
+    ordered: list[types.HierarchyNode] = []
     seen: set[types.QuestId] = set()
     for start in starts:
         current: types.QuestId | None = start
@@ -58,17 +67,17 @@ def _order_quests(
 
 
 def _make_chapters(
-    by_chapter: dict[types.ChapterId, list[types.QuestHierarchyQuest]],
+    by_chapter: dict[types.ChapterId, list[types.HierarchyNode]],
     *,
     main_quests: dict[types.QuestId, types.MainQuestExcelConfigDataItem],
     data_repo: repo.DataRepo,
-) -> list[types.QuestHierarchyChapter]:
+) -> list[types.HierarchyNode]:
     chapters = data_repo.load_chapter_excel_config_data()
     return [
-        types.QuestHierarchyChapter(
-            chapter_id=cid,
-            chapter_title=_chapter_title(cid, data_repo=data_repo),
-            quests=_order_quests(
+        types.HierarchyNode(
+            key=f"c{cid}",
+            title=_chapter_title(cid, data_repo=data_repo),
+            children=_order_quests(
                 by_chapter[cid],
                 # by_chapter ids all come from main-quest chapterIds, every one of
                 # which is present in ChapterExcelConfigData, so index strictly.
@@ -82,7 +91,7 @@ def _make_chapters(
 
 def build_quest_hierarchy(
     quest_items: list[tuple[types.QuestId, str]], *, data_repo: repo.DataRepo
-) -> types.QuestHierarchy:
+) -> types.Hierarchy:
     """Assemble the quest hierarchy from rendered (quest_id, title) pairs.
 
     Each quest is placed under its type and, when available, its series (chapter
@@ -95,19 +104,17 @@ def build_quest_hierarchy(
     # type -> series_id -> chapter_id -> quests
     series_buckets: dict[
         str,
-        dict[
-            types.QuestSeriesId, dict[types.ChapterId, list[types.QuestHierarchyQuest]]
-        ],
+        dict[types.QuestSeriesId, dict[types.ChapterId, list[types.HierarchyNode]]],
     ] = collections.defaultdict(
         lambda: collections.defaultdict(lambda: collections.defaultdict(list))
     )
     # type -> chapter_id -> quests (chapters with no series)
-    chapter_buckets: dict[
-        str, dict[types.ChapterId, list[types.QuestHierarchyQuest]]
-    ] = collections.defaultdict(lambda: collections.defaultdict(list))
+    chapter_buckets: dict[str, dict[types.ChapterId, list[types.HierarchyNode]]] = (
+        collections.defaultdict(lambda: collections.defaultdict(list))
+    )
     # type -> quests (no chapter)
-    standalone_buckets: dict[str, list[types.QuestHierarchyQuest]] = (
-        collections.defaultdict(list)
+    standalone_buckets: dict[str, list[types.HierarchyNode]] = collections.defaultdict(
+        list
     )
 
     for quest_id, title in quest_items:
@@ -116,7 +123,7 @@ def build_quest_hierarchy(
         if (main_quest := main_quests.get(quest_id)) is None:
             continue
         quest_type = main_quest["type"]
-        quest = types.QuestHierarchyQuest(id=quest_id, title=title)
+        quest = _quest_leaf(quest_id, title)
 
         chapter_id = main_quest["chapterId"]
         if not chapter_id:
@@ -146,31 +153,43 @@ def build_quest_hierarchy(
             )
             # No dedicated series-name field exists, so label the series with its
             # first chapter's title (falling back to its first quest's title).
-            if series_chapters[0].chapter_title:
-                series_title = series_chapters[0].chapter_title
-            else:
-                series_title = series_chapters[0].quests[0].title
+            assert series_chapters[0].children is not None
+            series_title = (
+                series_chapters[0].title or series_chapters[0].children[0].title
+            )
             series_nodes.append(
-                types.QuestHierarchySeries(
-                    series_id=series_id,
-                    series_title=series_title,
-                    chapters=series_chapters,
+                types.HierarchyNode(
+                    key=f"s{series_id}",
+                    title=series_title,
+                    children=series_chapters,
+                )
+            )
+
+        children = [
+            *series_nodes,
+            *_make_chapters(
+                chapter_buckets.get(quest_type, {}),
+                main_quests=main_quests,
+                data_repo=data_repo,
+            ),
+        ]
+        # Wrap loose, chapter-less quests in a synthetic "standalone" group so they
+        # get their own browse level, but only when the type actually has any.
+        if standalone := sorted(standalone_buckets.get(quest_type, []), key=_leaf_id):
+            children.append(
+                types.HierarchyNode(
+                    key="standalone",
+                    title_key="library.standalone",
+                    children=standalone,
                 )
             )
 
         type_nodes.append(
-            types.QuestHierarchyType(
-                quest_type=quest_type,
-                series=series_nodes,
-                chapters=_make_chapters(
-                    chapter_buckets.get(quest_type, {}),
-                    main_quests=main_quests,
-                    data_repo=data_repo,
-                ),
-                standalone_quests=sorted(
-                    standalone_buckets.get(quest_type, []), key=lambda q: q.id
-                ),
+            types.HierarchyNode(
+                key=quest_type,
+                title_key=f"library.questTypes.{quest_type}",
+                children=children,
             )
         )
 
-    return types.QuestHierarchy(types=type_nodes)
+    return types.Hierarchy(nodes=type_nodes)

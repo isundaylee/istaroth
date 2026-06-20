@@ -5,15 +5,11 @@ import Card from './Card'
 import TextInput from './TextInput'
 import PageCard from './PageCard'
 import LibraryHeader from './LibraryHeader'
+import Breadcrumbs, { type Crumb } from './Breadcrumbs'
 
-// Shared presentation for the drill-down library hierarchies (quests, hangouts).
-// The per-category pages own their data/drill-down state and just supply the
-// search box, breadcrumb trail, and a grid of NavCards as children.
-
-export interface Crumb {
-  label: string
-  onClick: () => void
-}
+// Shared presentation for the drill-down library hierarchy. The HierarchyPage
+// owns the tree/path state and just supplies the breadcrumb trail, search box,
+// and a grid of NavCards as children.
 
 interface NavCardProps {
   label: string
@@ -79,43 +75,14 @@ export function CardGrid({ children }: { children: React.ReactNode }) {
   )
 }
 
-function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
-  return (
-    <div style={{ margin: '0 0 1rem', display: 'flex', flexWrap: 'wrap', gap: '0.25rem', alignItems: 'center' }}>
-      {crumbs.map((crumb, index) => (
-        <React.Fragment key={index}>
-          {index > 0 && <span style={{ color: 'var(--color-text-secondary)' }}>/</span>}
-          {index < crumbs.length - 1 ? (
-            <button
-              onClick={crumb.onClick}
-              style={{
-                background: 'none',
-                border: 'none',
-                padding: '0.25rem',
-                cursor: 'pointer',
-                color: 'var(--color-primary-text)',
-                fontSize: 'var(--font-sm)',
-              }}
-            >
-              {crumb.label}
-            </button>
-          ) : (
-            <span style={{ padding: '0.25rem', fontSize: 'var(--font-sm)' }}>{crumb.label}</span>
-          )}
-        </React.Fragment>
-      ))}
-    </div>
-  )
-}
-
 interface HierarchyBrowserProps {
   title: string
   backText: string
-  onBack?: () => void
+  backPath: string
   search: string
   onSearchChange: (value: string) => void
   searchPlaceholder: string
-  // Shown only when more than one segment deep; pass [] (e.g. while searching) to hide.
+  // The breadcrumb trail to the current view (rendered above the search box).
   crumbs: Crumb[]
   children: React.ReactNode
 }
@@ -123,7 +90,7 @@ interface HierarchyBrowserProps {
 export default function HierarchyBrowser({
   title,
   backText,
-  onBack,
+  backPath,
   search,
   onSearchChange,
   searchPlaceholder,
@@ -136,7 +103,9 @@ export default function HierarchyBrowser({
       <Navigation />
       <main className="main">
         <PageCard>
-          <LibraryHeader title={title} backPath="/library" backText={backText} onBack={onBack} />
+          <LibraryHeader title={title} backPath={backPath} backText={backText} />
+
+          <Breadcrumbs crumbs={crumbs} />
 
           <TextInput
             value={search}
@@ -144,8 +113,6 @@ export default function HierarchyBrowser({
             placeholder={searchPlaceholder}
             style={{ width: '100%', marginBottom: '1rem' }}
           />
-
-          {crumbs.length > 1 && <Breadcrumbs crumbs={crumbs} />}
 
           {children}
         </PageCard>

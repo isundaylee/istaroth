@@ -189,6 +189,8 @@ export const eng = {
       invalidCategory: 'Invalid category'
     },
     noFileName: 'Untitled',
+    tableOfContents: 'Contents',
+    breadcrumbAriaLabel: 'Breadcrumb',
     filterPlaceholder: 'Filter by title...',
     noFilterResults: 'No documents match your filter',
     previous: 'Previous',
