@@ -506,8 +506,6 @@ def test_creature_24068801_info(data_repo: repo.DataRepo) -> None:
     info = processing.get_creature_info(24068801, data_repo=data_repo)
 
     assert info.codex_id == 24068801
-    if data_repo.language is not localization.Language.CHS:
-        pytest.skip("Name/description assertions are CHS-specific")
     assert info.name == "攻坚特化型机关"
     assert info.special_name == "谢尔比乌斯式机关"
     assert info.title == "攻坚特化型"
@@ -520,8 +518,7 @@ def test_creature_wildlife_info_has_no_monster_names(data_repo: repo.DataRepo) -
 
     assert info.special_name is None
     assert info.title is None
-    if data_repo.language is localization.Language.CHS:
-        assert info.name == "雪狐"
+    assert info.name == "雪狐"
 
 
 def test_creature_group_automatron_info(data_repo: repo.DataRepo) -> None:
@@ -542,9 +539,8 @@ def test_creature_group_automatron_info(data_repo: repo.DataRepo) -> None:
         key=lambda e: (e["sortOrder"], e["id"]),
     )
     assert [c.codex_id for c in group.creatures] == [e["id"] for e in expected_order]
-    if data_repo.language is localization.Language.CHS:
-        assert group.type_label == "魔物"
-        assert group.subtype_label == "自律机关"
+    assert group.type_label == "魔物"
+    assert group.subtype_label == "自律机关"
 
 
 def test_creatures_discover_returns_subtype_groups(data_repo: repo.DataRepo) -> None:

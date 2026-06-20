@@ -24,7 +24,13 @@ def agd_path() -> str:
 
 @pytest.fixture
 def data_repo() -> repo.DataRepo:
-    """Create DataRepo instance from environment."""
+    """Create DataRepo instance from environment.
+
+    Tests using this fixture assume the CHS corpus (the default when
+    AGD_LANGUAGE is unset) and assert against Chinese source text directly. Do
+    not switch this away from CHS — English-specific tests build their own
+    ENG ``DataRepo`` instead.
+    """
     try:
         return repo.DataRepo.from_env()
     except ValueError:
