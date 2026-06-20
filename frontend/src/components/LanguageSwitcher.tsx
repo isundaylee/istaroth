@@ -13,7 +13,7 @@ function LanguageButton({ label, isActive, onClick }: LanguageButtonProps) {
     <button
       onClick={onClick}
       style={{
-        background: isActive ? 'var(--color-primary-link)' : 'transparent',
+        background: isActive ? 'var(--color-primary-fill)' : 'transparent',
         color: isActive ? 'white' : 'var(--color-text-secondary)',
         border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius-md)',

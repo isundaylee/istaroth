@@ -93,7 +93,7 @@ function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
                 border: 'none',
                 padding: '0.25rem',
                 cursor: 'pointer',
-                color: 'var(--color-primary-link)',
+                color: 'var(--color-primary-text)',
                 fontSize: 'var(--font-sm)',
               }}
             >

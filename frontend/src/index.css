@@ -28,12 +28,14 @@
   --color-border-subtle: #dee2e6;
   --color-border-divider: #e0e0e0;
 
-  --color-primary: #3498db;
-  --color-primary-hover: #2980b9;
-  --color-primary-link: #007bff;
-  --color-primary-link-hover: #0056b3;
+  /* primary-fill: solid accent (button/toggle backgrounds, accent bars).
+     primary-text: same hue used as foreground (links, nav, citations).
+     Both share one shade today; primary-text can be darkened for text
+     contrast without touching the fills. */
+  --color-primary-fill: #3498db;
+  --color-primary-fill-hover: #2980b9;
+  --color-primary-text: #3498db;
   --color-primary-active-bg: #e7f3ff;
-  --color-primary-dark: #1976d2;
 
   --color-success: #28a745;
   --color-success-hover: #218838;
@@ -50,7 +52,6 @@
   --color-blockquote-text: #6c757d;
 
   --color-citation-label-bg: #e3f2fd;
-  --color-citation-link: #5594d9;
   --color-citation-link-hover-bg: rgba(52, 152, 219, 0.15);
   --color-citation-lib-link: #888888;
   --color-citation-lib-hover: #e0e0e0;
@@ -88,12 +89,10 @@
   --color-border-subtle: #3d3d3d;
   --color-border-divider: #3d3d3d;
 
-  --color-primary: #3498db;
-  --color-primary-hover: #2980b9;
-  --color-primary-link: #4a9eff;
-  --color-primary-link-hover: #3a8eef;
+  --color-primary-fill: #3498db;
+  --color-primary-fill-hover: #2980b9;
+  --color-primary-text: #3498db;
   --color-primary-active-bg: #1e3a5f;
-  --color-primary-dark: #4a9eff;
 
   --color-success: #2ea347;
   --color-success-hover: #25903e;
@@ -110,7 +109,6 @@
   --color-blockquote-text: #9a9a9a;
 
   --color-citation-label-bg: #1a3a5c;
-  --color-citation-link: #6ba3e0;
   --color-citation-link-hover-bg: rgba(52, 152, 219, 0.2);
   --color-citation-lib-link: #777777;
   --color-citation-lib-hover: #3a3a3a;
@@ -203,7 +201,7 @@ body {
 }
 
 .query-composer:focus-within {
-  border-color: var(--color-primary);
+  border-color: var(--color-primary-fill);
 }
 
 .query-textarea {
@@ -282,7 +280,7 @@ body {
 
 .text-input:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--color-primary-fill);
 }
 
 .text-input:disabled {
@@ -312,7 +310,7 @@ body {
 
 .select:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--color-primary-fill);
 }
 
 .select:disabled {
@@ -328,7 +326,7 @@ body {
 
 .button {
   padding: 0.6rem 1.5rem;
-  background-color: var(--color-primary);
+  background-color: var(--color-primary-fill);
   color: white;
   border: none;
   border-radius: var(--radius-md);
@@ -338,7 +336,7 @@ body {
 }
 
 .button:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
+  background-color: var(--color-primary-fill-hover);
 }
 
 .button:disabled {
@@ -553,7 +551,7 @@ body {
 
 .share-button,
 .export-button {
-  background: var(--color-primary-link);
+  background: var(--color-primary-fill);
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -565,7 +563,7 @@ body {
 
 .share-button:hover,
 .export-button:hover:not(:disabled) {
-  background: var(--color-primary-link-hover);
+  background: var(--color-primary-fill-hover);
 }
 
 .export-button {
@@ -588,7 +586,7 @@ body {
 }
 
 .back-link {
-  color: var(--color-primary-link);
+  color: var(--color-primary-text);
   text-decoration: none;
 }
 
@@ -620,21 +618,21 @@ body {
 }
 
 .citation-popup-content::-webkit-scrollbar-thumb {
-  background: var(--color-primary);
+  background: var(--color-primary-fill);
   border-radius: var(--radius-sm);
   border: 2px solid transparent;
   background-clip: content-box;
 }
 
 .citation-popup-content::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-primary-fill-hover);
   background-clip: content-box;
 }
 
 /* Cited chunk marked with a left accent bar within the full document text */
 .citation-cited {
   margin: 12px 0;
-  border-left: 3px solid var(--color-primary);
+  border-left: 3px solid var(--color-primary-fill);
   padding-left: 12px;
 }
 
@@ -651,7 +649,7 @@ body {
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   background: var(--color-citation-label-bg);
-  color: var(--color-primary-dark);
+  color: var(--color-primary-text);
   font-size: var(--font-xs);
 }
 
@@ -673,7 +671,7 @@ body {
 
 .citation-gap:hover:not(:disabled) {
   background: var(--color-surface-secondary);
-  border-color: var(--color-primary);
+  border-color: var(--color-primary-fill);
   color: var(--color-text);
 }
 
@@ -710,7 +708,7 @@ body {
 }
 
 .answer .proper-noun {
-  border-bottom: 1px dotted var(--color-primary);
+  border-bottom: 1px dotted var(--color-primary-fill);
   cursor: pointer;
 }
 
@@ -814,7 +812,7 @@ body {
 .floating-panel__top-link {
   display: inline-block;
   margin-top: 0.25rem;
-  color: var(--color-primary-link);
+  color: var(--color-primary-text);
   font-size: var(--font-sm);
   text-decoration: none;
 }

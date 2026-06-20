@@ -235,7 +235,7 @@ function LibraryFileViewer() {
                         <span key={quest.id}>
                           {questIndex > 0 && <span style={{ color: 'var(--color-text-muted)' }}> / </span>}
                           {quest.id === currentId ? (
-                            <span style={{ fontWeight: 600, color: 'var(--color-primary-link)' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--color-primary-text)' }}>
                               {quest.title || t('library.noFileName')}
                             </span>
                           ) : (

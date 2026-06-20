@@ -42,7 +42,7 @@ function Navigation() {
               to={path}
               style={{
                 textDecoration: 'none',
-                color: active ? 'var(--color-primary-link)' : 'var(--color-text-secondary)',
+                color: active ? 'var(--color-primary-text)' : 'var(--color-text-secondary)',
                 backgroundColor: active ? 'var(--color-primary-active-bg)' : 'transparent',
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
@@ -56,7 +56,7 @@ function Navigation() {
               onMouseEnter={(e) => {
                 if (!active) {
                   e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)'
-                  e.currentTarget.style.color = 'var(--color-primary-link)'
+                  e.currentTarget.style.color = 'var(--color-primary-text)'
                 }
               }}
               onMouseLeave={(e) => {
