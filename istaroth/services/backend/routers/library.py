@@ -266,6 +266,85 @@ async def get_quest_series(
     )
 
 
+@router.get(
+    "/api/library/coop-hierarchy",
+    response_model=models.CoopHierarchyResponse,
+)
+@handle_unexpected_exception
+async def get_coop_hierarchy(
+    document_store_set: DocumentStoreSet,
+    language: str = Query(..., description="Language code (CHS, ENG)"),
+) -> models.CoopHierarchyResponse:
+    """Get the browsable hangout hierarchy (character -> chapter -> quest)."""
+    try:
+        language_enum = localization.Language(language.upper())
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid language: {language}. Available: CHS, ENG",
+        )
+
+    try:
+        text_set_obj = document_store_set.get_text_set(language_enum)
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    hierarchy = text_set_obj.get_coop_hierarchy()
+    if hierarchy is None:
+        raise HTTPException(status_code=404, detail="Hangout hierarchy not available")
+
+    return models.CoopHierarchyResponse.model_validate(hierarchy)
+
+
+@router.get(
+    "/api/library/coop-character/{id}",
+    response_model=models.CoopCharacterResponse,
+)
+@handle_unexpected_exception
+async def get_coop_character(
+    id: str,
+    document_store_set: DocumentStoreSet,
+    language: str = Query(..., description="Language code (CHS, ENG)"),
+) -> models.CoopCharacterResponse:
+    """Get the character (and enclosing chapter) of a hangout quest, for its TOC."""
+    try:
+        language_enum = localization.Language(language.upper())
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid language: {language}. Available: CHS, ENG",
+        )
+
+    try:
+        text_set_obj = document_store_set.get_text_set(language_enum)
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    # 404 when there is no hierarchy or the quest is absent from it; the detail
+    # page treats the TOC as supplementary and simply omits it on failure.
+    hierarchy = text_set_obj.get_coop_hierarchy()
+    if hierarchy is None:
+        raise HTTPException(status_code=404, detail="Hangout hierarchy not available")
+
+    quest_id = int(id)
+    for character in hierarchy["characters"]:
+        for chapter in character["chapters"]:
+            if any(quest["id"] == quest_id for quest in chapter["quests"]):
+                return models.CoopCharacterResponse(
+                    avatar_id=character["avatar_id"],
+                    character_name=character["character_name"],
+                    chapter=models.CoopHierarchyChapter.model_validate(chapter),
+                )
+
+    raise HTTPException(
+        status_code=404, detail=f"Hangout quest {quest_id} not found in hierarchy"
+    )
+
+
 @router.post("/api/library/retrieve", response_model=models.LibraryRetrieveResponse)
 @handle_unexpected_exception
 async def retrieve_library(

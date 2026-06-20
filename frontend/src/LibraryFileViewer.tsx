@@ -27,10 +27,12 @@ import type {
   ModelsResponse,
   ProgressStepStart,
   QueryRequest,
-  QuestSeriesResponse
+  QuestSeriesResponse,
+  CoopCharacterResponse
 } from './types/api'
 
 const QUEST_CATEGORY = 'agd_quest'
+const COOP_CATEGORY = 'agd_coop'
 const MAX_SELECTION_LENGTH = 80
 const MAX_SELECTION_TERMS = 8
 
@@ -83,8 +85,9 @@ interface LoaderData {
   previousFile: LibraryFileInfo | null
   nextFile: LibraryFileInfo | null
   category: string
-  questId: number | null
+  currentId: number | null
   questSeries: QuestSeriesResponse | null
+  coopCharacter: CoopCharacterResponse | null
 }
 
 function RetrievalSelectionPanel({ panel }: RetrievalSelectionPanelProps) {
@@ -200,12 +203,15 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
 
   const language = getLanguageFromUrl(request.url)
   const isQuest = category === QUEST_CATEGORY
+  const isCoop = category === COOP_CATEGORY
 
-  const [fileRes, filesRes, seriesRes] = await Promise.all([
+  const [fileRes, filesRes, tocRes] = await Promise.all([
     fetch(`/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(id)}?language=${language}`),
     fetch(`/api/library/files/${encodeURIComponent(category)}?language=${language}`),
     isQuest
       ? fetch(`/api/library/quest-series/${encodeURIComponent(id)}?language=${language}`)
+      : isCoop
+      ? fetch(`/api/library/coop-character/${encodeURIComponent(id)}?language=${language}`)
       : Promise.resolve(null)
   ])
 
@@ -227,8 +233,13 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
 
   // The TOC is supplementary; a failed fetch must not break the viewer.
   let questSeries: QuestSeriesResponse | null = null
-  if (seriesRes && seriesRes.ok) {
-    questSeries = (await seriesRes.json()) as QuestSeriesResponse
+  let coopCharacter: CoopCharacterResponse | null = null
+  if (tocRes && tocRes.ok) {
+    if (isQuest) {
+      questSeries = (await tocRes.json()) as QuestSeriesResponse
+    } else if (isCoop) {
+      coopCharacter = (await tocRes.json()) as CoopCharacterResponse
+    }
   }
 
   return {
@@ -237,8 +248,9 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
     previousFile,
     nextFile,
     category,
-    questId: isQuest ? parseInt(id, 10) : null,
-    questSeries
+    currentId: isQuest || isCoop ? parseInt(id, 10) : null,
+    questSeries,
+    coopCharacter
   }
 }
 
@@ -246,7 +258,7 @@ function LibraryFileViewer() {
   const t = useT()
   const { language } = useTranslation()
   const navigate = useAppNavigate()
-  const { fileContent, fileTitle, previousFile, nextFile, category, questId, questSeries } = useLoaderData() as LoaderData
+  const { fileContent, fileTitle, previousFile, nextFile, category, currentId, questSeries, coopCharacter } = useLoaderData() as LoaderData
   const answerRef = useRef<HTMLDivElement>(null)
   const selectionUiRef = useRef<HTMLDivElement>(null)
   const activeRequestIdRef = useRef(0)
@@ -258,25 +270,43 @@ function LibraryFileViewer() {
   const series = questSeries?.series
   const chapter = questSeries?.chapter
 
-  // For quests, return to the enclosing type listing (and its standalone view
-  // when the quest has neither series nor chapter) rather than the quest root.
-  const backPath =
-    category === QUEST_CATEGORY && questSeries?.quest_type
-      ? `/library/${QUEST_CATEGORY}?type=${encodeURIComponent(questSeries.quest_type)}${
-          !series && !chapter ? '&standalone=1' : ''
-        }`
-      : `/library/${encodeURIComponent(category)}`
+  // For quests/hangouts, return to the enclosing hierarchy view (the quest type,
+  // or the hangout's character + chapter) rather than the flat category root.
+  let backPath: string
+  if (category === QUEST_CATEGORY && questSeries?.quest_type) {
+    backPath = `/library/${QUEST_CATEGORY}?type=${encodeURIComponent(questSeries.quest_type)}${
+      !series && !chapter ? '&standalone=1' : ''
+    }`
+  } else if (category === COOP_CATEGORY && coopCharacter) {
+    backPath = `/library/${COOP_CATEGORY}?avatar=${encodeURIComponent(
+      coopCharacter.avatar_id
+    )}&chapter=${encodeURIComponent(coopCharacter.chapter.chapter_id)}`
+  } else {
+    backPath = `/library/${encodeURIComponent(category)}`
+  }
 
   const translateCategory = (category: string): string => {
     const translationKey = `library.categories.${category}`
     const translated = t(translationKey)
     return translated === translationKey ? category : translated
   }
-  const tocGroups = series
-    ? series.chapters.map((c) => ({ title: c.chapter_title, quests: c.quests }))
-    : chapter
-    ? [{ title: chapter.chapter_title, quests: chapter.quests }]
-    : []
+  // TOC sections and header come from the quest series/chapter or, for hangouts,
+  // the character's enclosing act.
+  let tocGroups: { title: string; quests: { id: number; title: string }[] }[]
+  let tocTitle: string
+  if (series) {
+    tocGroups = series.chapters.map((c) => ({ title: c.chapter_title, quests: c.quests }))
+    tocTitle = series.series_title
+  } else if (chapter) {
+    tocGroups = [{ title: chapter.chapter_title, quests: chapter.quests }]
+    tocTitle = t('library.questSeriesToc')
+  } else if (coopCharacter) {
+    tocGroups = [{ title: coopCharacter.chapter.chapter_title, quests: coopCharacter.chapter.quests }]
+    tocTitle = t('library.coopCharacterToc')
+  } else {
+    tocGroups = []
+    tocTitle = ''
+  }
   const tocQuestCount = tocGroups.reduce((sum, group) => sum + group.quests.length, 0)
   const normalizeSelectionText = (text: string) => text.replace(/\s+/g, ' ').trim()
   const isEntityLikeSelection = (text: string) =>
@@ -507,7 +537,7 @@ function LibraryFileViewer() {
               }}
             >
               <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
-                {series ? series.series_title : t('library.questSeriesToc')}
+                {tocTitle}
               </summary>
               <div style={{ marginTop: '0.5rem' }}>
                 {tocGroups.map((group, groupIndex) => (
@@ -521,13 +551,13 @@ function LibraryFileViewer() {
                       {group.quests.map((quest, questIndex) => (
                         <span key={quest.id}>
                           {questIndex > 0 && <span style={{ color: 'var(--color-text-muted)' }}> / </span>}
-                          {quest.id === questId ? (
+                          {quest.id === currentId ? (
                             <span style={{ fontWeight: 600, color: 'var(--color-primary-link)' }}>
                               {quest.title || t('library.noFileName')}
                             </span>
                           ) : (
                             <button
-                              onClick={() => navigate(`/library/${encodeURIComponent(QUEST_CATEGORY)}/${encodeURIComponent(quest.id)}`)}
+                              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(quest.id)}`)}
                               style={{
                                 background: 'none',
                                 border: 'none',

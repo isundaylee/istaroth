@@ -543,6 +543,105 @@
         }
       }
     },
+    "/api/library/coop-hierarchy": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Get Coop Hierarchy",
+        "description": "Get the browsable hangout hierarchy (character -> chapter -> quest).",
+        "operationId": "get_coop_hierarchy_api_library_coop_hierarchy_get",
+        "parameters": [
+          {
+            "name": "language",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Language code (CHS, ENG)",
+              "title": "Language"
+            },
+            "description": "Language code (CHS, ENG)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoopHierarchyResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/library/coop-character/{id}": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Get Coop Character",
+        "description": "Get the character (and enclosing chapter) of a hangout quest, for its TOC.",
+        "operationId": "get_coop_character_api_library_coop_character__id__get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Language code (CHS, ENG)",
+              "title": "Language"
+            },
+            "description": "Language code (CHS, ENG)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoopCharacterResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/library/retrieve": {
       "post": {
         "tags": [
@@ -897,6 +996,119 @@
         ],
         "title": "ConversationSummary",
         "description": "Lightweight conversation metadata for the history list."
+      },
+      "CoopCharacterResponse": {
+        "properties": {
+          "avatar_id": {
+            "type": "integer",
+            "title": "Avatar Id"
+          },
+          "character_name": {
+            "type": "string",
+            "title": "Character Name"
+          },
+          "chapter": {
+            "$ref": "#/components/schemas/CoopHierarchyChapter"
+          }
+        },
+        "type": "object",
+        "required": [
+          "avatar_id",
+          "character_name",
+          "chapter"
+        ],
+        "title": "CoopCharacterResponse",
+        "description": "The character (and enclosing chapter) of a hangout quest, for its TOC.\n\nOnly returned for a hangout quest present in the hierarchy, so\n``character_name`` is always set; ``chapter`` is the enclosing act."
+      },
+      "CoopHierarchyChapter": {
+        "properties": {
+          "chapter_id": {
+            "type": "integer",
+            "title": "Chapter Id"
+          },
+          "chapter_title": {
+            "type": "string",
+            "title": "Chapter Title"
+          },
+          "quests": {
+            "items": {
+              "$ref": "#/components/schemas/CoopHierarchyQuest"
+            },
+            "type": "array",
+            "title": "Quests"
+          }
+        },
+        "type": "object",
+        "required": [
+          "chapter_id",
+          "chapter_title",
+          "quests"
+        ],
+        "title": "CoopHierarchyChapter",
+        "description": "One hangout chapter (act) grouping a character's hangout quests."
+      },
+      "CoopHierarchyCharacter": {
+        "properties": {
+          "avatar_id": {
+            "type": "integer",
+            "title": "Avatar Id"
+          },
+          "character_name": {
+            "type": "string",
+            "title": "Character Name"
+          },
+          "chapters": {
+            "items": {
+              "$ref": "#/components/schemas/CoopHierarchyChapter"
+            },
+            "type": "array",
+            "title": "Chapters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "avatar_id",
+          "character_name",
+          "chapters"
+        ],
+        "title": "CoopHierarchyCharacter",
+        "description": "One character and the hangout chapters (acts) under them."
+      },
+      "CoopHierarchyQuest": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "CoopHierarchyQuest",
+        "description": "A single hangout quest leaf in the hangout hierarchy."
+      },
+      "CoopHierarchyResponse": {
+        "properties": {
+          "characters": {
+            "items": {
+              "$ref": "#/components/schemas/CoopHierarchyCharacter"
+            },
+            "type": "array",
+            "title": "Characters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "characters"
+        ],
+        "title": "CoopHierarchyResponse",
+        "description": "Response model for the hangout hierarchy endpoint."
       },
       "ExampleQuestionResponse": {
         "properties": {

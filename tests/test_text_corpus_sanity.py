@@ -25,6 +25,7 @@ def test_chinese_corpus_sanity():
         "agd_talk_group/143001_GadgetGroup.txt": "夜鸦乘务员: 客人，欢迎使用夜鸦航线，请问您想前往哪一个站点？",
         "agd_talk_group/1255_NpcGroup.txt": "遗迹的铭文 (铭文): 「风带来故事的种子，时间使之发芽。」",
         "agd_voiceline/10000089_芙宁娜.txt": "没想到你会对我的事这么上心，这是否意味着你仍然需要我的「力量」呢？然而如今的我…或许无法给你足够的回报…你说看重的是我「本人」？既然这样，就让你我共同出演我们的未来吧。",
+        "agd_coop/19017_云堇_-_郊野觅芳踪.txt": "韵宁: 能不能再派几位冒险家？这看着又要过去半天了…",
     }
 
     # Test each file and its expected content
@@ -57,6 +58,7 @@ def test_english_corpus_sanity():
         "agd_talk_group/143001_GadgetGroup.txt": "Night Raven Flight Attendant: Welcome, dear guest, and thank you for choosing Nachtraben Airlines. Where do you wish to alight today?",
         "agd_talk_group/1255_NpcGroup.txt": 'Carving Marks (Inscription): "Seeds of stories, brought by the wind and cultivated by time."',
         "agd_voiceline/10000089_Furina.txt": "I didn't know you cared so much about me. Does that mean that you still need my power? But given the way I am now... there's a chance I won't be able to give you everything you need. Hmm? All you really care about is... me? In that case, then let us act out our future journey together!",
+        "agd_coop/19017_Yun_Jin_-_Countryside_Wandering.txt": "Yun Jin: I do apologize, I didn't see you there.",
     }
 
     # Test each file and its expected content

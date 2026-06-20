@@ -39,7 +39,7 @@ def test_build_quest_hierarchy_orders_chapter_10130_by_narrative(
 
 def test_build_quest_hierarchy_standalone_bucket(data_repo: repo.DataRepo) -> None:
     """A quest with no chapter falls into its type's standalone bucket."""
-    main_quests = {q["id"]: q for q in data_repo.load_main_quest_excel_config_data()}
+    main_quests = data_repo.load_main_quest_excel_config_data()
     quest_id = next(
         qid
         for qid, mq in main_quests.items()

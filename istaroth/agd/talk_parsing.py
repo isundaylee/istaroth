@@ -58,7 +58,6 @@ class TalkParser:
     """Parser for talk-related files in AGD."""
 
     _BAD_TALK_PATHS: ClassVar[list[pathlib.Path]] = [
-        pathlib.Path("BinOutput/Talk/Coop/1900102_10.json"),
         pathlib.Path("BinOutput/Talk/Gadget/6800002.json"),
         pathlib.Path("BinOutput/Talk/Gadget/80045.json"),
         pathlib.Path("BinOutput/Talk/Npc/7401203.json"),
@@ -71,6 +70,12 @@ class TalkParser:
     ]
 
     _EXCLUDE_DIRECTORIES: ClassVar[set[str]] = {"BlossomGroup"}
+
+    # Coop holds hangout dialogue named `<coopStoryId>_<localTalkId>.json`, whose
+    # local talkId collides across stories. They are not registered as resolvable
+    # talkIds; the Hangouts renderable consumes them directly via the Coop story
+    # graph, grouped here per coopStoryId.
+    _COOP_DIRECTORY: ClassVar[str] = "Coop"
 
     # FreeGroup holds Lua-invoked "free talks" with no reference-graph linkage in
     # the dump. They are not registered as resolvable talkIds (their ids collide
@@ -92,6 +97,12 @@ class TalkParser:
 
         self.talk_id_to_path: dict[types.TalkId, str] = {}
         self.talk_group_id_to_path: dict[tuple[TalkGroupType, TalkGroupId], str] = {}
+
+        # coopStoryId -> Coop talk file paths, sorted by local talk id below.
+        _coop_group: dict[types.CoopStoryId, list[tuple[int, str]]] = (
+            collections.defaultdict(list)
+        )
+        self.coop_story_to_paths: dict[types.CoopStoryId, list[str]] = {}
 
         # talkId -> candidate file paths; collapsed to one path after the scan.
         self._talk_candidates: dict[types.TalkId, list[str]] = collections.defaultdict(
@@ -115,14 +126,20 @@ class TalkParser:
                 logger.warning("Known bad talk file %s", relative_path)
                 continue
 
-            data = data_repo.load_talk_group_data(relative_path.as_posix())
-
             subdir = relative_path.parts[2]
 
+            # Excluded and Coop files need only their path, not parsed content, so
+            # short-circuit before the (cached) load to skip ~1300 needless reads.
+            if subdir in self._EXCLUDE_DIRECTORIES:
+                continue
+            if subdir == self._COOP_DIRECTORY:
+                self._handle_coop_file(relative_path, _coop_group)
+                continue
+
+            data = data_repo.load_talk_group_data(relative_path.as_posix())
+
             try:
-                if subdir in self._EXCLUDE_DIRECTORIES:
-                    continue
-                elif subdir == self._FREE_GROUP_DIRECTORY:
+                if subdir == self._FREE_GROUP_DIRECTORY:
                     self._handle_free_group_file(relative_path, data, _free_group)
                 elif subdir in self._GROUP_DIRECTORIES:
                     self._handle_talk_group_file(
@@ -148,6 +165,11 @@ class TalkParser:
         for quest_id, talks in _free_group.items():
             self.free_group_quest_to_paths[quest_id] = [
                 path for _, path in sorted(talks)
+            ]
+
+        for coop_story_id, coop_talks in _coop_group.items():
+            self.coop_story_to_paths[coop_story_id] = [
+                path for _, path in sorted(coop_talks)
             ]
 
         self._resolve_talk_candidates(data_repo, self._init_dialog_map(talk_excel_data))
@@ -203,6 +225,19 @@ class TalkParser:
         if (quest_id := _free_group_quest_id(str(talk_id))) is None:
             return
         free_group[quest_id].append((talk_id, relative_path.as_posix()))
+
+    @staticmethod
+    def _handle_coop_file(
+        relative_path: pathlib.Path,
+        coop_group: dict[types.CoopStoryId, list[tuple[int, str]]],
+    ) -> None:
+        """Group a Coop talk file under its coopStoryId, keyed by local talk id."""
+        coop_story_id, _, local_talk_id = relative_path.stem.partition("_")
+        if not (coop_story_id.isdigit() and local_talk_id.isdigit()):
+            raise ValueError(f"Malformed Coop talk filename {relative_path}")
+        coop_group[int(coop_story_id)].append(
+            (int(local_talk_id), relative_path.as_posix())
+        )
 
     @staticmethod
     def _init_dialog_map(

@@ -24,6 +24,7 @@ from tqdm import tqdm
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from istaroth.agd import (
+    coop_hierarchy,
     issues,
     localization,
     processing,
@@ -39,6 +40,7 @@ from istaroth.agd.renderable_types import (
     Books,
     CharacterStories,
     Costumes,
+    Hangouts,
     MaterialTypes,
     Quests,
     Readables,
@@ -477,6 +479,9 @@ def generate_all(
     generate_talks = (
         only_category is None or only_category == text_types.TextCategory.AGD_TALK
     )
+    generate_hangouts = (
+        only_category is None or only_category == text_types.TextCategory.AGD_COOP
+    )
     generate_artifact_sets = (
         only_category is None
         or only_category == text_types.TextCategory.AGD_ARTIFACT_SET
@@ -513,6 +518,7 @@ def generate_all(
         process_content_type(generate_achievements, Achievements())
         process_content_type(generate_voicelines, Voicelines())
         process_content_type(generate_talk_groups, TalkGroups())
+        process_content_type(generate_hangouts, Hangouts())
 
         process_content_type(generate_books, Books())
         process_content_type(generate_weapons, Weapons())
@@ -609,6 +615,26 @@ def generate_all(
                 ensure_ascii=False,
             )
         click.echo(f"Quest hierarchy written to {hierarchy_path}")
+
+    # Write the browsable hangout hierarchy (only when hangouts were generated).
+    if coop_items := [
+        (item.id, item.title)
+        for item in manifest_list
+        if item.category == text_types.TextCategory.AGD_COOP
+    ]:
+        metadata_dir = output_dir / "metadata" / "agd"
+        metadata_dir.mkdir(parents=True, exist_ok=True)
+        coop_hierarchy_path = metadata_dir / "coop_hierarchy.json"
+        with coop_hierarchy_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                coop_hierarchy.build_coop_hierarchy(
+                    coop_items, data_repo=data_repo
+                ).to_dict(),
+                f,
+                indent=2,
+                ensure_ascii=False,
+            )
+        click.echo(f"Hangout hierarchy written to {coop_hierarchy_path}")
 
     if total_error > 0:
         click.echo(f"\nDetailed errors written to {errors_file_path}")

@@ -6,6 +6,7 @@ import typing
 
 from istaroth import text_cleanup
 from istaroth.agd import (
+    coop_graph,
     issues,
     localization,
     repo,
@@ -1083,3 +1084,129 @@ def get_talk_group_info(
             talks.append((talk_info, next_talks))
 
     return types.TalkGroupInfo(talks=talks)
+
+
+def _resolve_coop_steps(
+    play_steps: list[coop_graph.PlayStep],
+    *,
+    local_talk_id_to_path: dict[types.CoopNodeId, str],
+    seen: set[types.CoopNodeId],
+    text_map: repo.TextMapTracker,
+    dialog_content_hashes: dict[types.DialogId, types.TextMapHash],
+    data_repo: repo.DataRepo,
+) -> list[types.CoopStep]:
+    """Resolve a Coop story's play-order graph steps into renderable steps."""
+    steps: list[types.CoopStep] = []
+    for play_step in play_steps:
+        match play_step:
+            case coop_graph.TalkStep(local_talk_id=local_talk_id):
+                if (path := local_talk_id_to_path.get(local_talk_id)) is None:
+                    continue
+                seen.add(local_talk_id)
+                if (talk_info := get_talk_info(path, data_repo=data_repo)).text:
+                    steps.append(types.CoopStep(talk=talk_info, choice=None))
+            case coop_graph.ChoiceStep(branches=branches):
+                options = []
+                for branch in branches:
+                    prompt = (
+                        text_map.get_optional(content_hash)
+                        if branch.dialog_id is not None
+                        and (
+                            content_hash := dialog_content_hashes.get(branch.dialog_id)
+                        )
+                        else None
+                    )
+                    branch_steps = _resolve_coop_steps(
+                        branch.steps,
+                        local_talk_id_to_path=local_talk_id_to_path,
+                        seen=seen,
+                        text_map=text_map,
+                        dialog_content_hashes=dialog_content_hashes,
+                        data_repo=data_repo,
+                    )
+                    if prompt is not None or branch_steps:
+                        options.append(
+                            types.CoopChoiceOption(prompt=prompt, steps=branch_steps)
+                        )
+                if options:
+                    steps.append(
+                        types.CoopStep(
+                            talk=None, choice=types.CoopChoice(options=options)
+                        )
+                    )
+    return steps
+
+
+def get_hangout_info(
+    quest_id: types.QuestId, *, data_repo: repo.DataRepo
+) -> types.HangoutInfo | None:
+    """Assemble a hangout quest's play-ordered Coop story dialogue, or None if empty.
+
+    ``quest_id`` is always a hangout quest (the ``Hangouts`` renderable discovers
+    them from ``build_hangout_quest_to_stories``), so its stories and main-quest
+    entry are indexed strictly.
+    """
+    stories = data_repo.build_hangout_quest_to_stories()[quest_id]
+
+    text_map = data_repo.load_text_map()
+    main_quest = data_repo.load_main_quest_excel_config_data()[quest_id]
+    quest_title = (
+        text_map.get_optional(main_quest["titleTextMapHash"]) or f"Hangout {quest_id}"
+    )
+
+    primary_character: str | None = None
+    if (
+        avatar_id := data_repo.build_coop_chapter_to_avatar_mapping().get(
+            main_quest["chapterId"]
+        )
+    ) is not None:
+        primary_character = data_repo.build_avatar_id_to_name_mapping().get(avatar_id)
+
+    coop_story_mapping = data_repo.build_coop_story_mapping()
+    graph_mapping = data_repo.build_coop_story_graph_mapping()
+    dialog_content_hashes = data_repo.get_dialog_id_to_content_hash_mapping()
+
+    story_infos: list[types.CoopStoryInfo] = []
+    for coop_story_id in stories:
+        # Every story here has talk files (build_hangout_quest_to_stories filters
+        # to those present in build_coop_story_mapping).
+        local_talk_id_to_path = {
+            int(pathlib.Path(path).stem.split("_", 1)[1]): path
+            for path in coop_story_mapping[coop_story_id]
+        }
+        seen: set[types.CoopNodeId] = set()
+        steps = (
+            _resolve_coop_steps(
+                coop_graph.walk_play_order(graph),
+                local_talk_id_to_path=local_talk_id_to_path,
+                seen=seen,
+                text_map=text_map,
+                dialog_content_hashes=dialog_content_hashes,
+                data_repo=data_repo,
+            )
+            if (graph := graph_mapping.get(coop_story_id)) is not None
+            else []
+        )
+
+        # Talk files the graph walk never reached are appended in id order so no
+        # hangout dialogue is silently dropped.
+        for local_talk_id, path in sorted(local_talk_id_to_path.items()):
+            if local_talk_id in seen:
+                continue
+            if (talk_info := get_talk_info(path, data_repo=data_repo)).text:
+                steps.append(types.CoopStep(talk=talk_info, choice=None))
+
+        if steps:
+            story_infos.append(
+                types.CoopStoryInfo(coop_story_id=coop_story_id, steps=steps)
+            )
+
+    if not story_infos:
+        return None
+
+    return types.HangoutInfo(
+        quest_id=quest_id,
+        quest_title=quest_title,
+        primary_character=primary_character,
+        stories=story_infos,
+    )

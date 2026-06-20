@@ -128,3 +128,10 @@ class TextSet:
         if not path.exists():
             return None
         return json.loads(path.read_text(encoding="utf-8"))
+
+    def get_coop_hierarchy(self) -> dict[str, Any] | None:
+        """Return the generated hangout (Coop) hierarchy tree, or None if absent."""
+        path = self.text_path / "metadata" / "agd" / "coop_hierarchy.json"
+        if not path.exists():
+            return None
+        return json.loads(path.read_text(encoding="utf-8"))
