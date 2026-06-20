@@ -34,9 +34,11 @@ _resolve_main_root() {
 
 _rebase_onto_upstream() {
   local upstream remote
-  if ! upstream="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null)"; then
-    echo "dev-compose.sh: no upstream configured for current branch" >&2
-    exit 1
+  if upstream="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null)"; then
+    :
+  else
+    upstream="origin/main"
+    echo "dev-compose.sh: no upstream configured for current branch, using $upstream" >&2
   fi
   remote="${upstream%%/*}"
   git -C "$REPO_ROOT" fetch "$remote"
