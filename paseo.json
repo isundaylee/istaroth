@@ -2,5 +2,11 @@
   "worktree": {
     "setup": "scripts/dev-compose.sh setup",
     "teardown": "scripts/dev-compose.sh down || true"
+  },
+  "scripts": {
+    "dev-compose": {
+      "type": "service",
+      "command": "scripts/dev-compose.sh up --foreground"
+    }
   }
 }
