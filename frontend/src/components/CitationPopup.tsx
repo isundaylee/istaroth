@@ -81,9 +81,9 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
           const after = fullText.slice(citedChunk.end_index).replace(/^\n+/, '')
           return (
             <>
-              {before && <div>{before}</div>}
+              {before && <div className="citation-context">{before}</div>}
               {citedBlock(fullText.slice(citedChunk.start_index, citedChunk.end_index).trim())}
-              {after && <div>{after}</div>}
+              {after && <div className="citation-context">{after}</div>}
             </>
           )
         })() : (

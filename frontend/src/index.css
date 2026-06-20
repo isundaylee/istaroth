@@ -633,8 +633,15 @@ body {
   padding-left: 12px;
 }
 
+/* Context blocks reserve the cited bar's width (transparent) so their text aligns with the cited chunk */
+.citation-context {
+  border-left: 3px solid transparent;
+  padding-left: 12px;
+}
+
 .citation-cited-label {
-  display: inline-block;
+  display: block;
+  width: fit-content;
   margin-bottom: 6px;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
