@@ -63,13 +63,13 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
     )
 
     // Dashed gap button (top/bottom); clicking either loads the entire file text.
-    const loadGap = (label: string) => onLoadFullText && (
+    const loadGap = () => onLoadFullText && (
       <button
         onClick={onLoadFullText}
         disabled={isLoadingFullText}
         className="citation-gap"
       >
-        {isLoadingFullText ? t.citation.loadingButton : label}
+        {isLoadingFullText ? t.citation.loadingButton : t.citation.loadAllChunks}
       </button>
     )
 
@@ -88,9 +88,9 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
           )
         })() : (
           <>
-            {citedChunk.chunk_index > 0 && loadGap(t.citation.loadPrevious)}
+            {citedChunk.chunk_index > 0 && loadGap()}
             {citedBlock(citedChunk.content)}
-            {citedChunk.chunk_index < citedChunk.total_chunks - 1 && loadGap(t.citation.loadNext)}
+            {citedChunk.chunk_index < citedChunk.total_chunks - 1 && loadGap()}
           </>
         )}
       </div>
