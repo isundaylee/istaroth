@@ -106,16 +106,17 @@ See the [Web UI section](README.md#web-ui) in the README for environment setup a
 - Don't launch the stack by default. Only bring it up when the task actually
   needs a running app (e.g. browser/end-to-end verification); for code, type
   checks, and unit tests you don't need it.
-- When you do need it, launch the full dev stack for the current worktree
-  yourself with `scripts/dev-compose.sh`. It derives a per-worktree compose
-  project name and port from the workspace, so each worktree gets its own
-  isolated stack:
+- NEVER run `scripts/dev-compose.sh up` yourself. When the task needs a running
+  app, ALWAYS ask the user to start it (it runs as the `dev-compose` Paseo
+  service, or they can run `scripts/dev-compose.sh up` manually). The script
+  derives a per-worktree compose project name and port from the workspace, so
+  each worktree gets its own isolated stack:
   - `scripts/dev-compose.sh setup` — symlink shared env files (`.env.common`,
     `.env.mcp`, `.env.web`, `tmp`) from the main checkout and write
     `.dev-stack.env` (run once per worktree).
   - `scripts/dev-compose.sh up` (add `--foreground` to stream logs) — start the
     stack; `down` to tear it down; `urls` to print the Web UI / metrics / Jaeger
-    URLs for this worktree.
+    URLs for this worktree. The user runs `up`, not you.
 - Run `scripts/dev-compose.sh urls` to get the Web UI URL for this worktree; the
   script derives its port and companion ports (`+1`/`+2`/`+3`/`+4` for
   metrics/Jaeger) and persists them in `.dev-stack.env`.

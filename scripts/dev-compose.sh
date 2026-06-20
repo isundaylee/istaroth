@@ -105,6 +105,10 @@ cmd_up() {
     shift
   fi
   _load_env
+  # When run as a Paseo service, bind the Web UI to the port Paseo proxies.
+  if [[ -n "${PASEO_PORT:-}" ]]; then
+    export CONDUCTOR_PORT="$PASEO_PORT"
+  fi
   cd "$COMPOSE_DIR"
   # shellcheck disable=SC2086
   docker compose up $detach "$@"
