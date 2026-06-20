@@ -32,6 +32,17 @@ _resolve_main_root() {
   fi
 }
 
+_rebase_onto_upstream() {
+  local upstream remote
+  if ! upstream="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null)"; then
+    echo "dev-compose.sh: no upstream configured for current branch" >&2
+    exit 1
+  fi
+  remote="${upstream%%/*}"
+  git -C "$REPO_ROOT" fetch "$remote"
+  git -C "$REPO_ROOT" rebase --autostash "$upstream"
+}
+
 _export_ports() {
   _resolve_identity
   if [[ -z "${CONDUCTOR_PORT:-}" ]]; then
@@ -74,6 +85,7 @@ _load_env() {
 }
 
 cmd_setup() {
+  _rebase_onto_upstream
   _resolve_main_root
   for name in .env.common .env.mcp .env.web tmp; do
     target="$REPO_ROOT/$name"
