@@ -79,8 +79,12 @@ services:
         condition: service_completed_successfully
       db-migrate:
         condition: service_completed_successfully
+      # The backend only calls retrieval lazily per-request (from_retrieval_service
+      # just builds httpx clients at startup, no network call), so it doesn't need to
+      # wait for retrieval's slow ML-model load to finish. service_started lets the
+      # backend come up in parallel with retrieval instead of serializing behind it.
       retrieval:
-        condition: service_healthy
+        condition: service_started
       jaeger:
         condition: service_started
     volumes:
@@ -109,8 +113,9 @@ services:
     depends_on:
       frontend-deps:
         condition: service_completed_successfully
-      istaroth:
-        condition: service_started
+      # The Vite dev server only proxies to the backend lazily per-request
+      # (VITE_API_PROXY_TARGET), so it doesn't need istaroth up to boot. Gating only
+      # on frontend-deps lets the UI come up in parallel with the whole backend chain.
     ports:
       - "${CONDUCTOR_PORT:-5173}:${CONDUCTOR_PORT:-5173}"
     volumes:
