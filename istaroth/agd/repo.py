@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import pathlib
+import subprocess
 from typing import Any, Generic, TypeVar
 
 import attrs
@@ -25,6 +26,8 @@ from istaroth.agd import (
 logger = logging.getLogger(__name__)
 
 _K = TypeVar("_K")
+# Ordered newest-to-oldest; earlier refs win when multiple fallbacks contain a hash.
+_TEXT_MAP_FALLBACK_REFS: tuple[str, ...] = ("8c3aecbd6ed",)
 
 
 class IdTracker(Generic[_K]):
@@ -151,28 +154,61 @@ class TextMapTracker(IdTracker[types.TextMapHash]):
     """
 
     def __init__(
-        self, text_map: types.TextMap, language: localization.Language
+        self,
+        text_map: types.TextMap,
+        language: localization.Language,
+        fallback_text_map: types.TextMap | None = None,
     ) -> None:
         self._text_map: dict[types.TextMapHash, str] = {
             int(k): v for k, v in text_map.items()
         }
+        self._fallback_text_map = self._normalize_text_map(fallback_text_map or {})
+        self._text_maps = (self._text_map, self._fallback_text_map)
         super().__init__(set(self._text_map))
         self._language = language
 
+    @staticmethod
+    def _normalize_text_map(text_map: types.TextMap) -> dict[types.TextMapHash, str]:
+        return {int(k): v for k, v in text_map.items()}
+
+    def has(self, key: types.TextMapHash) -> bool:
+        """Whether key resolves in the current or fallback TextMap."""
+        return self._get_raw_text(key) is not None
+
+    def _get_cleaned_text(self, text: str) -> str:
+        return text_cleanup.clean_text_markers(text, self._language)
+
+    def _get_raw_text(self, key: types.TextMapHash) -> str | None:
+        for text_map in self._text_maps:
+            if (text := text_map.get(key)) is not None:
+                return text
+        return None
+
     def get(self, key: types.TextMapHash, default: str) -> str:
         """Get text by ID with default, tracks access if key exists."""
-        if key in self._text_map:
+        if (text := self._get_raw_text(key)) is not None:
             self._track_access(key)
-            text = self._text_map[key]
-            return text_cleanup.clean_text_markers(text, self._language)
+            return self._get_cleaned_text(text)
         return default
 
     def get_optional(self, key: types.TextMapHash) -> str | None:
         """Get text by ID, returns None if not found."""
-        if key in self._text_map:
+        if (text := self._get_raw_text(key)) is not None:
             self._track_access(key)
-            text = self._text_map[key]
-            return text_cleanup.clean_text_markers(text, self._language)
+            return self._get_cleaned_text(text)
+        return None
+
+    def get_current_optional(self, key: types.TextMapHash) -> str | None:
+        """Get current-build text by ID, returns None if not found."""
+        if (text := self._text_map.get(key)) is not None:
+            self._track_access(key)
+            return self._get_cleaned_text(text)
+        return None
+
+    def get_optional_untracked(self, key: types.TextMapHash) -> str | None:
+        """Get text by ID without recording access."""
+        if (text := self._get_raw_text(key)) is not None:
+            return self._get_cleaned_text(text)
         return None
 
 
@@ -237,8 +273,16 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def _load_text_map_for(self, language: localization.Language) -> TextMapTracker:
         """Load the TextMap for a specific language, merging Medium variant if present."""
-        text_map_dir = self.agd_path / "TextMap"
         language_short = self._language_short(language)
+        return TextMapTracker(
+            self._load_current_text_map(language_short),
+            language,
+            self._load_fallback_text_map(language_short),
+        )
+
+    def _load_current_text_map(self, language_short: str) -> types.TextMap:
+        """Load current-build TextMap, merging Medium variant if present."""
+        text_map_dir = self.agd_path / "TextMap"
         medium_path = text_map_dir / f"TextMap_Medium{language_short}.json"
         data: types.TextMap = (
             json.loads(medium_path.read_text(encoding="utf-8"))
@@ -252,7 +296,52 @@ class DataRepo:
                 )
             )
         )
-        return TextMapTracker(data, language)
+        return data
+
+    @functools.lru_cache(maxsize=None)
+    def _load_fallback_text_map(self, language_short: str) -> types.TextMap:
+        """Load older-build TextMaps used for current-build misses."""
+        data: types.TextMap = {}
+        for fallback_ref in _TEXT_MAP_FALLBACK_REFS:
+            ref_data: types.TextMap = {}
+            medium = self._git_show_text_map(
+                fallback_ref, f"TextMap_Medium{language_short}.json", required=False
+            )
+            if medium is not None:
+                ref_data.update(medium)
+            required_text_map = self._git_show_text_map(
+                fallback_ref, f"TextMap{language_short}.json", required=True
+            )
+            assert required_text_map is not None
+            ref_data.update(required_text_map)
+            for key, value in ref_data.items():
+                data.setdefault(key, value)
+        return data
+
+    def _git_show_text_map(
+        self, fallback_ref: str, filename: str, *, required: bool
+    ) -> types.TextMap | None:
+        result = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.agd_path),
+                "show",
+                f"{fallback_ref}:TextMap/{filename}",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            data: types.TextMap = json.loads(result.stdout)
+            return data
+        if required:
+            raise RuntimeError(
+                f"Failed to load fallback TextMap {filename} at {fallback_ref}: "
+                f"{result.stderr.strip()}"
+            )
+        return None
 
     def load_text_map(self) -> TextMapTracker:
         """Load TextMap for the instance's language, merging Medium variant if present."""
@@ -672,6 +761,7 @@ class DataRepo:
         """
         self.build_talk_group_mapping()
         self.load_source_text_map()
+        self.load_text_map()
 
         # Warm the quest mapping (and, transitively, the load_quest_data cache it
         # populates) so forked workers don't each re-glob and re-parse all quests.
