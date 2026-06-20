@@ -24,13 +24,17 @@ Best Practices" in the root `AGENTS.md`).
   `cd frontend && node_modules/.bin/tsc --noEmit`). Fix failures before opening
   the PR — don't put up a red branch.
 
-### 3. Squash into ONE commit
-A PR is a single commit in this repo. Collapse all incremental work on the
-branch into one commit:
+### 3. Squash the initial work into ONE clean commit
+When first opening the PR, collapse the branch's incremental work into one
+commit (subsequent review rounds will add commits on top — see Notes):
 - If there is exactly one commit already, amend into it: `git add -A && git commit --amend`.
 - If there are several, squash them: `git reset --soft $(git merge-base HEAD origin/main) && git add -A && git commit`.
 - Fold the `text/` submodule pointer (when it moved) INTO this commit rather than
   a separate "Update text" commit: `git add text && git commit --amend --no-edit`.
+
+The branch is squash-merged on GitHub, so the final commit message comes from the
+PR title + description (step 5), NOT these per-commit messages — keep the PR
+description complete and accurate.
 
 Write the commit message via a file, not inline `-m`/`--body` (bodies routinely
 contain backticks/apostrophes the shell mangles):
@@ -62,11 +66,15 @@ history such as the `istaroth-text` submodule `main`.
 - If one exists, the push already updated the diff; refresh the description when
   the scope changed: `gh pr edit --body-file /tmp/pr-body.md`.
 
-PR description should cover, briefly:
+PR description should cover, briefly (it becomes the squash-merge commit message,
+so make it self-contained):
 - **What & why** — the change and its motivation.
 - **Notable details** — anything a reviewer needs (tradeoffs, follow-ups, data/checkpoint or submodule version assumptions).
 - **Testing** — what you ran (checks, manual verification) and the result.
 - `Closes #<n>` for any issue it resolves.
+
+When the scope grows over review rounds, refresh the description (`gh pr edit
+--body-file ...`) so the eventual merge commit message stays correct.
 
 ### 6. Report back
 Print the PR URL (from `gh pr create`/`gh pr view`) so the user can open it.
@@ -75,6 +83,8 @@ Print the PR URL (from `gh pr create`/`gh pr view`) so the user can open it.
 - Do NOT push or open the PR until the user has had a chance to review when the
   change includes regenerated corpus/text data — confirm first per the
   regen-text rules.
-- Keep the end state at a single commit on the branch; if review feedback comes
-  in, amend it into that one commit (committing each addressed round before
-  starting the next, so the latest iteration shows as uncommitted changes).
+- Address review feedback as NEW commits — one per review round — instead of
+  amending or re-squashing into existing commits, so the reviewer sees exactly
+  what each round changed. The branch may carry several commits as a result;
+  that's fine, squash-merge collapses them on merge. Re-squash only when the user
+  explicitly asks.

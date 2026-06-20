@@ -86,13 +86,21 @@ istaroth/
 - Pass arguments that are not primary inputs to the function itself but rather toolkit objects (e.g. DataRepo) as kw-only args
 
 ## Git Workflow Best Practices
+- PRs are merged with GitHub's squash-merge: the whole branch collapses into one
+  commit whose message is taken from the PR title + description, NOT the
+  individual commit messages. So keep the PR description accurate and complete —
+  it becomes the permanent commit message — and treat per-commit messages on the
+  branch as throwaway.
+- Address review feedback as NEW commits — one per review round — rather than
+  amending or squashing into existing commits. Stacking each round as its own
+  commit lets the reviewer see exactly what changed in response to their
+  feedback; squash-merge collapses them on merge, so the extra commits cost
+  nothing. Only re-squash the branch when explicitly asked.
 - For creating or updating a pull request, follow the `pr` skill
-  (`.agents/skills/pr/SKILL.md`): squashing into a single commit, running
+  (`.agents/skills/pr/SKILL.md`): the initial squash into a clean commit, running
   pre-commit, passing commit/PR bodies via a file, issue-closing keywords, and
-  the review-iteration flow all live there. The invariant it enforces: each PR is
-  a SINGLE commit, with the `text/` submodule pointer folded into it (not a
-  separate `Update text` commit). A pure text regen with no code change is just
-  that single commit on its own.
+  the review-iteration flow all live there. The `text/` submodule pointer is
+  folded into the commit that moves it (not a separate `Update text` commit).
 - The `text/` directory is a git submodule (repo `istaroth-text`) holding the generated text corpus and manifests. Regenerated data (e.g. from `scripts/tps_shishu_tools.py`) is committed INSIDE the submodule first (its own commit on the submodule's `main`), then the parent repo records the pointer move by amending it into the code commit (`git add text && git commit --amend --no-edit`), not as a separate `Update text` commit. The submodule's own data commit stays on the submodule; only the parent-repo pointer move is folded into the code commit.
 
 ## Script Development Guidelines

@@ -9,6 +9,7 @@ import { buildProperNounMatcher } from '../utils/properNouns'
 import { rehypeProperNouns } from '../utils/rehypeProperNouns'
 import CitationPopup from './CitationPopup'
 import { preprocessCitationsForDisplay, formatCitationId, parseCitationId } from '../utils/citations'
+import { calculateFloatingPlacement, type FloatingPosition } from '../utils/floatingPanel'
 
 interface CitationRendererProps {
   content: string
@@ -31,7 +32,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
   const [stickyCitation, setStickyCitation] = useState<string | null>(null)
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false)
-  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0, width: 500, height: 300 })
+  const [popupPosition, setPopupPosition] = useState<FloatingPosition>({ top: 0, left: 0, placement: 'below' })
   const [citationCache, setCitationCache] = useState<Record<string, CachedCitation>>({})
   const [loadingCitations, setLoadingCitations] = useState<Set<string>>(new Set())
   const { language } = useTranslation()
@@ -51,69 +52,9 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     [properNouns]
   )
 
-  // Calculate optimal popup position and size to avoid going off-screen
-  const calculatePopupPosition = useCallback((citationRect: DOMRect) => {
-    // Default popup dimensions
-    const defaultWidth = 600
-    const defaultHeight = 500
-    const minWidth = 300
-    const minHeight = 200 // Increased to ensure enough space for content
-    const margin = 15
-
-    // Available viewport space
-    const viewportWidth = window.innerWidth
-    const viewportHeight = window.innerHeight
-
-    // Initial position: below and centered on citation
-    const preferredTop = citationRect.bottom + 5
-    const preferredCenterX = citationRect.left + (citationRect.width / 2)
-
-    // Calculate maximum available width
-    const maxAvailableWidth = viewportWidth - (2 * margin)
-    const popupWidth = Math.max(minWidth, Math.min(defaultWidth, maxAvailableWidth))
-
-    // Calculate horizontal position (try to center, but stay within bounds)
-    let left = preferredCenterX - (popupWidth / 2)
-    if (left < margin) {
-      left = margin
-    } else if (left + popupWidth > viewportWidth - margin) {
-      left = viewportWidth - margin - popupWidth
-    }
-
-    // Calculate vertical position and height
-    let top = preferredTop
-    let height = defaultHeight
-
-    // Check if popup fits below citation
-    const spaceBelow = viewportHeight - preferredTop - margin
-    const spaceAbove = citationRect.top - margin
-
-    if (spaceBelow >= minHeight) {
-      // Popup fits below citation
-      top = preferredTop
-      height = Math.max(minHeight, Math.min(defaultHeight, spaceBelow))
-    } else if (spaceAbove >= minHeight) {
-      // Not enough space below, try above citation
-      height = Math.max(minHeight, Math.min(defaultHeight, spaceAbove))
-      top = citationRect.top - height - 5
-    } else {
-      // Very constrained space - use the larger of the two spaces
-      if (spaceBelow > spaceAbove) {
-        top = preferredTop
-        height = Math.max(minHeight, spaceBelow)
-      } else {
-        height = Math.max(minHeight, spaceAbove)
-        top = citationRect.top - height - 5
-      }
-    }
-
-    return {
-      top,
-      left,
-      width: popupWidth,
-      height
-    }
-  }, []) // No dependencies since it only uses parameters and constants
+  // Calculate viewport-aware anchor position for the popup from the citation rect.
+  const calculatePopupPosition = useCallback((citationRect: DOMRect): FloatingPosition =>
+    calculateFloatingPlacement(citationRect), [])
 
   // Batch function to fetch multiple citations in a single request
   const fetchCitationsBatch = useCallback(async (citationIds: string[]) => {
@@ -322,7 +263,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
       if ('error' in cached) {
         // This is a cached error
         return {
-          title: `${t('citation.source')}: ${fileId}`,
+          title: fileId,
           chunks: [],
           content: `${t('citation.error')}: ${cached.error}`,
           fileId,
@@ -331,7 +272,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
       } else {
         // This is a successful response
         return {
-          title: `${t('citation.source')}: ${cached.file_info.title}`,
+          title: cached.file_info.title,
           chunks: [],
           content: cached.content,
           fileId,
@@ -340,7 +281,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
       }
     } else if (loading) {
       return {
-        title: `${t('citation.source')}: ${fileId}`,
+        title: fileId,
         chunks: [],
         content: t('citation.loading'),
         fileId,
@@ -348,7 +289,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
       }
     } else {
       return {
-        title: `${t('citation.source')}: ${fileId}`,
+        title: fileId,
         chunks: [],
         content: `${t('citation.notLoaded')} ${chunkIndexWithPrefix}.`,
         fileId,
@@ -369,7 +310,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
 
     if (fileChunks.length > 0) {
       return {
-        title: `${t('citation.source')}: ${fileChunks[0].file_info.title}`,
+        title: fileChunks[0].file_info.title,
         chunks: fileChunks,
         content: '',
         fileId,
@@ -477,17 +418,14 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
           currentChunkIndex={isSticky ? parseCitationId(displayedCitation).chunkIndex : 0}
           isSticky={isSticky}
           isFullscreen={isFullscreen}
+          placement={popupPosition.placement}
+          top={popupPosition.top}
+          left={popupPosition.left}
           onClose={handleCloseSticky}
           onLoadChunk={isSticky ? (citationId) => fetchCitationsBatch([citationId]) : undefined}
           onLoadAllChunks={isSticky ? handleLoadAllChunks : undefined}
           onToggleFullscreen={isSticky ? handleToggleFullscreen : undefined}
           loadingCitations={loadingCitations}
-          style={{
-            top: `${popupPosition.top}px`,
-            left: `${popupPosition.left}px`,
-            width: `${popupPosition.width}px`,
-            height: `${popupPosition.height}px`
-          }}
         />
       )}
       <ReactMarkdown

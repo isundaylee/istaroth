@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useT, useTranslation } from '../contexts/LanguageContext'
 import { SelectionPanelFrame, type SelectionPanel, type SelectionState } from '../components/SelectionPanel'
+import { calculateFloatingPlacement } from '../utils/floatingPanel'
 import { getClientId } from '../utils/clientId'
 import { buildUrlWithLanguage } from '../utils/language'
 import { consumeQueryStream } from '../utils/queryStream'
@@ -59,14 +60,8 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
 
   const openSelectionAtRect = useCallback((text: string, rect: DOMRect): boolean => {
     if (rect.width === 0 && rect.height === 0) return false
-    const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
-    const placement = rect.top > window.innerHeight / 2 ? 'above' : 'below'
-    setSelection({
-      text,
-      top: placement === 'above' ? clamp(rect.top - 8, 8, window.innerHeight - 8) : clamp(rect.bottom + 8, 8, window.innerHeight - 8),
-      left: clamp(rect.left + rect.width / 2, 140, window.innerWidth - 140),
-      placement
-    })
+    const { top, left, placement } = calculateFloatingPlacement(rect)
+    setSelection({ text, top, left, placement })
     setPanel(null)
     return true
   }, [])

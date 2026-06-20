@@ -677,7 +677,7 @@ body {
 }
 
 .library-selection-toolbar.library-selection--above,
-.library-selection-panel.library-selection--above {
+.floating-panel.floating-panel--above {
   transform: translate(-50%, -100%);
 }
 
@@ -697,21 +697,34 @@ body {
   background: var(--color-surface-hover);
 }
 
-.library-selection-panel {
+.floating-panel {
   position: fixed;
   z-index: 1200;
+  display: flex;
+  flex-direction: column;
   width: min(36rem, calc(100vw - 2rem));
   max-height: min(34rem, calc(100vh - 2rem));
-  overflow: auto;
+  overflow: hidden;
   padding: 1rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
   transform: translateX(-50%);
+  animation: fadeIn 0.2s ease;
 }
 
-.library-selection-panel__header {
+/* Hover (non-sticky) popups must not participate in hit-testing: otherwise the
+   panel sits under the cursor, elementFromPoint returns it instead of the
+   citation, and the global mousemove dismissal fights the citation's mouseenter
+   re-trigger (flicker / open-only-on-click). The sticky variant stays
+   interactive so its body scrolls and its buttons work. */
+.floating-panel--static {
+  pointer-events: none;
+}
+
+.floating-panel__header {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -719,7 +732,22 @@ body {
   margin-bottom: 0.75rem;
 }
 
-.library-selection-panel__header h3 {
+.floating-panel__heading {
+  min-width: 0;
+}
+
+/* Prefixed with .floating-panel so these win over .answer p / .answer h3: the
+   citation popup renders inside the .answer subtree, whose typography rules
+   would otherwise clobber the eyebrow/title margins and blow out the spacing. */
+.floating-panel .floating-panel__eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.floating-panel .floating-panel__title {
   margin: 0;
   color: var(--color-heading);
   font-size: var(--font-lg);
@@ -727,7 +755,7 @@ body {
   overflow-wrap: anywhere;
 }
 
-.library-selection-panel__top-link {
+.floating-panel__top-link {
   display: inline-block;
   margin-top: 0.25rem;
   color: var(--color-primary-link);
@@ -735,15 +763,39 @@ body {
   text-decoration: none;
 }
 
-.library-selection-panel__eyebrow {
-  margin: 0 0 0.15rem;
-  color: var(--color-text-muted);
-  font-size: var(--font-xs);
-  font-weight: 600;
-  text-transform: uppercase;
+.floating-panel__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
 }
 
-.library-selection-panel__close {
+.floating-panel__action-btn {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-secondary);
+  color: var(--color-text);
+  font-size: var(--font-xs);
+  padding: 0.25rem 0.5rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.floating-panel__action-btn:hover {
+  background: var(--color-surface-hover);
+}
+
+.floating-panel__action-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.floating-panel__action-btn--block {
+  width: 100%;
+}
+
+.floating-panel__close {
   flex: 0 0 auto;
   width: 1.8rem;
   height: 1.8rem;
@@ -756,8 +808,38 @@ body {
   cursor: pointer;
 }
 
-.library-selection-panel__close:hover {
+.floating-panel__close:hover {
   background: var(--color-surface-hover);
+}
+
+.floating-panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  font-size: var(--font-sm);
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+/* Fullscreen variant: fixed header + scrollable body filling the viewport. */
+.floating-panel--fullscreen {
+  width: 100vw;
+  max-width: 800px;
+  height: 100vh;
+  max-height: 100vh;
+  top: 0;
+  left: 50%;
+  border-radius: 0;
+}
+
+.floating-panel--fullscreen .floating-panel__header {
+  padding: 1rem;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.floating-panel--fullscreen .floating-panel__body {
+  padding: 1rem;
 }
 
 .library-selection-muted,
@@ -798,7 +880,7 @@ body {
 }
 
 .library-selection-result a:hover,
-.library-selection-panel__top-link:hover {
+.floating-panel__top-link:hover {
   text-decoration: underline;
 }
 
@@ -920,7 +1002,7 @@ body {
     max-width: calc(100vw - 1rem);
   }
 
-  .library-selection-panel {
+  .floating-panel:not(.floating-panel--fullscreen) {
     left: 50% !important;
     width: calc(100vw - 1rem);
     max-height: calc(100vh - 1rem);

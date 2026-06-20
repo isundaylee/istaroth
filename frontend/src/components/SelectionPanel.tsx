@@ -3,6 +3,7 @@ import type { LibraryRetrieveResponse, ProgressStepStart } from '../types/api'
 import { buildLibraryFilePath } from '../utils/library'
 import { AppLink } from './AppLink'
 import CitationRenderer from './CitationRenderer'
+import { FloatingPanel } from './FloatingPanel'
 import QueryProgress from './QueryProgress'
 
 export interface SelectionState {
@@ -108,40 +109,32 @@ export function SelectionPanelFrame({
   onClose
 }: SelectionPanelFrameProps) {
   const t = useT()
+  const eyebrow = panel.kind === 'search' ? t('library.selection.keywordSearch') : t('library.selection.ask')
+  const title = panel.kind === 'ask' ? panel.question : panel.query
+  const topLink = panel.kind === 'search' ? (
+    <AppLink className="floating-panel__top-link" to={retrievePagePath(panel.query)} target="_blank" rel="noopener noreferrer">
+      {t('library.selection.openRetrieve')}
+    </AppLink>
+  ) : panel.kind === 'ask' && panel.conversationUuid ? (
+    <AppLink className="floating-panel__top-link" to={`/conversation/${panel.conversationUuid}`} target="_blank" rel="noopener noreferrer">
+      {t('library.selection.openConversation')}
+    </AppLink>
+  ) : null
   const panelBody = panel.kind === 'search'
     ? <RetrievalSelectionPanel panel={panel} />
     : <QuerySelectionPanel panel={panel} />
 
   return (
-    <div
-      className={`library-selection-panel library-selection--${placement}`}
-      style={{
-        top: `${top}px`,
-        left: `${left}px`,
-        maxHeight: placement === 'above' ? `calc(${top}px - 1rem)` : `calc(100vh - ${top}px - 1rem)`
-      }}
-      onMouseDown={(event) => event.stopPropagation()}
+    <FloatingPanel
+      placement={placement}
+      top={top}
+      left={left}
+      eyebrow={eyebrow}
+      title={title}
+      topLink={topLink}
+      onClose={onClose}
     >
-      <div className="library-selection-panel__header">
-        <div>
-          <p className="library-selection-panel__eyebrow">
-            {panel.kind === 'search' ? t('library.selection.keywordSearch') : t('library.selection.ask')}
-          </p>
-          <h3>{panel.kind === 'ask' ? panel.question : panel.query}</h3>
-          {panel.kind === 'search' && (
-            <AppLink className="library-selection-panel__top-link" to={retrievePagePath(panel.query)} target="_blank" rel="noopener noreferrer">
-              {t('library.selection.openRetrieve')}
-            </AppLink>
-          )}
-          {panel.kind === 'ask' && panel.conversationUuid && (
-            <AppLink className="library-selection-panel__top-link" to={`/conversation/${panel.conversationUuid}`} target="_blank" rel="noopener noreferrer">
-              {t('library.selection.openConversation')}
-            </AppLink>
-          )}
-        </div>
-        <button type="button" className="library-selection-panel__close" onClick={onClose} aria-label={t('common.close')}>×</button>
-      </div>
       {panelBody}
-    </div>
+    </FloatingPanel>
   )
 }
