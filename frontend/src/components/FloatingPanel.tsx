@@ -16,6 +16,8 @@ interface FloatingPanelProps {
   /** When provided, a close button is shown and Escape dismisses the panel. */
   onClose?: () => void
   fullscreen?: boolean
+  /** When provided, a fullscreen toggle button is shown in the actions row. */
+  onToggleFullscreen?: () => void
   /** When false, the panel is rendered ``pointer-events: none`` so it never
    * intercepts hit-testing (used for non-sticky hover popups). */
   interactive?: boolean
@@ -40,6 +42,7 @@ export function FloatingPanel({
   actions,
   onClose,
   fullscreen = false,
+  onToggleFullscreen,
   interactive = true,
   bodyClassName,
   children,
@@ -87,9 +90,19 @@ export function FloatingPanel({
           <h3 className="floating-panel__title">{title}</h3>
           {topLink}
         </div>
-        {(actions || onClose) && (
+        {(actions || onToggleFullscreen || onClose) && (
           <div className="floating-panel__actions">
             {actions}
+            {onToggleFullscreen && (
+              <button
+                type="button"
+                className="floating-panel__action-btn"
+                onClick={onToggleFullscreen}
+                title={fullscreen ? t('citation.exitFullscreen') : t('citation.enterFullscreen')}
+              >
+                {fullscreen ? '⧉' : '⛶'}
+              </button>
+            )}
             {onClose && (
               <button
                 type="button"

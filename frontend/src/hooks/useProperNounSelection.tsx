@@ -46,6 +46,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   const defaultModelRef = useRef<string | null>(null)
   const [selection, setSelection] = useState<SelectionState | null>(null)
   const [panel, setPanel] = useState<SelectionPanel | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   const normalizeSelectionText = (text: string) => text.replace(/\s+/g, ' ').trim()
   const isEntityLikeSelection = (text: string) =>
@@ -63,6 +64,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
     const { top, left, placement } = calculateFloatingPlacement(rect)
     setSelection({ text, top, left, placement })
     setPanel(null)
+    setIsFullscreen(false)
     return true
   }, [])
 
@@ -110,6 +112,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   useEffect(() => {
     setSelection(null)
     setPanel(null)
+    setIsFullscreen(false)
     activeRequestIdRef.current += 1
   }, [resetKey])
 
@@ -119,12 +122,14 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
       if (answerRef.current?.contains(target) || selectionUiRef.current?.contains(target)) return
       setSelection(null)
       setPanel(null)
+      setIsFullscreen(false)
       activeRequestIdRef.current += 1
     }
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
       setSelection(null)
       setPanel(null)
+      setIsFullscreen(false)
       activeRequestIdRef.current += 1
     }
     document.addEventListener('mousedown', handleMouseDown)
@@ -260,6 +265,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   const closeSelectionPanel = () => {
     setSelection(null)
     setPanel(null)
+    setIsFullscreen(false)
     activeRequestIdRef.current += 1
   }
 
@@ -281,8 +287,10 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
           placement={selection.placement}
           top={selection.top}
           left={selection.left}
+          fullscreen={isFullscreen}
           retrievePagePath={retrievePagePath}
           onClose={closeSelectionPanel}
+          onToggleFullscreen={() => setIsFullscreen((value) => !value)}
         />
       )}
     </div>

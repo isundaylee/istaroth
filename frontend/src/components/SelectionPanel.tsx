@@ -38,8 +38,10 @@ interface SelectionPanelFrameProps {
   placement: SelectionState['placement']
   top: number
   left: number
+  fullscreen: boolean
   retrievePagePath: (query: string) => string
   onClose: () => void
+  onToggleFullscreen: () => void
 }
 
 function RetrievalSelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind: 'search' }> }) {
@@ -105,8 +107,10 @@ export function SelectionPanelFrame({
   placement,
   top,
   left,
+  fullscreen,
   retrievePagePath,
-  onClose
+  onClose,
+  onToggleFullscreen
 }: SelectionPanelFrameProps) {
   const t = useT()
   const eyebrow = panel.kind === 'search' ? t('library.selection.keywordSearch') : t('library.selection.ask')
@@ -129,6 +133,8 @@ export function SelectionPanelFrame({
       placement={placement}
       top={top}
       left={left}
+      fullscreen={fullscreen}
+      onToggleFullscreen={onToggleFullscreen}
       eyebrow={eyebrow}
       title={title}
       topLink={topLink}
