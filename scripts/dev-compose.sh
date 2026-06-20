@@ -9,6 +9,9 @@ _resolve_identity() {
   if [[ -n "${CONDUCTOR_WORKSPACE_NAME:-}" ]]; then
     WORKSPACE_NAME="$CONDUCTOR_WORKSPACE_NAME"
     COMPOSE_PROJECT_NAME="conductor-${WORKSPACE_NAME}"
+  elif [[ -n "${PASEO_BRANCH_NAME:-}" ]]; then
+    WORKSPACE_NAME="$PASEO_BRANCH_NAME"
+    COMPOSE_PROJECT_NAME="paseo-${WORKSPACE_NAME}"
   else
     WORKSPACE_NAME="$(basename "$(git -C "$REPO_ROOT" rev-parse --show-toplevel)")"
     COMPOSE_PROJECT_NAME="cursor-${WORKSPACE_NAME}"
@@ -22,6 +25,8 @@ _resolve_identity() {
 _resolve_main_root() {
   if [[ -n "${CONDUCTOR_ROOT_PATH:-}" ]]; then
     MAIN_ROOT="$CONDUCTOR_ROOT_PATH"
+  elif [[ -n "${PASEO_SOURCE_CHECKOUT_PATH:-}" ]]; then
+    MAIN_ROOT="$PASEO_SOURCE_CHECKOUT_PATH"
   else
     MAIN_ROOT="$(git -C "$REPO_ROOT" worktree list --porcelain | awk '/^worktree/ {print $2; exit}')"
   fi
@@ -30,8 +35,12 @@ _resolve_main_root() {
 _export_ports() {
   _resolve_identity
   if [[ -z "${CONDUCTOR_PORT:-}" ]]; then
-    OFFSET=$(( $(echo -n "$WORKSPACE_NAME" | cksum | awk '{print $1}') % 50 * 10 ))
-    export CONDUCTOR_PORT=$((5173 + OFFSET))
+    if [[ -n "${PASEO_WORKTREE_PORT:-}" ]]; then
+      export CONDUCTOR_PORT="$PASEO_WORKTREE_PORT"
+    else
+      OFFSET=$(( $(echo -n "$WORKSPACE_NAME" | cksum | awk '{print $1}') % 50 * 10 ))
+      export CONDUCTOR_PORT=$((5173 + OFFSET))
+    fi
   fi
   export COMPOSE_PROJECT_NAME
   export CONDUCTOR_BACKEND_METRICS_HOST_PORT=$((CONDUCTOR_PORT + 1))
@@ -53,8 +62,15 @@ EOF
 }
 
 _load_env() {
-  _export_ports
-  _write_env_file
+  if [[ ! -f "$ENV_FILE" ]]; then
+    echo "dev-compose.sh: $ENV_FILE not found — run 'scripts/dev-compose.sh setup' first" >&2
+    exit 1
+  fi
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  export COMPOSE_PROJECT_NAME CONDUCTOR_PORT \
+    CONDUCTOR_BACKEND_METRICS_HOST_PORT CONDUCTOR_RETRIEVAL_METRICS_HOST_PORT \
+    CONDUCTOR_JAEGER_UI_HOST_PORT CONDUCTOR_JAEGER_OTLP_HOST_PORT
 }
 
 cmd_setup() {
@@ -63,6 +79,9 @@ cmd_setup() {
     target="$REPO_ROOT/$name"
     [[ -e "$target" ]] || ln -s "$MAIN_ROOT/$name" "$target"
   done
+  _resolve_identity
+  _export_ports
+  _write_env_file
 }
 
 cmd_up() {
@@ -71,7 +90,6 @@ cmd_up() {
     detach=""
     shift
   fi
-  cmd_setup
   _load_env
   cd "$COMPOSE_DIR"
   # shellcheck disable=SC2086
@@ -85,16 +103,7 @@ cmd_down() {
 }
 
 cmd_urls() {
-  if [[ -f "$ENV_FILE" ]]; then
-    # shellcheck disable=SC1090
-    source "$ENV_FILE"
-  else
-    _load_env
-  fi
-  if [[ -z "${COMPOSE_PROJECT_NAME:-}" ]]; then
-    echo "dev-compose.sh: COMPOSE_PROJECT_NAME is empty" >&2
-    exit 1
-  fi
+  _load_env
   echo "COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME"
   echo "Web UI:            http://localhost:$CONDUCTOR_PORT"
   echo "Backend metrics:   http://localhost:$CONDUCTOR_BACKEND_METRICS_HOST_PORT"
