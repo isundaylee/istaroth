@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import { useTranslation, useT } from '../contexts/LanguageContext'
-import type { CitationResponse, LibraryFileInfo } from '../types/api'
+import type { CitationResponse, LibraryFileInfo, LibraryFileResponse } from '../types/api'
 import { buildLibraryFilePath } from '../utils/library'
 import { buildProperNounMatcher } from '../utils/properNouns'
 import { rehypeProperNouns } from '../utils/rehypeProperNouns'
@@ -22,10 +22,13 @@ type CachedCitation = CitationResponse | { error: string }
 
 interface CitationContentData {
   title: string
-  chunks: CitationResponse[]
   content: string
   fileId: string
   chunkIndexWithPrefix?: string
+  /** The cited chunk (when loaded), used to locate the cited span within the full text. */
+  citedChunk?: CitationResponse
+  /** Full file text, fetched on demand for the sticky popup. */
+  fullText?: string
 }
 
 function CitationRenderer({ content, properNouns, children }: CitationRendererProps) {
@@ -35,6 +38,9 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
   const [popupPosition, setPopupPosition] = useState<FloatingPosition>({ top: 0, left: 0, placement: 'below' })
   const [citationCache, setCitationCache] = useState<Record<string, CachedCitation>>({})
   const [loadingCitations, setLoadingCitations] = useState<Set<string>>(new Set())
+  // Full file text keyed by fileId, fetched on demand to render the whole document around the cited span.
+  const [fileTextCache, setFileTextCache] = useState<Record<string, string>>({})
+  const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set())
   const { language } = useTranslation()
   const t = useT()
   const popupRef = useRef<HTMLDivElement>(null)
@@ -146,6 +152,40 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
       })
     }
   }, [citationCache, loadingCitations, language, t])
+
+  // Fetch the entire file text for a cited work so the sticky popup can render the
+  // full document (no chunk overlap) with the cited span highlighted.
+  const fetchFileText = useCallback(async (fileId: string) => {
+    if (fileTextCache[fileId] || loadingFiles.has(fileId)) return
+
+    // file_info (category/id) comes from any already-loaded chunk for this file.
+    const cached = Object.values(citationCache).find(
+      (value): value is CitationResponse => !('error' in value) && value.file_id === fileId
+    )
+    if (!cached) return
+    const { category, id } = cached.file_info
+
+    setLoadingFiles(prev => new Set(prev).add(fileId))
+    try {
+      const response = await fetch(
+        `/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(id)}?language=${language.toUpperCase()}`
+      )
+      if (!response.ok) {
+        console.error(`${t('citation.fetchFailed')} (${response.status}): ${response.statusText}`)
+        return
+      }
+      const data: LibraryFileResponse = await response.json()
+      setFileTextCache(prev => ({ ...prev, [fileId]: data.content }))
+    } catch (error) {
+      console.error(`${t('citation.networkError')}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setLoadingFiles(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(fileId)
+        return newSet
+      })
+    }
+  }, [fileTextCache, loadingFiles, citationCache, language, t])
 
   // Prefetch citations for all unique file IDs to get titles immediately
   useEffect(() => {
@@ -264,7 +304,6 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
         // This is a cached error
         return {
           title: fileId,
-          chunks: [],
           content: `${t('citation.error')}: ${cached.error}`,
           fileId,
           chunkIndexWithPrefix
@@ -273,16 +312,15 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
         // This is a successful response
         return {
           title: cached.file_info.title,
-          chunks: [],
           content: cached.content,
           fileId,
-          chunkIndexWithPrefix
+          chunkIndexWithPrefix,
+          citedChunk: cached
         }
       }
     } else if (loading) {
       return {
         title: fileId,
-        chunks: [],
         content: t('citation.loading'),
         fileId,
         chunkIndexWithPrefix
@@ -290,7 +328,6 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     } else {
       return {
         title: fileId,
-        chunks: [],
         content: `${t('citation.notLoaded')} ${chunkIndexWithPrefix}.`,
         fileId,
         chunkIndexWithPrefix
@@ -298,48 +335,11 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     }
   }
 
-  const getStickyContent = (citationId: string): CitationContentData => {
-    const { fileId, chunkIndex } = parseCitationId(citationId)
-    const chunkIndexWithPrefix = `ck${chunkIndex}`
-
-    // Get all chunks for this file from the citation cache
-    const fileChunks = Object.entries(citationCache)
-      .filter(([key, value]) => key.startsWith(`${fileId}:`) && !('error' in value))
-      .map(([_, value]) => value as CitationResponse)
-      .sort((a, b) => a.chunk_index - b.chunk_index)
-
-    if (fileChunks.length > 0) {
-      return {
-        title: fileChunks[0].file_info.title,
-        chunks: fileChunks,
-        content: '',
-        fileId,
-        chunkIndexWithPrefix
-      }
-    }
-
-    return getSourceContent(citationId)
-  }
-
-  const handleLoadAllChunks = useCallback((fileId: string) => {
-    // Get total_chunks from any cached chunk for this file
-    // The button only appears when chunks are already loaded, so we should always have at least one
-    const cachedChunk = Object.entries(citationCache)
-      .find(([key, value]) => key.startsWith(`${fileId}:`) && !('error' in value))
-
-    if (cachedChunk && !('error' in cachedChunk[1])) {
-      const citation = cachedChunk[1] as CitationResponse
-      const totalChunks = citation.total_chunks
-
-      // Generate citation IDs for all chunks (0 to total_chunks - 1)
-      const allCitationIds = Array.from({ length: totalChunks }, (_, i) =>
-        formatCitationId(fileId, i)
-      )
-
-      // Fetch all chunks (fetchCitationsBatch will skip already cached ones)
-      fetchCitationsBatch(allCitationIds)
-    }
-  }, [citationCache, fetchCitationsBatch])
+  const getStickyContent = (citationId: string): CitationContentData => (
+    // Reuse the source-content resolution (title, cited chunk, loading/error fallback) and
+    // attach the full file text once it has been fetched for this file.
+    { ...getSourceContent(citationId), fullText: fileTextCache[parseCitationId(citationId).fileId] }
+  )
 
   // Custom components for ReactMarkdown - memoized to prevent recreation on every render
   const components: Components = useMemo(() => ({
@@ -405,27 +405,28 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
 
   const displayedCitation = stickyCitation || hoveredCitation
   const isSticky = stickyCitation !== null
+  const popupData = displayedCitation
+    ? (isSticky ? getStickyContent(displayedCitation) : getSourceContent(displayedCitation))
+    : null
 
   const answer = (
     <>
-      {displayedCitation && (
+      {displayedCitation && popupData && (
         <CitationPopup
           ref={popupRef}
-          title={isSticky ? getStickyContent(displayedCitation).title : getSourceContent(displayedCitation).title}
-          content={isSticky ? undefined : getSourceContent(displayedCitation).content}
-          chunks={isSticky ? getStickyContent(displayedCitation).chunks : undefined}
-          fileId={isSticky ? getStickyContent(displayedCitation).fileId : undefined}
-          currentChunkIndex={isSticky ? parseCitationId(displayedCitation).chunkIndex : 0}
+          title={popupData.title}
+          content={popupData.content}
+          citedChunk={isSticky ? popupData.citedChunk : undefined}
+          fullText={isSticky ? popupData.fullText : undefined}
           isSticky={isSticky}
           isFullscreen={isFullscreen}
           placement={popupPosition.placement}
           top={popupPosition.top}
           left={popupPosition.left}
           onClose={handleCloseSticky}
-          onLoadChunk={isSticky ? (citationId) => fetchCitationsBatch([citationId]) : undefined}
-          onLoadAllChunks={isSticky ? handleLoadAllChunks : undefined}
+          onLoadFullText={isSticky ? () => fetchFileText(popupData.fileId) : undefined}
+          isLoadingFullText={isSticky ? loadingFiles.has(popupData.fileId) : false}
           onToggleFullscreen={isSticky ? handleToggleFullscreen : undefined}
-          loadingCitations={loadingCitations}
         />
       )}
       <ReactMarkdown

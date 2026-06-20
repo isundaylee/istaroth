@@ -626,38 +626,14 @@ body {
   background-clip: content-box;
 }
 
-/* Hairline divider between contiguous chunks */
-.citation-divider {
-  border: none;
-  border-top: 1px solid var(--color-border-light);
-  margin: 16px 0;
-}
-
-/* Collapsed gap between non-contiguous chunks; click to expand */
-.citation-gap {
-  display: block;
-  width: 100%;
-  margin: 16px 0;
-  padding: 8px;
-  background: transparent;
-  border: 1px dashed var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--color-text-muted);
-  font-size: var(--font-xs);
-  text-align: center;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.citation-gap:hover:not(:disabled) {
-  background: var(--color-surface-secondary);
-  border-color: var(--color-primary);
-  color: var(--color-text);
-}
-
-.citation-gap:disabled {
-  cursor: default;
-  opacity: 0.6;
+/* Cited span highlighted within the full document text */
+.citation-cited {
+  background: var(--color-citation-label-bg);
+  color: var(--color-primary-dark);
+  border-radius: var(--radius-sm);
+  padding: 0 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
 .library-header {
