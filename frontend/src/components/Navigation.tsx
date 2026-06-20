@@ -43,7 +43,7 @@ function Navigation() {
               style={{
                 textDecoration: 'none',
                 color: active ? 'var(--color-primary-text)' : 'var(--color-text-secondary)',
-                backgroundColor: active ? 'var(--color-primary-active-bg)' : 'transparent',
+                backgroundColor: active ? 'var(--color-primary-tint)' : 'transparent',
                 border: 'none',
                 borderRadius: 'var(--radius-md)',
                 padding: '0.3rem 1rem',
