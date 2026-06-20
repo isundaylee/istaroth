@@ -9,13 +9,13 @@ from fastapi import APIRouter, HTTPException, Query
 from istaroth.agd import localization
 from istaroth.rag import text_set
 from istaroth.rag import types as rag_types
-from istaroth.services.backend import models
+from istaroth.services.backend import models, proper_noun_highlighting
 from istaroth.services.backend.dependencies import DocumentStoreSet, LLMManager
 from istaroth.services.backend.utils import (
     handle_unexpected_exception,
     text_metadata_to_library_file_info,
 )
-from istaroth.text import proper_noun_extraction, proper_nouns
+from istaroth.text import proper_nouns
 from istaroth.text import types as text_types
 
 logger = logging.getLogger(__name__)
@@ -272,38 +272,13 @@ async def get_file_proper_nouns(
             detail=f"File not found on disk: {manifest_item.relative_path}",
         )
 
-    negative_terms = proper_nouns.parse_terms(
-        text_set_obj.get_content(
-            proper_nouns.PROPER_NOUNS_NEGATIVE_RELATIVE_PATH.as_posix()
+    return models.ProperNounsResponse(
+        nouns=await proper_noun_highlighting.extract_highlight_nouns(
+            content,
+            text_set_obj=text_set_obj,
+            llm=llm_manager.get_llm(_PROPER_NOUN_MODEL),
         )
     )
-    try:
-        extracted = await proper_noun_extraction.extract_proper_nouns_cached(
-            content, llm=llm_manager.get_llm(_PROPER_NOUN_MODEL)
-        )
-    except proper_noun_extraction.CharBudgetExceededError:
-        # Over the daily budget: degrade to the static, curated proper-noun list.
-        logger.warning("Proper-noun extraction budget exceeded; serving static list")
-        return models.ProperNounsResponse(
-            nouns=proper_nouns.filter_terms(
-                proper_nouns.parse_terms(
-                    text_set_obj.get_content(
-                        proper_nouns.PROPER_NOUNS_RELATIVE_PATH.as_posix()
-                    )
-                ),
-                negative_terms,
-            )
-        )
-    # Keep only terms that actually appear in the content so the frontend trie can
-    # highlight them (guards against LLM paraphrase/hallucination).
-    nouns = sorted(
-        {
-            term
-            for term in proper_nouns.filter_terms(extracted, negative_terms)
-            if term in content
-        }
-    )
-    return models.ProperNounsResponse(nouns=nouns)
 
 
 @router.get(

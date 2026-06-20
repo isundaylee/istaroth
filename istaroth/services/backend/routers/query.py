@@ -14,8 +14,13 @@ from sqlalchemy.exc import IntegrityError
 
 from istaroth import llm_errors
 from istaroth.agd import localization
-from istaroth.rag import pipeline, progress, types
-from istaroth.services.backend import db_models, models, slugs
+from istaroth.rag import pipeline, progress, text_set, types
+from istaroth.services.backend import (
+    db_models,
+    models,
+    proper_noun_highlighting,
+    slugs,
+)
 from istaroth.services.backend.dependencies import (
     DBSession,
     DocumentStoreSet,
@@ -28,12 +33,19 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+# Model for inline answer proper-noun extraction (highlighting); mirrors the
+# library router default and degrades to "no highlights" if unavailable.
+_PROPER_NOUN_MODEL = os.environ.get(
+    "ISTAROTH_PROPER_NOUN_MODEL", "gemini-3.1-flash-lite-preview"
+)
+
 
 async def _save_conversation(
     db_session: DBSession,
     request: models.QueryRequest,
     result: types.AnswerResult,
     generation_time: float,
+    proper_nouns: list[str],
 ) -> tuple[str, str]:
     """Save conversation to database and return (uuid, short_slug)."""
     conversation = db_models.Conversation(
@@ -49,6 +61,7 @@ async def _save_conversation(
         ),
         retrieval_unique_chunk_count=result.stats.retrieval_unique_chunk_count,
         retrieval_unique_file_count=result.stats.retrieval_unique_file_count,
+        proper_nouns=proper_nouns,
     )
     db_session.add(conversation)
     await db_session.flush()
@@ -79,8 +92,11 @@ def _build_pipeline(
     request: models.QueryRequest,
     document_store_set: DocumentStoreSet,
     llm_manager: LLMManager,
-) -> tuple[pipeline.RAGPipeline, str]:
-    """Validate the request and build a pipeline; returns (pipeline, language_name)."""
+) -> tuple[pipeline.RAGPipeline, str, localization.Language, text_set.TextSet]:
+    """Validate the request and build a pipeline.
+
+    Returns ``(pipeline, language_name, language_enum, text_set)``.
+    """
     try:
         language_enum = localization.Language(request.language)
         selected_store = document_store_set.get_store(language_enum)
@@ -104,7 +120,35 @@ def _build_pipeline(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=repr(e))
 
-    return rag_pipeline, language_name
+    return rag_pipeline, language_name, language_enum, selected_text_set
+
+
+async def _extract_answer_proper_nouns(
+    answer: str,
+    *,
+    language_enum: localization.Language,
+    text_set_obj: text_set.TextSet,
+    llm_manager: LLMManager,
+    reporter: progress.ProgressReporter,
+) -> list[str]:
+    """Extract highlightable proper nouns from the answer as a reported step.
+
+    Only CHS is supported (ENG returns ``[]`` without a step). Highlighting is
+    supplementary, so any extraction failure degrades to no highlights rather
+    than failing the query.
+    """
+    if language_enum is not localization.Language.CHS:
+        return []
+    with reporter.step("extracting_proper_nouns"):
+        try:
+            return await proper_noun_highlighting.extract_highlight_nouns(
+                answer,
+                text_set_obj=text_set_obj,
+                llm=llm_manager.get_llm(_PROPER_NOUN_MODEL),
+            )
+        except Exception:
+            logger.warning("Answer proper-noun extraction failed", exc_info=True)
+            return []
 
 
 @router.post(
@@ -132,7 +176,7 @@ async def query_stream(
     followed by a terminal ``done`` event carrying the ``QueryResponse`` (or an
     ``error`` event). The client shows every step that has started but not ended.
     """
-    rag_pipeline, language_name = _build_pipeline(
+    rag_pipeline, language_name, language_enum, text_set_obj = _build_pipeline(
         request, document_store_set, llm_manager
     )
 
@@ -152,12 +196,13 @@ async def query_stream(
 
         async def _run() -> None:
             try:
+                reporter = progress.StreamReporter(send_stream)
                 start_time = time.perf_counter()
                 result = await rag_pipeline.answer(
                     request.question,
                     k=request.k,
                     chunk_context=request.chunk_context,
-                    reporter=progress.StreamReporter(send_stream),
+                    reporter=reporter,
                 )
                 generation_time = time.perf_counter() - start_time
                 metrics.rag_pipeline_duration_seconds.labels(
@@ -166,8 +211,15 @@ async def query_stream(
                 logger.info(
                     "Streaming query completed in %.2f seconds", generation_time
                 )
+                proper_nouns = await _extract_answer_proper_nouns(
+                    result.answer,
+                    language_enum=language_enum,
+                    text_set_obj=text_set_obj,
+                    llm_manager=llm_manager,
+                    reporter=reporter,
+                )
                 conversation_uuid, short_slug = await _save_conversation(
-                    db_session, request, result, generation_time
+                    db_session, request, result, generation_time, proper_nouns
                 )
                 terminal["event"] = models.QueryStreamDone(
                     result=models.QueryResponse(
@@ -176,6 +228,7 @@ async def query_stream(
                         conversation_uuid=conversation_uuid,
                         language=language_name,
                         short_slug=short_slug,
+                        proper_nouns=proper_nouns,
                         final_generation_input_text_length=(
                             result.stats.final_generation_input_text_length
                         ),

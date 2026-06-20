@@ -1046,6 +1046,13 @@
           "short_slug": {
             "type": "string",
             "title": "Short Slug"
+          },
+          "proper_nouns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Proper Nouns"
           }
         },
         "type": "object",
@@ -1061,7 +1068,8 @@
           "final_generation_input_text_length",
           "retrieval_unique_chunk_count",
           "retrieval_unique_file_count",
-          "short_slug"
+          "short_slug",
+          "proper_nouns"
         ],
         "title": "ConversationResponse",
         "description": "Response model for conversation retrieval."
@@ -1516,6 +1524,13 @@
             "type": "string",
             "title": "Short Slug"
           },
+          "proper_nouns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Proper Nouns"
+          },
           "final_generation_input_text_length": {
             "type": "integer",
             "title": "Final Generation Input Text Length"
@@ -1536,6 +1551,7 @@
           "answer",
           "conversation_uuid",
           "short_slug",
+          "proper_nouns",
           "final_generation_input_text_length",
           "retrieval_unique_chunk_count",
           "retrieval_unique_file_count"

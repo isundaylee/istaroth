@@ -9,6 +9,7 @@ import QueryForm from './QueryForm'
 import Card from './components/Card'
 import Navigation from './components/Navigation'
 import CitationRenderer from './components/CitationRenderer'
+import { useProperNounSelection } from './hooks/useProperNounSelection'
 import type { ConversationResponse } from './types/api'
 
 interface LoaderData {
@@ -36,6 +37,7 @@ function ConversationPage() {
   const t = useT()
   const { conversation } = useLoaderData() as LoaderData
   const { setExtraContent } = useFooter()
+  const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(conversation.uuid)
   const [submittingNew, setSubmittingNew] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [exportedImage, setExportedImage] = useState<string | null>(null)
@@ -137,7 +139,7 @@ function ConversationPage() {
             <h3 style={{ margin: 0 }}>{conversation.question}</h3>
           </Card>
 
-          <CitationRenderer content={conversation.answer}>
+          <CitationRenderer content={conversation.answer} properNouns={conversation.proper_nouns}>
             {({ answer, citationList }) => (
               <>
                 <Card borderColor="blue">
@@ -210,7 +212,13 @@ function ConversationPage() {
                     </div>
                   )}
 
-                  <div className="answer">{answer}</div>
+                  <div
+                    ref={answerRef}
+                    className="answer"
+                    onMouseUp={answerHandlers.onMouseUp}
+                    onKeyUp={answerHandlers.onKeyUp}
+                    onClick={answerHandlers.onClick}
+                  >{answer}</div>
                 </Card>
 
                 {citationList && (
@@ -222,6 +230,7 @@ function ConversationPage() {
             )}
           </CitationRenderer>
         </div>}
+        {selectionUi}
       </main>
     </>
   )

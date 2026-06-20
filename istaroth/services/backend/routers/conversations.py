@@ -93,4 +93,5 @@ async def get_conversation(
         retrieval_unique_file_count=conversation.retrieval_unique_file_count or 0,
         language=conversation.language,
         short_slug=short_url.slug,
+        proper_nouns=conversation.proper_nouns or [],
     )
