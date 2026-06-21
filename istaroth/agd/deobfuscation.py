@@ -29,6 +29,7 @@ _COMMON_FIELD_MAPPINGS = {
     "DANPPPLPAEE": "configId",
     "JEMDGACPOPC": "configId",
     "CLNOODHDADD": "configId",
+    "JCFGGIACLFH": "groupId",
     "FHNJHCFCADD": "questId",
     "GCABNOAOIFL": "CUSTOM_addlLocalID",
     "PFAJMABJOFK": "CUSTOM_addlLocalID",
@@ -112,6 +113,7 @@ _COMMON_FIELD_MAPPINGS = {
     "DGGDDIMMIDO": "talkRole",
     "JDAPCNPEAEH": "nextDialogs",
     "JPCHNCNMMBE": "configId",
+    "BMLKAELPLNA": "groupId",
     "CPAPOLIHGCN": "CUSTOM_addlLocalID",
     "PGELADPAKLA": "finishCond",
     # NOTE: `damageRatio` is the (misleading) cleartext name used by the older

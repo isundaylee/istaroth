@@ -1027,11 +1027,22 @@ def render_talk_group(
 
     rendered_content = "\n".join(content_lines).rstrip()
 
+    # GadgetGroup's TalkGroupId is the composite "<configId>_<groupId>" string
+    # (issue #186); collapse to the stable int ``configId * 10**9 + groupId`` to
+    # fit ``TextMetadata.id``. Other types carry a single int as str.
+    if talk_group_type == "GadgetGroup":
+        config_id, group_id = talk_parsing.parse_gadget_group_composite_id(
+            talk_group_id
+        )
+        metadata_id = talk_parsing.gadget_group_composite_id(config_id, group_id)
+    else:
+        metadata_id = int(talk_group_id)
+
     return types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_TALK_GROUP,
             title=title,
-            id=int(talk_group_id),
+            id=metadata_id,
             relative_path=f"{text_types.TextCategory.AGD_TALK_GROUP.value}/{filename}",
         ),
         content=rendered_content,

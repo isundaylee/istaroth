@@ -30,50 +30,67 @@ def test_talk_group_duplicate_resolution_prefers_canonical_id_path() -> None:
     )
 
 
-def test_talk_group_duplicate_resolution_prefers_highest_suffix() -> None:
+def test_talk_group_gadget_uses_composite_config_group_key() -> None:
+    """GadgetGroup files sharing a configId survive as distinct composite keys.
+
+    A configId alone is not unique across GadgetGroup files (issue #186): the
+    three ``1003`` variants are genuinely different talks (Opéra notices, Tubby,
+    activity), each carrying a distinct ``groupId`` that disambiguates them.
+    """
     parser = talk_parsing.TalkParser.__new__(talk_parsing.TalkParser)
     parser.talk_group_id_to_path = {}
     parser._talk_group_candidates = collections.defaultdict(list)
 
-    for filename in [
-        "BinOutput/Talk/GadgetGroup/1003_201096001.json",
-        "BinOutput/Talk/GadgetGroup/1003_220200001.json",
-        "BinOutput/Talk/GadgetGroup/1003_999999900.json",
+    for filename, group_id in [
+        ("BinOutput/Talk/GadgetGroup/1003_201096001.json", 201096001),
+        ("BinOutput/Talk/GadgetGroup/1003_220200001.json", 220200001),
+        ("BinOutput/Talk/GadgetGroup/1003_999999900.json", 999999900),
     ]:
         parser._handle_talk_group_file(
             pathlib.Path(filename),
             "GadgetGroup",
-            {"talks": [{}], "configId": 1003},
+            {"talks": [{}], "configId": 1003, "groupId": group_id},
         )
     parser._resolve_talk_group_candidates()
 
-    assert (
-        parser.talk_group_id_to_path[("GadgetGroup", "1003")]
-        == "BinOutput/Talk/GadgetGroup/1003_999999900.json"
-    )
+    # All three variants survive under their own (configId, groupId) composite.
+    assert parser.talk_group_id_to_path == {
+        ("GadgetGroup", "1003_201096001"): (
+            "BinOutput/Talk/GadgetGroup/1003_201096001.json"
+        ),
+        ("GadgetGroup", "1003_220200001"): (
+            "BinOutput/Talk/GadgetGroup/1003_220200001.json"
+        ),
+        ("GadgetGroup", "1003_999999900"): (
+            "BinOutput/Talk/GadgetGroup/1003_999999900.json"
+        ),
+    }
 
 
-def test_talk_group_duplicate_resolution_prefers_gadget_high_suffix() -> None:
+def test_talk_group_gadget_prefers_canonical_named_composite() -> None:
+    """A hash-named GadgetGroup file resolves via its in-data composite key and
+    loses to a canonically-named file claiming the same composite (defensive:
+    two distinct files with the same ``(configId, groupId)`` would be a data
+    error, but the canonical-named copy wins if it ever happens)."""
     parser = talk_parsing.TalkParser.__new__(talk_parsing.TalkParser)
     parser.talk_group_id_to_path = {}
     parser._talk_group_candidates = collections.defaultdict(list)
 
-    for filename in [
-        "BinOutput/Talk/GadgetGroup/4242_1.json",
-        "BinOutput/Talk/GadgetGroup/4242_99.json",
-        "BinOutput/Talk/GadgetGroup/26e54092.json",
-    ]:
-        parser._handle_talk_group_file(
-            pathlib.Path(filename),
-            "GadgetGroup",
-            {"talks": [{}], "configId": 4242},
-        )
+    parser._handle_talk_group_file(
+        pathlib.Path("BinOutput/Talk/GadgetGroup/4242_99.json"),
+        "GadgetGroup",
+        {"talks": [{}], "configId": 4242, "groupId": 99},
+    )
+    parser._handle_talk_group_file(
+        pathlib.Path("BinOutput/Talk/GadgetGroup/26e54092.json"),
+        "GadgetGroup",
+        {"talks": [{}], "configId": 4242, "groupId": 99},
+    )
     parser._resolve_talk_group_candidates()
 
-    assert (
-        parser.talk_group_id_to_path[("GadgetGroup", "4242")]
-        == "BinOutput/Talk/GadgetGroup/4242_99.json"
-    )
+    assert parser.talk_group_id_to_path == {
+        ("GadgetGroup", "4242_99"): "BinOutput/Talk/GadgetGroup/4242_99.json",
+    }
 
 
 def test_talk_collision_dedupes_identical_resolved_text() -> None:

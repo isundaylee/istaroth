@@ -70,6 +70,18 @@ Dialog/talk role *references* (``talkRole.id`` / ``_id``) and the
 ``npc_id_to_name`` map key carry the id as a plain ``str``, not this alias.
 """
 
+GadgetConfigId: TypeAlias = int
+"""Gadget config id (``GadgetGroup.configId``); the first half of a GadgetGroup's
+composite ``(configId, groupId)`` key. Multiple GadgetGroup files can share a
+``configId`` (e.g. ``1003`` has Tubby, Opéra notices, and an activity variant),
+so ``configId`` alone is not a unique file key."""
+
+GadgetGroupId: TypeAlias = int
+"""GadgetGroup group id (``GadgetGroup.groupId``); the second half of the
+composite key. Always ships as a 9-digit int (min ``111101079``), so the
+``configId * 10**9 + groupId`` composite int is collision-free and fits
+``TextMetadata.id`` (and JS ``Number.MAX_SAFE_INTEGER``)."""
+
 AvatarId: TypeAlias = int
 """Avatar (character) id (``AvatarExcelConfigDataItem.id``); carried as ``int``."""
 
