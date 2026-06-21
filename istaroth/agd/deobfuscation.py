@@ -137,6 +137,21 @@ _COMMON_FIELD_MAPPINGS = {
     "MPEMBNCPNJO": "nextNodeArray",
     "ICBFHNOKIDE": "selectList",
     "LNKEDDLBLEP": "dialogId",
+    # CNRELWin6.6.0 Coop COND/SELECT/END node sub-fields.
+    # COND node: coopCondGrp is the routing predicate with nested conds.
+    "AJBJJLPHHOH": "coopCondGrp",
+    "ONIPBCHBDBF": "condCombType",
+    "POJHMDGHNLM": "coopCondList",
+    # NOTE: `DLPKMDPABFM → type` collides with `_type → type` (line 37), but no
+    # single dict carries both (`_type` is on finishCond items, `DLPKMDPABFM` on
+    # coopCondList items), so the collision is safe.
+    "DLPKMDPABFM": "type",
+    "IEKGEJMAOCN": "param",
+    # SELECT option-level showCond/enableCond (cond-groups that gate visibility).
+    "DDBMPGNIHFD": "showCond",
+    "OPDLPCGPPIL": "enableCond",
+    # END node: the ending/save-point id.
+    "AOOCCGGPPAI": "savePointId",
     # DialogExcelConfigData dialog id (its other text fields are already cleartext).
     "GFLDJMJKIKE": "id",
 }
@@ -263,13 +278,42 @@ def deobfuscate_coop_graph_data(data: dict[str, Any]) -> dict[str, Any]:
     return top
 
 
+def _process_cond_grp(cond_grp: dict[str, Any]) -> dict[str, Any]:
+    """Recursively de-obfuscate a cond-group dict (``condCombType`` + ``coopCondList``)."""
+    return _deobfuscate_data(
+        cond_grp, _COMMON_FIELD_MAPPINGS, {"coopCondList": _process_array_items}
+    )
+
+
+def _process_coop_select_items(
+    select_list: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Process ``selectList`` items, deobfuscating ``showCond``/``enableCond`` deep."""
+    result = []
+    for item in select_list:
+        deobfuscated = _deobfuscate_data(item, _COMMON_FIELD_MAPPINGS, {})
+        for cond_key in ("showCond", "enableCond"):
+            if cond_val := deobfuscated.get(cond_key):
+                deobfuscated[cond_key] = _process_cond_grp(cond_val)
+        result.append(deobfuscated)
+    return result
+
+
+def _deobfuscate_coop_node(node: dict[str, Any]) -> dict[str, Any]:
+    """De-obfuscate one coopMap node, deep-processing selectList and coopCondGrp."""
+    deobfuscated = _deobfuscate_data(node, _COMMON_FIELD_MAPPINGS, {})
+    if select_list := deobfuscated.get("selectList"):
+        deobfuscated["selectList"] = _process_coop_select_items(select_list)
+    if cond_grp := deobfuscated.get("coopCondGrp"):
+        deobfuscated["coopCondGrp"] = _process_cond_grp(cond_grp)
+    return deobfuscated
+
+
 def _deobfuscate_coop_story(story: dict[str, Any]) -> dict[str, Any]:
     """De-obfuscate one coopInteractionMap entry and its node map."""
     deobfuscated = _deobfuscate_data(story, _COMMON_FIELD_MAPPINGS, {})
     deobfuscated["coopMap"] = {
-        node_id: _deobfuscate_data(
-            node, _COMMON_FIELD_MAPPINGS, {"selectList": _process_array_items}
-        )
+        node_id: _deobfuscate_coop_node(node)
         for node_id, node in deobfuscated["coopMap"].items()
     }
     return deobfuscated

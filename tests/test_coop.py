@@ -1,6 +1,18 @@
 """Tests for hangout (Coop) extraction: graph walk, processing, and hierarchy."""
 
-from istaroth.agd import coop_graph, coop_hierarchy, processing, repo
+import re
+from typing import Any
+
+import pytest
+
+from istaroth.agd import (
+    coop_graph,
+    coop_hierarchy,
+    localization,
+    processing,
+    rendering,
+    repo,
+)
 
 
 def test_walk_play_order_branches_and_convergence() -> None:
@@ -18,7 +30,10 @@ def test_walk_play_order_branches_and_convergence() -> None:
                 "coopNodeId": 2,
                 "coopNodeType": "COOP_NODE_SELECT",
                 "nextNodeArray": [3, 4],
-                "selectList": [{"dialogId": 111}, {"dialogId": 222}],
+                "selectList": [
+                    {"dialogId": 111, "showCond": {}, "enableCond": {}},
+                    {"dialogId": 222, "showCond": {}, "enableCond": {}},
+                ],
             },
             "3": {
                 "coopNodeId": 3,
@@ -134,3 +149,106 @@ def test_build_coop_hierarchy_character_chapter_quest(data_repo: repo.DataRepo) 
     assert noelle.children is not None
     assert len(noelle.children) == 2
     assert all(ch.children is not None and ch.file_id is None for ch in noelle.children)
+
+
+def test_cond_node_carries_cond_grp() -> None:
+    """A COND node's branches carry the raw cond_grp dict; branch 1 (else) has None."""
+    story: dict[str, Any] = {
+        "id": 999,
+        "startNodeId": 1,
+        "coopMap": {
+            "1": {
+                "coopNodeId": 1,
+                "coopNodeType": "COOP_NODE_TALK",
+                "nextNodeArray": [2],
+            },
+            "2": {
+                "coopNodeId": 2,
+                "coopNodeType": "COOP_NODE_COND",
+                "nextNodeArray": [3, 4],
+                "coopCondGrp": {
+                    "condCombType": "LOGIC_AND",
+                    "coopCondList": [
+                        {"type": "COOP_COND_QUEST_FINISH", "param": [1901503]}
+                    ],
+                },
+            },
+            "3": {
+                "coopNodeId": 3,
+                "coopNodeType": "COOP_NODE_TALK",
+                "nextNodeArray": [],
+            },
+            "4": {
+                "coopNodeId": 4,
+                "coopNodeType": "COOP_NODE_TALK",
+                "nextNodeArray": [],
+            },
+        },
+    }
+    steps = coop_graph.walk_play_order(coop_graph.build_story_graph(story))
+    assert len(steps) == 2
+    cond = steps[1]
+    assert isinstance(cond, coop_graph.ChoiceStep)
+    assert cond.is_conditional
+    # Branch 0 carries the cond; branch 1 is else.
+    assert cond.branches[0].cond_grp is not None
+    assert cond.branches[0].cond_grp["condCombType"] == "LOGIC_AND"
+    assert cond.branches[1].cond_grp is None
+
+
+def test_end_node_emits_end_step() -> None:
+    """Walking to an END node with savePointId emits an EndStep."""
+    story: dict[str, Any] = {
+        "id": 999,
+        "startNodeId": 1,
+        "coopMap": {
+            "1": {
+                "coopNodeId": 1,
+                "coopNodeType": "COOP_NODE_TALK",
+                "nextNodeArray": [2],
+            },
+            "2": {
+                "coopNodeId": 2,
+                "coopNodeType": "COOP_NODE_COND",
+                "nextNodeArray": [3, 4],
+                "coopCondGrp": {"condCombType": "LOGIC_NONE", "coopCondList": []},
+            },
+            "3": {
+                "coopNodeId": 3,
+                "coopNodeType": "COOP_NODE_END",
+                "nextNodeArray": [],
+                "savePointId": 90501,
+            },
+            "4": {
+                "coopNodeId": 4,
+                "coopNodeType": "COOP_NODE_TALK",
+                "nextNodeArray": [],
+            },
+        },
+    }
+    steps = coop_graph.walk_play_order(coop_graph.build_story_graph(story))
+    cond = steps[1]
+    assert isinstance(cond, coop_graph.ChoiceStep)
+    # Branch 0 leads to END → EndStep; branch 1 leads to TALK.
+    assert cond.branches[0].steps == [coop_graph.EndStep(save_point_id=90501)]
+    assert cond.branches[1].steps == [coop_graph.TalkStep(local_talk_id=4)]
+
+
+def test_yunjin_rendered_structure(data_repo: repo.DataRepo) -> None:
+    """Hangout 19017 (Yunjin) rendered output has the expected section structure."""
+    raw_info = processing.get_hangout_info(19017, data_repo=data_repo)
+    assert raw_info is not None, "Hangout 19017 expected to exist"
+    rendered = rendering.render_hangout(raw_info, localization.Language.CHS)
+    content = rendered.content
+    lines = content.split("\n")
+
+    # Yunjin has 4 stories (1901701–1901704). Each gets exactly one ### Talk: header.
+    assert len(re.findall(r"^### Talk:", content, re.MULTILINE)) == 4
+
+    # One fork in conversation 3 with 2 branches.
+    assert len(re.findall(r"^### Choice ", content, re.MULTILINE)) == 1
+    assert len(re.findall(r"^#### Branch ", content, re.MULTILINE)) == 2
+    assert len(re.findall(r"\*→ Ending \(save point ", content)) == 5
+    assert len(re.findall(r"\*→ Next: Choice ", content)) == 0
+    assert len(re.findall(r"\*→ End of conversation\*", content)) == 0
+    assert len(re.findall(r"^\*Condition:", content, re.MULTILINE)) == 0

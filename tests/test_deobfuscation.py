@@ -115,7 +115,8 @@ def test_deobfuscate_talk_group_data(data_repo: repo.DataRepo) -> None:
 
 
 def test_deobfuscate_coop_graph_data(data_repo: repo.DataRepo) -> None:
-    """De-obfuscate a Coop story graph, covering the node-graph play-order fields."""
+    """De-obfuscate a Coop story graph, covering the node-graph play-order fields
+    and the new COND/END sub-fields (coopCondGrp, savePointId, showCond/enableCond)."""
     deobfuscated_data = deobfuscation.deobfuscate_coop_graph_data(
         _load_raw(data_repo, "BinOutput/Coop/Coop101401.json")
     )
@@ -130,13 +131,109 @@ def test_deobfuscate_coop_graph_data(data_repo: repo.DataRepo) -> None:
     assert nodes["7"]["coopNodeId"] == 7
     assert nodes["7"]["nextNodeArray"] == [8]
     # SELECT node: player choice fanning out into two branches; selectList option
-    # i pairs with nextNodeArray[i].
+    # i pairs with nextNodeArray[i]. Each select item carries showCond/enableCond.
     assert nodes["8"]["coopNodeType"] == "COOP_NODE_SELECT"
     assert nodes["8"]["nextNodeArray"] == [10, 100]
     assert [s["dialogId"] for s in nodes["8"]["selectList"]] == [1900102191, 1900102192]
-    # END node: terminal, no outgoing edges.
+    for item in nodes["8"]["selectList"]:
+        assert "showCond" in item
+        assert "enableCond" in item
+    # END node: terminal, no outgoing edges, carries savePointId.
     assert nodes["11"]["coopNodeType"] == "COOP_NODE_END"
     assert nodes["11"]["nextNodeArray"] == []
+    assert "savePointId" in nodes["11"]
+
+    # Scan every story in the file for a COND node with coopCondGrp.
+    found_cond = False
+    for story_data in deobfuscated_data["coopInteractionMap"].values():
+        for node in story_data["coopMap"].values():
+            if node["coopNodeType"] == "COOP_NODE_COND":
+                assert "coopCondGrp" in node
+                cond_grp = node["coopCondGrp"]
+                assert "condCombType" in cond_grp
+                assert "coopCondList" in cond_grp
+                for cond_entry in cond_grp["coopCondList"]:
+                    assert "type" in cond_entry
+                    assert "param" in cond_entry
+                found_cond = True
+    assert found_cond, "No COND node found in Coop101401.json"
+
+
+def test_deobfuscate_coop_cond_node() -> None:
+    """De-obfuscate a synthetic COND node with coopCondGrp."""
+    raw = {
+        "DACOOAMDHDE": 101,  # coopNodeId
+        "HMLLJAMHHHG": "COOP_NODE_COND",
+        "MPEMBNCPNJO": [201, 202],
+        "AJBJJLPHHOH": {
+            "ONIPBCHBDBF": "LOGIC_AND",
+            "POJHMDGHNLM": [
+                {"DLPKMDPABFM": "COOP_COND_QUEST_FINISH", "IEKGEJMAOCN": [1901503]},
+                {"DLPKMDPABFM": "COOP_COND_CONFIDENCE_COMPARE", "IEKGEJMAOCN": [1, 4]},
+            ],
+        },
+    }
+    deobf = deobfuscation._deobfuscate_coop_node(raw)
+    assert deobf["coopNodeId"] == 101
+    assert deobf["coopNodeType"] == "COOP_NODE_COND"
+    assert deobf["nextNodeArray"] == [201, 202]
+    grp = deobf["coopCondGrp"]
+    assert grp["condCombType"] == "LOGIC_AND"
+    assert grp["coopCondList"] == [
+        {"type": "COOP_COND_QUEST_FINISH", "param": [1901503]},
+        {"type": "COOP_COND_CONFIDENCE_COMPARE", "param": [1, 4]},
+    ]
+
+
+def test_deobfuscate_coop_select_node() -> None:
+    """De-obfuscate a synthetic SELECT node with showCond/enableCond."""
+    raw = {
+        "DACOOAMDHDE": 201,
+        "HMLLJAMHHHG": "COOP_NODE_SELECT",
+        "MPEMBNCPNJO": [301, 302],
+        "ICBFHNOKIDE": [
+            {
+                "LNKEDDLBLEP": 1001,
+                "DDBMPGNIHFD": {"ONIPBCHBDBF": "LOGIC_NONE", "POJHMDGHNLM": []},
+            },
+            {
+                "LNKEDDLBLEP": 1002,
+                "OPDLPCGPPIL": {
+                    "ONIPBCHBDBF": "LOGIC_AND",
+                    "POJHMDGHNLM": [
+                        {
+                            "DLPKMDPABFM": "COOP_COND_QUEST_FINISH",
+                            "IEKGEJMAOCN": [1904714],
+                        }
+                    ],
+                },
+            },
+        ],
+    }
+    deobf = deobfuscation._deobfuscate_coop_node(raw)
+    assert deobf["selectList"][0]["dialogId"] == 1001
+    assert deobf["selectList"][0]["showCond"]["condCombType"] == "LOGIC_NONE"
+    assert deobf["selectList"][0]["showCond"]["coopCondList"] == []
+    # Second option has enableCond.
+    assert deobf["selectList"][1]["dialogId"] == 1002
+    assert deobf["selectList"][1]["enableCond"]["condCombType"] == "LOGIC_AND"
+    assert deobf["selectList"][1]["enableCond"]["coopCondList"] == [
+        {"type": "COOP_COND_QUEST_FINISH", "param": [1904714]}
+    ]
+
+
+def test_deobfuscate_coop_end_node() -> None:
+    """De-obfuscate a synthetic END node with savePointId."""
+    raw = {
+        "DACOOAMDHDE": 401,
+        "HMLLJAMHHHG": "COOP_NODE_END",
+        "MPEMBNCPNJO": [],
+        "AOOCCGGPPAI": 90501,
+    }
+    deobf = deobfuscation._deobfuscate_coop_node(raw)
+    assert deobf["coopNodeId"] == 401
+    assert deobf["coopNodeType"] == "COOP_NODE_END"
+    assert deobf["savePointId"] == 90501
 
 
 def test_deobfuscate_document_excel_config_data(data_repo: repo.DataRepo) -> None:
