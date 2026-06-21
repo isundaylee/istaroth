@@ -179,5 +179,69 @@ def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
         return f"检索文档时发生错误：{e}"
 
 
+@mcp.tool()
+def retrieve_bm25(query: str, k: int = 10, chunk_context: int = 5) -> str:
+    """从Istaroth原神知识库中检索相关文档（BM25关键词精确匹配）
+
+    这是一个基于BM25关键词的精确检索工具，专门用于查找包含特定名称、术语或专有名词的文档。与retrieve工具不同，
+    本工具不涉及语义/向量检索，仅进行精确的关键词匹配。
+
+    参数：
+    - query: 查询关键词；建议使用具体的人物名、地名、物品名等专有名词，以获得最佳匹配效果。
+    - k: 返回文档数量，默认10个；建议设置为10至20之间，以获取更全面的结果。
+    - chunk_context: 返回匹配文档块周围的上下文块数量，默认5个
+
+    适用场景（推荐使用retrieve_bm25）：
+    - 查找特定角色名称、地名或物品的精确出现
+    - 验证某个具体术语是否在知识库中出现
+    - 需要精确字面匹配而非语义理解的结果
+
+    适用场景（推荐使用retrieve）：
+    - 语义/概念查询，需要模糊匹配和理解
+    - 用完整句子或问题形式提问
+    - 需要基于语义相似度而非字面匹配的检索
+    """
+    try:
+        if _store.num_documents == 0:
+            return "错误：文档库为空，请先添加文档。"
+
+        with ls.trace(
+            "mcp_retrieve_bm25",
+            "chain",
+            inputs={"query": query, "k": k, "chunk_context": chunk_context},
+        ) as rt:
+            retrieve_output = _store.retrieve_bm25(
+                query, k=k, chunk_context=chunk_context
+            )
+
+            if not retrieve_output.results:
+                formatted_output = "未找到相关结果。"
+            else:
+                formatted_output = "\n".join(
+                    [
+                        f"查询 '{query}' 检索到 {len(retrieve_output.results)} 个文件：",
+                        "",
+                        output_rendering.render_retrieve_output(
+                            retrieve_output.results, text_set=_text_set
+                        ),
+                        "",
+                        "=" * 60,
+                        "提示：如需获取某个文件的完整内容，请使用 get_file_content 工具，",
+                        "传入上面结果中的文件ID（file_id）即可获取该文件的所有内容片段。",
+                        "注意：大文件可能需要多次调用，使用不同的 start_index 参数来获取所有内容。",
+                    ]
+                )
+
+            rt.end(
+                outputs=retrieve_output.to_langsmith_output(
+                    formatted_output, text_set=_text_set
+                )
+            )
+
+        return formatted_output
+    except Exception as e:
+        return f"检索文档时发生错误：{e}"
+
+
 if __name__ == "__main__":
     mcp.run()
