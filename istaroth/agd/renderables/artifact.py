@@ -16,7 +16,12 @@ from istaroth.text import types as text_types
 def _get_relic_story_by_story_id(
     story_id: id_types.StoryId, *, data_repo: repo.DataRepo
 ) -> str | None:
-    """Resolve a reliquary piece's relic story from its storyId."""
+    """Resolve a reliquary piece's relic story from its storyId.
+
+    Follows storyId -> DocumentExcelConfigData -> questIDList ->
+    LocalizationExcelConfigData -> readable file, returning None when the piece
+    has no story (storyId 0, no document, or no readable on disk).
+    """
     if story_id == 0:
         return None
 

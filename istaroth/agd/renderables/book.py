@@ -48,7 +48,12 @@ def render_book(
 def render_book_series(
     series_info: processed_types.BookSeriesInfo, language: localization.Language
 ) -> processed_types.RenderedItem:
-    """Render a multi-volume book series into a single RAG-suitable file."""
+    """Render a multi-volume book series into a single RAG-suitable file.
+
+    Volumes render in reading order under one series header, each prefixed with an
+    annotation line naming the series and the volume's position so a chunk retrieved
+    in isolation still carries its series context.
+    """
     safe_name = utils.make_safe_filename_part(series_info.series_name)
     filename = f"{series_info.suit_id}_{safe_name}.txt"
 
@@ -74,7 +79,14 @@ def render_book_series(
 def get_book_series_info(
     suit_id: id_types.BookSuitId, *, data_repo: repo.DataRepo
 ) -> processed_types.BookSeriesInfo | None:
-    """Assemble a multi-volume book series: its name and ordered volume bodies."""
+    """Assemble a multi-volume book series: its name and ordered volume bodies.
+
+    Reading each volume's content marks it accessed, keeping the per-volume files
+    out of the standalone Books and generic Readables catch-alls. A grouped volume
+    whose readable file is missing raises rather than being silently dropped;
+    empty/placeholder/test volumes are filtered the same way standalone books are.
+    Returns None if no volume survives filtering.
+    """
     if (filenames := data_repo.build_book_series_mapping().get(suit_id)) is None:
         raise ValueError(f"Book suit {suit_id} is not a multi-volume series")
 

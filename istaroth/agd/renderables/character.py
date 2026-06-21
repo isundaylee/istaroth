@@ -28,6 +28,11 @@ def _resolve_constellations(
     *,
     data_repo: repo.DataRepo,
 ) -> list[processed_types.Constellation]:
+    """Resolve the 6 constellations for a single skill depot, in talents-array order.
+
+    Strict: every depot that owns constellations must have exactly 6 talents that
+    all resolve to a name and description, else raise.
+    """
     text_map = data_repo.load_text_map()
     talent_map = data_repo.load_avatar_talent_excel_config_data()
 
@@ -59,6 +64,13 @@ def _resolve_constellations(
 def _get_constellations(
     avatar: agd_types.AvatarExcelConfigDataItem, *, data_repo: repo.DataRepo
 ) -> list[processed_types.Constellation]:
+    """Resolve a character's constellations.
+
+    Regular characters carry all six constellations on their primary
+    ``skillDepotId`` and render without an element. Only the Travelers populate
+    ``candSkillDepotIds``; their per-element sets live there (skipping empty
+    placeholder depots) and are tagged with each depot's element.
+    """
     depot_map = data_repo.load_avatar_skill_depot_excel_config_data()
     skill_map = data_repo.load_avatar_skill_excel_config_data()
 
@@ -135,9 +147,11 @@ def render_character_story(
     story_info: processed_types.CharacterStoryInfo,
 ) -> processed_types.RenderedItem:
     """Render all character stories into RAG-suitable format."""
+    # Generate filename based on character name with collision safeguards
     safe_name = utils.make_safe_filename_part(story_info.character_name)
     filename = f"{story_info.avatar_id}_{safe_name}.txt"
 
+    # Format content with character name header and all stories
     story_count = len(story_info.stories)
     content_lines = [f"# {story_info.character_name} - Character Stories\n"]
     content_lines.append(f"*{story_count} stories for this character*\n")
@@ -147,6 +161,10 @@ def render_character_story(
         content_lines.append(story.content)
         content_lines.append("")
 
+    # Constellations as a flat list. No Cn prefix: the source data does not give a
+    # reliable constellation index (the talents array order and openConfig disagree),
+    # so we list them in talents-array order without asserting a number. The
+    # Travelers' per-element sets are grouped under ### element subsections.
     if story_info.constellations:
         content_lines.append("## Constellations\n")
         current_element: object = object()

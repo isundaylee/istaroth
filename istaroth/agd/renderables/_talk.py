@@ -83,7 +83,15 @@ class _TalkTextGraph:
 
 
 def _extract_talk_type_from_path(talk_file_path: str) -> str:
-    """Extract talk type from file path."""
+    """Extract talk type from file path.
+
+    Args:
+        talk_file_path: Relative path like "BinOutput/Talk/Quest/123.json" or
+            "BinOutput/Talk/456.json"
+
+    Returns:
+        Talk type: "quest", "npc", "root", etc.
+    """
     path = pathlib.Path(talk_file_path)
     assert path.parts[0] == "BinOutput"
     assert path.parts[1] == "Talk"
@@ -98,7 +106,11 @@ def _extract_talk_type_from_path(talk_file_path: str) -> str:
 def _render_dialog_line(
     talk_text: processed_types.TalkText, language: localization.Language
 ) -> str | None:
-    """Render a single dialog line if it should not be skipped."""
+    """Render a single dialog line if it should not be skipped.
+
+    Returns:
+        Formatted line string or None if dialog should be skipped
+    """
     if text_utils.should_skip_text(talk_text.message, language):
         return None
     if talk_text.role is None:
@@ -112,7 +124,21 @@ def _process_branch(
     rendered: set[id_types.DialogId],
     language: localization.Language,
 ) -> tuple[id_types.DialogId | None, list[list[str]]]:
-    """Process multiple branches until convergence point."""
+    """Process multiple branches until convergence point.
+
+    Processes each branch from next_dialog_ids, rendering all dialogs until hitting
+    a convergence point (dialog with 2+ incoming edges). Asserts that all branches
+    converge at the same point.
+
+    Args:
+        next_dialog_ids: List of starting dialog IDs for branches
+        graph: TalkTextGraph object containing graph structure
+        rendered: Set of already rendered dialog IDs
+        language: Language for filtering
+
+    Returns:
+        Tuple of (convergence_point_id or None, list of branch lines for each branch)
+    """
     paths: list[list[int | None]] = [[di] for di in next_dialog_ids]
     path_offered: list[set[int]] = [set(next_dialog_ids) for _ in next_dialog_ids]
     cycle_pis = set[int]()
@@ -235,7 +261,14 @@ def _render_talk_dialogs(
     rendered: set[id_types.DialogId],
     language: localization.Language,
 ) -> list[str]:
-    """Render dialog following single paths until branching, then process branches."""
+    """Render dialog following single paths until branching, then process branches.
+
+    Args:
+        dialog_id: Current dialog ID to render
+        graph: TalkTextGraph object containing graph structure
+        rendered: Set of already rendered dialog IDs
+        language: Language for filtering
+    """
     lines: list[str] = []
     current_id: id_types.DialogId | None = dialog_id
 
@@ -320,15 +353,19 @@ def render_talk(
     language: localization.Language,
 ) -> processed_types.RenderedItem:
     """Render talk dialog into RAG-suitable format with branching support."""
+    # Extract talk type from file path if provided
     talk_type = (
         _extract_talk_type_from_path(talk_file_path) if talk_file_path else "unknown"
     )
 
+    # Generate filename - use first few dialog lines to create a meaningful name
     if talk.text:
+        # Use first non-empty message for filename
         first_message = next(
             (text.message for text in talk.text if text.message.strip()),
             "unknown_talk",
         )
+        # Take first 50 characters and clean for filename
         safe_title = utils.make_safe_filename_part(first_message)
         filename = f"{talk_id}_{safe_title}.txt"
         title = first_message[:100] if len(first_message) > 100 else first_message
@@ -336,6 +373,7 @@ def render_talk(
         filename = f"{talk_id}_empty.txt"
         title = "Empty Talk"
 
+    # Render content
     content_lines = ["# Talk Dialog\n"]
     content_lines.extend(render_talk_content(talk, language))
 
@@ -356,14 +394,20 @@ def get_talk_info(
     talk_path: str, *, data_repo: repo.DataRepo
 ) -> processed_types.TalkInfo:
     """Retrieve talk information from talk file."""
+    # Load talk data
     talk_data = data_repo.load_talk_data(talk_path)
 
     if (dialog_list := talk_data.get("dialogList")) is None:
         return processed_types.TalkInfo(text=[])
 
+    # Load supporting data
     text_map = data_repo.load_text_map()
+
+    # Get cached mappings
     npc_id_to_name = data_repo.get_npc_id_to_name_mapping()
     dialog_id_to_role_hash = data_repo.get_dialog_id_to_role_name_hash_mapping()
+
+    # Get localized role names for fallbacks
     localized_roles = localization.get_localized_role_names(data_repo.language)
 
     def _get_role_name_by_text_map_hash(
@@ -397,8 +441,11 @@ def get_talk_info(
     def _get_role_name(dialog_item: agd_types.TalkDialogItem) -> str | None:
         talk_role = dialog_item["talkRole"]
         role_type = talk_role.get("type")
+
         by_role = _get_role_name_by_role(talk_role)
         by_name_hash = _get_role_name_by_text_map_hash(dialog_item)
+
+        # If both are available, return one if they match or both otherwise.
         if (by_role is not None) and (by_name_hash is not None):
             if by_role == by_name_hash:
                 return by_role
@@ -406,6 +453,9 @@ def get_talk_info(
                 return f"{by_role} ({by_name_hash})"
         if (resolved := by_name_hash or by_role) is not None:
             return resolved
+
+        # TALK_ROLE_NONE is speaker-less narration / stage directions; render the
+        # message with no role prefix.
         if role_type == "TALK_ROLE_NONE":
             return None
         issues.record(
@@ -414,6 +464,7 @@ def get_talk_info(
         )
         return f"{localized_roles.unknown_role} ({role_type})"
 
+    # Process dialog items
     talk_texts = []
     for dialog_item in dialog_list:
         content_hash = dialog_item["talkContentTextMapHash"]
@@ -449,7 +500,13 @@ def get_talk_info_by_id(
 def resolve_authoritative_talk(
     talk_id: id_types.TalkId, *, data_repo: repo.DataRepo
 ) -> processed_types.TalkInfo:
-    """Resolve a talk pointed at by an authoritative finish condition."""
+    """Resolve a talk pointed at by an authoritative finish condition.
+
+    COMPLETE_TALK / COMPLETE_ANY_TALK name the talk that completes a step, so a
+    not-found talk is a genuine upstream data gap: surface it inline as a visible
+    placeholder rather than dropping the step or failing the whole quest. Any
+    other error (an existing talk that fails to parse) still propagates.
+    """
     try:
         return get_talk_info_by_id(talk_id, data_repo=data_repo)
     except ValueError:

@@ -49,7 +49,9 @@ def load_readable(
 ) -> tuple[str, processed_types.ReadableMetadata] | None:
     """Read and clean a readable's content and metadata.
 
-    Returns None for empty/placeholder/dev-test readables; raises if missing.
+    Returns None for empty/placeholder/dev-test readables (matching the per-file
+    skip rules) so callers can drop them; raises if the file itself is missing.
+    Reading the content marks it accessed in the readables tracker.
     """
     readables = data_repo.get_readables()
     if (content := readables.get_content(pathlib.Path(readable_path).name)) is None:

@@ -109,7 +109,12 @@ def _resolve_coop_steps(
 def get_hangout_info(
     quest_id: id_types.QuestId, *, data_repo: repo.DataRepo
 ) -> processed_types.HangoutInfo | None:
-    """Assemble a hangout quest's play-ordered Coop story dialogue, or None if empty."""
+    """Assemble a hangout quest's play-ordered Coop story dialogue, or None if empty.
+
+    ``quest_id`` is always a hangout quest (the ``Hangouts`` renderable discovers
+    them from ``build_hangout_quest_to_stories``), so its stories and main-quest
+    entry are indexed strictly.
+    """
     stories = data_repo.build_hangout_quest_to_stories()[quest_id]
 
     text_map = data_repo.load_text_map()
@@ -193,7 +198,12 @@ def _render_cond_entry(entry: processed_types.CondEntry) -> str:
 def _assign_fork_numbers(
     steps: list[processed_types.CoopStep], counter: list[int]
 ) -> dict[int, int]:
-    """Depth-first numbering of all choice steps."""
+    """Depth-first numbering of all choice steps. Returns ``id(step) -> fork_number``.
+
+    ``counter`` is a single-element ``list[int]`` (mutable container) threaded
+    through recursive calls so the counter is shared without a ``nonlocal``
+    declaration or a global.
+    """
     mapping: dict[int, int] = {}
     for step in steps:
         if step.choice is not None:
@@ -210,7 +220,13 @@ def _render_choice_section(
     language: localization.Language,
     fork_map: dict[int, int],
 ) -> tuple[list[str], list[list[str]]]:
-    """Render a ### Choice N: section and return (lines, nested_sections)."""
+    """Render a ``### Choice N:`` section and return (lines, nested_sections).
+
+    ``nested_sections`` contains fully-rendered ``### Choice N:`` sections for
+    choices nested inside branches (to be appended after the current level).
+    The nested sections are rendered as separate top-level ``### Choice`` blocks
+    that the ``*→ Next: Choice N*`` markers at the end of each branch reference.
+    """
     lines: list[str] = []
     nested: list[list[str]] = []
 
@@ -261,7 +277,11 @@ def _render_coop_steps(
     language: localization.Language,
     fork_map: dict[int, int],
 ) -> list[str]:
-    """Render a hangout story's play-ordered steps with explicit branch routing."""
+    """Render a hangout story's play-ordered steps with explicit branch routing.
+
+    ``fork_map`` is the output of ``_assign_fork_numbers`` — a mapping from
+    ``id(CoopStep)`` to its ``Choice N`` number.
+    """
     lines: list[str] = []
     nested_sections: list[list[str]] = []
 

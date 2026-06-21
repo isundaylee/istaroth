@@ -13,7 +13,16 @@ from istaroth.text import types as text_types
 def get_weapon_info(
     weapon_id: str, *, data_repo: repo.DataRepo
 ) -> processed_types.WeaponInfo | None:
-    """Assemble a weapon's story document from its authoritative weapon config."""
+    """Assemble a weapon's story document from its authoritative weapon config.
+
+    Follows weapon storyId -> DocumentExcelConfigData -> ordered page localization
+    ids -> readable files, joining the pages into one document. Returns None when
+    the weapon has no story (storyId 0, no document, or no page has on-disk
+    content), mirroring the artifact-set discovery model. Reading each page also
+    marks it accessed, keeping rendered pages out of the generic Readables
+    catch-all; the unrendered base/placeholder files it leaves behind are dropped
+    there by the empty/placeholder content skip.
+    """
     text_map = data_repo.load_text_map()
     readables = data_repo.get_readables()
 
