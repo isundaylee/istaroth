@@ -120,7 +120,7 @@ class _BM25Store:
             with open(bm25_file, "rb") as f:
                 return pickle.load(f)
 
-    def search(self, query: str, k: int) -> list[types.ScoredDocument]:
+    def search(self, query: str, k: int) -> list[types.ScoredChunk]:
         """BM25 keyword search."""
         with ls.trace(
             "bm25_search",
@@ -140,15 +140,21 @@ class _BM25Store:
             score_doc_pairs.sort(key=lambda x: x[0], reverse=True)
             top_docs = score_doc_pairs[:k]
 
-            # Return as ScoredDocument objects
-            scored_docs = [
-                types.ScoredDocument(document=doc, score=float(score))
+            # Return as ScoredChunk objects
+            scored_chunks = [
+                types.ScoredChunk(
+                    score=float(score),
+                    file_id=doc.metadata["file_id"],
+                    chunk_index=doc.metadata["chunk_index"],
+                )
                 for score, doc in top_docs
             ]
             rt.end(
-                outputs={"documents": [sd.to_langsmith_output() for sd in scored_docs]}
+                outputs={
+                    "documents": [sc.to_langsmith_output() for sc in scored_chunks]
+                }
             )
-            return scored_docs
+            return scored_chunks
 
 
 def chunk_documents(
@@ -224,7 +230,9 @@ def chunk_documents(
                 "end_index": end + lead,
             }
 
-            doc = Document(page_content=chunk, metadata=metadata)
+            doc = Document(
+                page_content=content[start + lead : end + lead], metadata=metadata
+            )
             file_docs[chunk_index] = doc
 
         all_documents[file_id] = file_docs
@@ -324,6 +332,18 @@ class DocumentStore:
             ],
         )
 
+    def _resolve_chunks(
+        self, scored_chunks: list[types.ScoredChunk]
+    ) -> list[types.ScoredDocument]:
+        """Resolve ScoredChunk references to full ScoredDocuments from self._documents."""
+        return [
+            types.ScoredDocument(
+                document=self._documents[sc.file_id][sc.chunk_index],
+                score=sc.score,
+            )
+            for sc in scored_chunks
+        ]
+
     @classmethod
     def build(
         cls,
@@ -404,7 +424,7 @@ class DocumentStore:
 
         logger.info("Transformed query '%s' into: %r", query, queries)
 
-        _all_results: dict[int, list[types.ScoredDocument]] = {}
+        _all_results: dict[int, list[types.ScoredChunk]] = {}
 
         async def _run_vector(i: int, q: str) -> None:
             with _tracer.start_as_current_span("vector_search") as span:
@@ -431,13 +451,19 @@ class DocumentStore:
                 tg.start_soon(_run_vector, i, q)
             tg.start_soon(_run_bm25, len(queries), queries[0])
         all_results = [_all_results[i] for i in range(len(queries) + 1)]
+
+        # Resolve ScoredChunk → ScoredDocument from self._documents
+        resolved_results = [
+            self._resolve_chunks(result_list) for result_list in all_results
+        ]
+
         weights = [1.0] * len(queries) + [float(len(queries))]
 
         with _tracer.start_as_current_span("rerank") as span:
             span.set_attribute("query", query)
-            span.set_attribute("num_result_lists", len(all_results))
+            span.set_attribute("num_result_lists", len(resolved_results))
             fused_results = await anyio.to_thread.run_sync(
-                lambda: self._reranker.rerank(query, all_results, weights)
+                lambda: self._reranker.rerank(query, resolved_results, weights)
             )
             span.set_attribute("num_fused_results", len(fused_results))
         langsmith_utils.log_scored_docs("reranked_docs", fused_results)
@@ -456,7 +482,8 @@ class DocumentStore:
         self, query: str, *, k: int, chunk_context: int
     ) -> types.RetrieveOutput:
         """Search using BM25 keyword retrieval only."""
-        scored_docs = self._bm25_store.search(query, k * 2)
+        scored_chunks = self._bm25_store.search(query, k * 2)
+        scored_docs = self._resolve_chunks(scored_chunks)
         return self._select_scored_documents(
             query, scored_docs, k=k, chunk_context=chunk_context
         )

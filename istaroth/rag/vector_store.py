@@ -46,7 +46,7 @@ class VectorStore(abc.ABC):
     """Abstract base class for vector stores."""
 
     @abc.abstractmethod
-    def search(self, query: str, k: int) -> list[types.ScoredDocument]:
+    def search(self, query: str, k: int) -> list[types.ScoredChunk]:
         """Vector similarity search."""
         ...
 
@@ -85,7 +85,7 @@ class ChromaBaseVectorStore(VectorStore):
     _client: chromadb.ClientAPI = attrs.field()
     _collection: chromadb.Collection = attrs.field()
 
-    def search(self, query: str, k: int) -> list[types.ScoredDocument]:
+    def search(self, query: str, k: int) -> list[types.ScoredChunk]:
         """Vector similarity search using ChromaDB."""
         with ls.trace(
             "vector_search",
@@ -105,20 +105,30 @@ class ChromaBaseVectorStore(VectorStore):
                     n_results=k,
                 )
 
-            # Convert results to ScoredDocument format
-            scored_docs = []
-            documents = cast(list[list[str]], results["documents"])[0]
+            # Build ScoredChunk references from Chroma results. Chroma stores
+            # empty strings as documents (see build()), so we discard the
+            # documents field entirely and reconstruct from metadata + distance.
+            # Invert L2 distance (0 = identical) to a similarity score (1 = most similar)
+            # so higher scores consistently mean better matches across all backends.
+            scored_chunks = []
             metadatas = cast(list[list[Any]], results["metadatas"])[0]
             distances = cast(list[list[float]], results["distances"])[0]
-            for i in range(len(documents)):
-                doc = Document(page_content=documents[i], metadata=metadatas[i])
-                score = distances[i]
-                scored_docs.append(types.ScoredDocument(document=doc, score=score))
+            for i in range(len(metadatas)):
+                score = 1.0 - distances[i]
+                scored_chunks.append(
+                    types.ScoredChunk(
+                        score=score,
+                        file_id=metadatas[i]["file_id"],
+                        chunk_index=metadatas[i]["chunk_index"],
+                    )
+                )
 
             rt.end(
-                outputs={"documents": [sd.to_langsmith_output() for sd in scored_docs]}
+                outputs={
+                    "documents": [sc.to_langsmith_output() for sc in scored_chunks]
+                }
             )
-            return scored_docs
+            return scored_chunks
 
 
 @attrs.define
@@ -178,9 +188,12 @@ class ChromaVectorStore(ChromaBaseVectorStore):
                         len(batch_texts),
                     )
 
+                    # Store empty strings — Chroma's stored page_content is never
+                    # consumed downstream; search returns ScoredChunk references
+                    # that resolve to full Documents from DocumentStore._documents.
                     collection.add(
                         ids=batch_ids,
-                        documents=batch_texts,
+                        documents=[""] * len(batch_texts),
                         embeddings=cast(Any, batch_embeddings),
                         metadatas=cast(Any, batch_metadatas),
                     )
