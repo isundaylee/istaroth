@@ -761,19 +761,30 @@ body {
   display: none;
 }
 
-/* Fixed rail collecting minimized popup cards beside the main content column
-   (horizontal position set inline; falls back to the right edge). The rail
-   itself passes clicks through; only the cards are interactive. */
+/* The rail collecting minimized popup cards lives inside the answer region (see
+   MinimizedPopupRegion). A full-height track spans the region so the sticky rail
+   inside it tracks the region top and sticks to the top of the screen on scroll.
+   The track/rail pass clicks through; only the cards are interactive. */
+.minimized-popup-region {
+  position: relative;
+}
+
+.minimized-popup-rail-track {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: min(16rem, calc(100vw - 2rem));
+  pointer-events: none;
+}
+
 .minimized-popup-rail {
-  position: fixed;
-  top: 4.5rem;
-  right: 1rem;
-  z-index: 1300;
+  position: sticky;
+  top: 0.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  width: min(16rem, calc(100vw - 2rem));
-  max-height: calc(100vh - 6rem);
+  max-height: calc(100vh - 1rem);
   overflow-y: auto;
   pointer-events: none;
 }

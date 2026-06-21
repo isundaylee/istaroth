@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm'
 import { useTranslation, useT } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
+import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import LibraryHeader from './components/LibraryHeader'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
 import NavButton from './components/NavButton'
@@ -167,6 +168,7 @@ function LibraryFileViewer() {
     <>
       <Navigation />
       <main className="main">
+        <MinimizedPopupRegion>
         <PageCard>
           <LibraryHeader title={fileTitle || catLabel} />
 
@@ -257,6 +259,7 @@ function LibraryFileViewer() {
             marginTop={previousFile || nextFile ? '1rem' : '2rem'}
           />
         </PageCard>
+        </MinimizedPopupRegion>
         {selectionUi}
       </main>
     </>

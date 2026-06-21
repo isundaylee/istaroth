@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useT, useTranslation } from '../contexts/LanguageContext'
-import { useMinimizedPopupAnchor } from '../contexts/MinimizedPopupContext'
 import { SelectionPanelFrame, type SelectionPanel, type SelectionState } from '../components/SelectionPanel'
 import { calculateFloatingPlacement } from '../utils/floatingPanel'
 import { getClientId } from '../utils/clientId'
@@ -25,9 +24,8 @@ interface AnswerHandlers {
 }
 
 interface UseProperNounSelectionResult {
-  /** Ref callback to attach to the answer container that holds the highlighted
-   * markdown; also registers it as the minimized-popup rail's anchor. */
-  answerRef: React.RefCallback<HTMLDivElement>
+  /** Ref to attach to the answer container that holds the highlighted markdown. */
+  answerRef: React.RefObject<HTMLDivElement>
   /** Spread onto the answer container to drive selection/click interactions. */
   answerHandlers: AnswerHandlers
   /** The floating toolbar/panel UI; render it once inside the page. */
@@ -43,24 +41,7 @@ interface UseProperNounSelectionResult {
 export function useProperNounSelection(resetKey: unknown): UseProperNounSelectionResult {
   const t = useT()
   const { language } = useTranslation()
-  const answerNodeRef = useRef<HTMLDivElement | null>(null)
-  const registerAnchor = useMinimizedPopupAnchor()
-  const didRegisterAnchorRef = useRef(false)
-  // Ref callback: store the node for selection handling and, for the page-level
-  // answer (not a nested one inside a floating popup), register it as the rail
-  // anchor so the rail sits beside this answer area.
-  const answerRef = useCallback((node: HTMLDivElement | null) => {
-    answerNodeRef.current = node
-    if (node) {
-      if (!node.closest('[data-floating-popup]')) {
-        registerAnchor(node)
-        didRegisterAnchorRef.current = true
-      }
-    } else if (didRegisterAnchorRef.current) {
-      registerAnchor(null)
-      didRegisterAnchorRef.current = false
-    }
-  }, [registerAnchor])
+  const answerRef = useRef<HTMLDivElement>(null)
   const activeRequestIdRef = useRef(0)
   const defaultModelRef = useRef<string | null>(null)
   const [selection, setSelection] = useState<SelectionState | null>(null)
@@ -103,7 +84,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
       setPanel(null)
     }
     const currentSelection = window.getSelection()
-    const container = answerNodeRef.current
+    const container = answerRef.current
     if (!currentSelection || !container || currentSelection.rangeCount === 0 || currentSelection.isCollapsed) {
       clearToolbar()
       return
@@ -132,7 +113,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   const handleProperNounClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       const target = (event.target as HTMLElement).closest('.proper-noun')
-      if (target && answerNodeRef.current?.contains(target)) {
+      if (target && answerRef.current?.contains(target)) {
         const text = target.textContent?.trim()
         if (text) openSelectionAtRect(text, target.getBoundingClientRect())
         return
@@ -162,7 +143,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
       // Ignore clicks in any floating popup/card (incl. nested ones that portal
       // out of this subtree) and in this answer area — the latter is exempt so
       // text selection works; plain answer clicks minimize via the click handler.
-      if (answerNodeRef.current?.contains(target) || target.closest?.('[data-floating-popup]')) return
+      if (answerRef.current?.contains(target) || target.closest?.('[data-floating-popup]')) return
       // With a panel open, an outside click minimizes it to a side-rail card
       // (kept open, full close happens via the card); a bare toolbar just closes.
       if (panelOpenRef.current) {

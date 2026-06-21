@@ -1,90 +1,76 @@
-import { createContext, useCallback, useContext, useLayoutEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { createContext, useContext, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 interface MinimizedPopupContextValue {
-  /** DOM node of the shared rail that minimized popup cards portal into. */
+  /** Rail node (provided by the active region) that minimized cards portal into. */
   rail: HTMLElement | null
-  /** Register (or clear, with ``null``) the content element the rail anchors to. */
-  registerAnchor: (element: HTMLElement | null) => void
+  setRail: (element: HTMLElement | null) => void
 }
 
 const MinimizedPopupContext = createContext<MinimizedPopupContextValue>({
   rail: null,
-  registerAnchor: () => {}
+  setRail: () => {}
 })
 
 const RAIL_MAX_WIDTH = 256 // matches the CSS `min(16rem, ...)` cap
 const RAIL_GAP = 12 // gap between the content area and the rail
 const RAIL_MARGIN = 8 // minimum gap from the viewport edge
 
-/** Position the rail relative to the answer area: horizontally a small gap from
- * the right border of the surrounding content card — just outside it when there
- * is room, otherwise inset just inside it (e.g. the wide library viewer) — and
- * vertically at the top of the answer text or the top of the screen, whichever
- * is lower. Falls back to the CSS default when no content element is registered. */
-function computeRailStyle(anchor: HTMLElement | null): CSSProperties {
-  if (!anchor) return {}
-  // The visual "answer area" is the content card; gap from its border rather
-  // than the inner text box (whose padding would push the rail past the edge).
-  const cardRight = (anchor.closest('.card') ?? anchor).getBoundingClientRect().right
-  const railWidth = Math.min(RAIL_MAX_WIDTH, window.innerWidth - 2 * RAIL_MARGIN)
-  const besideLeft = cardRight + RAIL_GAP
-  const left = besideLeft + railWidth <= window.innerWidth - RAIL_MARGIN
-    ? besideLeft // room to sit just outside the card's right border
-    : cardRight - RAIL_GAP - railWidth // inset just inside it
-  const clampedLeft = Math.min(Math.max(left, RAIL_MARGIN), window.innerWidth - railWidth - RAIL_MARGIN)
-  const top = Math.max(anchor.getBoundingClientRect().top, RAIL_MARGIN)
-  return { left: `${Math.round(clampedLeft)}px`, right: 'auto', top: `${Math.round(top)}px` }
-}
-
 /**
- * Hosts the fixed rail that collects minimized citation/query popup cards beside
- * the answer area. Every popup keeps its own state and renders a
- * ``MinimizedPopupCard`` into this rail while minimized, so cards from
- * independent (and nested) popups stack together. The rail position follows the
- * content element registered via ``registerAnchor`` (see ``useMinimizedPopupAnchor``).
+ * Holds the rail node set by the active ``MinimizedPopupRegion`` so minimized
+ * cards anywhere in the tree (including nested popups) portal into the same rail.
  */
 export function MinimizedPopupProvider({ children }: { children: ReactNode }) {
-  const [rail, setRail] = useState<HTMLDivElement | null>(null)
-  const [anchor, setAnchor] = useState<HTMLElement | null>(null)
-  const [style, setStyle] = useState<CSSProperties>({})
-
-  useLayoutEffect(() => {
-    let frame = 0
-    const schedule = () => {
-      cancelAnimationFrame(frame)
-      frame = requestAnimationFrame(() => setStyle(computeRailStyle(anchor)))
-    }
-    schedule()
-    window.addEventListener('resize', schedule)
-    // Vertical anchor tracks the answer-area top, so follow scroll too.
-    window.addEventListener('scroll', schedule, true)
-    // The anchor's size/position can shift after layout settles (fonts, async
-    // content); observe it (and the root for viewport-driven reflow).
-    const observer = new ResizeObserver(schedule)
-    observer.observe(document.documentElement)
-    if (anchor) observer.observe(anchor)
-    return () => {
-      cancelAnimationFrame(frame)
-      window.removeEventListener('resize', schedule)
-      window.removeEventListener('scroll', schedule, true)
-      observer.disconnect()
-    }
-  }, [anchor])
-
-  const registerAnchor = useCallback((element: HTMLElement | null) => setAnchor(element), [])
-
+  const [rail, setRail] = useState<HTMLElement | null>(null)
   return (
-    <MinimizedPopupContext.Provider value={{ rail, registerAnchor }}>
+    <MinimizedPopupContext.Provider value={{ rail, setRail }}>
       {children}
-      <div ref={setRail} className="minimized-popup-rail" style={style} />
     </MinimizedPopupContext.Provider>
   )
 }
 
-/** Register the content element the minimized-popup rail should anchor beside. */
-export function useMinimizedPopupAnchor(): (element: HTMLElement | null) => void {
-  return useContext(MinimizedPopupContext).registerAnchor
+/**
+ * Wrap the answer/text area the minimized-popup rail should sit beside. The rail
+ * is a ``position: sticky`` column inside this region, so it tracks the region's
+ * top and sticks to the top of the screen on scroll natively — no scroll
+ * handlers. Horizontally it sits just outside the region's right border when
+ * there is room, otherwise inset just inside it (e.g. the wide library viewer);
+ * that one choice is the only thing measured, and only on resize.
+ */
+export function MinimizedPopupRegion({ children, className }: { children: ReactNode; className?: string }) {
+  const { setRail } = useContext(MinimizedPopupContext)
+  const regionRef = useRef<HTMLDivElement>(null)
+  const [inset, setInset] = useState(false)
+
+  useLayoutEffect(() => {
+    const region = regionRef.current
+    if (!region) return
+    const update = () => {
+      const right = region.getBoundingClientRect().right
+      const railWidth = Math.min(RAIL_MAX_WIDTH, window.innerWidth - 2 * RAIL_MARGIN)
+      setInset(right + RAIL_GAP + railWidth > window.innerWidth - RAIL_MARGIN)
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(region)
+    observer.observe(document.documentElement)
+    return () => observer.disconnect()
+  }, [])
+
+  // Outside: the track's left edge sits a gap past the region's right border.
+  // Inset: the track's right edge sits a gap inside it.
+  const trackStyle: CSSProperties = inset
+    ? { right: `${RAIL_GAP}px` }
+    : { left: '100%', marginLeft: `${RAIL_GAP}px` }
+
+  return (
+    <div ref={regionRef} className={`minimized-popup-region${className ? ` ${className}` : ''}`}>
+      {children}
+      <div className="minimized-popup-rail-track" style={trackStyle}>
+        <div ref={setRail} className="minimized-popup-rail" />
+      </div>
+    </div>
+  )
 }
 
 interface MinimizedPopupCardProps {
