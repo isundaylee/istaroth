@@ -2,7 +2,17 @@
 
 import textwrap
 
-from istaroth.agd import localization, processed_types, rendering
+from istaroth.agd import localization, processed_types
+from istaroth.agd.renderables import (
+    _talk,
+    achievement,
+    book,
+    character,
+    creature,
+    quest,
+    readable,
+    weapon,
+)
 
 
 def test_render_readable_basic() -> None:
@@ -12,7 +22,7 @@ def test_render_readable_basic() -> None:
         localization_id=0, title="Test Book Title"
     )
 
-    rendered = rendering.render_readable(content, metadata)
+    rendered = readable.render_readable(content, metadata)
 
     assert rendered.text_metadata.relative_path == "agd_readable/0_Test_Book_Title.txt"
     assert (
@@ -29,7 +39,7 @@ def test_render_readable_special_characters() -> None:
         localization_id=0, title="神霄折戟录·第六卷"
     )
 
-    rendered = rendering.render_readable(content, metadata)
+    rendered = readable.render_readable(content, metadata)
 
     assert rendered.text_metadata.relative_path == "agd_readable/0_神霄折戟录第六卷.txt"
     assert rendered.content == "# 神霄折戟录·第六卷\n\nContent here."
@@ -43,7 +53,7 @@ def test_render_readable_whitespace() -> None:
         localization_id=0, title="  Title   With   Spaces  "
     )
 
-    rendered = rendering.render_readable(content, metadata)
+    rendered = readable.render_readable(content, metadata)
 
     assert (
         rendered.text_metadata.relative_path == "agd_readable/0_Title_With_Spaces.txt"
@@ -61,7 +71,7 @@ def test_render_weapon_multi_page_with_description() -> None:
         story_pages=["第一页内容。", "第二页内容。"],
     )
 
-    rendered = rendering.render_weapon(weapon_info)
+    rendered = weapon.render_weapon(weapon_info)
 
     assert rendered.text_metadata.relative_path == "agd_weapon/11431_息燧之笛.txt"
     assert rendered.text_metadata.id == 11431
@@ -79,7 +89,7 @@ def test_render_weapon_single_page_no_description() -> None:
         story_pages=["少年人的梦想。"],
     )
 
-    rendered = rendering.render_weapon(weapon_info)
+    rendered = weapon.render_weapon(weapon_info)
 
     assert rendered.text_metadata.relative_path == "agd_weapon/11101_无锋剑.txt"
     assert rendered.content == "# 无锋剑\n\n少年人的梦想。"
@@ -87,7 +97,7 @@ def test_render_weapon_single_page_no_description() -> None:
 
 def test_render_achievement_section() -> None:
     """An achievement section renders as one categorized text document."""
-    rendered = rendering.render_achievement_section(
+    rendered = achievement.render_achievement_section(
         processed_types.AchievementSectionInfo(
             section_id=46,
             section_name="枫丹·白露澈明的泉舞·其之三",
@@ -130,7 +140,7 @@ def test_render_talk_basic() -> None:
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
 
-    rendered = rendering.render_talk(
+    rendered = _talk.render_talk(
         talk_info,
         talk_id=12345,
         language=localization.Language.CHS,
@@ -162,7 +172,7 @@ def test_render_talk_long_message() -> None:
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
 
-    rendered = rendering.render_talk(
+    rendered = _talk.render_talk(
         talk_info,
         talk_id=67890,
         language=localization.Language.CHS,
@@ -184,7 +194,7 @@ def test_render_talk_empty() -> None:
     """Test talk rendering with empty talk."""
     talk_info = processed_types.TalkInfo(text=[])
 
-    rendered = rendering.render_talk(
+    rendered = _talk.render_talk(
         talk_info,
         talk_id=99999,
         language=localization.Language.CHS,
@@ -208,7 +218,7 @@ def test_render_talk_special_characters() -> None:
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
 
-    rendered = rendering.render_talk(
+    rendered = _talk.render_talk(
         talk_info,
         talk_id=11111,
         language=localization.Language.CHS,
@@ -251,7 +261,7 @@ def test_render_talk_branching_convergence() -> None:
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
 
-    rendered = rendering.render_talk(
+    rendered = _talk.render_talk(
         talk_info,
         talk_id=99999,
         language=localization.Language.ENG,
@@ -311,7 +321,7 @@ def test_render_talk_nested_branches() -> None:
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
 
-    rendered = rendering.render_talk(
+    rendered = _talk.render_talk(
         talk_info,
         talk_id=88888,
         language=localization.Language.ENG,
@@ -379,7 +389,7 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
 
-    rendered = rendering.render_talk(
+    rendered = _talk.render_talk(
         talk_info,
         talk_id=77777,
         language=localization.Language.ENG,
@@ -454,7 +464,7 @@ def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
         ),
     ]
 
-    rendered = rendering.render_talk(
+    rendered = _talk.render_talk(
         processed_types.TalkInfo(text=talk_texts),
         talk_id=66666,
         language=localization.Language.ENG,
@@ -513,7 +523,7 @@ def test_render_talk_menu_hub_no_blowup() -> None:
             role="NPC", message="More?", next_dialog_ids=[2, 4, 6], dialog_id=8
         ),
     ]
-    rendered = rendering.render_talk(
+    rendered = _talk.render_talk(
         processed_types.TalkInfo(text=talk_texts),
         talk_id=88888,
         language=localization.Language.ENG,
@@ -587,7 +597,7 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             role="NPC", message="End", next_dialog_ids=[], dialog_id=28
         ),
     ]
-    rendered = rendering.render_talk(
+    rendered = _talk.render_talk(
         processed_types.TalkInfo(text=talk_texts),
         talk_id=55555,
         language=localization.Language.ENG,
@@ -620,7 +630,7 @@ def _quest_talk_step(
 
 def test_render_quest_numbers_variant_talks() -> None:
     """Multiple completing talks at one order get `(variant N)`; singletons don't."""
-    quest = processed_types.QuestInfo(
+    quest_info = processed_types.QuestInfo(
         quest_id=73000,
         title="Test Quest",
         chapter_title=None,
@@ -636,7 +646,7 @@ def test_render_quest_numbers_variant_talks() -> None:
         associated_free_talks=[],
     )
 
-    content = rendering.render_quest(quest, localization.Language.ENG).content
+    content = quest.render_quest(quest_info, localization.Language.ENG).content
 
     assert "## Talk 1 (variant 1)" in content
     assert "## Talk 1 (variant 2)" in content
@@ -664,7 +674,7 @@ def test_render_character_story_constellations() -> None:
         ],
     )
 
-    content = rendering.render_character_story(story_info).content
+    content = character.render_character_story(story_info).content
 
     assert "## Constellations\n" in content
     assert "First Star: Line one. Line two." in content
@@ -691,7 +701,7 @@ def test_render_character_story_traveler_constellations_grouped() -> None:
         ],
     )
 
-    content = rendering.render_character_story(story_info).content
+    content = character.render_character_story(story_info).content
 
     assert "### Pyro\n" in content
     assert "### Hydro\n" in content
@@ -703,7 +713,7 @@ def test_render_character_story_traveler_constellations_grouped() -> None:
 
 def test_render_creature_group_monster() -> None:
     """A monster group renders a group header plus each entry's names and description."""
-    rendered = rendering.render_creature_group(
+    rendered = creature.render_creature_group(
         processed_types.CreatureGroupInfo(
             subtype="CODEX_SUBTYPE_AUTOMATRON",
             type_label="魔物",
@@ -747,7 +757,7 @@ def test_render_creature_group_monster() -> None:
 
 def test_render_creature_group_stable_id() -> None:
     """The group id/filename derive deterministically from the subType enum."""
-    a = rendering.render_creature_group(
+    a = creature.render_creature_group(
         processed_types.CreatureGroupInfo(
             subtype="CODEX_SUBTYPE_FISH",
             type_label="野生生物",
@@ -783,7 +793,7 @@ def test_render_book_series_english() -> None:
         ],
     )
 
-    rendered = rendering.render_book_series(series_info, localization.Language.ENG)
+    rendered = book.render_book_series(series_info, localization.Language.ENG)
 
     assert rendered.text_metadata.relative_path == "agd_book/1019_A_Drunkards_Tale.txt"
     assert rendered.text_metadata.id == 1019
@@ -809,6 +819,6 @@ def test_render_book_series_chinese_annotation() -> None:
         ],
     )
 
-    rendered = rendering.render_book_series(series_info, localization.Language.CHS)
+    rendered = book.render_book_series(series_info, localization.Language.CHS)
 
     assert "*维莉的忧郁·第 1 卷，共 1 卷*" in rendered.content

@@ -9,10 +9,9 @@ from istaroth.agd import (
     coop_graph,
     coop_hierarchy,
     localization,
-    processing,
-    rendering,
     repo,
 )
+from istaroth.agd.renderables import hangout
 
 
 def test_walk_play_order_branches_and_convergence() -> None:
@@ -111,7 +110,7 @@ def test_walk_play_order_skips_action_and_branches_cond() -> None:
 
 def test_get_hangout_info_yunjin(data_repo: repo.DataRepo) -> None:
     """Quest 19017 resolves to its primary character, title, and play-ordered talks."""
-    info = processing.get_hangout_info(19017, data_repo=data_repo)
+    info = hangout.get_hangout_info(19017, data_repo=data_repo)
     assert info is not None
     assert info.primary_character == "云堇"
     assert info.quest_title == "郊野觅芳踪"
@@ -236,9 +235,9 @@ def test_end_node_emits_end_step() -> None:
 
 def test_yunjin_rendered_structure(data_repo: repo.DataRepo) -> None:
     """Hangout 19017 (Yunjin) rendered output has the expected section structure."""
-    raw_info = processing.get_hangout_info(19017, data_repo=data_repo)
+    raw_info = hangout.get_hangout_info(19017, data_repo=data_repo)
     assert raw_info is not None, "Hangout 19017 expected to exist"
-    rendered = rendering.render_hangout(raw_info, localization.Language.CHS)
+    rendered = hangout.render_hangout(raw_info, localization.Language.CHS)
     content = rendered.content
     lines = content.split("\n")
 

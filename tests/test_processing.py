@@ -8,10 +8,18 @@ import pytest
 from istaroth.agd import (
     agd_types,
     localization,
-    processing,
     renderable_types,
     repo,
     talk_parsing,
+)
+from istaroth.agd.renderables import (
+    _talk,
+    achievement,
+    book,
+    character,
+    creature,
+    quest,
+    readable,
 )
 
 
@@ -20,7 +28,7 @@ def test_book100_metadata(data_repo: repo.DataRepo) -> None:
     readable_path = f"Readable/{data_repo.language}/Book100.txt"
     expected_title = "神霄折戟录·第六卷"
 
-    metadata = processing.get_readable_metadata(readable_path, data_repo=data_repo)
+    metadata = readable.get_readable_metadata(readable_path, data_repo=data_repo)
 
     assert metadata.title == expected_title
 
@@ -30,7 +38,7 @@ def test_weapon11101_metadata(data_repo: repo.DataRepo) -> None:
     readable_path = f"Readable/{data_repo.language}/Weapon11101.txt"
     expected_title = "无锋剑"
 
-    metadata = processing.get_readable_metadata(readable_path, data_repo=data_repo)
+    metadata = readable.get_readable_metadata(readable_path, data_repo=data_repo)
 
     assert metadata.title == expected_title
 
@@ -40,7 +48,7 @@ def test_furina_constellations(data_repo: repo.DataRepo) -> None:
     if data_repo.language is not localization.Language.CHS:
         pytest.skip("Constellation name assertion is CHS-specific")
 
-    story_info = processing.get_character_story_info(10000089, data_repo=data_repo)
+    story_info = character.get_character_story_info(10000089, data_repo=data_repo)
 
     assert len(story_info.constellations) == 6
     assert all(c.element is None for c in story_info.constellations)
@@ -49,7 +57,7 @@ def test_furina_constellations(data_repo: repo.DataRepo) -> None:
 
 def test_traveler_constellations_grouped_by_element(data_repo: repo.DataRepo) -> None:
     """The Traveler's per-element constellations come tagged with their element."""
-    story_info = processing.get_character_story_info(10000005, data_repo=data_repo)
+    story_info = character.get_character_story_info(10000005, data_repo=data_repo)
 
     # Multiple released elements, 6 constellations each, all element-tagged.
     assert story_info.constellations
@@ -62,7 +70,7 @@ def test_talk_7407811_info(data_repo: repo.DataRepo) -> None:
     """Test retrieving talk info for 7407811.json."""
     talk_path = "BinOutput/Talk/Quest/7407811.json"
 
-    talk_info = processing.get_talk_info(talk_path, data_repo=data_repo)
+    talk_info = _talk.get_talk_info(talk_path, data_repo=data_repo)
 
     # Verify we got some talk text
     assert len(talk_info.text) > 0
@@ -87,7 +95,7 @@ def test_talk_7407811_info(data_repo: repo.DataRepo) -> None:
 
 def test_talk_6864003_narration_role(data_repo: repo.DataRepo) -> None:
     """Speaker-less TALK_ROLE_NONE lines render with no role (None), not Unknown Role."""
-    talk_info = processing.get_talk_info(
+    talk_info = _talk.get_talk_info(
         "BinOutput/Talk/Gadget/6864003.json", data_repo=data_repo
     )
 
@@ -119,9 +127,7 @@ def test_talk_role_name_hash_ignores_fallback_text() -> None:
     data_repo.get_npc_id_to_name_mapping.return_value = {}
     data_repo.get_dialog_id_to_role_name_hash_mapping.return_value = {}
 
-    talk_info = processing.get_talk_info(
-        "BinOutput/Talk/Quest/1.json", data_repo=data_repo
-    )
+    talk_info = _talk.get_talk_info("BinOutput/Talk/Quest/1.json", data_repo=data_repo)
 
     assert talk_info.text[0].role == "Traveler"
     assert talk_info.text[0].message == "Hello"
@@ -131,7 +137,7 @@ def test_quest_74078_info(data_repo: repo.DataRepo) -> None:
     """Test retrieving quest info for 74078.json."""
     quest_id = 74078
 
-    quest_info = processing.get_quest_info(quest_id, data_repo=data_repo)
+    quest_info = quest.get_quest_info(quest_id, data_repo=data_repo)
     assert quest_info is not None
 
     # Verify we got a title
@@ -169,7 +175,7 @@ def test_fallback_text_map_does_not_break_talk_collision_resolution(
 ) -> None:
     """Fallback hash collisions dedupe by resolved text."""
     for quest_id in [11020, 75079]:
-        quest_info = processing.get_quest_info(quest_id, data_repo=data_repo)
+        quest_info = quest.get_quest_info(quest_id, data_repo=data_repo)
 
         assert quest_info is not None
         assert quest_info.steps
@@ -177,7 +183,7 @@ def test_fallback_text_map_does_not_break_talk_collision_resolution(
 
 def test_achievement_section_46_info(data_repo: repo.DataRepo) -> None:
     """Achievement sections include their localized achievement text."""
-    section = processing.get_achievement_section_info(46, data_repo=data_repo)
+    section = achievement.get_achievement_section_info(46, data_repo=data_repo)
 
     assert section.section_name == "枫丹·白露澈明的泉舞·其之三"
     assert section.achievements[-1].achievement_id == 80299
@@ -234,7 +240,7 @@ def test_achievement_section_filters_disused_and_keeps_hidden() -> None:
         localization.Language.ENG,
     )
 
-    section = processing.get_achievement_section_info(9, data_repo=data_repo)
+    section = achievement.get_achievement_section_info(9, data_repo=data_repo)
 
     assert [achievement.achievement_id for achievement in section.achievements] == [
         2,
@@ -267,7 +273,7 @@ def test_achievement_section_requires_active_localized_text() -> None:
     )
 
     with pytest.raises(ValueError, match="Missing description for achievement 2"):
-        processing.get_achievement_section_info(9, data_repo=data_repo)
+        achievement.get_achievement_section_info(9, data_repo=data_repo)
 
 
 @pytest.mark.parametrize(
@@ -287,7 +293,7 @@ def test_free_group_quest_id(talk_id: str, expected_quest_id: int) -> None:
 
 def test_quest_10008_associated_free_talks(data_repo: repo.DataRepo) -> None:
     """FreeGroup "free talks" are attached to their owning quest."""
-    quest_info = processing.get_quest_info(10008, data_repo=data_repo)
+    quest_info = quest.get_quest_info(10008, data_repo=data_repo)
     assert quest_info is not None
 
     assert quest_info.associated_free_talks
@@ -389,7 +395,7 @@ def test_get_book_series_info_assembles_volumes() -> None:
     }[filename]
     data_repo.get_readables.return_value = readables
 
-    series = processing.get_book_series_info(7, data_repo=data_repo)
+    series = book.get_book_series_info(7, data_repo=data_repo)
 
     assert series is not None
     assert series.suit_id == 7
@@ -423,7 +429,7 @@ def test_get_book_series_info_filters_placeholder_volumes() -> None:
     }[filename]
     data_repo.get_readables.return_value = readables
 
-    series = processing.get_book_series_info(7, data_repo=data_repo)
+    series = book.get_book_series_info(7, data_repo=data_repo)
 
     assert series is not None
     assert [volume.title for volume in series.volumes] == ["Volume Two"]
@@ -431,7 +437,7 @@ def test_get_book_series_info_filters_placeholder_volumes() -> None:
 
 def test_drunkards_tale_series_grouped(data_repo: repo.DataRepo) -> None:
     """The four-volume 'A Drunkard's Tale' (suit 1019) groups its volumes in order."""
-    series = processing.get_book_series_info(1019, data_repo=data_repo)
+    series = book.get_book_series_info(1019, data_repo=data_repo)
 
     assert series is not None
     assert len(series.volumes) == 4
@@ -466,7 +472,7 @@ def test_english_language_support(english_data_repo: repo.DataRepo) -> None:
     talk_path = "BinOutput/Talk/Quest/7407811.json"
 
     try:
-        talk_info = processing.get_talk_info(talk_path, data_repo=english_data_repo)
+        talk_info = _talk.get_talk_info(talk_path, data_repo=english_data_repo)
 
         # Verify we got some talk text
         assert len(talk_info.text) > 0
@@ -505,7 +511,7 @@ def test_english_language_support(english_data_repo: repo.DataRepo) -> None:
 
 def test_creature_24068801_info(data_repo: repo.DataRepo) -> None:
     """The Fontaine Assault Specialist Mek resolves its names and description."""
-    info = processing.get_creature_info(24068801, data_repo=data_repo)
+    info = creature.get_creature_info(24068801, data_repo=data_repo)
 
     assert info.codex_id == 24068801
     assert info.name == "攻坚特化型机关"
@@ -516,7 +522,7 @@ def test_creature_24068801_info(data_repo: repo.DataRepo) -> None:
 
 def test_creature_wildlife_info_has_no_monster_names(data_repo: repo.DataRepo) -> None:
     """Wildlife entries carry only a name; no special name or title."""
-    info = processing.get_creature_info(28020101, data_repo=data_repo)
+    info = creature.get_creature_info(28020101, data_repo=data_repo)
 
     assert info.special_name is None
     assert info.title is None
@@ -525,7 +531,7 @@ def test_creature_wildlife_info_has_no_monster_names(data_repo: repo.DataRepo) -
 
 def test_creature_group_automatron_info(data_repo: repo.DataRepo) -> None:
     """The Automatron group is ordered by sortOrder and includes the mek."""
-    group = processing.get_creature_group_info(
+    group = creature.get_creature_group_info(
         "CODEX_SUBTYPE_AUTOMATRON", data_repo=data_repo
     )
 
