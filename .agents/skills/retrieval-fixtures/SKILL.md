@@ -1,0 +1,188 @@
+---
+name: retrieval-fixtures
+description: Add or revise retrieval-quality eval fixtures under istaroth/rag/eval/retrieval_fixtures/ (one JSON file per category, e.g. breadth.json). Use when asked to add a retrieval eval case, add a new eval category, improve a fixture's ground truth, or harden fixtures against false misses. Fixtures grade whether retrieval surfaces the sources a query needs, measured by passage-anchored facet coverage.
+---
+
+# Add a Retrieval Eval Fixture
+
+Run every command from the repository root. The pieces:
+
+- Data: `istaroth/rag/eval/retrieval_fixtures/<category>.json` — one file per category (e.g. `breadth.json`).
+- Loader / types / metric: `istaroth/rag/eval/retrieval.py`.
+- Runner: `scripts/rag_tools.py eval-retrieval` (runs ALL categories; `--category X` to filter).
+- Tests: `tests/test_retrieval_fixtures.py`.
+
+The machinery is general — it grades any retrieval property by passage-anchored
+facet coverage. "breadth" is just the first category. A new category is a new
+JSON file; the runner and tests pick it up automatically.
+
+## What a fixture is
+
+A query plus the ground truth for grading retrieval on it:
+
+- `query` — the user question (Chinese, for the CHS corpus).
+- `subtype` — optional, category-specific tag (breadth uses `enumeration` / `cross_region_survey` / `broad_theme`); omit if the category has none.
+- `expected_coverage` — the **facets** a complete answer must cover (entities, regions, sub-topics, …).
+- `relevant_passages` — for each facet, one or more **anchor passages**: short verbatim slices of corpus text identifying a source that attests the facet. A facet is covered if ANY of its passages matches a retrieved source.
+- `rationale`, `notes`, `known_redundancy` — free text (`known_redundancy` notes near-duplicate sources, else `""`).
+
+The metric: run retrieval, match each anchor against the FULL file content of
+every retrieved source, count facets covered at cutoff k. Coverage far below what
+the corpus contains is a retrieval gap.
+
+## The non-obvious rules (read these — they are why fixtures go wrong)
+
+1. **Derive ground truth from the CORPUS, never from retrieval output.** Search
+   the corpus directly with `rg`. Reading off what retrieval returns is circular —
+   you only "find" facets retrieval already surfaces, hiding the misses you want
+   to measure.
+
+2. **Every facet needs MULTIPLE anchors from DISTINCT sources.** A facet is
+   usually attested in several files with different wording. A single anchor means
+   that if retrieval surfaces a *different* valid source, the metric reports a
+   FALSE MISS. Add 2-3 alternates per facet from different files.
+
+3. **An anchor is the relevant portion, not the whole chunk** — a short,
+   distinctive, verbatim slice. Matching is whitespace-normalized substring
+   containment, so it survives re-chunking but must be exact otherwise
+   (punctuation 「」… included).
+
+4. **Verify every anchor exists verbatim before committing it** (command below).
+   If `rg` can't find it, the text differs from what you typed — fix the anchor.
+
+5. **Distinguish true misses from false misses after running the eval.** For each
+   MISSING facet, print the retrieved source paths and `rg` those files for the
+   facet's concept. If a retrieved source attests it in other words → false miss;
+   add that wording as an alternate anchor. If NO retrieved source attests it →
+   genuine retrieval miss; leave it (that is a real finding).
+
+6. **Prefer official (in-game) sources; mark non-official ones.** `tps_shishu/` is
+   the non-official 诗漱 worldbook → `"official": false`; in-game canon →
+   `"official": true`. Some facets are attested only non-officially — worth noting.
+
+7. **`chunk_context` does not affect the metric** — the runner matches each
+   source's full file content, so coverage = which files surface, not depth.
+
+## The corpus
+
+CHS corpus: `/usr/scratch/git/istaroth/text/chs` (the `text/` submodule in a
+worktree may be empty; use that path). Files are `agd_<category>/<id>_<name>.txt`
+(e.g. `agd_character_story/`, `agd_quest/`, `agd_book/`, `agd_voiceline/`) plus
+non-official `tps_shishu/`. Filenames carry names, so they are searchable.
+
+## Procedure
+
+1. **Pick the category.** Adding to an existing category → edit that JSON file.
+   New category → create `retrieval_fixtures/<category>.json` with top-level
+   `"category": "<category>"` (must equal the filename stem) and `"description"`,
+   plus `"fixtures": [...]`.
+
+2. **Pick a query** and decide its facet list (`expected_coverage`). Use Genshin
+   lore knowledge (the `genshin` skill) for what a complete answer needs.
+
+3. **For each facet, find anchors with `rg`** (run from the corpus dir):
+
+   ```bash
+   cd /usr/scratch/git/istaroth/text/chs
+   rg -l "潘塔罗涅" -g'!tps_shishu/**' .                                  # official files attesting the facet
+   rg -No "潘塔罗涅卡财务审批卡得非常紧[^\n]{0,30}" agd_book/201154_木偶的笔记本.txt  # pull a verbatim slice
+   ```
+   `rg`'s regex is on by default — do NOT pass `-E` (in `rg`, `-E` = `--encoding`
+   and errors). `-N` drops line numbers, `-o` prints only the match. Take 2-3
+   anchors per facet from different files.
+
+4. **Verify every anchor exists verbatim:**
+
+   ```bash
+   cd /usr/scratch/git/istaroth/text/chs
+   chk() { rg -q -- "$1" "$2" && echo "OK   $1" || echo "MISS $1"; }
+   chk "潘塔罗涅卡财务审批卡得非常紧" agd_book/201154_木偶的笔记本.txt
+   ```
+
+5. **Add the fixture(s)** to the category JSON (schema below). One passage may
+   cover several facets (multiple entries in `covers`); a facet may have several
+   passages.
+
+6. **Validate structure:**
+
+   ```bash
+   uv run pytest tests/test_retrieval_fixtures.py -q
+   uv run mypy istaroth/rag/eval/retrieval.py
+   ```
+
+7. **Run the eval against production config:**
+
+   ```bash
+   set -a; source .env.common; source .env.web; set +a   # cohere key is CO_API_KEY (NOT COHERE_API_KEY); deepinfra key for embeddings
+   uv run python scripts/rag_tools.py eval-retrieval -k 20 -c 2 --default-k 10
+   # add --category <name> to run just one category
+   ```
+   Production retrieval presets (frontend `QueryForm.tsx`): fast k=4, balanced
+   k=7, thorough k=10; reranker `cohere`, query transformer `rewrite`. `rewrite`
+   uses an LLM and is **non-deterministic** — a facet's rank wobbles run-to-run;
+   run a few times before trusting a single number.
+
+8. **Harden against false misses** (rule 5). For each MISSING facet:
+
+   ```bash
+   set -a; source .env.common; source .env.web; set +a
+   uv run python - <<'PY'
+   from istaroth.rag import document_store_set
+   ss = document_store_set.DocumentStoreSet.from_env()
+   store = ss.get_store(ss.available_languages[0])
+   out = store.retrieve("<your query>", k=10, chunk_context=2)
+   for i,(s,docs) in enumerate(out.results,1):
+       print(i, docs[0].metadata["path"])
+   PY
+   ```
+   Then `rg` the listed files for the facet's concept; if one attests it, add that
+   wording as an alternate anchor and re-run step 7.
+
+## Fixture JSON schema
+
+File: `retrieval_fixtures/<category>.json`
+
+```json
+{
+  "category": "breadth",
+  "description": "What retrieval property this category probes.",
+  "captured_at": "YYYY-MM-DD",
+  "capture_method": "How ground truth was derived (corpus search, etc.).",
+  "caveat": "Matching/measurement caveats.",
+  "fixtures": [
+    {
+      "query": "七神分别是谁，掌管什么元素与理想",
+      "language": "CHS",
+      "subtype": "enumeration",
+      "rationale": "Why this query stresses the property (1-3 sentences).",
+      "expected_coverage": ["anemo_freedom", "geo_contract", "..."],
+      "relevant_passages": [
+        {"passage": "<verbatim slice>", "label": "<who/what + source>", "official": true, "covers": ["anemo_freedom"]}
+      ],
+      "known_redundancy": "",
+      "notes": ""
+    }
+  ]
+}
+```
+
+Loader enforces (a failing test means one is violated): the file's `category`
+equals its filename stem; facet names in `expected_coverage` are unique; every
+`covers` entry names a known facet; every passage covers ≥1 facet; every expected
+facet is covered by ≥1 passage. `subtype`, `known_redundancy`, `notes` are
+optional.
+
+## Backlog of candidate cases
+
+Breadth category (derive ground truth per the procedure):
+
+- `broad_theme`: deepen 天理/天空岛 (add anchors for `ascension_on_death` and
+  `false_sky`, currently true misses); 深渊教团的起源与目的; 世界树与虚空.
+- `enumeration`: 璃月七星成员; 七神的神之心去向 (per-Archon Gnosis whereabouts).
+- `cross_region_survey`: 各国的执法/治安组织 (Knights of Favonius / Millelith /
+  Tenryou Commission / …); 各国民众对自己执政官的态度.
+
+New categories worth adding (each a new JSON file): `precision` (a narrow query
+must surface ONE specific source, not near-duplicates/distractors); `negative`
+(a query whose answer is NOT in the corpus should retrieve nothing on-topic);
+`disambiguation` (same surface term, different referents).

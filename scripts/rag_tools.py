@@ -28,7 +28,7 @@ from istaroth.rag import (
     text_set,
     types,
 )
-from istaroth.rag.eval import dataset
+from istaroth.rag.eval import dataset, retrieval
 from istaroth.text import manifest
 
 logger = logging.getLogger(__name__)
@@ -203,6 +203,100 @@ def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
                 k: v for k, v in os.environ.items() if k.startswith("ISTAROTH_")
             }
             (output / f"{query_hash}.json").write_text(json.dumps(data))
+
+
+@cli.command("eval-retrieval")
+@click.option(
+    "-k", "--k", default=20, help="Sources retrieved per query (measurement ceiling)"
+)
+@click.option(
+    "-c", "--chunk-context", default=2, help="Chunk context used during retrieval"
+)
+@click.option(
+    "--default-k", default=10, help="Production cutoff to highlight coverage at"
+)
+@click.option(
+    "--category",
+    default=None,
+    help="Only run fixtures from this category (default: all)",
+)
+@click.option("--bm25", is_flag=True, help="Use BM25-only retrieval instead of hybrid")
+def eval_retrieval(
+    *, k: int, chunk_context: int, default_k: int, category: str | None, bm25: bool
+) -> None:
+    """Measure facet coverage of the retrieval-eval fixtures against retrieval.
+
+    Runs every fixture category (or just --category) for the store's language.
+    Each fixture's relevant passages are matched against the FULL file content of
+    every retrieved source, so coverage reflects which sources are surfaced
+    independent of chunk_context. Reports coverage at the production cutoff vs. the
+    full retrieved ranking, the rank where each facet first appears, and passages
+    matched by more than one source (retrieval redundancy).
+    """
+    store, language, _ = _load_store()
+    if store.num_documents == 0:
+        logger.error("No documents in store.")
+        sys.exit(1)
+
+    fixtures = [
+        f
+        for f in retrieval.load_retrieval_dataset().fixtures
+        if f.language == language.value and (category is None or f.category == category)
+    ]
+    if not fixtures:
+        logger.error(
+            "No fixtures for store language %s%s.",
+            language.value,
+            f" in category {category!r}" if category else "",
+        )
+        sys.exit(1)
+
+    current_category = None
+    for fixture in fixtures:
+        if fixture.category != current_category:
+            current_category = fixture.category
+            print("#" * 80)
+            print(f"# CATEGORY: {current_category}")
+
+        retrieve_output = (
+            store.retrieve_bm25(fixture.query, k=k, chunk_context=chunk_context)
+            if bm25
+            else store.retrieve(fixture.query, k=k, chunk_context=chunk_context)
+        )
+        ranked_texts: list[str] = []
+        for _, docs in retrieve_output.results:
+            chunks = store.get_file_chunks(docs[0].metadata["file_id"])
+            ranked_texts.append(
+                "\n".join(
+                    c.page_content for c in (chunks if chunks is not None else docs)
+                )
+            )
+
+        total = len(fixture.expected_coverage)
+        cov_default = fixture.coverage_at_k(ranked_texts, default_k)
+        cov_full = fixture.coverage_at_k(ranked_texts, len(ranked_texts))
+        first_rank = fixture.first_covered_rank(ranked_texts)
+
+        print("=" * 80)
+        print(f"[{fixture.subtype or fixture.category}] {fixture.query}")
+        print(
+            f"sources retrieved: {len(ranked_texts)} | "
+            f"coverage@{default_k}: {len(cov_default)}/{total} | "
+            f"coverage@full({len(ranked_texts)}): {len(cov_full)}/{total}"
+        )
+        for facet in fixture.expected_coverage:
+            match first_rank[facet]:
+                case None:
+                    status = "MISSING (no retrieved source contains it)"
+                case rank if rank > default_k:
+                    status = f"rank {rank} (TAIL — lost at k={default_k})"
+                case rank:
+                    status = f"rank {rank}"
+            print(f"  - {facet}: {status}")
+        for passage in fixture.relevant_passages:
+            if (n := sum(passage.matches(t) for t in ranked_texts)) > 1:
+                print(f"  [redundant] {n} sources match passage: {passage.label}")
+    print("=" * 80)
 
 
 @cli.command()
