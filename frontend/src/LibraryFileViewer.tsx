@@ -104,9 +104,12 @@ function LibraryFileViewer() {
     ancestors.length > 0 ? nodeLabel(ancestors[ancestors.length - 1], t) || catLabel : catLabel
 
   // TOC: rooted at the "section" node (the series/chapter/character grouping),
-  // i.e. the ancestor just below the top-level type/character node.
-  const tocRoot: HierarchyNode | null =
+  // i.e. the ancestor just below the top-level type/character node. Only sections
+  // that mark themselves TOC-eligible get one; synthetic buckets of unrelated
+  // files (e.g. the "standalone" group) opt out.
+  const tocCandidate: HierarchyNode | null =
     ancestors.length >= 2 ? ancestors[1] : ancestors.length === 1 ? ancestors[0] : null
+  const tocRoot = tocCandidate?.toc_eligible ? tocCandidate : null
   let tocSections: { title: string; leaves: HierarchyNode[] }[] = []
   let tocTitle = ''
   if (tocRoot?.children) {

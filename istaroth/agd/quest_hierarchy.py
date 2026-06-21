@@ -24,6 +24,7 @@ def _quest_leaf(quest_id: types.QuestId, title: str) -> types.HierarchyNode:
         title_key=None,
         children=None,
         file_id=quest_id,
+        toc_eligible=False,
     )
 
 
@@ -92,6 +93,7 @@ def _make_chapters(
                 main_quests=main_quests,
             ),
             file_id=None,
+            toc_eligible=True,
         )
         for cid in sorted(by_chapter)
     ]
@@ -172,6 +174,7 @@ def build_quest_hierarchy(
                     title_key=None,
                     children=series_chapters,
                     file_id=None,
+                    toc_eligible=True,
                 )
             )
 
@@ -193,6 +196,8 @@ def build_quest_hierarchy(
                     title_key="library.standalone",
                     children=standalone,
                     file_id=None,
+                    # Unrelated chapter-less quests bucketed together; not a series.
+                    toc_eligible=False,
                 )
             )
 
@@ -203,6 +208,7 @@ def build_quest_hierarchy(
                 title_key=f"library.questTypes.{quest_type}",
                 children=children,
                 file_id=None,
+                toc_eligible=True,
             )
         )
 

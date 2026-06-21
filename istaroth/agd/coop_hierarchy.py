@@ -49,6 +49,7 @@ def build_coop_hierarchy(
                 title_key=None,
                 children=None,
                 file_id=quest_id,
+                toc_eligible=False,
             )
         )
 
@@ -68,6 +69,7 @@ def build_coop_hierarchy(
                     title_key=None,
                     children=sorted(buckets[avatar_id][chapter_id], key=_leaf_id),
                     file_id=None,
+                    toc_eligible=True,
                 )
                 for chapter_id in chapter_ids
             ]
@@ -78,6 +80,7 @@ def build_coop_hierarchy(
                 title_key=None,
                 children=children,
                 file_id=None,
+                toc_eligible=True,
             )
         )
 
