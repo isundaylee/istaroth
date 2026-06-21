@@ -132,6 +132,34 @@
       "notes": "Filter passages by `official` to measure official-only coverage; the dedicated profiles for the lower-ranked seats (servant/Arlecchino, scaramouche) sit deep in the ranking."
     },
     {
+      "query": "深渊教团的目的是什么？",
+      "language": "CHS",
+      "subtype": "broad_theme",
+      "rationale": "A single 'what is the Abyss Order's goal' query whose answer spans three distinct layers — the stated grievance (Khaenri'ah destroyed by gods → overthrow Archons), the operational plan (Loom of Fate → restore Khaenri'ah's ley lines), and the leadership (Traveler's sibling) — each layer attested in different quest files across early Mondstadt quests, mid-game Dainsleif interludes, and late-game Natlan missions.",
+      "expected_coverage": [
+        "overthrow_archons",
+        "battle_heavenly_principles",
+        "khaenriah_remnants_cursed",
+        "traveler_sibling_leader",
+        "restore_khaenriah_via_loom"
+      ],
+      "relevant_passages": [
+        {"passage": "坎瑞亚是被神覆灭的国度，而这就是…深渊教团想要覆灭七神国度的原因。", "label": "戴因·覆灭七神国度的原因（不荣誉的试炼）", "official": true, "covers": ["overthrow_archons"]},
+        {"passage": "目标是「淹没神座、与天理作战」", "label": "派蒙·描述旅行者血亲的目标（有隔阂的魂灵）", "official": true, "covers": ["overthrow_archons", "battle_heavenly_principles"]},
+        {"passage": "在「深渊」淹没神座之前，我与「天理」，有一场尚未完结的战争…", "label": "旅行者血亲·与天理未完之战（有隔阂的魂灵）", "official": true, "covers": ["battle_heavenly_principles"]},
+        {"passage": "深渊教团的怪物，就是坎瑞亚灭国时的人民…扭曲成的怪物。", "label": "派蒙·深渊怪物的本质（有隔阂的魂灵）", "official": true, "covers": ["khaenriah_remnants_cursed"]},
+        {"passage": "深渊教团和遗迹守卫，居然是坎瑞亚灭国之后的残余吗？！", "label": "派蒙·深渊教团是坎瑞亚残余（无信者的使徒）", "official": true, "covers": ["khaenriah_remnants_cursed"]},
+        {"passage": "深渊教团一直在追寻坎瑞亚遗落的文明——虽然他们已经连人类都不是了，但执念仍存。", "label": "戴因·深渊教团的执念（无信者的使徒）", "official": true, "covers": ["khaenriah_remnants_cursed"]},
+        {"passage": "反而是…很明显她认为你的血亲…也就是深渊教团现在的领导者，是「救世主」。", "label": "伊安珊·旅行者血亲是领导者（救世主）", "official": true, "covers": ["traveler_sibling_leader"]},
+        {"passage": "于是我带领深渊教团佯攻纳塔，借机进入了夜神之国", "label": "旅行者血亲·亲口承认领导深渊教团（你所不在的时空）", "official": true, "covers": ["traveler_sibling_leader", "restore_khaenriah_via_loom"]},
+        {"passage": "使用「命运的织机」重新编织了坎瑞亚的地脉", "label": "哈登（深渊浸礼者）·织机用于重建坎瑞亚地脉（你所不在的时空）", "official": true, "covers": ["restore_khaenriah_via_loom"]},
+        {"passage": "它们…「深渊」，似乎正在执行一个计划。计划的关键词是…「命运的织机」。", "label": "戴因·命运的织机是深渊教团的核心计划（无信者的使徒）", "official": true, "covers": ["restore_khaenriah_via_loom"]},
+        {"passage": "我猜测命运的织机…应该和「地脉」有关。", "label": "戴因·推断织机与地脉有关（不应存在的记忆）", "official": true, "covers": ["restore_khaenriah_via_loom"]}
+      ],
+      "known_redundancy": "",
+      "notes": "khaenriah_remnants_cursed is attested in both the early (8001/8003) and later quest files. The traveler_sibling_leader facet requires reaching 8017–8018 content (late Natlan arc), so a retrieval gap here may indicate missing coverage of late-game quests. battle_heavenly_principles and overthrow_archons are semantically adjacent but attested in different source lines — both passages from 8003 cover both concepts."
+    },
+    {
       "query": "神之眼代表着什么？",
       "language": "CHS",
       "subtype": "broad_theme",
