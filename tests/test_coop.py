@@ -30,7 +30,10 @@ def test_walk_play_order_branches_and_convergence() -> None:
                 "coopNodeId": 2,
                 "coopNodeType": "COOP_NODE_SELECT",
                 "nextNodeArray": [3, 4],
-                "selectList": [{"dialogId": 111}, {"dialogId": 222}],
+                "selectList": [
+                    {"dialogId": 111, "showCond": {}, "enableCond": {}},
+                    {"dialogId": 222, "showCond": {}, "enableCond": {}},
+                ],
             },
             "3": {
                 "coopNodeId": 3,
