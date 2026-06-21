@@ -6,19 +6,26 @@ from collections import defaultdict
 from typing import Iterator, assert_never
 
 from istaroth import utils
-from istaroth.agd import issues, localization, talk_parsing, text_utils, types
+from istaroth.agd import (
+    id_types,
+    issues,
+    localization,
+    processed_types,
+    talk_parsing,
+    text_utils,
+)
 from istaroth.text import types as text_types
 
 
 class _TalkTextGraph:
     """Graph structure for talk dialog items with nextDialogs relationships."""
 
-    def __init__(self, talk: types.TalkInfo) -> None:
+    def __init__(self, talk: processed_types.TalkInfo) -> None:
         """Build graph structure from talk dialog items."""
-        self.dialog_id_to_text: dict[types.DialogId, types.TalkText] = {}
-        self.graph: dict[types.DialogId, list[types.DialogId]] = defaultdict(list)
-        self.incoming_edges: dict[types.DialogId, int] = defaultdict(int)
-        self.outgoing_edges: dict[types.DialogId, int] = defaultdict(int)
+        self.dialog_id_to_text: dict[id_types.DialogId, processed_types.TalkText] = {}
+        self.graph: dict[id_types.DialogId, list[id_types.DialogId]] = defaultdict(list)
+        self.incoming_edges: dict[id_types.DialogId, int] = defaultdict(int)
+        self.outgoing_edges: dict[id_types.DialogId, int] = defaultdict(int)
 
         for talk_text in talk.text:
             dialog_id = talk_text.dialog_id
@@ -33,7 +40,9 @@ class _TalkTextGraph:
         self.incoming_edges = dict(self.incoming_edges)
         self.outgoing_edges = dict(self.outgoing_edges)
 
-    def find_entrypoints(self, talk: types.TalkInfo) -> list[types.DialogId]:
+    def find_entrypoints(
+        self, talk: processed_types.TalkInfo
+    ) -> list[id_types.DialogId]:
         """Find entry points (dialogs with no incoming edges).
 
         If no entry points are found, falls back to finding cycles and using
@@ -53,7 +62,7 @@ class _TalkTextGraph:
         # Fallback: find all cycles and use smallest dialog ID from them
         return [min(min(cycle) for cycle in self._find_cycles())]
 
-    def _find_cycles(self) -> list[set[types.DialogId]]:
+    def _find_cycles(self) -> list[set[id_types.DialogId]]:
         """Find all unique cycles in the graph.
 
         Uses DFS to detect cycles. When a back edge is found, extracts the cycle.
@@ -61,11 +70,11 @@ class _TalkTextGraph:
         Returns:
             List of sets, where each set contains the dialog IDs in a cycle.
         """
-        visited = set[types.DialogId]()
-        rec_stack = set[types.DialogId]()
+        visited = set[id_types.DialogId]()
+        rec_stack = set[id_types.DialogId]()
         cycles = []
 
-        def dfs(node: types.DialogId, path: list[types.DialogId]) -> None:
+        def dfs(node: id_types.DialogId, path: list[id_types.DialogId]) -> None:
             if node in rec_stack:
                 # Found a cycle - extract it
                 cycle_start_idx = path.index(node)
@@ -121,8 +130,8 @@ def _extract_talk_type_from_path(talk_file_path: str) -> str:
 
 
 def render_readable(
-    content: str, metadata: types.ReadableMetadata
-) -> types.RenderedItem:
+    content: str, metadata: processed_types.ReadableMetadata
+) -> processed_types.RenderedItem:
     """Render readable content into RAG-suitable format."""
     # Generate filename based on title
     safe_title = utils.make_safe_filename_part(metadata.title)
@@ -131,7 +140,7 @@ def render_readable(
     # Format content with title header
     rendered_content = f"# {metadata.title}\n\n{content}"
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_READABLE,
             title=metadata.title,
@@ -142,13 +151,15 @@ def render_readable(
     )
 
 
-def render_book(content: str, metadata: types.ReadableMetadata) -> types.RenderedItem:
+def render_book(
+    content: str, metadata: processed_types.ReadableMetadata
+) -> processed_types.RenderedItem:
     """Render book content into RAG-suitable format."""
     safe_title = utils.make_safe_filename_part(metadata.title)
     filename = f"{metadata.localization_id}_{safe_title}.txt"
     rendered_content = f"# {metadata.title}\n\n{content}"
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_BOOK,
             title=metadata.title,
@@ -173,8 +184,8 @@ def _render_volume_annotation(
 
 
 def render_book_series(
-    series_info: types.BookSeriesInfo, language: localization.Language
-) -> types.RenderedItem:
+    series_info: processed_types.BookSeriesInfo, language: localization.Language
+) -> processed_types.RenderedItem:
     """Render a multi-volume book series into a single RAG-suitable file.
 
     Volumes render in reading order under one series header, each prefixed with an
@@ -192,7 +203,7 @@ def render_book_series(
         )
         content_parts.append(f"## {volume.title}\n\n{annotation}\n\n{volume.content}")
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_BOOK,
             title=series_info.series_name,
@@ -203,7 +214,9 @@ def render_book_series(
     )
 
 
-def render_weapon(weapon_info: types.WeaponInfo) -> types.RenderedItem:
+def render_weapon(
+    weapon_info: processed_types.WeaponInfo,
+) -> processed_types.RenderedItem:
     """Render a weapon's assembled story document into RAG-suitable format."""
     safe_name = utils.make_safe_filename_part(weapon_info.name)
     filename = f"{weapon_info.weapon_id}_{safe_name}.txt"
@@ -214,7 +227,7 @@ def render_weapon(weapon_info: types.WeaponInfo) -> types.RenderedItem:
     # Join story pages with a markdown horizontal rule so page boundaries survive.
     content_lines.append("\n\n---\n\n".join(weapon_info.story_pages))
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_WEAPON,
             title=weapon_info.name,
@@ -225,13 +238,15 @@ def render_weapon(weapon_info: types.WeaponInfo) -> types.RenderedItem:
     )
 
 
-def render_wings(content: str, metadata: types.ReadableMetadata) -> types.RenderedItem:
+def render_wings(
+    content: str, metadata: processed_types.ReadableMetadata
+) -> processed_types.RenderedItem:
     """Render wings readable content into RAG-suitable format."""
     safe_title = utils.make_safe_filename_part(metadata.title)
     filename = f"{metadata.localization_id}_{safe_title}.txt"
     rendered_content = f"# {metadata.title}\n\n{content}"
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_WINGS,
             title=metadata.title,
@@ -243,14 +258,14 @@ def render_wings(content: str, metadata: types.ReadableMetadata) -> types.Render
 
 
 def render_costume(
-    content: str, metadata: types.ReadableMetadata
-) -> types.RenderedItem:
+    content: str, metadata: processed_types.ReadableMetadata
+) -> processed_types.RenderedItem:
     """Render costume readable content into RAG-suitable format."""
     safe_title = utils.make_safe_filename_part(metadata.title)
     filename = f"{metadata.localization_id}_{safe_title}.txt"
     rendered_content = f"# {metadata.title}\n\n{content}"
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_COSTUME,
             title=metadata.title,
@@ -262,7 +277,7 @@ def render_costume(
 
 
 def _render_dialog_line(
-    talk_text: types.TalkText, language: localization.Language
+    talk_text: processed_types.TalkText, language: localization.Language
 ) -> str | None:
     """Render a single dialog line if it should not be skipped.
 
@@ -277,11 +292,11 @@ def _render_dialog_line(
 
 
 def _process_branch(
-    next_dialog_ids: list[types.DialogId],
+    next_dialog_ids: list[id_types.DialogId],
     graph: _TalkTextGraph,
-    rendered: set[types.DialogId],
+    rendered: set[id_types.DialogId],
     language: localization.Language,
-) -> tuple[types.DialogId | None, list[list[str]]]:
+) -> tuple[id_types.DialogId | None, list[list[str]]]:
     """Process multiple branches until convergence point.
 
     Processes each branch from next_dialog_ids, rendering all dialogs until hitting
@@ -468,9 +483,9 @@ def _process_branch(
 
 
 def _render_talk_dialogs(
-    dialog_id: types.DialogId,
+    dialog_id: id_types.DialogId,
     graph: _TalkTextGraph,
-    rendered: set[types.DialogId],
+    rendered: set[id_types.DialogId],
     language: localization.Language,
 ) -> list[str]:
     """Render dialog following single paths until branching, then process branches.
@@ -483,7 +498,7 @@ def _render_talk_dialogs(
         language: Language for filtering
     """
     lines: list[str] = []
-    current_id: types.DialogId | None = dialog_id
+    current_id: id_types.DialogId | None = dialog_id
 
     # Follow single next dialogues until we hit multiple next dialogues
     while current_id is not None:
@@ -541,7 +556,7 @@ def _render_talk_dialogs(
 
 
 def _render_talk_content(
-    talk: types.TalkInfo, language: localization.Language
+    talk: processed_types.TalkInfo, language: localization.Language
 ) -> list[str]:
     """Render talk dialog to lines with branching support.
 
@@ -559,14 +574,14 @@ def _render_talk_content(
     entrypoints = graph.find_entrypoints(talk)
     assert entrypoints, "No entrypoints found"
 
-    rendered: set[types.DialogId] = set()
+    rendered: set[id_types.DialogId] = set()
     all_lines: list[str] = []
 
     for i, entrypoint in enumerate(entrypoints):
         if i > 0:
             all_lines.append("")
 
-        entrypoint_rendered = set[types.DialogId]()
+        entrypoint_rendered = set[id_types.DialogId]()
         entrypoint_lines = _render_talk_dialogs(
             entrypoint, graph, entrypoint_rendered, language
         )
@@ -588,12 +603,12 @@ def _render_talk_content(
 
 
 def render_talk(
-    talk: types.TalkInfo,
+    talk: processed_types.TalkInfo,
     *,
-    talk_id: types.TalkId,
+    talk_id: id_types.TalkId,
     talk_file_path: str | None = None,
     language: localization.Language,
-) -> types.RenderedItem:
+) -> processed_types.RenderedItem:
     """Render talk dialog into RAG-suitable format with branching support."""
     # Extract talk type from file path if provided
     talk_type = (
@@ -621,7 +636,7 @@ def render_talk(
 
     rendered_content = "\n".join(content_lines)
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_TALK,
             title=title,
@@ -633,8 +648,8 @@ def render_talk(
 
 
 def render_quest(
-    quest: types.QuestInfo, language: localization.Language
-) -> types.RenderedItem:
+    quest: processed_types.QuestInfo, language: localization.Language
+) -> processed_types.RenderedItem:
     """Render quest information into RAG-suitable format."""
     # Generate filename based on quest title
     safe_title = utils.make_safe_filename_part(quest.title)
@@ -703,7 +718,7 @@ def render_quest(
 
     rendered_content = "\n".join(content_lines)
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_QUEST,
             title=quest.title,
@@ -714,7 +729,9 @@ def render_quest(
     )
 
 
-def render_character_story(story_info: types.CharacterStoryInfo) -> types.RenderedItem:
+def render_character_story(
+    story_info: processed_types.CharacterStoryInfo,
+) -> processed_types.RenderedItem:
     """Render all character stories into RAG-suitable format."""
     # Generate filename based on character name with collision safeguards
     safe_name = utils.make_safe_filename_part(story_info.character_name)
@@ -752,7 +769,7 @@ def render_character_story(story_info: types.CharacterStoryInfo) -> types.Render
 
     rendered_content = "\n".join(content_lines)
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_CHARACTER_STORY,
             title=story_info.character_name,
@@ -764,8 +781,8 @@ def render_character_story(story_info: types.CharacterStoryInfo) -> types.Render
 
 
 def render_subtitle(
-    subtitle_info: types.SubtitleInfo, subtitle_path: str
-) -> types.RenderedItem:
+    subtitle_info: processed_types.SubtitleInfo, subtitle_path: str
+) -> processed_types.RenderedItem:
     """Render subtitle content into RAG-suitable format."""
     # Generate ID from hash of subtitle path (12 hex chars = 48 bits, safe for JavaScript)
     subtitle_id = int(
@@ -783,7 +800,7 @@ def render_subtitle(
 
     rendered_content = "\n".join(content_lines)
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_SUBTITLE,
             title=path_obj.stem,
@@ -794,7 +811,9 @@ def render_subtitle(
     )
 
 
-def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
+def render_material(
+    material_info: processed_types.MaterialInfo,
+) -> processed_types.RenderedItem:
     """Render material content into RAG-suitable format."""
     # Generate filename based on material name
     safe_name = utils.make_safe_filename_part(material_info.name)
@@ -806,7 +825,7 @@ def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
 
     rendered_content = "\n".join(content_lines)
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_MATERIAL_TYPE,
             title=material_info.name,
@@ -818,8 +837,8 @@ def render_material(material_info: types.MaterialInfo) -> types.RenderedItem:
 
 
 def render_achievement_section(
-    section_info: types.AchievementSectionInfo,
-) -> types.RenderedItem:
+    section_info: processed_types.AchievementSectionInfo,
+) -> processed_types.RenderedItem:
     """Render one achievement section into a single text file."""
     filename = (
         f"{section_info.section_id}_"
@@ -831,7 +850,7 @@ def render_achievement_section(
             [f"## {achievement.name}", "", achievement.description, ""]
         )
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_ACHIEVEMENT,
             title=section_info.section_name,
@@ -850,8 +869,8 @@ def _humanize_material_type(material_type: str) -> str:
 
 
 def render_materials_by_type(
-    material_type: str, materials: list[types.MaterialInfo]
-) -> types.RenderedItem:
+    material_type: str, materials: list[processed_types.MaterialInfo]
+) -> processed_types.RenderedItem:
     """Render multiple materials of the same type into a single RAG-suitable format file."""
     # Generate ID from hash of material type (12 hex chars = 48 bits, safe for JavaScript)
     material_type_id = int(
@@ -878,7 +897,7 @@ def render_materials_by_type(
 
     rendered_content = "\n".join(content_lines).rstrip()
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_MATERIAL_TYPE,
             title=material_type_name,
@@ -889,7 +908,9 @@ def render_materials_by_type(
     )
 
 
-def render_voiceline(voiceline_info: types.VoicelineInfo) -> types.RenderedItem:
+def render_voiceline(
+    voiceline_info: processed_types.VoicelineInfo,
+) -> processed_types.RenderedItem:
     """Render voiceline content into RAG-suitable format."""
     # Generate filename based on character name
     safe_name = utils.make_safe_filename_part(voiceline_info.character_name)
@@ -905,7 +926,7 @@ def render_voiceline(voiceline_info: types.VoicelineInfo) -> types.RenderedItem:
 
     rendered_content = "\n".join(content_lines).rstrip()
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_VOICELINE,
             title=voiceline_info.character_name,
@@ -916,7 +937,9 @@ def render_voiceline(voiceline_info: types.VoicelineInfo) -> types.RenderedItem:
     )
 
 
-def render_creature_group(group_info: types.CreatureGroupInfo) -> types.RenderedItem:
+def render_creature_group(
+    group_info: processed_types.CreatureGroupInfo,
+) -> processed_types.RenderedItem:
     """Render one codex subType group of creatures into a single RAG-suitable file."""
     # Hash the subType enum to a JS-safe id (48 bits), mirroring material types.
     group_id = int(
@@ -939,7 +962,7 @@ def render_creature_group(group_info: types.CreatureGroupInfo) -> types.Rendered
         content_lines.append(creature.description)
         content_lines.append("")
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_CREATURE,
             title=title,
@@ -950,7 +973,9 @@ def render_creature_group(group_info: types.CreatureGroupInfo) -> types.Rendered
     )
 
 
-def render_artifact_set(artifact_set_info: types.ArtifactSetInfo) -> types.RenderedItem:
+def render_artifact_set(
+    artifact_set_info: processed_types.ArtifactSetInfo,
+) -> processed_types.RenderedItem:
     """Render artifact set content into RAG-suitable format."""
     # Generate filename based on set name and ID
     safe_name = utils.make_safe_filename_part(artifact_set_info.set_name)
@@ -978,7 +1003,7 @@ def render_artifact_set(artifact_set_info: types.ArtifactSetInfo) -> types.Rende
 
     rendered_content = "\n".join(content_lines).rstrip()
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_ARTIFACT_SET,
             title=artifact_set_info.set_name,
@@ -992,11 +1017,11 @@ def render_artifact_set(artifact_set_info: types.ArtifactSetInfo) -> types.Rende
 def render_talk_group(
     talk_group_type: talk_parsing.TalkGroupType,
     talk_group_id: str,
-    talk_group_info: types.TalkGroupInfo,
+    talk_group_info: processed_types.TalkGroupInfo,
     language: localization.Language,
     *,
     group_name: str | None = None,
-) -> types.RenderedItem:
+) -> processed_types.RenderedItem:
     """Render multiple talks from an activity group into a single file."""
     # Generate filename based on activity ID
     safe_type = utils.make_safe_filename_part(str(talk_group_type))
@@ -1038,7 +1063,7 @@ def render_talk_group(
     else:
         metadata_id = int(talk_group_id)
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_TALK_GROUP,
             title=title,
@@ -1050,7 +1075,7 @@ def render_talk_group(
 
 
 def _render_coop_steps(
-    steps: list[types.CoopStep], language: localization.Language
+    steps: list[processed_types.CoopStep], language: localization.Language
 ) -> list[str]:
     """Render a hangout story's play-ordered steps, expanding choice branches."""
     lines: list[str] = []
@@ -1081,8 +1106,8 @@ def _render_coop_steps(
 
 
 def render_hangout(
-    hangout: types.HangoutInfo, language: localization.Language
-) -> types.RenderedItem:
+    hangout: processed_types.HangoutInfo, language: localization.Language
+) -> processed_types.RenderedItem:
     """Render a hangout quest's Coop story dialogue into RAG-suitable format."""
     title = (
         f"{hangout.primary_character} - {hangout.quest_title}"
@@ -1096,7 +1121,7 @@ def render_hangout(
         content_lines.append(f"## Conversation {i}\n")
         content_lines.extend(_render_coop_steps(story.steps, language))
 
-    return types.RenderedItem(
+    return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_COOP,
             title=title,

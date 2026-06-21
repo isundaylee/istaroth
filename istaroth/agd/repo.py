@@ -16,11 +16,12 @@ from numpy import isin
 
 from istaroth import text_cleanup
 from istaroth.agd import (
+    agd_types,
     coop_graph,
     deobfuscation,
+    id_types,
     localization,
     talk_parsing,
-    types,
 )
 
 logger = logging.getLogger(__name__)
@@ -89,55 +90,55 @@ class IdTracker(Generic[_K]):
         self._context_depth -= 1
 
 
-class MaterialTracker(IdTracker[types.MaterialId]):
+class MaterialTracker(IdTracker[id_types.MaterialId]):
     """Tracks which material IDs have been accessed."""
 
-    def __init__(self, material_data: types.MaterialExcelConfigData) -> None:
+    def __init__(self, material_data: agd_types.MaterialExcelConfigData) -> None:
         self._material_dict: dict[
-            types.MaterialId, types.MaterialExcelConfigDataItem
+            id_types.MaterialId, agd_types.MaterialExcelConfigDataItem
         ] = {material["id"]: material for material in material_data}
         super().__init__(set(self._material_dict.keys()))
 
     def get(
-        self, material_id: types.MaterialId
-    ) -> types.MaterialExcelConfigDataItem | None:
+        self, material_id: id_types.MaterialId
+    ) -> agd_types.MaterialExcelConfigDataItem | None:
         """Get material data by ID and track access."""
         if material_id in self._material_dict:
             self._track_access(material_id)
             return self._material_dict[material_id]
         return None
 
-    def get_all(self) -> types.MaterialExcelConfigData:
+    def get_all(self) -> agd_types.MaterialExcelConfigData:
         """Get all material data without tracking (for discovery purposes)."""
         return list(self._material_dict.values())
 
 
-class TalkTracker(IdTracker[types.TalkId]):
+class TalkTracker(IdTracker[id_types.TalkId]):
     """Tracks which talk IDs have been accessed."""
 
     def __init__(
         self,
-        talk_excel_data: types.TalkExcelConfigData,
-        talk_file_mapping: dict[types.TalkId, str],
+        talk_excel_data: agd_types.TalkExcelConfigData,
+        talk_file_mapping: dict[id_types.TalkId, str],
     ) -> None:
-        self._talk_dict: dict[types.TalkId, types.TalkExcelConfigDataItem] = {
+        self._talk_dict: dict[id_types.TalkId, agd_types.TalkExcelConfigDataItem] = {
             talk["id"]: talk for talk in talk_excel_data
         }
         self._talk_file_mapping = talk_file_mapping
         super().__init__(set(self._talk_dict.keys()))
 
-    def get(self, talk_id: types.TalkId) -> types.TalkExcelConfigDataItem | None:
+    def get(self, talk_id: id_types.TalkId) -> agd_types.TalkExcelConfigDataItem | None:
         """Get talk configuration data by ID and track access."""
         if talk_id in self._talk_dict:
             self._track_access(talk_id)
             return self._talk_dict[talk_id]
         return None
 
-    def get_all(self) -> types.TalkExcelConfigData:
+    def get_all(self) -> agd_types.TalkExcelConfigData:
         """Get all talk configuration data without tracking (for discovery purposes)."""
         return list(self._talk_dict.values())
 
-    def get_talk_file_path(self, talk_id: types.TalkId) -> str | None:
+    def get_talk_file_path(self, talk_id: id_types.TalkId) -> str | None:
         """Get the file path for a talk ID and track access."""
         talk_item = self.get(talk_id)
         if talk_item is None:
@@ -147,7 +148,7 @@ class TalkTracker(IdTracker[types.TalkId]):
         return self._talk_file_mapping.get(talk_id)
 
 
-class TextMapTracker(IdTracker[types.TextMapHash]):
+class TextMapTracker(IdTracker[id_types.TextMapHash]):
     """Wrapper around TextMap that tracks which text IDs have been accessed.
 
     ``TextMap`` ships with ``str`` keys (JSON object keys are always strings);
@@ -156,11 +157,11 @@ class TextMapTracker(IdTracker[types.TextMapHash]):
 
     def __init__(
         self,
-        text_map: types.TextMap,
+        text_map: agd_types.TextMap,
         language: localization.Language,
-        fallback_text_map: types.TextMap | None = None,
+        fallback_text_map: agd_types.TextMap | None = None,
     ) -> None:
-        self._text_map: dict[types.TextMapHash, str] = {
+        self._text_map: dict[id_types.TextMapHash, str] = {
             int(k): v for k, v in text_map.items()
         }
         self._fallback_text_map = self._normalize_text_map(fallback_text_map or {})
@@ -169,51 +170,53 @@ class TextMapTracker(IdTracker[types.TextMapHash]):
         self._language = language
 
     @staticmethod
-    def _normalize_text_map(text_map: types.TextMap) -> dict[types.TextMapHash, str]:
+    def _normalize_text_map(
+        text_map: agd_types.TextMap,
+    ) -> dict[id_types.TextMapHash, str]:
         return {int(k): v for k, v in text_map.items()}
 
-    def has(self, key: types.TextMapHash) -> bool:
+    def has(self, key: id_types.TextMapHash) -> bool:
         """Whether key resolves in the current or fallback TextMap."""
         return self._get_raw_text(key) is not None
 
     def _get_cleaned_text(self, text: str) -> str:
         return text_cleanup.clean_text_markers(text, self._language)
 
-    def _get_raw_text(self, key: types.TextMapHash) -> str | None:
+    def _get_raw_text(self, key: id_types.TextMapHash) -> str | None:
         for text_map in self._text_maps:
             if (text := text_map.get(key)) is not None:
                 return text
         return None
 
-    def get(self, key: types.TextMapHash, default: str) -> str:
+    def get(self, key: id_types.TextMapHash, default: str) -> str:
         """Get text by ID with default, tracks access if key exists."""
         if (text := self._get_raw_text(key)) is not None:
             self._track_access(key)
             return self._get_cleaned_text(text)
         return default
 
-    def get_optional(self, key: types.TextMapHash) -> str | None:
+    def get_optional(self, key: id_types.TextMapHash) -> str | None:
         """Get text by ID, returns None if not found."""
         if (text := self._get_raw_text(key)) is not None:
             self._track_access(key)
             return self._get_cleaned_text(text)
         return None
 
-    def get_current_optional(self, key: types.TextMapHash) -> str | None:
+    def get_current_optional(self, key: id_types.TextMapHash) -> str | None:
         """Get current-build text by ID, returns None if not found."""
         if (text := self._text_map.get(key)) is not None:
             self._track_access(key)
             return self._get_cleaned_text(text)
         return None
 
-    def get_optional_untracked(self, key: types.TextMapHash) -> str | None:
+    def get_optional_untracked(self, key: id_types.TextMapHash) -> str | None:
         """Get text by ID without recording access."""
         if (text := self._get_raw_text(key)) is not None:
             return self._get_cleaned_text(text)
         return None
 
 
-class ReadablesTracker(IdTracker[types.ReadableFilename]):
+class ReadablesTracker(IdTracker[id_types.ReadableFilename]):
     """Tracks which readable filenames have been accessed."""
 
     def __init__(self, agd_path: pathlib.Path, language_short: str) -> None:
@@ -222,7 +225,7 @@ class ReadablesTracker(IdTracker[types.ReadableFilename]):
         self._readable_base_path = agd_path / "Readable" / language_short
 
         # Discover all readable files
-        all_readable_filenames: set[types.ReadableFilename] = set()
+        all_readable_filenames: set[id_types.ReadableFilename] = set()
         if self._readable_base_path.exists():
             for file_path in self._readable_base_path.glob("*.txt"):
                 # Store the filename relative to the readable base directory
@@ -230,7 +233,7 @@ class ReadablesTracker(IdTracker[types.ReadableFilename]):
 
         super().__init__(set(sorted(all_readable_filenames)))
 
-    def get_content(self, readable_filename: types.ReadableFilename) -> str | None:
+    def get_content(self, readable_filename: id_types.ReadableFilename) -> str | None:
         """Get readable file content by filename and track access."""
         if readable_filename in self._all_ids:
             self._track_access(readable_filename)
@@ -298,11 +301,11 @@ class DataRepo:
             self._load_fallback_text_map(language_short),
         )
 
-    def _load_current_text_map(self, language_short: str) -> types.TextMap:
+    def _load_current_text_map(self, language_short: str) -> agd_types.TextMap:
         """Load current-build TextMap, merging Medium variant if present."""
         text_map_dir = self.agd_path / "TextMap"
         medium_path = text_map_dir / f"TextMap_Medium{language_short}.json"
-        data: types.TextMap = (
+        data: agd_types.TextMap = (
             json.loads(medium_path.read_text(encoding="utf-8"))
             if medium_path.exists()
             else {}
@@ -317,11 +320,11 @@ class DataRepo:
         return data
 
     @functools.lru_cache(maxsize=None)
-    def _load_fallback_text_map(self, language_short: str) -> types.TextMap:
+    def _load_fallback_text_map(self, language_short: str) -> agd_types.TextMap:
         """Load older-build TextMaps used for current-build misses."""
-        data: types.TextMap = {}
+        data: agd_types.TextMap = {}
         for fallback_ref in _TEXT_MAP_FALLBACK_REFS:
-            ref_data: types.TextMap = {}
+            ref_data: agd_types.TextMap = {}
             medium = self._git_show_text_map(
                 fallback_ref, f"TextMap_Medium{language_short}.json", required=False
             )
@@ -338,7 +341,7 @@ class DataRepo:
 
     def _git_show_text_map(
         self, fallback_ref: str, filename: str, *, required: bool
-    ) -> types.TextMap | None:
+    ) -> agd_types.TextMap | None:
         result = subprocess.run(
             [
                 "git",
@@ -352,7 +355,7 @@ class DataRepo:
             check=False,
         )
         if result.returncode == 0:
-            data: types.TextMap = json.loads(result.stdout)
+            data: agd_types.TextMap = json.loads(result.stdout)
             return data
         if required:
             raise RuntimeError(
@@ -375,34 +378,36 @@ class DataRepo:
         return self._load_text_map_for(localization.Language.CHS)
 
     @functools.lru_cache(maxsize=None)
-    def load_npc_excel_config_data(self) -> types.NpcExcelConfigData:
+    def load_npc_excel_config_data(self) -> agd_types.NpcExcelConfigData:
         """Load NPC Excel configuration data."""
         return self._load_excel("NpcExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
-    def load_dialog_excel_config_data(self) -> types.DialogExcelConfigData:
+    def load_dialog_excel_config_data(self) -> agd_types.DialogExcelConfigData:
         """Load Dialog Excel configuration data."""
         raw_data: list[dict[str, Any]] = self._load_excel("DialogExcelConfigData.json")
         return cast(
-            types.DialogExcelConfigData,
+            agd_types.DialogExcelConfigData,
             deobfuscation.deobfuscate_dialog_excel_config_data(raw_data),
         )
 
     @functools.lru_cache(maxsize=None)
-    def load_localization_excel_config_data(self) -> types.LocalizationExcelConfigData:
+    def load_localization_excel_config_data(
+        self,
+    ) -> agd_types.LocalizationExcelConfigData:
         """Load localization Excel configuration data."""
         return self._load_excel("LocalizationExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_document_excel_config_data(
         self,
-    ) -> dict[types.DocumentId, types.DocumentExcelConfigDataItem]:
+    ) -> dict[id_types.DocumentId, agd_types.DocumentExcelConfigDataItem]:
         """Load DocumentExcelConfigData.json keyed by document id."""
         raw_data: list[dict[str, Any]] = self._load_excel(
             "DocumentExcelConfigData.json"
         )
         data = cast(
-            types.DocumentExcelConfigData,
+            agd_types.DocumentExcelConfigData,
             deobfuscation.deobfuscate_document_excel_config_data(raw_data),
         )
         return self._index_unique(
@@ -410,7 +415,9 @@ class DataRepo:
         )
 
     @functools.lru_cache(maxsize=None)
-    def build_readable_stem_to_localization_id(self) -> dict[str, types.LocalizationId]:
+    def build_readable_stem_to_localization_id(
+        self,
+    ) -> dict[str, id_types.LocalizationId]:
         """Map a readable file stem to its localization id for the instance language.
 
         Inverts the per-readable linear scan over LocalizationExcelConfigData into a
@@ -418,7 +425,7 @@ class DataRepo:
         matches the original break-on-first-match behavior.
         """
         language_short = self.language_short
-        mapping: dict[str, types.LocalizationId] = {}
+        mapping: dict[str, id_types.LocalizationId] = {}
         for entry in self.load_localization_excel_config_data():
             for path_value in entry.values():
                 if not isinstance(path_value, str):
@@ -434,7 +441,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def build_localization_id_to_readable_path(
         self,
-    ) -> dict[types.LocalizationId, types.ReadableFilename]:
+    ) -> dict[id_types.LocalizationId, id_types.ReadableFilename]:
         """Map a localization id to its readable filename for the instance language.
 
         The inverse of ``build_readable_stem_to_localization_id``, precomputed once
@@ -443,7 +450,7 @@ class DataRepo:
         path wins, matching the original break-on-first-match behavior.
         """
         language_short = self.language_short
-        mapping: dict[types.LocalizationId, types.ReadableFilename] = {}
+        mapping: dict[id_types.LocalizationId, id_types.ReadableFilename] = {}
         for entry in self.load_localization_excel_config_data():
             for path_value in entry.values():
                 if not isinstance(path_value, str):
@@ -459,13 +466,13 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def build_localization_id_to_title_hash(
         self,
-    ) -> dict[types.LocalizationId, types.TextMapHash]:
+    ) -> dict[id_types.LocalizationId, id_types.TextMapHash]:
         """Map a localization id to its document title hash.
 
         Inverts the per-readable linear scan over DocumentExcelConfigData; first
         document wins per id, matching the original break-on-first-match behavior.
         """
-        mapping: dict[types.LocalizationId, types.TextMapHash] = {}
+        mapping: dict[id_types.LocalizationId, id_types.TextMapHash] = {}
         for doc_item in self.load_document_excel_config_data().values():
             for loc_id in itertools.chain(
                 doc_item.get("CUSTOM_addlLocalID", []),
@@ -478,7 +485,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_book_suit_excel_config_data(
         self,
-    ) -> dict[types.BookSuitId, types.BookSuitExcelConfigDataItem]:
+    ) -> dict[id_types.BookSuitId, agd_types.BookSuitExcelConfigDataItem]:
         """Load BookSuitExcelConfigData.json keyed by suit id."""
         return self._index_unique(
             self._load_excel("BookSuitExcelConfigData.json"),
@@ -487,14 +494,14 @@ class DataRepo:
         )
 
     @functools.lru_cache(maxsize=None)
-    def load_books_codex_excel_config_data(self) -> types.BooksCodexExcelConfigData:
+    def load_books_codex_excel_config_data(self) -> agd_types.BooksCodexExcelConfigData:
         """Load BooksCodexExcelConfigData.json."""
         return self._load_excel("BooksCodexExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def build_book_series_mapping(
         self,
-    ) -> dict[types.BookSuitId, list[types.ReadableFilename]]:
+    ) -> dict[id_types.BookSuitId, list[id_types.ReadableFilename]]:
         """Group multi-volume book series to their ordered volume readable filenames.
 
         Active book-codex entries are grouped by their material's suit (``setID``)
@@ -513,7 +520,7 @@ class DataRepo:
         documents = self.load_document_excel_config_data()
         readable_paths = self.build_localization_id_to_readable_path()
 
-        grouped: dict[types.BookSuitId, list[types.ReadableFilename]] = {}
+        grouped: dict[id_types.BookSuitId, list[id_types.ReadableFilename]] = {}
         for codex in sorted(
             self.load_books_codex_excel_config_data(),
             key=lambda codex: codex["sortOrder"],
@@ -568,14 +575,14 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_achievement_excel_config_data(
         self,
-    ) -> types.AchievementExcelConfigData:
+    ) -> agd_types.AchievementExcelConfigData:
         """Load AchievementExcelConfigData.json."""
         return self._load_excel("AchievementExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_achievement_goal_excel_config_data(
         self,
-    ) -> types.AchievementGoalExcelConfigData:
+    ) -> agd_types.AchievementGoalExcelConfigData:
         """Load AchievementGoalExcelConfigData.json."""
         return self._load_excel("AchievementGoalExcelConfigData.json")
 
@@ -583,15 +590,15 @@ class DataRepo:
     def build_achievement_section_mapping(
         self,
     ) -> dict[
-        types.AchievementGoalId,
+        id_types.AchievementGoalId,
         tuple[
-            types.AchievementGoalExcelConfigDataItem,
-            list[types.AchievementExcelConfigDataItem],
+            agd_types.AchievementGoalExcelConfigDataItem,
+            list[agd_types.AchievementExcelConfigDataItem],
         ],
     ]:
         """Index active achievements by section in configured display order."""
         mapping = {
-            section["id"]: (section, list[types.AchievementExcelConfigDataItem]())
+            section["id"]: (section, list[agd_types.AchievementExcelConfigDataItem]())
             for section in self.load_achievement_goal_excel_config_data()
         }
         if len(mapping) != len(self.load_achievement_goal_excel_config_data()):
@@ -618,34 +625,34 @@ class DataRepo:
         return self._get_talk_parser().talk_group_id_to_path
 
     @functools.lru_cache(maxsize=None)
-    def build_free_group_mapping(self) -> dict[types.QuestId, list[str]]:
+    def build_free_group_mapping(self) -> dict[id_types.QuestId, list[str]]:
         """questId -> FreeGroup talk file paths attached by the id heuristic."""
         return self._get_talk_parser().free_group_quest_to_paths
 
     @functools.lru_cache(maxsize=None)
     def load_coop_interaction_excel_config_data(
         self,
-    ) -> types.CoopInteractionExcelConfigData:
+    ) -> agd_types.CoopInteractionExcelConfigData:
         """Load CoopInteractionExcelConfigData.json (cleartext)."""
         return self._load_excel("CoopInteractionExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_coop_chapter_excel_config_data(
         self,
-    ) -> types.CoopChapterExcelConfigData:
+    ) -> agd_types.CoopChapterExcelConfigData:
         """Load CoopChapterExcelConfigData.json (cleartext)."""
         return self._load_excel("CoopChapterExcelConfigData.json")
 
-    def build_coop_story_mapping(self) -> dict[types.CoopStoryId, list[str]]:
+    def build_coop_story_mapping(self) -> dict[id_types.CoopStoryId, list[str]]:
         """coopStoryId -> its Coop talk file paths, sorted by local talk id."""
         return self._get_talk_parser().coop_story_to_paths
 
     @functools.lru_cache(maxsize=None)
     def build_coop_story_graph_mapping(
         self,
-    ) -> dict[types.CoopStoryId, coop_graph.CoopStoryGraph]:
+    ) -> dict[id_types.CoopStoryId, coop_graph.CoopStoryGraph]:
         """coopStoryId -> play-order node graph, from the BinOutput/Coop/*.json files."""
-        graphs: dict[types.CoopStoryId, coop_graph.CoopStoryGraph] = {}
+        graphs: dict[id_types.CoopStoryId, coop_graph.CoopStoryGraph] = {}
         for json_file in (self.agd_path / "BinOutput" / "Coop").glob("*.json"):
             raw_data = json.loads(json_file.read_text(encoding="utf-8"))
             data = deobfuscation.deobfuscate_coop_graph_data(raw_data)
@@ -656,10 +663,10 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def build_hangout_quest_to_stories(
         self,
-    ) -> dict[types.QuestId, list[types.CoopStoryId]]:
+    ) -> dict[id_types.QuestId, list[id_types.CoopStoryId]]:
         """hangout questId -> its coopStoryIds that have talk files, sorted."""
         stories_with_files = self.build_coop_story_mapping()
-        mapping: dict[types.QuestId, list[types.CoopStoryId]] = {}
+        mapping: dict[id_types.QuestId, list[id_types.CoopStoryId]] = {}
         for entry in self.load_coop_interaction_excel_config_data():
             if (coop_story_id := entry["id"]) in stories_with_files:
                 mapping.setdefault(entry["mainQuestId"], []).append(coop_story_id)
@@ -668,7 +675,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def build_coop_chapter_to_avatar_mapping(
         self,
-    ) -> dict[types.ChapterId, types.AvatarId]:
+    ) -> dict[id_types.ChapterId, id_types.AvatarId]:
         """Coop chapter id -> its primary character's avatar id."""
         return {
             chapter["id"]: chapter["avatarId"]
@@ -676,7 +683,7 @@ class DataRepo:
         }
 
     @functools.lru_cache(maxsize=None)
-    def build_avatar_id_to_name_mapping(self) -> dict[types.AvatarId, str]:
+    def build_avatar_id_to_name_mapping(self) -> dict[id_types.AvatarId, str]:
         """Avatar id -> localized character name (only avatars whose name resolves)."""
         text_map = self.load_text_map()
         return {
@@ -688,7 +695,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def get_dialog_id_to_content_hash_mapping(
         self,
-    ) -> dict[types.DialogId, types.TextMapHash]:
+    ) -> dict[id_types.DialogId, id_types.TextMapHash]:
         """Dialog id -> talkContentTextMapHash, for resolving Coop choice prompts."""
         return {
             dialog_item["id"]: dialog_item["talkContentTextMapHash"]
@@ -696,13 +703,13 @@ class DataRepo:
         }
 
     @functools.lru_cache(maxsize=None)
-    def build_quest_mapping(self) -> dict[types.QuestId, str]:
+    def build_quest_mapping(self) -> dict[id_types.QuestId, str]:
         """Build a mapping from quest ID to BinOutput/Quest file path.
 
         AGD retains stale hash-named duplicates of quests across builds, so when
         several files share an ID the canonically-named ``{id}.json`` wins.
         """
-        quest_id_to_path: dict[types.QuestId, str] = {}
+        quest_id_to_path: dict[id_types.QuestId, str] = {}
 
         for json_file in (self.agd_path / "BinOutput" / "Quest").glob("*.json"):
             relative_path_str = json_file.relative_to(self.agd_path).as_posix()
@@ -805,10 +812,10 @@ class DataRepo:
         self.load_animal_describe_excel_config_data()
 
     @functools.lru_cache(maxsize=None)
-    def load_talk_excel_config_data(self) -> types.TalkExcelConfigData:
+    def load_talk_excel_config_data(self) -> agd_types.TalkExcelConfigData:
         """Load and return the raw talk Excel configuration data."""
 
-        def _load_talk_file(file_path: pathlib.Path) -> types.TalkExcelConfigData:
+        def _load_talk_file(file_path: pathlib.Path) -> agd_types.TalkExcelConfigData:
             data = json.loads(file_path.read_text(encoding="utf-8"))
             assert isinstance(data, list), file_path
             return data
@@ -836,7 +843,7 @@ class DataRepo:
         )
 
     @functools.lru_cache(maxsize=None)
-    def load_talk_data(self, talk_file: str) -> types.TalkData:
+    def load_talk_data(self, talk_file: str) -> agd_types.TalkData:
         """Load talk data from specified talk file."""
         file_path = self.agd_path / talk_file
         with open(file_path, encoding="utf-8") as f:
@@ -865,7 +872,7 @@ class DataRepo:
             return data
 
     @functools.lru_cache(maxsize=None)
-    def load_quest_data(self, quest_file: str) -> types.QuestData:
+    def load_quest_data(self, quest_file: str) -> agd_types.QuestData:
         """Load quest data from specified quest file."""
         file_path = self.agd_path / quest_file
         with open(file_path, encoding="utf-8") as f:
@@ -874,14 +881,14 @@ class DataRepo:
             return data  # type: ignore[return-value]
 
     @functools.lru_cache(maxsize=None)
-    def load_avatar_excel_config_data(self) -> types.AvatarExcelConfigData:
+    def load_avatar_excel_config_data(self) -> agd_types.AvatarExcelConfigData:
         """Load avatar Excel configuration data."""
         return self._load_excel("AvatarExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_avatar_skill_depot_excel_config_data(
         self,
-    ) -> dict[types.SkillDepotId, types.AvatarSkillDepotExcelConfigDataItem]:
+    ) -> dict[id_types.SkillDepotId, agd_types.AvatarSkillDepotExcelConfigDataItem]:
         """Load avatar skill-depot data as a dict keyed by depot id."""
         return self._index_unique(
             self._load_excel("AvatarSkillDepotExcelConfigData.json"),
@@ -892,7 +899,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_avatar_talent_excel_config_data(
         self,
-    ) -> dict[types.TalentId, types.AvatarTalentExcelConfigDataItem]:
+    ) -> dict[id_types.TalentId, agd_types.AvatarTalentExcelConfigDataItem]:
         """Load constellation (talent) data as a dict keyed by talent id."""
         return self._index_unique(
             self._load_excel("AvatarTalentExcelConfigData.json"),
@@ -903,7 +910,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_avatar_skill_excel_config_data(
         self,
-    ) -> dict[types.SkillId, types.AvatarSkillExcelConfigDataItem]:
+    ) -> dict[id_types.SkillId, agd_types.AvatarSkillExcelConfigDataItem]:
         """Load avatar skill data as a dict keyed by skill id."""
         return self._index_unique(
             self._load_excel("AvatarSkillExcelConfigData.json"),
@@ -912,19 +919,21 @@ class DataRepo:
         )
 
     @functools.lru_cache(maxsize=None)
-    def load_fetter_story_excel_config_data(self) -> types.FetterStoryExcelConfigData:
+    def load_fetter_story_excel_config_data(
+        self,
+    ) -> agd_types.FetterStoryExcelConfigData:
         """Load fetter story Excel configuration data."""
         return self._load_excel("FetterStoryExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
-    def load_fetters_excel_config_data(self) -> types.FettersExcelConfigData:
+    def load_fetters_excel_config_data(self) -> agd_types.FettersExcelConfigData:
         """Load fetters Excel configuration data."""
         return self._load_excel("FettersExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_animal_codex_excel_config_data(
         self,
-    ) -> dict[types.AnimalCodexId, types.AnimalCodexExcelConfigDataItem]:
+    ) -> dict[id_types.AnimalCodexId, agd_types.AnimalCodexExcelConfigDataItem]:
         """Load AnimalCodexExcelConfigData.json keyed by codex entry id."""
         return self._index_unique(
             self._load_excel("AnimalCodexExcelConfigData.json"),
@@ -935,7 +944,9 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_monster_describe_excel_config_data(
         self,
-    ) -> dict[types.CreatureDescribeId, types.MonsterDescribeExcelConfigDataItem]:
+    ) -> dict[
+        id_types.CreatureDescribeId, agd_types.MonsterDescribeExcelConfigDataItem
+    ]:
         """Load MonsterDescribeExcelConfigData.json keyed by describe id."""
         return self._index_unique(
             self._load_excel("MonsterDescribeExcelConfigData.json"),
@@ -946,7 +957,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_monster_title_excel_config_data(
         self,
-    ) -> dict[types.MonsterTitleId, types.MonsterTitleExcelConfigDataItem]:
+    ) -> dict[id_types.MonsterTitleId, agd_types.MonsterTitleExcelConfigDataItem]:
         """Load MonsterTitleExcelConfigData.json keyed by title id."""
         return self._index_unique(
             self._load_excel("MonsterTitleExcelConfigData.json"),
@@ -957,14 +968,14 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_monster_special_name_excel_config_data(
         self,
-    ) -> types.MonsterSpecialNameExcelConfigData:
+    ) -> agd_types.MonsterSpecialNameExcelConfigData:
         """Load MonsterSpecialNameExcelConfigData.json."""
         return self._load_excel("MonsterSpecialNameExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_animal_describe_excel_config_data(
         self,
-    ) -> dict[types.CreatureDescribeId, types.AnimalDescribeExcelConfigDataItem]:
+    ) -> dict[id_types.CreatureDescribeId, agd_types.AnimalDescribeExcelConfigDataItem]:
         """Load AnimalDescribeExcelConfigData.json keyed by describe id."""
         return self._index_unique(
             self._load_excel("AnimalDescribeExcelConfigData.json"),
@@ -975,7 +986,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_main_quest_excel_config_data(
         self,
-    ) -> dict[types.QuestId, types.MainQuestExcelConfigDataItem]:
+    ) -> dict[id_types.QuestId, agd_types.MainQuestExcelConfigDataItem]:
         """Load main quest Excel config data as a dict keyed by quest id."""
         return self._index_unique(
             self._load_excel("MainQuestExcelConfigData.json"),
@@ -986,7 +997,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_chapter_excel_config_data(
         self,
-    ) -> dict[types.ChapterId, types.ChapterExcelConfigDataItem]:
+    ) -> dict[id_types.ChapterId, agd_types.ChapterExcelConfigDataItem]:
         """Load ChapterExcelConfigData.json keyed by chapter id."""
         return self._index_unique(
             self._load_excel("ChapterExcelConfigData.json"),
@@ -1020,11 +1031,11 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def get_dialog_id_to_role_name_hash_mapping(
         self,
-    ) -> dict[types.DialogId, types.TextMapHash]:
+    ) -> dict[id_types.DialogId, id_types.TextMapHash]:
         """Get cached mapping from dialog ID to talkRoleNameTextMapHash."""
         dialog_data = self.load_dialog_excel_config_data()
 
-        dialog_id_to_role_hash: dict[types.DialogId, types.TextMapHash] = {}
+        dialog_id_to_role_hash: dict[id_types.DialogId, id_types.TextMapHash] = {}
         for dialog_item in dialog_data:
             dialog_id = dialog_item["id"]
             role_name_hash = dialog_item["talkRoleNameTextMapHash"]
@@ -1033,24 +1044,26 @@ class DataRepo:
         return dialog_id_to_role_hash
 
     @functools.lru_cache(maxsize=None)
-    def load_reliquary_set_excel_config_data(self) -> types.ReliquarySetExcelConfigData:
+    def load_reliquary_set_excel_config_data(
+        self,
+    ) -> agd_types.ReliquarySetExcelConfigData:
         """Load ReliquarySetExcelConfigData.json."""
         return self._load_excel("ReliquarySetExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
-    def load_reliquary_excel_config_data(self) -> types.ReliquaryExcelConfigData:
+    def load_reliquary_excel_config_data(self) -> agd_types.ReliquaryExcelConfigData:
         """Load ReliquaryExcelConfigData.json."""
         return self._load_excel("ReliquaryExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
-    def load_equip_affix_excel_config_data(self) -> types.EquipAffixExcelConfigData:
+    def load_equip_affix_excel_config_data(self) -> agd_types.EquipAffixExcelConfigData:
         """Load EquipAffixExcelConfigData.json."""
         return self._load_excel("EquipAffixExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_weapon_excel_config_data(
         self,
-    ) -> dict[types.WeaponId, types.WeaponExcelConfigDataItem]:
+    ) -> dict[id_types.WeaponId, agd_types.WeaponExcelConfigDataItem]:
         """Load WeaponExcelConfigData.json as a dict mapping weapon ID to weapon."""
         return self._index_unique(
             self._load_excel("WeaponExcelConfigData.json"),

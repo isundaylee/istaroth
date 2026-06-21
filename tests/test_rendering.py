@@ -2,13 +2,15 @@
 
 import textwrap
 
-from istaroth.agd import localization, rendering, types
+from istaroth.agd import localization, processed_types, rendering
 
 
 def test_render_readable_basic() -> None:
     """Test basic readable rendering functionality."""
     content = "This is some readable content.\nWith multiple lines."
-    metadata = types.ReadableMetadata(localization_id=0, title="Test Book Title")
+    metadata = processed_types.ReadableMetadata(
+        localization_id=0, title="Test Book Title"
+    )
 
     rendered = rendering.render_readable(content, metadata)
 
@@ -23,7 +25,9 @@ def test_render_readable_basic() -> None:
 def test_render_readable_special_characters() -> None:
     """Test readable rendering with special characters in title."""
     content = "Content here."
-    metadata = types.ReadableMetadata(localization_id=0, title="神霄折戟录·第六卷")
+    metadata = processed_types.ReadableMetadata(
+        localization_id=0, title="神霄折戟录·第六卷"
+    )
 
     rendered = rendering.render_readable(content, metadata)
 
@@ -35,7 +39,7 @@ def test_render_readable_special_characters() -> None:
 def test_render_readable_whitespace() -> None:
     """Test readable rendering with excessive whitespace in title."""
     content = "Some content."
-    metadata = types.ReadableMetadata(
+    metadata = processed_types.ReadableMetadata(
         localization_id=0, title="  Title   With   Spaces  "
     )
 
@@ -50,7 +54,7 @@ def test_render_readable_whitespace() -> None:
 
 def test_render_weapon_multi_page_with_description() -> None:
     """A multi-page weapon story renders as one document under the weapon name."""
-    weapon_info = types.WeaponInfo(
+    weapon_info = processed_types.WeaponInfo(
         weapon_id="11431",
         name="息燧之笛",
         description="造型奇特的玉石长刀。",
@@ -68,7 +72,7 @@ def test_render_weapon_multi_page_with_description() -> None:
 
 def test_render_weapon_single_page_no_description() -> None:
     """A weapon without a description omits the description block."""
-    weapon_info = types.WeaponInfo(
+    weapon_info = processed_types.WeaponInfo(
         weapon_id="11101",
         name="无锋剑",
         description="",
@@ -84,11 +88,11 @@ def test_render_weapon_single_page_no_description() -> None:
 def test_render_achievement_section() -> None:
     """An achievement section renders as one categorized text document."""
     rendered = rendering.render_achievement_section(
-        types.AchievementSectionInfo(
+        processed_types.AchievementSectionInfo(
             section_id=46,
             section_name="枫丹·白露澈明的泉舞·其之三",
             achievements=[
-                types.AchievementInfo(
+                processed_types.AchievementInfo(
                     achievement_id=80299,
                     name="水仙十字题解",
                     description="何物徒留名字？",
@@ -111,20 +115,20 @@ def test_render_achievement_section() -> None:
 def test_render_talk_basic() -> None:
     """Test basic talk rendering functionality."""
     talk_texts = [
-        types.TalkText(
+        processed_types.TalkText(
             role="派蒙",
             message="这里看起来很神秘呢！",
             next_dialog_ids=[2],
             dialog_id=1,
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="旅行者", message="我们小心一点。", next_dialog_ids=[3], dialog_id=2
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="神秘声音", message="欢迎来到这里...", next_dialog_ids=[], dialog_id=3
         ),
     ]
-    talk_info = types.TalkInfo(text=talk_texts)
+    talk_info = processed_types.TalkInfo(text=talk_texts)
 
     rendered = rendering.render_talk(
         talk_info,
@@ -152,11 +156,11 @@ def test_render_talk_long_message() -> None:
         "这是一个非常长的消息，超过了五十个字符的限制，应该被截断以创建合适的文件名。"
     )
     talk_texts = [
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message=long_message, next_dialog_ids=[], dialog_id=1
         )
     ]
-    talk_info = types.TalkInfo(text=talk_texts)
+    talk_info = processed_types.TalkInfo(text=talk_texts)
 
     rendered = rendering.render_talk(
         talk_info,
@@ -178,7 +182,7 @@ def test_render_talk_long_message() -> None:
 
 def test_render_talk_empty() -> None:
     """Test talk rendering with empty talk."""
-    talk_info = types.TalkInfo(text=[])
+    talk_info = processed_types.TalkInfo(text=[])
 
     rendered = rendering.render_talk(
         talk_info,
@@ -195,14 +199,14 @@ def test_render_talk_empty() -> None:
 def test_render_talk_special_characters() -> None:
     """Test talk rendering with special characters in message."""
     talk_texts = [
-        types.TalkText(
+        processed_types.TalkText(
             role="角色",
             message="「这是引号」—还有破折号！",
             next_dialog_ids=[],
             dialog_id=1,
         )
     ]
-    talk_info = types.TalkInfo(text=talk_texts)
+    talk_info = processed_types.TalkInfo(text=talk_texts)
 
     rendered = rendering.render_talk(
         talk_info,
@@ -226,20 +230,26 @@ def test_render_talk_branching_convergence() -> None:
     # Option 2 -> Line 2b -> Line 3b -> converges to Line 4
     # Line 4 -> end
     talk_texts = [
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="Line 1", next_dialog_ids=[2, 5], dialog_id=1
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="Line 2a", next_dialog_ids=[3], dialog_id=2
         ),
-        types.TalkText(role="NPC", message="Line 3a", next_dialog_ids=[4], dialog_id=3),
-        types.TalkText(role="NPC", message="Line 4", next_dialog_ids=[], dialog_id=4),
-        types.TalkText(
+        processed_types.TalkText(
+            role="NPC", message="Line 3a", next_dialog_ids=[4], dialog_id=3
+        ),
+        processed_types.TalkText(
+            role="NPC", message="Line 4", next_dialog_ids=[], dialog_id=4
+        ),
+        processed_types.TalkText(
             role="Player", message="Line 2b", next_dialog_ids=[6], dialog_id=5
         ),
-        types.TalkText(role="NPC", message="Line 3b", next_dialog_ids=[4], dialog_id=6),
+        processed_types.TalkText(
+            role="NPC", message="Line 3b", next_dialog_ids=[4], dialog_id=6
+        ),
     ]
-    talk_info = types.TalkInfo(text=talk_texts)
+    talk_info = processed_types.TalkInfo(text=talk_texts)
 
     rendered = rendering.render_talk(
         talk_info,
@@ -280,20 +290,26 @@ def test_render_talk_nested_branches() -> None:
     # Option 2 (Line 3) -> Line 6 (convergence)
     # Line 6 -> end
     talk_texts = [
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="Line 1", next_dialog_ids=[2, 3], dialog_id=1
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="Line 2", next_dialog_ids=[4, 5], dialog_id=2
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="Line 3", next_dialog_ids=[6], dialog_id=3
         ),
-        types.TalkText(role="NPC", message="Line 4", next_dialog_ids=[6], dialog_id=4),
-        types.TalkText(role="NPC", message="Line 5", next_dialog_ids=[6], dialog_id=5),
-        types.TalkText(role="NPC", message="Line 6", next_dialog_ids=[], dialog_id=6),
+        processed_types.TalkText(
+            role="NPC", message="Line 4", next_dialog_ids=[6], dialog_id=4
+        ),
+        processed_types.TalkText(
+            role="NPC", message="Line 5", next_dialog_ids=[6], dialog_id=5
+        ),
+        processed_types.TalkText(
+            role="NPC", message="Line 6", next_dialog_ids=[], dialog_id=6
+        ),
     ]
-    talk_info = types.TalkInfo(text=talk_texts)
+    talk_info = processed_types.TalkInfo(text=talk_texts)
 
     rendered = rendering.render_talk(
         talk_info,
@@ -339,29 +355,29 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
     # Convergence X -> Convergence Y (end)
     # Convergence Y -> end
     talk_texts = [
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="Start", next_dialog_ids=[2, 3], dialog_id=1
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="Branch 1", next_dialog_ids=[7], dialog_id=2
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="Branch 2", next_dialog_ids=[4, 5], dialog_id=3
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="Branch 2a", next_dialog_ids=[6], dialog_id=4
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="Branch 2b", next_dialog_ids=[6], dialog_id=5
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="Convergence X", next_dialog_ids=[7], dialog_id=6
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="Convergence Y", next_dialog_ids=[], dialog_id=7
         ),
     ]
-    talk_info = types.TalkInfo(text=talk_texts)
+    talk_info = processed_types.TalkInfo(text=talk_texts)
 
     rendered = rendering.render_talk(
         talk_info,
@@ -412,28 +428,34 @@ def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
     # long:  4 -> 5 -> 6 (convergence, reached in 2 steps)
     # 6 (convergence) -> [7, 8] -> 9 (its own nested branch)
     talk_texts = [
-        types.TalkText(role="NPC", message="Menu", next_dialog_ids=[2, 4], dialog_id=1),
-        types.TalkText(
+        processed_types.TalkText(
+            role="NPC", message="Menu", next_dialog_ids=[2, 4], dialog_id=1
+        ),
+        processed_types.TalkText(
             role="Player", message="Short", next_dialog_ids=[6], dialog_id=2
         ),
-        types.TalkText(role="Player", message="Long", next_dialog_ids=[5], dialog_id=4),
-        types.TalkText(
+        processed_types.TalkText(
+            role="Player", message="Long", next_dialog_ids=[5], dialog_id=4
+        ),
+        processed_types.TalkText(
             role="NPC", message="Long tail", next_dialog_ids=[6], dialog_id=5
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="Converged", next_dialog_ids=[7, 8], dialog_id=6
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="After A", next_dialog_ids=[9], dialog_id=7
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="After B", next_dialog_ids=[9], dialog_id=8
         ),
-        types.TalkText(role="NPC", message="End", next_dialog_ids=[], dialog_id=9),
+        processed_types.TalkText(
+            role="NPC", message="End", next_dialog_ids=[], dialog_id=9
+        ),
     ]
 
     rendered = rendering.render_talk(
-        types.TalkInfo(text=talk_texts),
+        processed_types.TalkInfo(text=talk_texts),
         talk_id=66666,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/66666.json",
@@ -463,34 +485,36 @@ def test_render_talk_menu_hub_no_blowup() -> None:
     # topic B: 4 -> 5 (answer B) -> 8 (re-presented menu) -> [2, 4, 6]
     # exit:    6 -> 9 (goodbye)  -> end
     talk_texts = [
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="Ask away", next_dialog_ids=[2, 4], dialog_id=1
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="Topic A?", next_dialog_ids=[3], dialog_id=2
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="Answer A", next_dialog_ids=[7], dialog_id=3
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="Topic B?", next_dialog_ids=[5], dialog_id=4
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="Answer B", next_dialog_ids=[8], dialog_id=5
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="Nothing", next_dialog_ids=[9], dialog_id=6
         ),
-        types.TalkText(role="NPC", message="Goodbye", next_dialog_ids=[], dialog_id=9),
-        types.TalkText(
+        processed_types.TalkText(
+            role="NPC", message="Goodbye", next_dialog_ids=[], dialog_id=9
+        ),
+        processed_types.TalkText(
             role="NPC", message="More?", next_dialog_ids=[2, 4, 6], dialog_id=7
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="More?", next_dialog_ids=[2, 4, 6], dialog_id=8
         ),
     ]
     rendered = rendering.render_talk(
-        types.TalkInfo(text=talk_texts),
+        processed_types.TalkInfo(text=talk_texts),
         talk_id=88888,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/88888.json",
@@ -517,48 +541,54 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
     # M2 (22) -> [23 correct, 24 wrong, 25 wrong]
     #   correct: 23 -> 26 -> 28 (end);  wrong: 24 -> 27, 25 -> 27; 27 re-offers
     talk_texts = [
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="M1", next_dialog_ids=[12, 13, 14], dialog_id=11
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="1-correct", next_dialog_ids=[15], dialog_id=12
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="1-wrongA", next_dialog_ids=[16], dialog_id=13
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="1-wrongB", next_dialog_ids=[16], dialog_id=14
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="right1", next_dialog_ids=[17], dialog_id=15
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="wrong1", next_dialog_ids=[12, 13, 14], dialog_id=16
         ),
-        types.TalkText(role="NPC", message="mid17", next_dialog_ids=[18], dialog_id=17),
-        types.TalkText(role="NPC", message="mid18", next_dialog_ids=[22], dialog_id=18),
-        types.TalkText(
+        processed_types.TalkText(
+            role="NPC", message="mid17", next_dialog_ids=[18], dialog_id=17
+        ),
+        processed_types.TalkText(
+            role="NPC", message="mid18", next_dialog_ids=[22], dialog_id=18
+        ),
+        processed_types.TalkText(
             role="NPC", message="M2", next_dialog_ids=[23, 24, 25], dialog_id=22
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="2-correct", next_dialog_ids=[26], dialog_id=23
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="2-wrongA", next_dialog_ids=[27], dialog_id=24
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="Player", message="2-wrongB", next_dialog_ids=[27], dialog_id=25
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="right2", next_dialog_ids=[28], dialog_id=26
         ),
-        types.TalkText(
+        processed_types.TalkText(
             role="NPC", message="wrong2", next_dialog_ids=[23, 24, 25], dialog_id=27
         ),
-        types.TalkText(role="NPC", message="End", next_dialog_ids=[], dialog_id=28),
+        processed_types.TalkText(
+            role="NPC", message="End", next_dialog_ids=[], dialog_id=28
+        ),
     ]
     rendered = rendering.render_talk(
-        types.TalkInfo(text=talk_texts),
+        processed_types.TalkInfo(text=talk_texts),
         talk_id=55555,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/55555.json",
@@ -573,14 +603,14 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
 
 def _quest_talk_step(
     order: int, message: str, *, is_lead_in: bool = False
-) -> types.QuestStep:
-    return types.QuestStep(
+) -> processed_types.QuestStep:
+    return processed_types.QuestStep(
         order=order,
         is_lead_in=is_lead_in,
         description=None,
-        talk=types.TalkInfo(
+        talk=processed_types.TalkInfo(
             text=[
-                types.TalkText(
+                processed_types.TalkText(
                     role="NPC", message=message, next_dialog_ids=[], dialog_id=1
                 )
             ]
@@ -590,7 +620,7 @@ def _quest_talk_step(
 
 def test_render_quest_numbers_variant_talks() -> None:
     """Multiple completing talks at one order get `(variant N)`; singletons don't."""
-    quest = types.QuestInfo(
+    quest = processed_types.QuestInfo(
         quest_id=73000,
         title="Test Quest",
         chapter_title=None,
@@ -618,15 +648,17 @@ def test_render_quest_numbers_variant_talks() -> None:
 
 def test_render_character_story_constellations() -> None:
     """Constellations render as a flat name: description list, descriptions on one line."""
-    story_info = types.CharacterStoryInfo(
+    story_info = processed_types.CharacterStoryInfo(
         character_name="Tester",
-        stories=[types.CharacterStory(title="Story 1", content="Once upon a time.")],
+        stories=[
+            processed_types.CharacterStory(title="Story 1", content="Once upon a time.")
+        ],
         avatar_id=10000099,
         constellations=[
-            types.Constellation(
+            processed_types.Constellation(
                 name="First Star", description="Line one.\nLine two.", element=None
             ),
-            types.Constellation(
+            processed_types.Constellation(
                 name="Second Star", description="A single effect.", element=None
             ),
         ],
@@ -642,14 +674,20 @@ def test_render_character_story_constellations() -> None:
 
 def test_render_character_story_traveler_constellations_grouped() -> None:
     """Traveler constellations group under ### element subsections."""
-    story_info = types.CharacterStoryInfo(
+    story_info = processed_types.CharacterStoryInfo(
         character_name="Traveler",
         stories=[],
         avatar_id=10000005,
         constellations=[
-            types.Constellation(name="Pyro One", description="P1", element="Pyro"),
-            types.Constellation(name="Pyro Two", description="P2", element="Pyro"),
-            types.Constellation(name="Hydro One", description="H1", element="Hydro"),
+            processed_types.Constellation(
+                name="Pyro One", description="P1", element="Pyro"
+            ),
+            processed_types.Constellation(
+                name="Pyro Two", description="P2", element="Pyro"
+            ),
+            processed_types.Constellation(
+                name="Hydro One", description="H1", element="Hydro"
+            ),
         ],
     )
 
@@ -666,19 +704,19 @@ def test_render_character_story_traveler_constellations_grouped() -> None:
 def test_render_creature_group_monster() -> None:
     """A monster group renders a group header plus each entry's names and description."""
     rendered = rendering.render_creature_group(
-        types.CreatureGroupInfo(
+        processed_types.CreatureGroupInfo(
             subtype="CODEX_SUBTYPE_AUTOMATRON",
             type_label="魔物",
             subtype_label="自律机关",
             creatures=[
-                types.CreatureInfo(
+                processed_types.CreatureInfo(
                     codex_id=24068801,
                     name="攻坚特化型机关",
                     special_name="谢尔比乌斯式机关",
                     title="攻坚特化型",
                     description="与「侦察记录型」一样，是最早设计制造的新式发条机关机械之一。",
                 ),
-                types.CreatureInfo(
+                processed_types.CreatureInfo(
                     codex_id=20070101,
                     name="遗迹守卫",
                     special_name=None,
@@ -710,12 +748,12 @@ def test_render_creature_group_monster() -> None:
 def test_render_creature_group_stable_id() -> None:
     """The group id/filename derive deterministically from the subType enum."""
     a = rendering.render_creature_group(
-        types.CreatureGroupInfo(
+        processed_types.CreatureGroupInfo(
             subtype="CODEX_SUBTYPE_FISH",
             type_label="野生生物",
             subtype_label="鱼类",
             creatures=[
-                types.CreatureInfo(
+                processed_types.CreatureInfo(
                     codex_id=28040101,
                     name="黑背鲈鱼",
                     special_name=None,
@@ -732,12 +770,16 @@ def test_render_creature_group_stable_id() -> None:
 
 def test_render_book_series_english() -> None:
     """A series renders one file with a per-volume English annotation line."""
-    series_info = types.BookSeriesInfo(
+    series_info = processed_types.BookSeriesInfo(
         suit_id=1019,
         series_name="A Drunkard's Tale",
         volumes=[
-            types.BookVolumeInfo(title="A Drunkard's Tale (I)", content="First."),
-            types.BookVolumeInfo(title="A Drunkard's Tale (II)", content="Second."),
+            processed_types.BookVolumeInfo(
+                title="A Drunkard's Tale (I)", content="First."
+            ),
+            processed_types.BookVolumeInfo(
+                title="A Drunkard's Tale (II)", content="Second."
+            ),
         ],
     )
 
@@ -759,10 +801,12 @@ def test_render_book_series_english() -> None:
 
 def test_render_book_series_chinese_annotation() -> None:
     """The per-volume annotation localizes for Chinese output."""
-    series_info = types.BookSeriesInfo(
+    series_info = processed_types.BookSeriesInfo(
         suit_id=3,
         series_name="维莉的忧郁",
-        volumes=[types.BookVolumeInfo(title="维莉的忧郁·一", content="正文。")],
+        volumes=[
+            processed_types.BookVolumeInfo(title="维莉的忧郁·一", content="正文。")
+        ],
     )
 
     rendered = rendering.render_book_series(series_info, localization.Language.CHS)

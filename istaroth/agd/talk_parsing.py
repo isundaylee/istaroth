@@ -17,7 +17,7 @@ from typing import (
 )
 
 if TYPE_CHECKING:
-    from istaroth.agd import repo, types
+    from istaroth.agd import agd_types, id_types, repo
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ _GADGET_GROUP_ID_DIGITS = 9
 
 
 def gadget_group_composite_id(
-    config_id: types.GadgetConfigId, group_id: types.GadgetGroupId
+    config_id: id_types.GadgetConfigId, group_id: id_types.GadgetGroupId
 ) -> int:
     """Stable int id for a GadgetGroup from its ``(configId, groupId)`` pair."""
     return config_id * 10**_GADGET_GROUP_ID_DIGITS + group_id
@@ -49,13 +49,13 @@ def gadget_group_composite_id(
 
 def parse_gadget_group_composite_id(
     composite_id: str,
-) -> tuple[types.GadgetConfigId, types.GadgetGroupId]:
+) -> tuple[id_types.GadgetConfigId, id_types.GadgetGroupId]:
     """Inverse of the ``"<configId>_<groupId>"`` composite-key string form."""
     config_str, _, group_str = composite_id.partition("_")
     return int(config_str), int(group_str)
 
 
-def _free_group_quest_id(talk_id: str) -> types.QuestId | None:
+def _free_group_quest_id(talk_id: str) -> id_types.QuestId | None:
     """Owning quest id for a FreeGroup talk, inferred from its talkId numbering.
 
     FreeGroup talkIds follow ``<questId><index>``; dropping the trailing two-digit
@@ -122,32 +122,32 @@ class TalkParser:
     }
 
     def __init__(
-        self, data_repo: repo.DataRepo, talk_excel_data: types.TalkExcelConfigData
+        self, data_repo: repo.DataRepo, talk_excel_data: agd_types.TalkExcelConfigData
     ) -> None:
         self.agd_path = data_repo.agd_path
 
-        self.talk_id_to_path: dict[types.TalkId, str] = {}
+        self.talk_id_to_path: dict[id_types.TalkId, str] = {}
         self.talk_group_id_to_path: dict[tuple[TalkGroupType, TalkGroupId], str] = {}
         self._talk_group_candidates: dict[tuple[TalkGroupType, TalkGroupId], list[str]]
         self._talk_group_candidates = collections.defaultdict(list)
 
         # coopStoryId -> Coop talk file paths, sorted by local talk id below.
-        _coop_group: dict[types.CoopStoryId, list[tuple[int, str]]] = (
+        _coop_group: dict[id_types.CoopStoryId, list[tuple[int, str]]] = (
             collections.defaultdict(list)
         )
-        self.coop_story_to_paths: dict[types.CoopStoryId, list[str]] = {}
+        self.coop_story_to_paths: dict[id_types.CoopStoryId, list[str]] = {}
 
         # talkId -> candidate file paths; collapsed to one path after the scan.
-        self._talk_candidates: dict[types.TalkId, list[str]] = collections.defaultdict(
-            list
+        self._talk_candidates: dict[id_types.TalkId, list[str]] = (
+            collections.defaultdict(list)
         )
 
         # questId -> FreeGroup talk paths, attached by the talkId-numbering
         # heuristic; collected as (talkId, path) then sorted by talkId below.
-        _free_group: dict[types.QuestId, list[tuple[int, str]]] = (
+        _free_group: dict[id_types.QuestId, list[tuple[int, str]]] = (
             collections.defaultdict(list)
         )
-        self.free_group_quest_to_paths: dict[types.QuestId, list[str]] = {}
+        self.free_group_quest_to_paths: dict[id_types.QuestId, list[str]] = {}
 
         invalid_paths = dict[pathlib.Path, str]()
 
@@ -277,7 +277,7 @@ class TalkParser:
     def _handle_free_group_file(
         relative_path: pathlib.Path,
         talk_data: dict[str, Any],
-        free_group: dict[types.QuestId, list[tuple[int, str]]],
+        free_group: dict[id_types.QuestId, list[tuple[int, str]]],
     ) -> None:
         """Attach a FreeGroup talk to its owning quest by talkId numbering."""
         talk_id = int(talk_data["talkId"])
@@ -289,7 +289,7 @@ class TalkParser:
     @staticmethod
     def _handle_coop_file(
         relative_path: pathlib.Path,
-        coop_group: dict[types.CoopStoryId, list[tuple[int, str]]],
+        coop_group: dict[id_types.CoopStoryId, list[tuple[int, str]]],
     ) -> None:
         """Group a Coop talk file under its coopStoryId, keyed by local talk id."""
         coop_story_id, _, local_talk_id = relative_path.stem.partition("_")
@@ -301,8 +301,8 @@ class TalkParser:
 
     @staticmethod
     def _init_dialog_map(
-        talk_excel_data: types.TalkExcelConfigData,
-    ) -> dict[types.TalkId, types.DialogId]:
+        talk_excel_data: agd_types.TalkExcelConfigData,
+    ) -> dict[id_types.TalkId, id_types.DialogId]:
         """Map talkId -> initDialog for config entries with a nonzero one."""
         return {
             entry["id"]: init_dialog
@@ -311,7 +311,9 @@ class TalkParser:
         }
 
     def _resolve_talk_candidates(
-        self, data_repo: repo.DataRepo, init_dialogs: dict[types.TalkId, types.DialogId]
+        self,
+        data_repo: repo.DataRepo,
+        init_dialogs: dict[id_types.TalkId, id_types.DialogId],
     ) -> None:
         """Collapse per-talkId candidate files into a single authoritative path.
 

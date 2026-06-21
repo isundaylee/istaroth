@@ -4,21 +4,23 @@ from __future__ import annotations
 
 import collections
 
-from istaroth.agd import processing, repo, types
+from istaroth.agd import agd_types, id_types, processed_types, processing, repo
 
 # Display order for top-level quest types; any unlisted type is appended after.
 _TYPE_ORDER = ["AQ", "LQ", "WQ", "EQ", "IQ"]
 
 
-def _chapter_title(chapter_id: types.ChapterId, *, data_repo: repo.DataRepo) -> str:
+def _chapter_title(chapter_id: id_types.ChapterId, *, data_repo: repo.DataRepo) -> str:
     """Resolve a chapter's display title."""
     if (chapter := data_repo.load_chapter_excel_config_data().get(chapter_id)) is None:
         raise ValueError(f"Unknown chapter {chapter_id}")
     return processing.get_chapter_title(chapter, data_repo=data_repo)
 
 
-def _quest_leaf(quest_id: types.QuestId, title: str) -> types.HierarchyNode:
-    return types.HierarchyNode(
+def _quest_leaf(
+    quest_id: id_types.QuestId, title: str
+) -> processed_types.HierarchyNode:
+    return processed_types.HierarchyNode(
         key=f"q{quest_id}",
         title=title,
         title_key=None,
@@ -28,17 +30,17 @@ def _quest_leaf(quest_id: types.QuestId, title: str) -> types.HierarchyNode:
     )
 
 
-def _leaf_id(node: types.HierarchyNode) -> types.QuestId:
+def _leaf_id(node: processed_types.HierarchyNode) -> id_types.QuestId:
     assert node.file_id is not None, "quest leaf must carry a file_id"
     return node.file_id
 
 
 def _order_quests(
-    quests: list[types.HierarchyNode],
-    begin_quest_id: types.QuestId,
+    quests: list[processed_types.HierarchyNode],
+    begin_quest_id: id_types.QuestId,
     *,
-    main_quests: dict[types.QuestId, types.MainQuestExcelConfigDataItem],
-) -> list[types.HierarchyNode]:
+    main_quests: dict[id_types.QuestId, agd_types.MainQuestExcelConfigDataItem],
+) -> list[processed_types.HierarchyNode]:
     """Order a chapter's quest leaves by narrative sequence.
 
     Quest ids do not track play order, so follow each quest's
@@ -49,7 +51,7 @@ def _order_quests(
     """
     by_id = {_leaf_id(q): q for q in quests}
 
-    def _next(quest_id: types.QuestId) -> list[types.QuestId]:
+    def _next(quest_id: id_types.QuestId) -> list[id_types.QuestId]:
         # Every quest reached here is in by_id, which build_quest_hierarchy only
         # populated with quests that have a MainQuest entry, so index strictly.
         return sorted(
@@ -61,10 +63,10 @@ def _order_quests(
     starts = [begin_quest_id] if begin_quest_id in by_id else []
     starts += [quest_id for quest_id in sorted(by_id) if quest_id not in pointed]
 
-    ordered: list[types.HierarchyNode] = []
-    seen: set[types.QuestId] = set()
+    ordered: list[processed_types.HierarchyNode] = []
+    seen: set[id_types.QuestId] = set()
     for start in starts:
-        current: types.QuestId | None = start
+        current: id_types.QuestId | None = start
         while current is not None and current not in seen:
             ordered.append(by_id[current])
             seen.add(current)
@@ -74,14 +76,14 @@ def _order_quests(
 
 
 def _make_chapters(
-    by_chapter: dict[types.ChapterId, list[types.HierarchyNode]],
+    by_chapter: dict[id_types.ChapterId, list[processed_types.HierarchyNode]],
     *,
-    main_quests: dict[types.QuestId, types.MainQuestExcelConfigDataItem],
+    main_quests: dict[id_types.QuestId, agd_types.MainQuestExcelConfigDataItem],
     data_repo: repo.DataRepo,
-) -> list[types.HierarchyNode]:
+) -> list[processed_types.HierarchyNode]:
     chapters = data_repo.load_chapter_excel_config_data()
     return [
-        types.HierarchyNode(
+        processed_types.HierarchyNode(
             key=f"c{cid}",
             title=_chapter_title(cid, data_repo=data_repo),
             title_key=None,
@@ -100,8 +102,8 @@ def _make_chapters(
 
 
 def build_quest_hierarchy(
-    quest_items: list[tuple[types.QuestId, str]], *, data_repo: repo.DataRepo
-) -> types.Hierarchy:
+    quest_items: list[tuple[id_types.QuestId, str]], *, data_repo: repo.DataRepo
+) -> processed_types.Hierarchy:
     """Assemble the quest hierarchy from rendered (quest_id, title) pairs.
 
     Each quest is placed under its type and, when available, its series (chapter
@@ -114,17 +116,20 @@ def build_quest_hierarchy(
     # type -> series_id -> chapter_id -> quests
     series_buckets: dict[
         str,
-        dict[types.QuestSeriesId, dict[types.ChapterId, list[types.HierarchyNode]]],
+        dict[
+            id_types.QuestSeriesId,
+            dict[id_types.ChapterId, list[processed_types.HierarchyNode]],
+        ],
     ] = collections.defaultdict(
         lambda: collections.defaultdict(lambda: collections.defaultdict(list))
     )
     # type -> chapter_id -> quests (chapters with no series)
-    chapter_buckets: dict[str, dict[types.ChapterId, list[types.HierarchyNode]]] = (
-        collections.defaultdict(lambda: collections.defaultdict(list))
-    )
+    chapter_buckets: dict[
+        str, dict[id_types.ChapterId, list[processed_types.HierarchyNode]]
+    ] = collections.defaultdict(lambda: collections.defaultdict(list))
     # type -> quests (no chapter)
-    standalone_buckets: dict[str, list[types.HierarchyNode]] = collections.defaultdict(
-        list
+    standalone_buckets: dict[str, list[processed_types.HierarchyNode]] = (
+        collections.defaultdict(list)
     )
 
     for quest_id, title in quest_items:
@@ -168,7 +173,7 @@ def build_quest_hierarchy(
                 series_chapters[0].title or series_chapters[0].children[0].title
             )
             series_nodes.append(
-                types.HierarchyNode(
+                processed_types.HierarchyNode(
                     key=f"s{series_id}",
                     title=series_title,
                     title_key=None,
@@ -190,7 +195,7 @@ def build_quest_hierarchy(
         # get their own browse level, but only when the type actually has any.
         if standalone := sorted(standalone_buckets.get(quest_type, []), key=_leaf_id):
             children.append(
-                types.HierarchyNode(
+                processed_types.HierarchyNode(
                     key="standalone",
                     title=None,
                     title_key="library.standalone",
@@ -202,7 +207,7 @@ def build_quest_hierarchy(
             )
 
         type_nodes.append(
-            types.HierarchyNode(
+            processed_types.HierarchyNode(
                 key=quest_type,
                 title=None,
                 title_key=f"library.questTypes.{quest_type}",
@@ -212,4 +217,4 @@ def build_quest_hierarchy(
             )
         )
 
-    return types.Hierarchy(nodes=type_nodes)
+    return processed_types.Hierarchy(nodes=type_nodes)

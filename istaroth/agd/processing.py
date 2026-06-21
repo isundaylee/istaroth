@@ -6,13 +6,15 @@ import typing
 
 from istaroth import text_cleanup
 from istaroth.agd import (
+    agd_types,
     coop_graph,
+    id_types,
     issues,
     localization,
+    processed_types,
     repo,
     talk_parsing,
     text_utils,
-    types,
 )
 
 # Priority of the signals that hint where a quest talk plays, lowest to highest.
@@ -35,7 +37,7 @@ class _PlacementHint(typing.NamedTuple):
 
 def get_readable_metadata(
     readable_path: str, *, data_repo: repo.DataRepo
-) -> types.ReadableMetadata:
+) -> processed_types.ReadableMetadata:
     """Retrieve metadata for a readable file."""
     # Extract readable identifier from path (e.g., "Book100" or "Weapon11101" from path)
     language_short = data_repo.language_short
@@ -59,12 +61,14 @@ def get_readable_metadata(
         issues.record(issues.IssueType.MISSING_READABLE_TITLE, readable_id)
         title = "Unknown Title"
 
-    return types.ReadableMetadata(localization_id=localization_id, title=title)
+    return processed_types.ReadableMetadata(
+        localization_id=localization_id, title=title
+    )
 
 
 def load_readable(
     readable_path: str, *, data_repo: repo.DataRepo
-) -> tuple[str, types.ReadableMetadata] | None:
+) -> tuple[str, processed_types.ReadableMetadata] | None:
     """Read and clean a readable's content and metadata.
 
     Returns None for empty/placeholder/dev-test readables (matching the per-file
@@ -90,8 +94,8 @@ def load_readable(
 
 
 def get_book_series_info(
-    suit_id: types.BookSuitId, *, data_repo: repo.DataRepo
-) -> types.BookSeriesInfo | None:
+    suit_id: id_types.BookSuitId, *, data_repo: repo.DataRepo
+) -> processed_types.BookSeriesInfo | None:
     """Assemble a multi-volume book series: its name and ordered volume bodies.
 
     Reading each volume's content marks it accessed, keeping the per-volume files
@@ -120,17 +124,19 @@ def get_book_series_info(
         ) is None:
             continue
         content, metadata = loaded
-        volumes.append(types.BookVolumeInfo(title=metadata.title, content=content))
+        volumes.append(
+            processed_types.BookVolumeInfo(title=metadata.title, content=content)
+        )
     if not volumes:
         return None
-    return types.BookSeriesInfo(
+    return processed_types.BookSeriesInfo(
         suit_id=suit_id, series_name=series_name, volumes=volumes
     )
 
 
 def get_talk_info_by_id(
-    talk_id: types.TalkId, *, data_repo: repo.DataRepo
-) -> types.TalkInfo:
+    talk_id: id_types.TalkId, *, data_repo: repo.DataRepo
+) -> processed_types.TalkInfo:
     """Retrieve talk information by talk ID."""
     # Get talk file path through tracker (this automatically tracks access)
     talk_tracker = data_repo.build_talk_tracker()
@@ -142,13 +148,15 @@ def get_talk_info_by_id(
     return get_talk_info(talk_file_path, data_repo=data_repo)
 
 
-def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo:
+def get_talk_info(
+    talk_path: str, *, data_repo: repo.DataRepo
+) -> processed_types.TalkInfo:
     """Retrieve talk information from talk file."""
     # Load talk data
     talk_data = data_repo.load_talk_data(talk_path)
 
     if (dialog_list := talk_data.get("dialogList")) is None:
-        return types.TalkInfo(text=[])
+        return processed_types.TalkInfo(text=[])
 
     # Load supporting data
     text_map = data_repo.load_text_map()
@@ -161,7 +169,7 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
     localized_roles = localization.get_localized_role_names(data_repo.language)
 
     def _get_role_name_by_text_map_hash(
-        dialog_item: types.TalkDialogItem,
+        dialog_item: agd_types.TalkDialogItem,
     ) -> str | None:
         dialog_id = dialog_item["id"]
         role_name_hash = dialog_item.get(
@@ -174,7 +182,7 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
             else text_map.get_current_optional(role_name_hash)
         )
 
-    def _get_role_name_by_role(talk_role: types.TalkRole) -> str | None:
+    def _get_role_name_by_role(talk_role: agd_types.TalkRole) -> str | None:
         role_type = talk_role.get("type")
         match role_type:
             case "TALK_ROLE_NPC":
@@ -189,7 +197,7 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
             case _:
                 return None
 
-    def _get_role_name(dialog_item: types.TalkDialogItem) -> str | None:
+    def _get_role_name(dialog_item: agd_types.TalkDialogItem) -> str | None:
         talk_role = dialog_item["talkRole"]
         role_type = talk_role.get("type")
 
@@ -225,7 +233,7 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
             issues.record(issues.IssueType.MISSING_TEXT, str(content_hash))
             message = f"Missing text ({content_hash})"
         talk_texts.append(
-            types.TalkText(
+            processed_types.TalkText(
                 role=_get_role_name(dialog_item),
                 message=message,
                 next_dialog_ids=next_dialog_ids,
@@ -233,12 +241,12 @@ def get_talk_info(talk_path: str, *, data_repo: repo.DataRepo) -> types.TalkInfo
             )
         )
 
-    return types.TalkInfo(text=talk_texts)
+    return processed_types.TalkInfo(text=talk_texts)
 
 
 def _resolve_authoritative_talk(
-    talk_id: types.TalkId, *, data_repo: repo.DataRepo
-) -> types.TalkInfo:
+    talk_id: id_types.TalkId, *, data_repo: repo.DataRepo
+) -> processed_types.TalkInfo:
     """Resolve a talk pointed at by an authoritative finish condition.
 
     COMPLETE_TALK / COMPLETE_ANY_TALK name the talk that completes a step, so a
@@ -250,9 +258,9 @@ def _resolve_authoritative_talk(
         return get_talk_info_by_id(talk_id, data_repo=data_repo)
     except ValueError:
         issues.record(issues.IssueType.MISSING_TALK, str(talk_id))
-        return types.TalkInfo(
+        return processed_types.TalkInfo(
             text=[
-                types.TalkText(
+                processed_types.TalkText(
                     role="[Missing Talk]",
                     message=f"Talk {talk_id} could not be retrieved",
                     next_dialog_ids=[],
@@ -263,8 +271,8 @@ def _resolve_authoritative_talk(
 
 
 def _iter_subquest_talks(
-    subquest: types.SubQuestItem, *, data_repo: repo.DataRepo
-) -> list[tuple[types.TalkId, int, types.TalkInfo]]:
+    subquest: agd_types.SubQuestItem, *, data_repo: repo.DataRepo
+) -> list[tuple[id_types.TalkId, int, processed_types.TalkInfo]]:
     """Return (talk_id, hint_priority, TalkInfo) for talks referenced by finish conditions.
 
     Only the condition types that genuinely reference a talk are handled;
@@ -274,7 +282,7 @@ def _iter_subquest_talks(
     is a plot-completion marker whose param is only sometimes a real talk id, so
     a missing talk is skipped instead. See the ``_HINT_PRIORITY_*`` constants.
     """
-    talks: list[tuple[types.TalkId, int, types.TalkInfo]] = []
+    talks: list[tuple[id_types.TalkId, int, processed_types.TalkInfo]] = []
     for cond in subquest["finishCond"]:
         match cond.get("damageRatio"):
             case "QUEST_CONTENT_COMPLETE_TALK":
@@ -334,7 +342,7 @@ def _resolve_step_description(
 
 
 def _begin_subquest_order(
-    talk_item: types.QuestTalkItem, subid_to_order: dict[types.SubQuestId, int]
+    talk_item: agd_types.QuestTalkItem, subid_to_order: dict[id_types.SubQuestId, int]
 ) -> int | None:
     """Step order a quest talk begins at (via its ``beginCond``), or None.
 
@@ -357,7 +365,7 @@ def _begin_subquest_order(
 
 
 def get_chapter_title(
-    chapter: types.ChapterExcelConfigDataItem, *, data_repo: repo.DataRepo
+    chapter: agd_types.ChapterExcelConfigDataItem, *, data_repo: repo.DataRepo
 ) -> str:
     """Resolve a chapter's display title (chapter number joined with chapter title)."""
     text_map = data_repo.load_text_map()
@@ -384,8 +392,8 @@ def _is_test_or_hidden_title(title_hash: int, *, data_repo: repo.DataRepo) -> bo
 
 
 def get_quest_info(
-    quest_id: types.QuestId, *, data_repo: repo.DataRepo
-) -> types.QuestInfo | None:
+    quest_id: id_types.QuestId, *, data_repo: repo.DataRepo
+) -> processed_types.QuestInfo | None:
     """Retrieve quest information from quest ID, or None for a test/hidden quest."""
     # Convert quest ID to path
     quest_path = data_repo.build_quest_mapping()[quest_id]
@@ -434,8 +442,8 @@ def get_quest_info(
     # COMPLETE_TALK priority); a talk's own `beginCond` (from the quest `talks`
     # field) names the step it STARTS playing on — its true location, hence top
     # priority. Track hidden/test steps, whose `order` numbers are meaningless.
-    talk_hints: dict[types.TalkId, list[_PlacementHint]] = {}
-    talk_infos: dict[types.TalkId, types.TalkInfo] = {}
+    talk_hints: dict[id_types.TalkId, list[_PlacementHint]] = {}
+    talk_infos: dict[id_types.TalkId, processed_types.TalkInfo] = {}
     order_to_desc: dict[int, str | None] = {}
     hidden_orders: set[int] = set()
     for subquest in quest_data["subQuests"]:
@@ -469,7 +477,7 @@ def get_quest_info(
     # the talk has a real finishCond placement to fall back on (otherwise beginCond
     # is the sole signal). A talk with neither a finish condition nor a usable
     # beginCond has no anchor in this quest and is rendered in a separate section.
-    non_subquest_talk_infos: list[types.TalkInfo] = []
+    non_subquest_talk_infos: list[processed_types.TalkInfo] = []
     for talk_item in quest_data["talks"]:
         talk_id = talk_item["id"]
         # The order to anchor this talk's beginCond hint at, or None for no usable
@@ -511,7 +519,9 @@ def get_quest_info(
     talk_order = {
         talk_item["id"]: idx for idx, talk_item in enumerate(quest_data["talks"])
     }
-    placed: dict[types.TalkId, tuple[int, int, str | None, types.TalkInfo, bool]] = {}
+    placed: dict[
+        id_types.TalkId, tuple[int, int, str | None, processed_types.TalkInfo, bool]
+    ] = {}
     for seq, (talk_id, hints) in enumerate(talk_hints.items()):
         best = max(hints, key=lambda h: (h.priority, -h.order))
         is_lead_in = best.order not in finish_orders.get(talk_id, frozenset())
@@ -548,7 +558,7 @@ def get_quest_info(
                     order_index,
                     0 if is_lead_in else 1,
                     seq,
-                    types.QuestStep(
+                    processed_types.QuestStep(
                         order=order_index,
                         is_lead_in=is_lead_in,
                         description=desc,
@@ -563,7 +573,7 @@ def get_quest_info(
                     order_index,
                     2,
                     seq,
-                    types.QuestStep(
+                    processed_types.QuestStep(
                         order=order_index,
                         is_lead_in=False,
                         description=desc,
@@ -590,7 +600,7 @@ def get_quest_info(
         if (info := get_talk_info(path, data_repo=data_repo)).text
     ]
 
-    return types.QuestInfo(
+    return processed_types.QuestInfo(
         quest_id=quest_id,
         title=quest_title,
         chapter_title=chapter_title,
@@ -615,11 +625,11 @@ _ELEMENT_NAMES: dict[str, dict[localization.Language, str]] = {
 
 
 def _resolve_constellations(
-    depot: types.AvatarSkillDepotExcelConfigDataItem,
+    depot: agd_types.AvatarSkillDepotExcelConfigDataItem,
     element: str | None,
     *,
     data_repo: repo.DataRepo,
-) -> list[types.Constellation]:
+) -> list[processed_types.Constellation]:
     """Resolve the 6 constellations for a single skill depot, in talents-array order.
 
     Strict: every depot that owns constellations must have exactly 6 talents that
@@ -646,14 +656,16 @@ def _resolve_constellations(
                 f"Missing constellation description for talent {talent_id}"
             )
         constellations.append(
-            types.Constellation(name=name, description=description, element=element)
+            processed_types.Constellation(
+                name=name, description=description, element=element
+            )
         )
     return constellations
 
 
 def _get_constellations(
-    avatar: types.AvatarExcelConfigDataItem, *, data_repo: repo.DataRepo
-) -> list[types.Constellation]:
+    avatar: agd_types.AvatarExcelConfigDataItem, *, data_repo: repo.DataRepo
+) -> list[processed_types.Constellation]:
     """Resolve a character's constellations.
 
     Regular characters carry all six constellations on their primary
@@ -686,8 +698,8 @@ def _get_constellations(
 
 
 def get_character_story_info(
-    avatar_id: types.AvatarId, *, data_repo: repo.DataRepo
-) -> types.CharacterStoryInfo:
+    avatar_id: id_types.AvatarId, *, data_repo: repo.DataRepo
+) -> processed_types.CharacterStoryInfo:
     """Get all character story information for a specific character."""
     # Load required data
     text_map = data_repo.load_text_map()
@@ -730,9 +742,9 @@ def get_character_story_info(
                 issues.record(issues.IssueType.MISSING_STORY_CONTENT, str(context_hash))
                 content = "Story content not found"
 
-            stories.append(types.CharacterStory(title=title, content=content))
+            stories.append(processed_types.CharacterStory(title=title, content=content))
 
-    return types.CharacterStoryInfo(
+    return processed_types.CharacterStoryInfo(
         character_name=character_name,
         stories=stories,
         avatar_id=avatar_id,
@@ -742,7 +754,7 @@ def get_character_story_info(
 
 def get_subtitle_info(
     subtitle_path: str, *, data_repo: repo.DataRepo
-) -> types.SubtitleInfo:
+) -> processed_types.SubtitleInfo:
     """Parse subtitle file and extract text lines."""
     subtitle_file_path = data_repo.agd_path / subtitle_path
     content = subtitle_file_path.read_text(encoding="utf-8")
@@ -754,12 +766,12 @@ def get_subtitle_info(
         if line and not line.isdigit() and "-->" not in line:
             text_lines.append(line)
 
-    return types.SubtitleInfo(text_lines=text_lines)
+    return processed_types.SubtitleInfo(text_lines=text_lines)
 
 
 def get_material_info(
-    material_id: types.MaterialId, *, data_repo: repo.DataRepo
-) -> types.MaterialInfo:
+    material_id: id_types.MaterialId, *, data_repo: repo.DataRepo
+) -> processed_types.MaterialInfo:
     """Get material information for a specific material ID."""
 
     # Load required data
@@ -783,14 +795,14 @@ def get_material_info(
         issues.record(issues.IssueType.MISSING_MATERIAL_DESC, str(desc_hash))
         description = "No description available"
 
-    return types.MaterialInfo(
+    return processed_types.MaterialInfo(
         material_id=material_id, name=name, description=description
     )
 
 
 def get_achievement_section_info(
-    section_id: types.AchievementGoalId, *, data_repo: repo.DataRepo
-) -> types.AchievementSectionInfo:
+    section_id: id_types.AchievementGoalId, *, data_repo: repo.DataRepo
+) -> processed_types.AchievementSectionInfo:
     """Get one localized achievement section and its active achievements."""
     if (
         section_config := data_repo.build_achievement_section_mapping().get(section_id)
@@ -802,7 +814,7 @@ def get_achievement_section_info(
     if (section_name := text_map.get_optional(section["nameTextMapHash"])) is None:
         raise ValueError(f"Missing name for achievement section {section_id}")
 
-    achievements = list[types.AchievementInfo]()
+    achievements = list[processed_types.AchievementInfo]()
     for achievement in achievement_configs:
         if (name := text_map.get_optional(achievement["titleTextMapHash"])) is None:
             raise ValueError(f"Missing name for achievement {achievement['id']}")
@@ -811,14 +823,14 @@ def get_achievement_section_info(
         ) is None:
             raise ValueError(f"Missing description for achievement {achievement['id']}")
         achievements.append(
-            types.AchievementInfo(
+            processed_types.AchievementInfo(
                 achievement_id=achievement["id"],
                 name=name,
                 description=description,
             )
         )
 
-    return types.AchievementSectionInfo(
+    return processed_types.AchievementSectionInfo(
         section_id=section_id,
         section_name=section_name,
         achievements=achievements,
@@ -826,8 +838,8 @@ def get_achievement_section_info(
 
 
 def get_voiceline_info(
-    avatar_id: types.AvatarId, *, data_repo: repo.DataRepo
-) -> types.VoicelineInfo:
+    avatar_id: id_types.AvatarId, *, data_repo: repo.DataRepo
+) -> processed_types.VoicelineInfo:
     """Get all voiceline information for a specific character."""
     # Load required data
     text_map = data_repo.load_text_map()
@@ -860,15 +872,15 @@ def get_voiceline_info(
             if content:  # Only add if there's actual content
                 voicelines[title] = content
 
-    return types.VoicelineInfo(
+    return processed_types.VoicelineInfo(
         character_name=character_name, voicelines=voicelines, avatar_id=avatar_id
     )
 
 
 def _get_unique_monster_special_name_hash(
-    special_names: types.MonsterSpecialNameExcelConfigData,
-    special_name_lab_id: types.MonsterSpecialNameLabId,
-) -> types.TextMapHash | None:
+    special_names: agd_types.MonsterSpecialNameExcelConfigData,
+    special_name_lab_id: id_types.MonsterSpecialNameLabId,
+) -> id_types.TextMapHash | None:
     matches = [
         entry
         for entry in special_names
@@ -880,8 +892,8 @@ def _get_unique_monster_special_name_hash(
 
 
 def get_creature_info(
-    codex_id: types.AnimalCodexId, *, data_repo: repo.DataRepo
-) -> types.CreatureInfo:
+    codex_id: id_types.AnimalCodexId, *, data_repo: repo.DataRepo
+) -> processed_types.CreatureInfo:
     """Get a living-beings archive entry (monster or wildlife) by its codex id."""
     entry = data_repo.load_animal_codex_excel_config_data()[codex_id]
     text_map = data_repo.load_text_map()
@@ -920,7 +932,7 @@ def get_creature_info(
     if (name := text_map.get_optional(name_hash)) is None:
         raise ValueError(f"Missing name for creature codex {codex_id}")
 
-    return types.CreatureInfo(
+    return processed_types.CreatureInfo(
         codex_id=codex_id,
         name=name,
         special_name=special_name if special_name != name else None,
@@ -931,7 +943,7 @@ def get_creature_info(
 
 def get_creature_group_info(
     subtype: str, *, data_repo: repo.DataRepo
-) -> types.CreatureGroupInfo:
+) -> processed_types.CreatureGroupInfo:
     """Get all creatures in one codex ``subType`` group, in archive order."""
     entries = sorted(
         (
@@ -944,7 +956,7 @@ def get_creature_group_info(
     if not entries:
         raise ValueError(f"No creatures found for codex subType {subtype!r}")
 
-    return types.CreatureGroupInfo(
+    return processed_types.CreatureGroupInfo(
         subtype=subtype,
         type_label=localization.get_creature_type_label(
             entries[0]["type"], language=data_repo.language
@@ -959,7 +971,7 @@ def get_creature_group_info(
 
 
 def _get_relic_story_by_story_id(
-    story_id: types.StoryId, *, data_repo: repo.DataRepo
+    story_id: id_types.StoryId, *, data_repo: repo.DataRepo
 ) -> str | None:
     """Resolve a reliquary piece's relic story from its storyId.
 
@@ -992,8 +1004,8 @@ def _get_relic_story_by_story_id(
 
 
 def get_artifact_set_info(
-    set_id: types.ArtifactSetId, *, data_repo: repo.DataRepo
-) -> types.ArtifactSetInfo | None:
+    set_id: id_types.ArtifactSetId, *, data_repo: repo.DataRepo
+) -> processed_types.ArtifactSetInfo | None:
     """Get artifact set info, or None if no piece has a story (nothing to render)."""
     # Load required data
     set_data = data_repo.load_reliquary_set_excel_config_data()
@@ -1015,7 +1027,7 @@ def get_artifact_set_info(
     artifact_ids = set_config["containsList"]
 
     # Collect artifact information
-    artifacts = list[types.ArtifactInfo]()
+    artifacts = list[processed_types.ArtifactInfo]()
     for artifact_id in artifact_ids:
         # Find artifact configuration
         artifact_config = None
@@ -1050,7 +1062,7 @@ def get_artifact_set_info(
         )
 
         # Create artifact info
-        artifact_info = types.ArtifactInfo(
+        artifact_info = processed_types.ArtifactInfo(
             name=name,
             description=description,
             story=story,
@@ -1079,12 +1091,14 @@ def get_artifact_set_info(
         raise ValueError(
             f"Set name not found for affix {affix_id} (hash {affix_name_hash}) in set {set_id}"
         )
-    return types.ArtifactSetInfo(set_name=set_name, set_id=set_id, artifacts=artifacts)
+    return processed_types.ArtifactSetInfo(
+        set_name=set_name, set_id=set_id, artifacts=artifacts
+    )
 
 
 def get_weapon_info(
     weapon_id: str, *, data_repo: repo.DataRepo
-) -> types.WeaponInfo | None:
+) -> processed_types.WeaponInfo | None:
     """Assemble a weapon's story document from its authoritative weapon config.
 
     Follows weapon storyId -> DocumentExcelConfigData -> ordered page localization
@@ -1130,7 +1144,7 @@ def get_weapon_info(
     if (name := text_map.get_optional(weapon["nameTextMapHash"])) is None:
         raise ValueError(f"Missing name for weapon ID {weapon_id}")
 
-    return types.WeaponInfo(
+    return processed_types.WeaponInfo(
         weapon_id=weapon_id,
         name=name,
         description=text_map.get(weapon["descTextMapHash"], ""),
@@ -1143,7 +1157,7 @@ def get_talk_group_info(
     talk_group_id: talk_parsing.TalkGroupId,
     *,
     data_repo: repo.DataRepo,
-) -> types.TalkGroupInfo:
+) -> processed_types.TalkGroupInfo:
     """Get all talk info for talks in an activity group."""
     # Get ActivityGroup JSON file path from mapping
     talk_group_path = data_repo.build_talk_group_mapping()[
@@ -1164,7 +1178,7 @@ def get_talk_group_info(
             issues.record(issues.IssueType.MISSING_TALK, str(talk_id))
             continue
 
-        next_talks = list[types.TalkInfo]()
+        next_talks = list[processed_types.TalkInfo]()
         for next_talk_id in talk_entry.get("nextTalks", []):
             try:
                 next_talk_info = get_talk_info_by_id(
@@ -1180,20 +1194,20 @@ def get_talk_group_info(
         if talk_info.text:
             talks.append((talk_info, next_talks))
 
-    return types.TalkGroupInfo(talks=talks)
+    return processed_types.TalkGroupInfo(talks=talks)
 
 
 def _resolve_coop_steps(
     play_steps: list[coop_graph.PlayStep],
     *,
-    local_talk_id_to_path: dict[types.CoopNodeId, str],
-    seen: set[types.CoopNodeId],
+    local_talk_id_to_path: dict[id_types.CoopNodeId, str],
+    seen: set[id_types.CoopNodeId],
     text_map: repo.TextMapTracker,
-    dialog_content_hashes: dict[types.DialogId, types.TextMapHash],
+    dialog_content_hashes: dict[id_types.DialogId, id_types.TextMapHash],
     data_repo: repo.DataRepo,
-) -> list[types.CoopStep]:
+) -> list[processed_types.CoopStep]:
     """Resolve a Coop story's play-order graph steps into renderable steps."""
-    steps: list[types.CoopStep] = []
+    steps: list[processed_types.CoopStep] = []
     for play_step in play_steps:
         match play_step:
             case coop_graph.TalkStep(local_talk_id=local_talk_id):
@@ -1201,7 +1215,7 @@ def _resolve_coop_steps(
                     continue
                 seen.add(local_talk_id)
                 if (talk_info := get_talk_info(path, data_repo=data_repo)).text:
-                    steps.append(types.CoopStep(talk=talk_info, choice=None))
+                    steps.append(processed_types.CoopStep(talk=talk_info, choice=None))
             case coop_graph.ChoiceStep(branches=branches):
                 options = []
                 for branch in branches:
@@ -1223,20 +1237,23 @@ def _resolve_coop_steps(
                     )
                     if prompt is not None or branch_steps:
                         options.append(
-                            types.CoopChoiceOption(prompt=prompt, steps=branch_steps)
+                            processed_types.CoopChoiceOption(
+                                prompt=prompt, steps=branch_steps
+                            )
                         )
                 if options:
                     steps.append(
-                        types.CoopStep(
-                            talk=None, choice=types.CoopChoice(options=options)
+                        processed_types.CoopStep(
+                            talk=None,
+                            choice=processed_types.CoopChoice(options=options),
                         )
                     )
     return steps
 
 
 def get_hangout_info(
-    quest_id: types.QuestId, *, data_repo: repo.DataRepo
-) -> types.HangoutInfo | None:
+    quest_id: id_types.QuestId, *, data_repo: repo.DataRepo
+) -> processed_types.HangoutInfo | None:
     """Assemble a hangout quest's play-ordered Coop story dialogue, or None if empty.
 
     ``quest_id`` is always a hangout quest (the ``Hangouts`` renderable discovers
@@ -1263,7 +1280,7 @@ def get_hangout_info(
     graph_mapping = data_repo.build_coop_story_graph_mapping()
     dialog_content_hashes = data_repo.get_dialog_id_to_content_hash_mapping()
 
-    story_infos: list[types.CoopStoryInfo] = []
+    story_infos: list[processed_types.CoopStoryInfo] = []
     for coop_story_id in stories:
         # Every story here has talk files (build_hangout_quest_to_stories filters
         # to those present in build_coop_story_mapping).
@@ -1271,7 +1288,7 @@ def get_hangout_info(
             int(pathlib.Path(path).stem.split("_", 1)[1]): path
             for path in coop_story_mapping[coop_story_id]
         }
-        seen: set[types.CoopNodeId] = set()
+        seen: set[id_types.CoopNodeId] = set()
         steps = (
             _resolve_coop_steps(
                 coop_graph.walk_play_order(graph),
@@ -1291,17 +1308,17 @@ def get_hangout_info(
             if local_talk_id in seen:
                 continue
             if (talk_info := get_talk_info(path, data_repo=data_repo)).text:
-                steps.append(types.CoopStep(talk=talk_info, choice=None))
+                steps.append(processed_types.CoopStep(talk=talk_info, choice=None))
 
         if steps:
             story_infos.append(
-                types.CoopStoryInfo(coop_story_id=coop_story_id, steps=steps)
+                processed_types.CoopStoryInfo(coop_story_id=coop_story_id, steps=steps)
             )
 
     if not story_infos:
         return None
 
-    return types.HangoutInfo(
+    return processed_types.HangoutInfo(
         quest_id=quest_id,
         quest_title=quest_title,
         primary_character=primary_character,

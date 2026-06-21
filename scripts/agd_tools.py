@@ -27,11 +27,11 @@ from istaroth.agd import (
     coop_hierarchy,
     issues,
     localization,
+    processed_types,
     processing,
     quest_hierarchy,
     rendering,
     repo,
-    types,
 )
 from istaroth.agd.renderable_types import (
     Achievements,
@@ -61,9 +61,9 @@ class _RenderableResult:
     """Result of processing a single renderable item."""
 
     renderable_key: str
-    rendered_item: types.RenderedItem | None
+    rendered_item: processed_types.RenderedItem | None
     error_message: str | None
-    tracker_stats: types.TrackerStats
+    tracker_stats: processed_types.TrackerStats
     parsing_issues: list[issues.ParsingIssue]
 
 
@@ -146,7 +146,7 @@ def _process_single_item(
             renderable_key,
             rendered,
             None,
-            types.TrackerStats(
+            processed_types.TrackerStats(
                 accessed_text_ids, accessed_talk_ids, accessed_readable_filenames
             ),
             [
@@ -163,7 +163,11 @@ def _process_single_item(
         if strict:
             raise RuntimeError(f"Error processing {renderable_key}")
         return _RenderableResult(
-            renderable_key, None, repr(e), types.TrackerStats(set(), set(), set()), []
+            renderable_key,
+            None,
+            repr(e),
+            processed_types.TrackerStats(set(), set(), set()),
+            [],
         )
 
 
@@ -178,7 +182,7 @@ def _generate_content(
     strict: bool = False,
     manifest_list: list[text_types.TextMetadata],
     parsing_issues: list[issues.ParsingIssue],
-) -> tuple[int, int, int, int, types.TrackerStats]:
+) -> tuple[int, int, int, int, processed_types.TrackerStats]:
     """Generate content files using renderable type.
 
     Returns:
@@ -188,7 +192,7 @@ def _generate_content(
     error_count = 0
     skipped_count = 0
     issue_count = 0
-    tracker_stats = types.TrackerStats(
+    tracker_stats = processed_types.TrackerStats(
         accessed_text_map_ids=set(),
         accessed_talk_ids=set(),
         accessed_readable_filenames=set(),
@@ -393,7 +397,7 @@ def generate_all(
     total_error = 0
     total_skipped = 0
     total_issues = 0
-    all_tracker_stats = types.TrackerStats(set(), set(), set())
+    all_tracker_stats = processed_types.TrackerStats(set(), set(), set())
 
     # Collect stats for summary table
     summary_stats = []
