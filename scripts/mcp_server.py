@@ -48,6 +48,10 @@ def _node_label(node: processed_types.HierarchyNode) -> str:
     return node.title or node.key
 
 
+def _compute_file_id(relative_path: str) -> str:
+    return hashlib.md5(relative_path.encode("utf-8")).hexdigest()
+
+
 @mcp.tool()
 def get_file_content(file_id: str, max_chunks: int = 50, start_index: int = 0) -> str:
     """获取指定文件的内容块
@@ -345,9 +349,7 @@ def get_document_hierarchy(file_id: str) -> str:
                             category, leaf.file_id
                         )
                         leaf_md5 = (
-                            hashlib.md5(
-                                leaf_manifest.relative_path.encode("utf-8")
-                            ).hexdigest()
+                            _compute_file_id(leaf_manifest.relative_path)
                             if leaf_manifest is not None
                             else "?"
                         )
@@ -433,7 +435,7 @@ def list_categories() -> str:
 def get_category_hierarchy(category: str) -> str:
     """获取指定分类的层级结构
 
-    对于有预建层级结构的分类（如任务 agd_quest、逸闻 agd_coop），返回多级树形结构，
+    对于有预建层级结构的分类（如任务 agd_quest、邀约 agd_coop），返回多级树形结构，
     便于浏览内容组织方式。
     对于扁平分类（如阅读物 agd_readable、角色故事 agd_character_story 等），返回按ID
     排序的文件列表，每行包含标题和 file_id。
@@ -472,9 +474,9 @@ def get_category_hierarchy(category: str) -> str:
                                 text_types.TextCategory(category), node.file_id
                             )
                             if leaf_manifest is not None:
-                                file_id_str = hashlib.md5(
-                                    leaf_manifest.relative_path.encode("utf-8")
-                                ).hexdigest()
+                                file_id_str = _compute_file_id(
+                                    leaf_manifest.relative_path
+                                )
                         output_lines.append(
                             f"{prefix}- {label} (file_id: {file_id_str})"
                         )
@@ -528,7 +530,7 @@ def get_category_hierarchy(category: str) -> str:
                 "",
             ]
             for item in items:
-                file_id = hashlib.md5(item.relative_path.encode("utf-8")).hexdigest()
+                file_id = _compute_file_id(item.relative_path)
                 output_lines.append(f"  - {item.title} (file_id: {file_id})")
 
             output_lines.extend(
