@@ -4,9 +4,12 @@
     "teardown": "scripts/dev-compose.sh down || true"
   },
   "scripts": {
-    "dev-compose": {
+    "Docker Compose Up": {
       "type": "service",
       "command": "scripts/dev-compose.sh up"
+    },
+    "Show URLs": {
+      "command": "scripts/dev-compose.sh urls"
     }
   }
 }

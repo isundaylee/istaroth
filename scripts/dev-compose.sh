@@ -133,6 +133,17 @@ _load_env() {
     CONDUCTOR_JAEGER_UI_HOST_PORT CONDUCTOR_JAEGER_OTLP_HOST_PORT VITE_PUBLIC_HOST
 }
 
+_refresh_paseo_port() {
+  [[ -n "${PASEO_PORT:-}" ]] || return
+  if [[ ! "$PASEO_PORT" =~ ^[0-9]+$ ]]; then
+    echo "dev-compose.sh: PASEO_PORT must be numeric, got '$PASEO_PORT'" >&2
+    exit 1
+  fi
+  export CONDUCTOR_PORT="$PASEO_PORT"
+  _export_ports
+  _write_env_file
+}
+
 cmd_setup() {
   _rebase_onto_upstream
   _resolve_main_root
@@ -155,10 +166,7 @@ cmd_up() {
     esac
   done
   _load_env
-  # When run as a Paseo service, bind the Web UI to the port Paseo proxies.
-  if [[ -n "${PASEO_PORT:-}" ]]; then
-    export CONDUCTOR_PORT="$PASEO_PORT"
-  fi
+  _refresh_paseo_port
   cd "$COMPOSE_DIR"
   # shellcheck disable=SC2086
   docker compose up $detach "$@"
