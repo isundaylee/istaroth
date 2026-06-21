@@ -353,21 +353,21 @@ def get_document_hierarchy(file_id: str) -> str:
                     )
                     if section_title:
                         output_lines.append(section_title)
-                    for leaf in section.leaves:
-                        assert leaf.file_id is not None
-                        leaf_manifest = _text_set.get_manifest_item(
-                            category, leaf.file_id
+                    for child in section.children:
+                        assert child.file_id is not None
+                        child_manifest = _text_set.get_manifest_item(
+                            category, child.file_id
                         )
-                        leaf_md5 = (
+                        child_md5 = (
                             hashlib.md5(
-                                leaf_manifest.relative_path.encode("utf-8")
+                                child_manifest.relative_path.encode("utf-8")
                             ).hexdigest()
-                            if leaf_manifest is not None
+                            if child_manifest is not None
                             else "?"
                         )
-                        marker = " ← 当前文件" if leaf.file_id == doc_id else ""
+                        marker = " ← 当前文件" if child.file_id == doc_id else ""
                         output_lines.append(
-                            f"    - {leaf.title or _node_label(leaf)} (file_id: {leaf_md5}){marker}"
+                            f"    - {child.title or _node_label(child)} (file_id: {child_md5}){marker}"
                         )
                 output_lines.append("")
                 output_lines.append(

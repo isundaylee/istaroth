@@ -189,18 +189,19 @@ class HierarchyNode:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> HierarchyNode:
+        raw_children = data["children"]
         children = (
             None
-            if data.get("children") is None
-            else [HierarchyNode.from_dict(child) for child in data["children"]]
+            if raw_children is None
+            else [HierarchyNode.from_dict(child) for child in raw_children]
         )
         return cls(
             key=data["key"],
-            title=data.get("title"),
-            title_key=data.get("title_key"),
+            title=data["title"],
+            title_key=data["title_key"],
             children=children,
-            file_id=data.get("file_id"),
-            toc_eligible=data.get("toc_eligible", False),
+            file_id=data["file_id"],
+            toc_eligible=data["toc_eligible"],
         )
 
 

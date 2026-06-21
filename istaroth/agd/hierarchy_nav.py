@@ -16,12 +16,14 @@ from istaroth.agd import processed_types
 class TocSection:
     """One section of a table of contents.
 
-    ``title`` is ``None`` when the section groups direct children of the TOC
-    root (the flat/untitled case).
+    ``title`` is the group node (e.g. a chapter) when the TOC root has grouped
+    children; ``None`` when the root's direct children are leaves (flat case).
+    ``children`` preserves the original nested hierarchy — the renderer walks
+    it to display nested levels rather than receiving a pre-flattened list.
     """
 
     title: processed_types.HierarchyNode | None
-    leaves: list[processed_types.HierarchyNode]
+    children: list[processed_types.HierarchyNode]
 
 
 @attrs.define
@@ -100,8 +102,13 @@ def compute_toc(path: list[processed_types.HierarchyNode]) -> Toc | None:
     sections: list[TocSection] = []
     if any(child.children is not None for child in toc_root.children):
         for group in toc_root.children:
-            sections.append(TocSection(title=group, leaves=flatten_leaves([group])))
+            sections.append(
+                TocSection(
+                    title=group,
+                    children=list(group.children) if group.children else [],
+                )
+            )
     else:
-        sections.append(TocSection(title=None, leaves=list(toc_root.children)))
+        sections.append(TocSection(title=None, children=list(toc_root.children)))
 
     return Toc(root=toc_root, sections=sections)
