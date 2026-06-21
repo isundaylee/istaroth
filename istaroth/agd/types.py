@@ -841,6 +841,10 @@ class HierarchyNode:
     title_key: str | None
     children: list[HierarchyNode] | None
     file_id: int | None
+    toc_eligible: bool
+    """Whether, when this group is a viewed file's section root, its children form
+    a coherent table of contents. False for leaves and for synthetic buckets that
+    merely collect unrelated files (e.g. the "standalone" group)."""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -853,6 +857,7 @@ class HierarchyNode:
                 else [child.to_dict() for child in self.children]
             ),
             "file_id": self.file_id,
+            "toc_eligible": self.toc_eligible,
         }
 
 

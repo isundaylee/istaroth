@@ -336,6 +336,7 @@ async def get_hierarchy(
                 title_key=None,
                 children=None,
                 file_id=item.id,
+                toc_eligible=False,
             )
             for item in items
         ]

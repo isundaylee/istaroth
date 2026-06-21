@@ -301,6 +301,7 @@ class HierarchyNode(BaseModel):
     title_key: str | None
     children: list["HierarchyNode"] | None
     file_id: int | None
+    toc_eligible: bool
 
 
 class HierarchyResponse(BaseModel):

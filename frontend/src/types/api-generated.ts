@@ -475,6 +475,8 @@ export interface components {
             children: components["schemas"]["HierarchyNode"][] | null;
             /** File Id */
             file_id: number | null;
+            /** Toc Eligible */
+            toc_eligible: boolean;
         };
         /**
          * HierarchyResponse
