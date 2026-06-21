@@ -145,8 +145,16 @@ MonsterTitleId: TypeAlias = int
 ``MonsterTitleExcelConfigDataItem.titleID``)."""
 
 MonsterSpecialNameId: TypeAlias = int
-"""Monster special-name id (``MonsterDescribeExcelConfigDataItem.specialNameLabID``;
+"""Individual monster special-name id
+(``MonsterSpecialNameExcelConfigDataItem.specialNameID``)."""
+
+MonsterSpecialNameLabId: TypeAlias = int
+"""Monster special-name lab/group id
+(``MonsterDescribeExcelConfigDataItem.specialNameLabID``;
 ``MonsterSpecialNameExcelConfigDataItem.specialNameLabID``)."""
+
+WeaponId: TypeAlias = int
+"""Weapon id (``WeaponExcelConfigDataItem.id``)."""
 
 TextMapHash: TypeAlias = int
 """A TextMap hash (the ``*TextMapHash`` fields); carried as ``int`` end-to-end.
@@ -205,7 +213,7 @@ class MonsterDescribeExcelConfigDataItem(TypedDict):
     id: CreatureDescribeId
     nameTextMapHash: TextMapHash
     titleID: MonsterTitleId
-    specialNameLabID: MonsterSpecialNameId
+    specialNameLabID: MonsterSpecialNameLabId
 
 
 MonsterDescribeExcelConfigData: TypeAlias = list[MonsterDescribeExcelConfigDataItem]
@@ -230,7 +238,9 @@ class MonsterSpecialNameExcelConfigDataItem(TypedDict):
     Example file: ExcelBinOutput/MonsterSpecialNameExcelConfigData.json
     """
 
-    specialNameLabID: MonsterSpecialNameId
+    isInRandomList: bool
+    specialNameID: MonsterSpecialNameId
+    specialNameLabID: MonsterSpecialNameLabId
     specialNameTextMapHash: TextMapHash
 
 
@@ -658,10 +668,10 @@ class WeaponExcelConfigDataItem(TypedDict):
     weapon has no story document).
     """
 
-    id: int
-    nameTextMapHash: int
-    descTextMapHash: int
-    storyId: int
+    id: WeaponId
+    nameTextMapHash: TextMapHash
+    descTextMapHash: TextMapHash
+    storyId: DocumentId
 
 
 ReliquarySetExcelConfigData: TypeAlias = list[ReliquarySetExcelConfigDataItem]

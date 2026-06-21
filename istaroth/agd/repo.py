@@ -9,7 +9,7 @@ import logging
 import os
 import pathlib
 import subprocess
-from typing import Any, Generic, TypeVar
+from typing import Any, Callable, Generic, Iterable, TypeVar, cast
 
 import attrs
 from numpy import isin
@@ -26,6 +26,7 @@ from istaroth.agd import (
 logger = logging.getLogger(__name__)
 
 _K = TypeVar("_K")
+_T = TypeVar("_T")
 # Ordered newest-to-oldest; earlier refs win when multiple fallbacks contain a hash.
 _TEXT_MAP_FALLBACK_REFS: tuple[str, ...] = ("8c3aecbd6ed",)
 
@@ -255,6 +256,23 @@ class DataRepo:
         """Get the short language code used in AGD file structure (maps ENG to EN)."""
         return self._language_short(self.language)
 
+    def _load_excel(self, filename: str) -> Any:
+        return json.loads(
+            (self.agd_path / "ExcelBinOutput" / filename).read_text(encoding="utf-8")
+        )
+
+    @staticmethod
+    def _index_unique(
+        data: Iterable[_T], key: Callable[[_T], _K], *, duplicate_name: str
+    ) -> dict[_K, _T]:
+        mapping: dict[_K, _T] = {}
+        for item in data:
+            item_key = key(item)
+            if item_key in mapping:
+                raise ValueError(f"Duplicate {duplicate_name}: {item_key}")
+            mapping[item_key] = item
+        return mapping
+
     @classmethod
     def from_env(cls) -> "DataRepo":
         """Create DataRepo from environment variables.
@@ -359,47 +377,37 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_npc_excel_config_data(self) -> types.NpcExcelConfigData:
         """Load NPC Excel configuration data."""
-        file_path = self.agd_path / "ExcelBinOutput" / "NpcExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.NpcExcelConfigData = json.load(f)
-            return data
+        return self._load_excel("NpcExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_dialog_excel_config_data(self) -> types.DialogExcelConfigData:
         """Load Dialog Excel configuration data."""
-        file_path = self.agd_path / "ExcelBinOutput" / "DialogExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            raw_data: list[dict[str, Any]] = json.load(f)
-            data = deobfuscation.deobfuscate_dialog_excel_config_data(raw_data)
-            return data  # type: ignore[return-value]
+        raw_data: list[dict[str, Any]] = self._load_excel("DialogExcelConfigData.json")
+        return cast(
+            types.DialogExcelConfigData,
+            deobfuscation.deobfuscate_dialog_excel_config_data(raw_data),
+        )
 
     @functools.lru_cache(maxsize=None)
     def load_localization_excel_config_data(self) -> types.LocalizationExcelConfigData:
         """Load localization Excel configuration data."""
-        file_path = (
-            self.agd_path / "ExcelBinOutput" / "LocalizationExcelConfigData.json"
-        )
-        with open(file_path, encoding="utf-8") as f:
-            data: types.LocalizationExcelConfigData = json.load(f)
-            return data
+        return self._load_excel("LocalizationExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_document_excel_config_data(
         self,
-    ) -> dict[int, types.DocumentExcelConfigDataItem]:
-        """Load DocumentExcelConfigData.json as a dict mapping document id to entry.
-
-        First entry wins per id, matching the original break-on-first-match
-        behavior of callers that scanned for a matching ``id``.
-        """
-        file_path = self.agd_path / "ExcelBinOutput" / "DocumentExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            raw_data: list[dict[str, Any]] = json.load(f)
-            data = deobfuscation.deobfuscate_document_excel_config_data(raw_data)
-            mapping: dict[int, types.DocumentExcelConfigDataItem] = {}
-            for doc_item in data:
-                mapping.setdefault(doc_item["id"], doc_item)  # type: ignore[arg-type]
-            return mapping
+    ) -> dict[types.DocumentId, types.DocumentExcelConfigDataItem]:
+        """Load DocumentExcelConfigData.json keyed by document id."""
+        raw_data: list[dict[str, Any]] = self._load_excel(
+            "DocumentExcelConfigData.json"
+        )
+        data = cast(
+            types.DocumentExcelConfigData,
+            deobfuscation.deobfuscate_document_excel_config_data(raw_data),
+        )
+        return self._index_unique(
+            data, lambda doc_item: doc_item["id"], duplicate_name="document ID"
+        )
 
     @functools.lru_cache(maxsize=None)
     def build_readable_stem_to_localization_id(self) -> dict[str, types.LocalizationId]:
@@ -472,21 +480,17 @@ class DataRepo:
         self,
     ) -> dict[types.BookSuitId, types.BookSuitExcelConfigDataItem]:
         """Load BookSuitExcelConfigData.json keyed by suit id."""
-        file_path = self.agd_path / "ExcelBinOutput" / "BookSuitExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.BookSuitExcelConfigData = json.load(f)
-        mapping = {suit["id"]: suit for suit in data}
-        if len(mapping) != len(data):
-            raise ValueError("Duplicate book suit ID")
-        return mapping
+        data: types.BookSuitExcelConfigData = self._load_excel(
+            "BookSuitExcelConfigData.json"
+        )
+        return self._index_unique(
+            data, lambda suit: suit["id"], duplicate_name="book suit ID"
+        )
 
     @functools.lru_cache(maxsize=None)
     def load_books_codex_excel_config_data(self) -> types.BooksCodexExcelConfigData:
         """Load BooksCodexExcelConfigData.json."""
-        file_path = self.agd_path / "ExcelBinOutput" / "BooksCodexExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.BooksCodexExcelConfigData = json.load(f)
-            return data
+        return self._load_excel("BooksCodexExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def build_book_series_mapping(
@@ -560,32 +564,24 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_material_excel_config_data(self) -> MaterialTracker:
         """Load material Excel configuration data as MaterialTracker."""
-        file_path = self.agd_path / "ExcelBinOutput" / "MaterialExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.MaterialExcelConfigData = json.load(f)
-            return MaterialTracker(data)
+        data: types.MaterialExcelConfigData = self._load_excel(
+            "MaterialExcelConfigData.json"
+        )
+        return MaterialTracker(data)
 
     @functools.lru_cache(maxsize=None)
     def load_achievement_excel_config_data(
         self,
     ) -> types.AchievementExcelConfigData:
         """Load AchievementExcelConfigData.json."""
-        file_path = self.agd_path / "ExcelBinOutput" / "AchievementExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.AchievementExcelConfigData = json.load(f)
-            return data
+        return self._load_excel("AchievementExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_achievement_goal_excel_config_data(
         self,
     ) -> types.AchievementGoalExcelConfigData:
         """Load AchievementGoalExcelConfigData.json."""
-        file_path = (
-            self.agd_path / "ExcelBinOutput" / "AchievementGoalExcelConfigData.json"
-        )
-        with open(file_path, encoding="utf-8") as f:
-            data: types.AchievementGoalExcelConfigData = json.load(f)
-            return data
+        return self._load_excel("AchievementGoalExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def build_achievement_section_mapping(
@@ -635,22 +631,14 @@ class DataRepo:
         self,
     ) -> types.CoopInteractionExcelConfigData:
         """Load CoopInteractionExcelConfigData.json (cleartext)."""
-        file_path = (
-            self.agd_path / "ExcelBinOutput" / "CoopInteractionExcelConfigData.json"
-        )
-        with open(file_path, encoding="utf-8") as f:
-            data: types.CoopInteractionExcelConfigData = json.load(f)
-            return data
+        return self._load_excel("CoopInteractionExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_coop_chapter_excel_config_data(
         self,
     ) -> types.CoopChapterExcelConfigData:
         """Load CoopChapterExcelConfigData.json (cleartext)."""
-        file_path = self.agd_path / "ExcelBinOutput" / "CoopChapterExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.CoopChapterExcelConfigData = json.load(f)
-            return data
+        return self._load_excel("CoopChapterExcelConfigData.json")
 
     def build_coop_story_mapping(self) -> dict[types.CoopStoryId, list[str]]:
         """coopStoryId -> its Coop talk file paths, sorted by local talk id."""
@@ -892,138 +880,132 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_avatar_excel_config_data(self) -> types.AvatarExcelConfigData:
         """Load avatar Excel configuration data."""
-        file_path = self.agd_path / "ExcelBinOutput" / "AvatarExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.AvatarExcelConfigData = json.load(f)
-            return data
+        return self._load_excel("AvatarExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_avatar_skill_depot_excel_config_data(
         self,
     ) -> dict[types.SkillDepotId, types.AvatarSkillDepotExcelConfigDataItem]:
         """Load avatar skill-depot data as a dict keyed by depot id."""
-        file_path = (
-            self.agd_path / "ExcelBinOutput" / "AvatarSkillDepotExcelConfigData.json"
+        data: types.AvatarSkillDepotExcelConfigData = self._load_excel(
+            "AvatarSkillDepotExcelConfigData.json"
         )
-        with open(file_path, encoding="utf-8") as f:
-            data: types.AvatarSkillDepotExcelConfigData = json.load(f)
-            return {item["id"]: item for item in data}
+        return self._index_unique(
+            data, lambda item: item["id"], duplicate_name="skill depot ID"
+        )
 
     @functools.lru_cache(maxsize=None)
     def load_avatar_talent_excel_config_data(
         self,
     ) -> dict[types.TalentId, types.AvatarTalentExcelConfigDataItem]:
         """Load constellation (talent) data as a dict keyed by talent id."""
-        file_path = (
-            self.agd_path / "ExcelBinOutput" / "AvatarTalentExcelConfigData.json"
+        data: types.AvatarTalentExcelConfigData = self._load_excel(
+            "AvatarTalentExcelConfigData.json"
         )
-        with open(file_path, encoding="utf-8") as f:
-            data: types.AvatarTalentExcelConfigData = json.load(f)
-            return {item["talentId"]: item for item in data}
+        return self._index_unique(
+            data, lambda item: item["talentId"], duplicate_name="talent ID"
+        )
 
     @functools.lru_cache(maxsize=None)
     def load_avatar_skill_excel_config_data(
         self,
     ) -> dict[types.SkillId, types.AvatarSkillExcelConfigDataItem]:
         """Load avatar skill data as a dict keyed by skill id."""
-        file_path = self.agd_path / "ExcelBinOutput" / "AvatarSkillExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.AvatarSkillExcelConfigData = json.load(f)
-            return {item["id"]: item for item in data}
+        data: types.AvatarSkillExcelConfigData = self._load_excel(
+            "AvatarSkillExcelConfigData.json"
+        )
+        return self._index_unique(
+            data, lambda item: item["id"], duplicate_name="skill ID"
+        )
 
     @functools.lru_cache(maxsize=None)
     def load_fetter_story_excel_config_data(self) -> types.FetterStoryExcelConfigData:
         """Load fetter story Excel configuration data."""
-        file_path = self.agd_path / "ExcelBinOutput" / "FetterStoryExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.FetterStoryExcelConfigData = json.load(f)
-            return data
+        return self._load_excel("FetterStoryExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_fetters_excel_config_data(self) -> types.FettersExcelConfigData:
         """Load fetters Excel configuration data."""
-        file_path = self.agd_path / "ExcelBinOutput" / "FettersExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.FettersExcelConfigData = json.load(f)
-            return data
+        return self._load_excel("FettersExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_animal_codex_excel_config_data(
         self,
     ) -> dict[types.AnimalCodexId, types.AnimalCodexExcelConfigDataItem]:
         """Load AnimalCodexExcelConfigData.json keyed by codex entry id."""
-        file_path = self.agd_path / "ExcelBinOutput" / "AnimalCodexExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.AnimalCodexExcelConfigData = json.load(f)
-            return {entry["id"]: entry for entry in data}
+        data: types.AnimalCodexExcelConfigData = self._load_excel(
+            "AnimalCodexExcelConfigData.json"
+        )
+        return self._index_unique(
+            data, lambda entry: entry["id"], duplicate_name="animal codex ID"
+        )
 
     @functools.lru_cache(maxsize=None)
     def load_monster_describe_excel_config_data(
         self,
     ) -> dict[types.CreatureDescribeId, types.MonsterDescribeExcelConfigDataItem]:
         """Load MonsterDescribeExcelConfigData.json keyed by describe id."""
-        file_path = (
-            self.agd_path / "ExcelBinOutput" / "MonsterDescribeExcelConfigData.json"
+        data: types.MonsterDescribeExcelConfigData = self._load_excel(
+            "MonsterDescribeExcelConfigData.json"
         )
-        with open(file_path, encoding="utf-8") as f:
-            data: types.MonsterDescribeExcelConfigData = json.load(f)
-            return {entry["id"]: entry for entry in data}
+        return self._index_unique(
+            data, lambda entry: entry["id"], duplicate_name="monster describe ID"
+        )
 
     @functools.lru_cache(maxsize=None)
     def load_monster_title_excel_config_data(
         self,
     ) -> dict[types.MonsterTitleId, types.MonsterTitleExcelConfigDataItem]:
         """Load MonsterTitleExcelConfigData.json keyed by title id."""
-        file_path = (
-            self.agd_path / "ExcelBinOutput" / "MonsterTitleExcelConfigData.json"
+        data: types.MonsterTitleExcelConfigData = self._load_excel(
+            "MonsterTitleExcelConfigData.json"
         )
-        with open(file_path, encoding="utf-8") as f:
-            data: types.MonsterTitleExcelConfigData = json.load(f)
-            return {entry["titleID"]: entry for entry in data}
+        return self._index_unique(
+            data, lambda entry: entry["titleID"], duplicate_name="monster title ID"
+        )
 
     @functools.lru_cache(maxsize=None)
     def load_monster_special_name_excel_config_data(
         self,
-    ) -> dict[types.MonsterSpecialNameId, types.MonsterSpecialNameExcelConfigDataItem]:
-        """Load MonsterSpecialNameExcelConfigData.json keyed by special-name id."""
-        file_path = (
-            self.agd_path / "ExcelBinOutput" / "MonsterSpecialNameExcelConfigData.json"
-        )
-        with open(file_path, encoding="utf-8") as f:
-            data: types.MonsterSpecialNameExcelConfigData = json.load(f)
-            return {entry["specialNameLabID"]: entry for entry in data}
+    ) -> types.MonsterSpecialNameExcelConfigData:
+        """Load MonsterSpecialNameExcelConfigData.json."""
+        return self._load_excel("MonsterSpecialNameExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_animal_describe_excel_config_data(
         self,
     ) -> dict[types.CreatureDescribeId, types.AnimalDescribeExcelConfigDataItem]:
         """Load AnimalDescribeExcelConfigData.json keyed by describe id."""
-        file_path = (
-            self.agd_path / "ExcelBinOutput" / "AnimalDescribeExcelConfigData.json"
+        data: types.AnimalDescribeExcelConfigData = self._load_excel(
+            "AnimalDescribeExcelConfigData.json"
         )
-        with open(file_path, encoding="utf-8") as f:
-            data: types.AnimalDescribeExcelConfigData = json.load(f)
-            return {entry["id"]: entry for entry in data}
+        return self._index_unique(
+            data, lambda entry: entry["id"], duplicate_name="animal describe ID"
+        )
 
     @functools.lru_cache(maxsize=None)
     def load_main_quest_excel_config_data(
         self,
     ) -> dict[types.QuestId, types.MainQuestExcelConfigDataItem]:
         """Load main quest Excel config data as a dict keyed by quest id."""
-        file_path = self.agd_path / "ExcelBinOutput" / "MainQuestExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.MainQuestExcelConfigData = json.load(f)
-            return {quest["id"]: quest for quest in data}
+        data: types.MainQuestExcelConfigData = self._load_excel(
+            "MainQuestExcelConfigData.json"
+        )
+        return self._index_unique(
+            data, lambda quest: quest["id"], duplicate_name="main quest ID"
+        )
 
     @functools.lru_cache(maxsize=None)
     def load_chapter_excel_config_data(
         self,
     ) -> dict[types.ChapterId, types.ChapterExcelConfigDataItem]:
-        """Load chapter Excel configuration data as a dictionary mapping chapter ID to chapter object."""
-        file_path = self.agd_path / "ExcelBinOutput" / "ChapterExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.ChapterExcelConfigData = json.load(f)
-            return {chapter["id"]: chapter for chapter in data}
+        """Load ChapterExcelConfigData.json keyed by chapter id."""
+        data: types.ChapterExcelConfigData = self._load_excel(
+            "ChapterExcelConfigData.json"
+        )
+        return self._index_unique(
+            data, lambda chapter: chapter["id"], duplicate_name="chapter ID"
+        )
 
     def _build_npc_id_to_name(self, text_map: TextMapTracker) -> dict[str, str]:
         """Build NPC ID -> name using the given text map."""
@@ -1066,38 +1048,29 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_reliquary_set_excel_config_data(self) -> types.ReliquarySetExcelConfigData:
         """Load ReliquarySetExcelConfigData.json."""
-        file_path = (
-            self.agd_path / "ExcelBinOutput" / "ReliquarySetExcelConfigData.json"
-        )
-        with open(file_path, encoding="utf-8") as f:
-            data: types.ReliquarySetExcelConfigData = json.load(f)
-            return data
+        return self._load_excel("ReliquarySetExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_reliquary_excel_config_data(self) -> types.ReliquaryExcelConfigData:
         """Load ReliquaryExcelConfigData.json."""
-        file_path = self.agd_path / "ExcelBinOutput" / "ReliquaryExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.ReliquaryExcelConfigData = json.load(f)
-            return data
+        return self._load_excel("ReliquaryExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_equip_affix_excel_config_data(self) -> types.EquipAffixExcelConfigData:
         """Load EquipAffixExcelConfigData.json."""
-        file_path = self.agd_path / "ExcelBinOutput" / "EquipAffixExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.EquipAffixExcelConfigData = json.load(f)
-            return data
+        return self._load_excel("EquipAffixExcelConfigData.json")
 
     @functools.lru_cache(maxsize=None)
     def load_weapon_excel_config_data(
         self,
-    ) -> dict[int, types.WeaponExcelConfigDataItem]:
+    ) -> dict[types.WeaponId, types.WeaponExcelConfigDataItem]:
         """Load WeaponExcelConfigData.json as a dict mapping weapon ID to weapon."""
-        file_path = self.agd_path / "ExcelBinOutput" / "WeaponExcelConfigData.json"
-        with open(file_path, encoding="utf-8") as f:
-            data: types.WeaponExcelConfigData = json.load(f)
-            return {weapon["id"]: weapon for weapon in data}
+        data: types.WeaponExcelConfigData = self._load_excel(
+            "WeaponExcelConfigData.json"
+        )
+        return self._index_unique(
+            data, lambda weapon: weapon["id"], duplicate_name="weapon ID"
+        )
 
     @functools.lru_cache(maxsize=None)
     def get_readables(self) -> ReadablesTracker:

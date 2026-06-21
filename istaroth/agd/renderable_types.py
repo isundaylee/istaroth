@@ -338,7 +338,7 @@ class Subtitles(BaseRenderableType[str]):
         if subtitle_dir.exists():
             return [
                 f"Subtitle/{data_repo.language_short}/{srt_file.name}"
-                for srt_file in subtitle_dir.glob("*.srt")
+                for srt_file in sorted(subtitle_dir.glob("*.srt"))
             ]
         return []
 
