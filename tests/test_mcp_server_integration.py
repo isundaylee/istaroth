@@ -44,8 +44,10 @@ async def test_list_tools(mcp_client: Client) -> None:
     tools = await mcp_client.list_tools()
     tool_names = sorted(t.name for t in tools)
     assert tool_names == [
+        "get_category_hierarchy",
         "get_document_hierarchy",
         "get_file_content",
+        "list_categories",
         "retrieve",
         "retrieve_bm25",
     ]
@@ -83,6 +85,28 @@ async def test_get_file_content(mcp_client: Client) -> None:
     text = _extract_text(result)
     assert "文件ID:" in text
     assert "片段" in text
+
+
+async def test_list_categories(mcp_client: Client) -> None:
+    """List categories returns categories from the manifest."""
+    result = await mcp_client.call_tool("list_categories", {})
+    assert not result.is_error
+    text = _extract_text(result)
+    assert "语料库分类列表" in text
+    assert "agd_readable" in text
+
+
+async def test_get_category_hierarchy_readable_flat(mcp_client: Client) -> None:
+    """Get hierarchy for agd_readable returns a flat list with file_ids and titles."""
+    result = await mcp_client.call_tool(
+        "get_category_hierarchy", {"category": "agd_readable"}
+    )
+    assert not result.is_error
+    text = _extract_text(result)
+    assert "agd_readable" in text
+    assert "file_id:" in text
+    assert "Khaenriah History" in text
+    assert "个文件" in text
 
 
 def _extract_text(result: fastmcp_client.CallToolResult) -> str:
