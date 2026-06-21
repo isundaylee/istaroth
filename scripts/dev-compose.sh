@@ -128,8 +128,6 @@ _load_env() {
   fi
   # shellcheck disable=SC1090
   source "$ENV_FILE"
-  # Fall back for env files written before VITE_PUBLIC_HOST was persisted.
-  : "${VITE_PUBLIC_HOST:=$(hostname -f 2>/dev/null || hostname)}"
   export COMPOSE_PROJECT_NAME CONDUCTOR_PORT \
     CONDUCTOR_BACKEND_METRICS_HOST_PORT CONDUCTOR_RETRIEVAL_METRICS_HOST_PORT \
     CONDUCTOR_JAEGER_UI_HOST_PORT CONDUCTOR_JAEGER_OTLP_HOST_PORT VITE_PUBLIC_HOST
