@@ -6,12 +6,12 @@ from unittest import mock
 import pytest
 
 from istaroth.agd import (
+    agd_types,
     localization,
     processing,
     renderable_types,
     repo,
     talk_parsing,
-    types,
 )
 
 
@@ -298,7 +298,9 @@ def test_quest_10008_associated_free_talks(data_repo: repo.DataRepo) -> None:
             assert talk_text.message.strip()
 
 
-def _book_material(material_id: int, suit_id: int) -> types.MaterialExcelConfigDataItem:
+def _book_material(
+    material_id: int, suit_id: int
+) -> agd_types.MaterialExcelConfigDataItem:
     """A minimal book material entry carrying just the fields grouping reads."""
     return {
         "id": material_id,

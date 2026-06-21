@@ -66,7 +66,7 @@ istaroth/
 - ALWAYS use modern features as available in Python 3.11; DO NOT use features only in Python 3.12
 - ALWAYS be strict with error handling and prefer raising exception than falling back to implicit default values
 - ALWAYS be strict with data typing; use `NotRequired`/`None` sparingly and only when a field/value is genuinely optional in the data. If every record has a field, type it as required (let a missing key raise) rather than hedging with `NotRequired`.
-- ALWAYS give every new AGD id its own documented `TypeAlias` in the id-alias block of `istaroth/agd/types.py` (e.g. `TalentId`, `SkillDepotId`), and reference that alias from TypedDict fields, loader dict keys, and processing/rendering code rather than a bare `int`/`str`.
+- ALWAYS give every new AGD id its own documented `TypeAlias` in `istaroth/agd/id_types.py` (e.g. `TalentId`, `SkillDepotId`), and reference that alias from TypedDict fields, loader dict keys, and processing/rendering code rather than a bare `int`/`str`.
 - NEVER import individual symbols from modules and ALWAYS use module-level imports only; exceptions: it is okay to import individual symbols from the typing stdlib package.
 - NEVER use TYPE_CHECKING conditional imports
 - Write very concise docstring; don't list all args & return values when they are self-explanatory from the function signature and names
@@ -79,7 +79,7 @@ istaroth/
 - ALWAYS avoid writing obvious comments
 
 ## Import Conventions
-- ALWAYS import istaroth.agd.types aliased as agd_types outside istaroth.agd; but import is normally as from istaroth.agd import types when inside the istaroth.agd package.
+- The former `istaroth/agd/types.py` is split into three focused modules, all imported plainly as `from istaroth.agd import <module>`: `id_types` (id `TypeAlias`es), `agd_types` (raw AGD wire/excel `TypedDict`s + `TextMap`), and `processed_types` (the processed/rendered `attrs` domain types).
 - ALWAYS use from package.subpackage import module import syntax; e.g. from istaroth.agd import processing
 
 ## Functional Programming Guidelines

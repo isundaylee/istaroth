@@ -19,36 +19,36 @@ from typing import Any, TypeAlias
 
 import attrs
 
-from istaroth.agd import types
+from istaroth.agd import id_types
 
 
 @attrs.define
 class _CoopNode:
-    node_id: types.CoopNodeId
+    node_id: id_types.CoopNodeId
     node_type: str
-    next_node_ids: list[types.CoopNodeId]
-    select_dialog_ids: list[types.DialogId]
+    next_node_ids: list[id_types.CoopNodeId]
+    select_dialog_ids: list[id_types.DialogId]
     """``selectList`` dialog ids (SELECT nodes only), positionally paired with
     ``next_node_ids``."""
 
 
 @attrs.define
 class CoopStoryGraph:
-    coop_story_id: types.CoopStoryId
-    start_node_id: types.CoopNodeId
-    nodes: dict[types.CoopNodeId, _CoopNode]
+    coop_story_id: id_types.CoopStoryId
+    start_node_id: id_types.CoopNodeId
+    nodes: dict[id_types.CoopNodeId, _CoopNode]
 
 
 @attrs.define
 class TalkStep:
     """A play-order step pointing at a Coop talk file by its local talk id."""
 
-    local_talk_id: types.CoopNodeId
+    local_talk_id: id_types.CoopNodeId
 
 
 @attrs.define
 class ChoiceBranch:
-    dialog_id: types.DialogId | None
+    dialog_id: id_types.DialogId | None
     steps: list[PlayStep]
 
 
@@ -90,11 +90,11 @@ def walk_play_order(graph: CoopStoryGraph) -> list[PlayStep]:
 
 def _walk_from(
     graph: CoopStoryGraph,
-    node_id: types.CoopNodeId,
-    visited: set[types.CoopNodeId],
+    node_id: id_types.CoopNodeId,
+    visited: set[id_types.CoopNodeId],
 ) -> list[PlayStep]:
     steps: list[PlayStep] = []
-    current: types.CoopNodeId | None = node_id
+    current: id_types.CoopNodeId | None = node_id
     while current is not None and current not in visited:
         visited.add(current)
         if (node := graph.nodes.get(current)) is None:

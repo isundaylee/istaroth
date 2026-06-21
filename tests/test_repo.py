@@ -1,6 +1,6 @@
 """Tests for AGD repository helpers."""
 
-from istaroth.agd import localization, repo, types
+from istaroth.agd import agd_types, localization, repo
 
 
 def test_text_map_tracker_uses_fallback_only_on_current_miss() -> None:
@@ -29,7 +29,7 @@ def test_data_repo_loads_fallback_refs_in_code_order(monkeypatch) -> None:
 
     def _fake_git_show_text_map(
         _data_repo: repo.DataRepo, fallback_ref: str, filename: str, *, required: bool
-    ) -> types.TextMap | None:
+    ) -> agd_types.TextMap | None:
         if filename.startswith("TextMap_Medium"):
             return None
         return {

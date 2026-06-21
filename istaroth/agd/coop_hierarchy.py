@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import collections
 
-from istaroth.agd import repo, types
+from istaroth.agd import id_types, processed_types, repo
 
 
-def _leaf_id(node: types.HierarchyNode) -> types.QuestId:
+def _leaf_id(node: processed_types.HierarchyNode) -> id_types.QuestId:
     assert node.file_id is not None, "hangout leaf must carry a file_id"
     return node.file_id
 
 
 def build_coop_hierarchy(
-    coop_items: list[tuple[types.QuestId, str]], *, data_repo: repo.DataRepo
-) -> types.Hierarchy:
+    coop_items: list[tuple[id_types.QuestId, str]], *, data_repo: repo.DataRepo
+) -> processed_types.Hierarchy:
     """Assemble the hangout hierarchy from rendered (quest_id, title) pairs.
 
     Each hangout quest is placed under its primary character (the avatar of its
@@ -33,9 +33,9 @@ def build_coop_hierarchy(
     avatar_names = data_repo.build_avatar_id_to_name_mapping()
 
     # avatar_id -> chapter_id -> quest leaves
-    buckets: dict[types.AvatarId, dict[types.ChapterId, list[types.HierarchyNode]]] = (
-        collections.defaultdict(lambda: collections.defaultdict(list))
-    )
+    buckets: dict[
+        id_types.AvatarId, dict[id_types.ChapterId, list[processed_types.HierarchyNode]]
+    ] = collections.defaultdict(lambda: collections.defaultdict(list))
     for quest_id, title in coop_items:
         if (main_quest := main_quests.get(quest_id)) is None:
             continue
@@ -43,7 +43,7 @@ def build_coop_hierarchy(
             continue
         act_title = text_map.get_optional(main_quest["titleTextMapHash"]) or title
         buckets[chapter["avatarId"]][chapter["id"]].append(
-            types.HierarchyNode(
+            processed_types.HierarchyNode(
                 key=f"q{quest_id}",
                 title=act_title,
                 title_key=None,
@@ -60,7 +60,7 @@ def build_coop_hierarchy(
             children = sorted(buckets[avatar_id][chapter_ids[0]], key=_leaf_id)
         else:
             children = [
-                types.HierarchyNode(
+                processed_types.HierarchyNode(
                     key=f"c{chapter_id}",
                     title=text_map.get_optional(
                         coop_chapters[chapter_id]["chapterNameTextMapHash"]
@@ -74,7 +74,7 @@ def build_coop_hierarchy(
                 for chapter_id in chapter_ids
             ]
         character_nodes.append(
-            types.HierarchyNode(
+            processed_types.HierarchyNode(
                 key=f"a{avatar_id}",
                 title=avatar_names.get(avatar_id, str(avatar_id)),
                 title_key=None,
@@ -84,4 +84,4 @@ def build_coop_hierarchy(
             )
         )
 
-    return types.Hierarchy(nodes=character_nodes)
+    return processed_types.Hierarchy(nodes=character_nodes)

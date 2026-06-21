@@ -5,13 +5,14 @@ from collections import Counter
 from typing import Callable, ClassVar, Generic, NamedTuple, TypeVar, assert_never
 
 from istaroth.agd import (
+    id_types,
     localization,
+    processed_types,
     processing,
     rendering,
     repo,
     talk_parsing,
     text_utils,
-    types,
 )
 from istaroth.text import types as text_types
 
@@ -39,7 +40,7 @@ class BaseRenderableType(ABC, Generic[TKey]):
     @abstractmethod
     def process(
         self, renderable_key: TKey, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
+    ) -> processed_types.RenderedItem | None:
         """Process renderable key into rendered content."""
         pass
 
@@ -47,8 +48,10 @@ class BaseRenderableType(ABC, Generic[TKey]):
 def _process_single_readable(
     renderable_key: str,
     data_repo: repo.DataRepo,
-    render: Callable[[str, types.ReadableMetadata], types.RenderedItem],
-) -> types.RenderedItem | None:
+    render: Callable[
+        [str, processed_types.ReadableMetadata], processed_types.RenderedItem
+    ],
+) -> processed_types.RenderedItem | None:
     """Render a single readable file, or skip empty/placeholder ones."""
     if (
         loaded := processing.load_readable(renderable_key, data_repo=data_repo)
@@ -65,14 +68,14 @@ class BaseReadables(BaseRenderableType[str]):
 
     @abstractmethod
     def _render(
-        self, content: str, metadata: types.ReadableMetadata
-    ) -> types.RenderedItem:
+        self, content: str, metadata: processed_types.ReadableMetadata
+    ) -> processed_types.RenderedItem:
         """Render readable content into a rendered item."""
         pass
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
+    ) -> processed_types.RenderedItem | None:
         """Process readable file into rendered content."""
         return _process_single_readable(renderable_key, data_repo, self._render)
 
@@ -85,11 +88,11 @@ class Readables(BaseReadables):
     )
 
     def _render(
-        self, content: str, metadata: types.ReadableMetadata
-    ) -> types.RenderedItem:
+        self, content: str, metadata: processed_types.ReadableMetadata
+    ) -> processed_types.RenderedItem:
         return rendering.render_readable(content, metadata)
 
-    def __init__(self, used_readable_filenames: set[types.ReadableFilename]) -> None:
+    def __init__(self, used_readable_filenames: set[id_types.ReadableFilename]) -> None:
         """Initialize with optional set of used readable filenames to exclude."""
         self.used_readable_filenames = used_readable_filenames
 
@@ -107,7 +110,7 @@ class Readables(BaseReadables):
 class _BookSeriesKey(NamedTuple):
     """Renderable key for a multi-volume book series, identified by its suit id."""
 
-    suit_id: types.BookSuitId
+    suit_id: id_types.BookSuitId
 
 
 class _BookStandaloneKey(NamedTuple):
@@ -153,7 +156,7 @@ class Books(BaseRenderableType[_BookKey]):
 
     def process(
         self, renderable_key: _BookKey, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
+    ) -> processed_types.RenderedItem | None:
         """Render a book series into one file, or a standalone book on its own."""
         match renderable_key:
             case _BookSeriesKey(suit_id=suit_id):
@@ -195,7 +198,7 @@ class Weapons(BaseRenderableType[str]):
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
+    ) -> processed_types.RenderedItem | None:
         """Assemble and render a weapon's story document, or skip if it has none.
 
         ``get_weapon_info`` claims the weapon's readable files (base + story pages)
@@ -216,8 +219,8 @@ class Wings(BaseReadables):
     text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_WINGS
 
     def _render(
-        self, content: str, metadata: types.ReadableMetadata
-    ) -> types.RenderedItem:
+        self, content: str, metadata: processed_types.ReadableMetadata
+    ) -> processed_types.RenderedItem:
         return rendering.render_wings(content, metadata)
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
@@ -241,8 +244,8 @@ class Costumes(BaseReadables):
     )
 
     def _render(
-        self, content: str, metadata: types.ReadableMetadata
-    ) -> types.RenderedItem:
+        self, content: str, metadata: processed_types.ReadableMetadata
+    ) -> processed_types.RenderedItem:
         return rendering.render_costume(content, metadata)
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
@@ -258,22 +261,22 @@ class Costumes(BaseReadables):
         ]
 
 
-class Quests(BaseRenderableType[types.QuestId]):
+class Quests(BaseRenderableType[id_types.QuestId]):
     """Quest content type (dialog, cutscenes, etc.)"""
 
     text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_QUEST
     error_limit: ClassVar[int] = 100
     error_limit_non_chinese: ClassVar[int] = 2000
 
-    def discover(self, data_repo: repo.DataRepo) -> list[types.QuestId]:
+    def discover(self, data_repo: repo.DataRepo) -> list[id_types.QuestId]:
         """Find all quest IDs from MainQuestExcelConfigData."""
         # Sort by the string form: quest ids vary in digit width, so this keeps
         # the established (lexicographic) manifest ordering now that ids are int.
         return sorted(data_repo.load_main_quest_excel_config_data(), key=str)
 
     def process(
-        self, renderable_key: types.QuestId, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
+        self, renderable_key: id_types.QuestId, data_repo: repo.DataRepo
+    ) -> processed_types.RenderedItem | None:
         """Process quest file into rendered content."""
         # get_quest_info returns None for test/hidden quests, which are excluded.
         if (
@@ -292,14 +295,14 @@ class Quests(BaseRenderableType[types.QuestId]):
         return rendering.render_quest(quest_info, language=data_repo.language)
 
 
-class CharacterStories(BaseRenderableType[types.AvatarId]):
+class CharacterStories(BaseRenderableType[id_types.AvatarId]):
     """Character story content type."""
 
     text_category: ClassVar[text_types.TextCategory] = (
         text_types.TextCategory.AGD_CHARACTER_STORY
     )
 
-    def discover(self, data_repo: repo.DataRepo) -> list[types.AvatarId]:
+    def discover(self, data_repo: repo.DataRepo) -> list[id_types.AvatarId]:
         """Find all unique character IDs that have stories."""
         fetter_data = data_repo.load_fetter_story_excel_config_data()
 
@@ -313,8 +316,8 @@ class CharacterStories(BaseRenderableType[types.AvatarId]):
         return sorted(avatar_ids)
 
     def process(
-        self, renderable_key: types.AvatarId, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
+        self, renderable_key: id_types.AvatarId, data_repo: repo.DataRepo
+    ) -> processed_types.RenderedItem | None:
         """Process character story into rendered content."""
         # Get character story info
         story_info = processing.get_character_story_info(
@@ -344,7 +347,7 @@ class Subtitles(BaseRenderableType[str]):
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
+    ) -> processed_types.RenderedItem | None:
         """Process subtitle file into rendered content."""
         # Get subtitle info
         subtitle_info = processing.get_subtitle_info(
@@ -371,7 +374,7 @@ class MaterialTypes(BaseRenderableType[str]):
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
+    ) -> processed_types.RenderedItem | None:
         """Process all materials of a given type into rendered content."""
         # Load all materials and filter by the given material type
         materials_data = data_repo.load_material_excel_config_data().get_all()
@@ -403,14 +406,14 @@ class MaterialTypes(BaseRenderableType[str]):
         return rendering.render_materials_by_type(renderable_key, materials_of_type)
 
 
-class Achievements(BaseRenderableType[types.AchievementGoalId]):
+class Achievements(BaseRenderableType[id_types.AchievementGoalId]):
     """Achievements grouped by their in-game section."""
 
     text_category: ClassVar[text_types.TextCategory] = (
         text_types.TextCategory.AGD_ACHIEVEMENT
     )
 
-    def discover(self, data_repo: repo.DataRepo) -> list[types.AchievementGoalId]:
+    def discover(self, data_repo: repo.DataRepo) -> list[id_types.AchievementGoalId]:
         """Discover achievement sections in their configured display order."""
         return [
             section["id"]
@@ -424,22 +427,22 @@ class Achievements(BaseRenderableType[types.AchievementGoalId]):
         ]
 
     def process(
-        self, renderable_key: types.AchievementGoalId, data_repo: repo.DataRepo
-    ) -> types.RenderedItem:
+        self, renderable_key: id_types.AchievementGoalId, data_repo: repo.DataRepo
+    ) -> processed_types.RenderedItem:
         """Process one achievement section into rendered content."""
         return rendering.render_achievement_section(
             processing.get_achievement_section_info(renderable_key, data_repo=data_repo)
         )
 
 
-class Voicelines(BaseRenderableType[types.AvatarId]):
+class Voicelines(BaseRenderableType[id_types.AvatarId]):
     """Voiceline content type (character voice lines)."""
 
     text_category: ClassVar[text_types.TextCategory] = (
         text_types.TextCategory.AGD_VOICELINE
     )
 
-    def discover(self, data_repo: repo.DataRepo) -> list[types.AvatarId]:
+    def discover(self, data_repo: repo.DataRepo) -> list[id_types.AvatarId]:
         """Find all avatar IDs that have voicelines."""
         return sorted(
             {
@@ -449,8 +452,8 @@ class Voicelines(BaseRenderableType[types.AvatarId]):
         )
 
     def process(
-        self, renderable_key: types.AvatarId, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
+        self, renderable_key: id_types.AvatarId, data_repo: repo.DataRepo
+    ) -> processed_types.RenderedItem | None:
         """Process voiceline into rendered content."""
         voiceline_info = processing.get_voiceline_info(
             renderable_key, data_repo=data_repo
@@ -463,14 +466,14 @@ class Voicelines(BaseRenderableType[types.AvatarId]):
         return rendering.render_voiceline(voiceline_info)
 
 
-class ArtifactSets(BaseRenderableType[types.ArtifactSetId]):
+class ArtifactSets(BaseRenderableType[id_types.ArtifactSetId]):
     """Artifact set content type (artifact sets with individual piece stories)."""
 
     text_category: ClassVar[text_types.TextCategory] = (
         text_types.TextCategory.AGD_ARTIFACT_SET
     )
 
-    def discover(self, data_repo: repo.DataRepo) -> list[types.ArtifactSetId]:
+    def discover(self, data_repo: repo.DataRepo) -> list[id_types.ArtifactSetId]:
         """Find all artifact set IDs from ReliquarySetExcelConfigData."""
         # Load artifact set configuration data
         set_data = data_repo.load_reliquary_set_excel_config_data()
@@ -478,8 +481,8 @@ class ArtifactSets(BaseRenderableType[types.ArtifactSetId]):
         return [set_entry["setId"] for set_entry in set_data]
 
     def process(
-        self, renderable_key: types.ArtifactSetId, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
+        self, renderable_key: id_types.ArtifactSetId, data_repo: repo.DataRepo
+    ) -> processed_types.RenderedItem | None:
         """Process artifact set into rendered content."""
         # Skip sets with no story content (returns None)
         if (
@@ -514,7 +517,7 @@ class Creatures(BaseRenderableType[str]):
 
     def process(
         self, renderable_key: str, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
+    ) -> processed_types.RenderedItem | None:
         """Process a codex subType group into a single rendered file."""
         return rendering.render_creature_group(
             processing.get_creature_group_info(renderable_key, data_repo=data_repo)
@@ -542,7 +545,7 @@ class TalkGroups(
         self,
         renderable_key: tuple[talk_parsing.TalkGroupType, talk_parsing.TalkGroupId],
         data_repo: repo.DataRepo,
-    ) -> types.RenderedItem | None:
+    ) -> processed_types.RenderedItem | None:
         """Process talk activity group into rendered content."""
         talk_group_info = processing.get_talk_group_info(
             renderable_key[0], renderable_key[1], data_repo=data_repo
@@ -575,20 +578,20 @@ class TalkGroups(
         )
 
 
-class Hangouts(BaseRenderableType[types.QuestId]):
+class Hangouts(BaseRenderableType[id_types.QuestId]):
     """Hangout (Coop) content type: one file per hangout quest, in play order."""
 
     text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_COOP
     error_limit: ClassVar[int] = 50
     error_limit_non_chinese: ClassVar[int] = 200
 
-    def discover(self, data_repo: repo.DataRepo) -> list[types.QuestId]:
+    def discover(self, data_repo: repo.DataRepo) -> list[id_types.QuestId]:
         """All hangout quest ids that have Coop talk files."""
         return sorted(data_repo.build_hangout_quest_to_stories())
 
     def process(
-        self, renderable_key: types.QuestId, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
+        self, renderable_key: id_types.QuestId, data_repo: repo.DataRepo
+    ) -> processed_types.RenderedItem | None:
         """Render a hangout quest's Coop dialogue, or skip if it has no content."""
         if (
             hangout_info := processing.get_hangout_info(
@@ -599,18 +602,18 @@ class Hangouts(BaseRenderableType[types.QuestId]):
         return rendering.render_hangout(hangout_info, language=data_repo.language)
 
 
-class Talks(BaseRenderableType[types.TalkId]):
+class Talks(BaseRenderableType[id_types.TalkId]):
     """Standalone talk content type for talks not used by other renderable types."""
 
     text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_TALK
     error_limit: ClassVar[int] = 1000
     error_limit_non_chinese: ClassVar[int] = 1000
 
-    def __init__(self, used_talk_ids: set[types.TalkId]) -> None:
+    def __init__(self, used_talk_ids: set[id_types.TalkId]) -> None:
         """Initialize with set of already used talk IDs."""
         self.used_talk_ids = used_talk_ids
 
-    def discover(self, data_repo: repo.DataRepo) -> list[types.TalkId]:
+    def discover(self, data_repo: repo.DataRepo) -> list[id_types.TalkId]:
         """Find all talk IDs that are not already used."""
         talk_tracker = data_repo.build_talk_tracker()
 
@@ -623,8 +626,8 @@ class Talks(BaseRenderableType[types.TalkId]):
         return sorted(unused_talk_ids)
 
     def process(
-        self, renderable_key: types.TalkId, data_repo: repo.DataRepo
-    ) -> types.RenderedItem | None:
+        self, renderable_key: id_types.TalkId, data_repo: repo.DataRepo
+    ) -> processed_types.RenderedItem | None:
         """Process talk into rendered content."""
         # Check if talk file exists in mapping first
         talk_tracker = data_repo.build_talk_tracker()
