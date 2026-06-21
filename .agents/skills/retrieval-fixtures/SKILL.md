@@ -65,6 +65,15 @@ the corpus contains is a retrieval gap.
 
 8. **Use ATOMIC, single-intent queries.** A retrieval-layer fixture must test
    retrieval, not the upstream question-decomposition layer:
+
+9. **Every anchor's source file must be plausibly reachable from the query.**
+   The file should contain tokens from the query (or from likely query rewrites)
+   — otherwise the passage anchors a source retrieval has no path to find.
+   For example, anchoring a passage from a colleague's log that never mentions
+   "卡特" for a query about "卡特的全名" would be invalid: no rewrite starting
+   from "卡特" produces a query that lands in that file, so a MISS would measure
+   impossibility rather than a retrieval gap. If a file doesn't share any query
+   token, find a different source for that facet.
    `pipeline._preprocess_question` splits a compound question into 1-3 sub-queries
    before retrieval, but `eval-retrieval` calls `store.retrieve` directly
    (bypassing it). So a compound query ("七神分别是谁，掌管什么元素与理想") or a
@@ -85,6 +94,10 @@ git submodule update --init --depth 1 text/
 Files are `agd_<category>/<id>_<name>.txt` (e.g. `agd_character_story/`,
 `agd_quest/`, `agd_book/`, `agd_voiceline/`) plus non-official `tps_shishu/`.
 Filenames carry names, so they are searchable.
+
+Note: `misc/`, `manifest/`, `metadata/`, and `stats/` are **not** part of the
+indexed corpus — `misc/proper_nouns.txt` is a jieba dictionary, not a document,
+so do not anchor passages from those directories.
 
 ## Procedure
 
