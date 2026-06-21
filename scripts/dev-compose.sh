@@ -134,7 +134,10 @@ _load_env() {
 }
 
 _refresh_paseo_port() {
-  [[ -n "${PASEO_PORT:-}" ]] || return
+  # Bare `return` would propagate the failed test's status (1) and, under
+  # `set -e`, abort `up` before `docker compose` runs; PASEO_PORT being unset is
+  # a normal case, so return success.
+  [[ -n "${PASEO_PORT:-}" ]] || return 0
   if [[ ! "$PASEO_PORT" =~ ^[0-9]+$ ]]; then
     echo "dev-compose.sh: PASEO_PORT must be numeric, got '$PASEO_PORT'" >&2
     exit 1
