@@ -5,6 +5,7 @@ import { useT } from './contexts/LanguageContext'
 import { useFooter } from './contexts/FooterContext'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
+import { copyToClipboard } from './utils/clipboard'
 import QueryForm from './QueryForm'
 import Card from './components/Card'
 import Navigation from './components/Navigation'
@@ -86,7 +87,7 @@ function ConversationPage() {
 
   const copyCurrentUrl = () => {
     const shortUrl = `${window.location.origin}/s/${conversation.short_slug}`
-    navigator.clipboard.writeText(shortUrl).then(() => {
+    copyToClipboard(shortUrl).then(() => {
       setCopyButtonText(t('common.copied'))
       setTimeout(() => setCopyButtonText(t('conversation.shareLink')), 2000)
     }).catch(() => {
