@@ -6,7 +6,6 @@ from istaroth import utils
 from istaroth.agd import (
     id_types,
     issues,
-    localization,
     processed_types,
     repo,
     text_utils,
@@ -43,29 +42,6 @@ def get_material_info(
 def _humanize_material_type(material_type: str) -> str:
     """Turn a raw MaterialType enum into a readable title."""
     return material_type.removeprefix("MATERIAL_").replace("_", " ").title()
-
-
-def _render_material(
-    material_info: processed_types.MaterialInfo,
-) -> processed_types.RenderedItem:
-    """Render material content into RAG-suitable format."""
-    safe_name = utils.make_safe_filename_part(material_info.name)
-    filename = f"{material_info.material_id}_{safe_name}.txt"
-
-    content_lines = [f"# {material_info.name}\n"]
-    content_lines.append(material_info.description)
-
-    rendered_content = "\n".join(content_lines)
-
-    return processed_types.RenderedItem(
-        text_metadata=text_types.TextMetadata(
-            category=text_types.TextCategory.AGD_MATERIAL_TYPE,
-            title=material_info.name,
-            id=material_info.material_id,
-            relative_path=f"{text_types.TextCategory.AGD_MATERIAL_TYPE.value}/{filename}",
-        ),
-        content=rendered_content,
-    )
 
 
 def render_materials_by_type(
