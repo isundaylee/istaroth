@@ -13,8 +13,6 @@ def _deduplicate_chunk_overlaps(docs: list[Document]) -> list[Document]:
     same file may contain duplicate content. This trims the beginning of each
     subsequent chunk so there is no overlap with the previous chunk's end position.
     """
-    if len(docs) <= 1:
-        return docs
 
     result: list[Document] = [docs[0]]
 
@@ -28,15 +26,9 @@ def _deduplicate_chunk_overlaps(docs: list[Document]) -> list[Document]:
             result.append(docs[i])
             continue
 
-        content = docs[i].page_content
-        if overlap < len(content):
-            trimmed_content = content[overlap:]
-        else:
-            trimmed_content = ""
-
         result.append(
             Document(
-                page_content=trimmed_content,
+                page_content=docs[i].page_content[overlap:],
                 metadata=copy.deepcopy(docs[i].metadata),
             )
         )
