@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, type CSSProperties, type ReactNode, typ
 import { createPortal } from 'react-dom'
 import { useT } from '../contexts/LanguageContext'
 import { MinimizedPopupCard } from '../contexts/MinimizedPopupContext'
-import { useDraggable } from '../hooks/useDraggable'
+import { useDraggableResizable } from '../hooks/useDraggableResizable'
 import type { FloatingPlacement } from '../utils/floatingPanel'
 
 interface FloatingPanelProps {
@@ -60,8 +60,8 @@ export function FloatingPanel({
   const t = useT()
 
   // Internal ref to the panel element, forwarded to the caller's `panelRef` and
-  // handed to useDraggable so it can measure/move the panel without reaching for
-  // it via a DOM selector.
+  // handed to useDraggableResizable so it can measure/move/resize the panel
+  // without reaching for it via a DOM selector.
   const panelElementRef = useRef<HTMLDivElement | null>(null)
   const setPanelRef = useCallback((node: HTMLDivElement | null) => {
     panelElementRef.current = node
@@ -69,11 +69,17 @@ export function FloatingPanel({
     else if (panelRef) (panelRef as { current: HTMLDivElement | null }).current = node
   }, [panelRef])
 
-  // The header acts as a drag handle for anchored (non-fullscreen, interactive)
-  // panels. Hover-only popups (interactive=false) and the fullscreen view aren't
-  // draggable; the offset resets when the panel re-anchors at a new position.
-  const draggable = !fullscreen && interactive && top != null
-  const { offset, dragging, handleProps } = useDraggable({ ref: panelElementRef, resetKey: `${top},${left}`, disabled: !draggable })
+  // The header acts as a drag handle and the bottom-right grip resizes the panel,
+  // for anchored (non-fullscreen, interactive) panels. Hover-only popups
+  // (interactive=false) and the fullscreen view aren't draggable/resizable; the
+  // offset and size reset when the panel re-anchors at a new position.
+  const movable = !fullscreen && interactive && top != null
+  const { offset, size, dragging, resizing, dragHandleProps, resizeHandleProps } = useDraggableResizable({
+    ref: panelElementRef,
+    resetKey: `${top},${left}`,
+    placement,
+    disabled: !movable
+  })
 
   useEffect(() => {
     if (!onClose) return
@@ -88,6 +94,7 @@ export function FloatingPanel({
     'floating-panel',
     fullscreen ? 'floating-panel--fullscreen' : `floating-panel--${placement}`,
     interactive ? '' : 'floating-panel--static',
+    resizing ? 'floating-panel--resizing' : '',
     // Kept mounted (not unmounted) while minimized so nested popups rendered in
     // the body survive and can show their own cards.
     minimized ? 'floating-panel--minimized' : ''
@@ -98,11 +105,17 @@ export function FloatingPanel({
     : {
         top: top != null ? `${top}px` : undefined,
         left: left != null ? `${left}px` : undefined,
-        maxHeight: top != null
-          ? placement === 'above'
-            ? `calc(${top}px - 1rem)`
-            : `calc(100vh - ${top}px - 1rem)`
-          : undefined,
+        // Once resized, an explicit width/height replaces the default size and the
+        // anchored max-height cap; otherwise the panel sizes to content up to it.
+        ...(size
+          ? { width: `${size.width}px`, height: `${size.height}px`, maxWidth: 'none', maxHeight: 'none' }
+          : {
+              maxHeight: top != null
+                ? placement === 'above'
+                  ? `calc(${top}px - 1rem)`
+                  : `calc(100vh - ${top}px - 1rem)`
+                : undefined
+            }),
         // Folded into the centering transform via CSS custom properties so a drag
         // shifts the panel without overwriting its `translate(-50% ...)` base.
         ['--drag-x' as string]: `${offset.x}px`,
@@ -136,10 +149,10 @@ export function FloatingPanel({
       <div
         className={[
           'floating-panel__header',
-          draggable ? 'floating-panel__header--draggable' : '',
+          movable ? 'floating-panel__header--draggable' : '',
           dragging ? 'floating-panel__header--dragging' : ''
         ].filter(Boolean).join(' ')}
-        {...(draggable ? handleProps : {})}
+        {...(movable ? dragHandleProps : {})}
       >
         <div className="floating-panel__heading">
           {eyebrow && <p className="floating-panel__eyebrow">{eyebrow}</p>}
@@ -175,6 +188,13 @@ export function FloatingPanel({
       <div className={`floating-panel__body${bodyClassName ? ` ${bodyClassName}` : ''}`}>
         {children}
       </div>
+      {movable && (
+        <div
+          className="floating-panel__resize-handle"
+          aria-hidden="true"
+          {...resizeHandleProps}
+        />
+      )}
     </div>
     </>,
     document.body

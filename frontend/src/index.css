@@ -877,6 +877,41 @@ body {
   cursor: pointer;
 }
 
+/* Bottom-right grip for resizing. The box is a transparent hit area; the visible
+   affordance is a pair of short diagonal ticks (the classic resize grip) drawn
+   with a repeating gradient and clipped to the lower-right triangle so they sit
+   parallel to the corner and the panel's rounded edge never bisects them.
+   touch-action: none so touch drags resize instead of scrolling. */
+.floating-panel__resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 0.9rem;
+  height: 0.9rem;
+  cursor: se-resize;
+  touch-action: none;
+}
+
+.floating-panel__resize-handle::after {
+  content: '';
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 10px;
+  height: 10px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-text-muted) 0 2px,
+    transparent 2px 4.5px
+  );
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+/* No text selection while a resize is in progress. */
+.floating-panel--resizing {
+  user-select: none;
+}
+
 .floating-panel__heading {
   min-width: 0;
 }
