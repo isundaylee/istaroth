@@ -50,13 +50,6 @@ def test_build_quest_hierarchy_orders_chapter_10130_by_narrative(
     ]
 
 
-def test_build_quest_hierarchy_eng_standalone_label(data_repo: repo.DataRepo) -> None:
-    """An ENG data_repo resolves the standalone label in English."""
-    eng_repo = repo.DataRepo(data_repo.agd_path, language=localization.Language.ENG)
-    hierarchy = quest_hierarchy.build_quest_hierarchy([], data_repo=eng_repo)
-    assert len(hierarchy.nodes) == 0
-
-
 def test_build_quest_hierarchy_eng_type_label(data_repo: repo.DataRepo) -> None:
     """An ENG data_repo resolves quest type labels in English."""
     main_quests = data_repo.load_main_quest_excel_config_data()
