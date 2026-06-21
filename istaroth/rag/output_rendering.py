@@ -1,5 +1,39 @@
-from istaroth.rag import text_set
-from istaroth.rag.document_store import Document
+import copy
+from typing import cast
+
+from langchain_core.documents import Document
+
+from istaroth.rag import text_set, types
+
+
+def _deduplicate_chunk_overlaps(docs: list[Document]) -> list[Document]:
+    """Remove overlapping content between consecutive chunks using character indexes.
+
+    When chunks are created with overlapping windows, consecutive chunks from the
+    same file may contain duplicate content. This trims the beginning of each
+    subsequent chunk so there is no overlap with the previous chunk's end position.
+    """
+
+    result: list[Document] = [docs[0]]
+
+    for i in range(1, len(docs)):
+        prev_meta = cast(types.DocumentMetadata, docs[i - 1].metadata)
+        curr_meta = cast(types.DocumentMetadata, docs[i].metadata)
+
+        overlap = prev_meta["end_index"] - curr_meta["start_index"]
+
+        if overlap <= 0:
+            result.append(docs[i])
+            continue
+
+        result.append(
+            Document(
+                page_content=docs[i].page_content[overlap:],
+                metadata=copy.deepcopy(docs[i].metadata),
+            )
+        )
+
+    return result
 
 
 def _get_file_note(ts: text_set.TextSet, path: str) -> str:
@@ -19,6 +53,7 @@ def render_retrieve_output(
     parts = list[str]()
 
     for i, (score, file_docs) in enumerate(r):
+        file_docs = _deduplicate_chunk_overlaps(file_docs)
         file_id = file_docs[0].metadata["file_id"]
         chunk_start = file_docs[0].metadata["chunk_index"]
         chunk_end = file_docs[-1].metadata["chunk_index"]
