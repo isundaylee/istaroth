@@ -46,6 +46,23 @@ class ScoredDocument:
 
 
 @attrs.define
+class ScoredChunk:
+    """Chunk reference with similarity score, without page_content."""
+
+    score: float
+    file_id: str
+    chunk_index: int
+
+    def to_langsmith_output(self) -> dict[str, Any]:
+        return {
+            "score": self.score,
+            "file_id": self.file_id,
+            "chunk_index": self.chunk_index,
+            "type": "ScoredChunk",
+        }
+
+
+@attrs.define
 class GenerationStats:
     """Statistics for the final answer generation input."""
 
