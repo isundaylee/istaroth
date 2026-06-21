@@ -678,28 +678,8 @@ body {
   opacity: 0.6;
 }
 
-.library-header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-/* Equal-width spacer/actions keep the title centered while the button stays in flow. */
-.library-header__spacer,
-.library-header__actions {
-  flex: 1 1 0;
-  min-width: 0;
-}
-
-.library-header__actions {
-  display: flex;
-  justify-content: flex-end;
-}
-
 .library-header__title {
-  margin: 0;
-  min-width: 0;
+  margin: 0 0 2rem;
   font-size: var(--font-xl);
   color: var(--color-heading);
   text-align: center;
@@ -1031,20 +1011,6 @@ body {
   nav a {
     padding: 0.4rem 1rem !important;
     font-size: var(--font-sm) !important;
-  }
-
-  /* Drop the back button to its own row, centered below the title. */
-  .library-header {
-    flex-direction: column;
-  }
-
-  .library-header__spacer {
-    display: none;
-  }
-
-  .library-header__actions {
-    flex: 0 0 auto;
-    justify-content: center;
   }
 
   .library-selection-toolbar {

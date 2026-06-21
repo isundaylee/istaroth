@@ -168,11 +168,7 @@ function LibraryFileViewer() {
       <Navigation />
       <main className="main">
         <PageCard>
-          <LibraryHeader
-            title={fileTitle || catLabel}
-            backPath={backPath}
-            backText={backText}
-          />
+          <LibraryHeader title={fileTitle || catLabel} />
 
           <Breadcrumbs crumbs={crumbs} />
 

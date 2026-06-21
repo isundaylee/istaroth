@@ -77,8 +77,6 @@ export function CardGrid({ children }: { children: React.ReactNode }) {
 
 interface HierarchyBrowserProps {
   title: string
-  backText: string
-  backPath: string
   search: string
   onSearchChange: (value: string) => void
   searchPlaceholder: string
@@ -89,8 +87,6 @@ interface HierarchyBrowserProps {
 
 export default function HierarchyBrowser({
   title,
-  backText,
-  backPath,
   search,
   onSearchChange,
   searchPlaceholder,
@@ -103,7 +99,7 @@ export default function HierarchyBrowser({
       <Navigation />
       <main className="main">
         <PageCard>
-          <LibraryHeader title={title} backPath={backPath} backText={backText} />
+          <LibraryHeader title={title} />
 
           <Breadcrumbs crumbs={crumbs} />
 

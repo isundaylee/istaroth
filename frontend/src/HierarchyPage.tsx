@@ -65,9 +65,6 @@ function HierarchyPage() {
   }
 
   const catLabel = categoryLabel(category, t)
-  const browsePath = (depth: number) =>
-    `/library/${encodeURIComponent(category)}/browse/${keys.slice(0, depth).join('/')}`
-
   const crumbs: Crumb[] = hierarchyCrumbs(category, trail, t)
 
   const openLeaf = (fileId: number) =>
@@ -128,26 +125,9 @@ function HierarchyPage() {
     )
   }
 
-  // The back button climbs one path level at a time, leaving for the category
-  // root and then the library only once at the top.
-  let backPath: string
-  let backText: string
-  if (keys.length === 0) {
-    backPath = '/library'
-    backText = t('library.backToCategories')
-  } else if (keys.length === 1) {
-    backPath = `/library/${encodeURIComponent(category)}`
-    backText = catLabel
-  } else {
-    backPath = browsePath(keys.length - 1)
-    backText = nodeLabel(trail[trail.length - 2], t) || t('library.noFileName')
-  }
-
   return (
     <HierarchyBrowser
       title={catLabel}
-      backText={backText}
-      backPath={backPath}
       search={search}
       onSearchChange={setSearch}
       searchPlaceholder={t(searchPlaceholderKey(category))}
