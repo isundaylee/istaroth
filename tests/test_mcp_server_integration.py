@@ -43,13 +43,23 @@ async def test_list_tools(mcp_client: Client) -> None:
     """Server exposes exactly the retrieve and get_file_content tools."""
     tools = await mcp_client.list_tools()
     tool_names = sorted(t.name for t in tools)
-    assert tool_names == ["get_file_content", "retrieve"]
+    assert tool_names == ["get_file_content", "retrieve", "retrieve_bm25"]
 
 
 async def test_retrieve(mcp_client: Client) -> None:
     """Retrieve tool returns relevant content for a known query."""
     result = await mcp_client.call_tool(
         "retrieve", {"query": "钟离的真实身份", "k": 1, "chunk_context": 0}
+    )
+    assert not result.is_error
+    text = _extract_text(result)
+    assert "摩拉克斯" in text
+
+
+async def test_retrieve_bm25(mcp_client: Client) -> None:
+    """BM25 retrieve tool returns relevant content for a known keyword query."""
+    result = await mcp_client.call_tool(
+        "retrieve_bm25", {"query": "摩拉克斯", "k": 1, "chunk_context": 0}
     )
     assert not result.is_error
     text = _extract_text(result)
