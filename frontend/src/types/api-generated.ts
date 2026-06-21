@@ -481,16 +481,13 @@ export interface components {
          * @description One node in a browsable document hierarchy.
          *
          *     A node is either a group (``children`` set) or a leaf (``file_id`` set, a
-         *     viewable file). Data-derived labels use ``title``; labels translated on the
-         *     frontend (a quest type, "standalone") carry an i18n ``title_key`` instead.
+         *     viewable file). ``title`` is the resolved display label.
          */
         HierarchyNode: {
             /** Key */
             key: string;
             /** Title */
             title: string | null;
-            /** Title Key */
-            title_key: string | null;
             /** Children */
             children: components["schemas"]["HierarchyNode"][] | null;
             /** File Id */

@@ -292,13 +292,11 @@ class HierarchyNode(BaseModel):
     """One node in a browsable document hierarchy.
 
     A node is either a group (``children`` set) or a leaf (``file_id`` set, a
-    viewable file). Data-derived labels use ``title``; labels translated on the
-    frontend (a quest type, "standalone") carry an i18n ``title_key`` instead.
+    viewable file). ``title`` is the resolved display label.
     """
 
     key: str
     title: str | None
-    title_key: str | None
     children: list["HierarchyNode"] | None
     file_id: int | None
     toc_eligible: bool

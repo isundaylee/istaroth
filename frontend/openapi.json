@@ -1091,17 +1091,6 @@
             ],
             "title": "Title"
           },
-          "title_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Title Key"
-          },
           "children": {
             "anyOf": [
               {
@@ -1136,13 +1125,12 @@
         "required": [
           "key",
           "title",
-          "title_key",
           "children",
           "file_id",
           "toc_eligible"
         ],
         "title": "HierarchyNode",
-        "description": "One node in a browsable document hierarchy.\n\nA node is either a group (``children`` set) or a leaf (``file_id`` set, a\nviewable file). Data-derived labels use ``title``; labels translated on the\nfrontend (a quest type, \"standalone\") carry an i18n ``title_key`` instead."
+        "description": "One node in a browsable document hierarchy.\n\nA node is either a group (``children`` set) or a leaf (``file_id`` set, a\nviewable file). ``title`` is the resolved display label."
       },
       "HierarchyResponse": {
         "properties": {

@@ -13,7 +13,6 @@ def _leaf(
     return processed_types.HierarchyNode(
         key=key,
         title=title,
-        title_key=None,
         children=None,
         file_id=file_id,
         toc_eligible=False,
@@ -24,13 +23,11 @@ def _group(
     key: str,
     children: list[processed_types.HierarchyNode],
     title: str | None = None,
-    title_key: str | None = None,
     toc_eligible: bool = True,
 ) -> processed_types.HierarchyNode:
     return processed_types.HierarchyNode(
         key=key,
         title=title,
-        title_key=title_key,
         children=children,
         file_id=None,
         toc_eligible=toc_eligible,
@@ -62,7 +59,7 @@ _QUEST_TREE = [
                 ],
             ),
         ],
-        title_key="library.questTypes.WQ",
+        title="世界任务",
     ),
 ]
 
@@ -77,11 +74,11 @@ _STANDALONE_TREE = [
                     _leaf("q10", 200, "Standalone 1"),
                     _leaf("q11", 201, "Standalone 2"),
                 ],
-                title_key="library.standalone",
+                title="独立任务",
                 toc_eligible=False,
             ),
         ],
-        title_key="library.questTypes.WQ",
+        title="世界任务",
     ),
 ]
 
@@ -184,6 +181,3 @@ class TestComputeToc:
         assert toc.key == "c50001"
         assert toc.children is not None
         assert [c.file_id for c in toc.children] == [300, 301]
-
-
-

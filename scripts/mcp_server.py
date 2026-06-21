@@ -43,25 +43,7 @@ except Exception as e:
     ) from e
 
 
-_TITLE_KEY_LABELS: dict[str, str] = {
-    "library.questTypes.AQ": "魔神任务",
-    "library.questTypes.LQ": "传说任务",
-    "library.questTypes.WQ": "世界任务",
-    "library.questTypes.EQ": "活动任务",
-    "library.questTypes.IQ": "每日委托",
-    "library.standalone": "独立任务",
-    "library.categories.agd_quest": "任务",
-    "library.categories.agd_coop": "邀约事件",
-    "library.tableOfContents": "目录",
-    "library.noFileName": "未命名",
-}
-
-
 def _node_label(node: processed_types.HierarchyNode) -> str:
-    if node.title_key is not None:
-        resolved = _TITLE_KEY_LABELS.get(node.title_key)
-        if resolved is not None:
-            return resolved
     return node.title or node.key
 
 
@@ -317,8 +299,8 @@ def get_document_hierarchy(file_id: str) -> str:
 
             hierarchy_dict = _text_set.get_hierarchy_for_category(category.value)
             if hierarchy_dict is None:
-                cat_label = _TITLE_KEY_LABELS.get(
-                    f"library.categories.{category.value}", category.value
+                cat_label = localization.get_category_label(
+                    category, language=_mcp_language
                 )
                 result = f"文件“{manifest_item.title}”属于扁平分类（{cat_label}），无层级归属。"
                 rt.end(

@@ -156,16 +156,13 @@ class HierarchyNode:
     """One node in a browsable document hierarchy.
 
     A node is either a group (``children`` set) or a leaf (``file_id`` set, a
-    viewable file). Data-derived labels use ``title``; labels that are translated
-    on the frontend (the library root, a category, a quest type, "standalone")
-    carry an i18n ``title_key`` instead. ``title`` and ``title_key`` are mutually
-    exclusive.
+    viewable file). ``title`` is the resolved display label; it is ``None`` only
+    in transit before resolution (every persisted node carries a valid title).
     """
 
     key: str
     """URL-safe identifier, unique among siblings."""
     title: str | None
-    title_key: str | None
     children: list[HierarchyNode] | None
     file_id: int | None
     toc_eligible: bool
@@ -177,7 +174,6 @@ class HierarchyNode:
         return {
             "key": self.key,
             "title": self.title,
-            "title_key": self.title_key,
             "children": (
                 None
                 if self.children is None
@@ -198,7 +194,6 @@ class HierarchyNode:
         return cls(
             key=data["key"],
             title=data["title"],
-            title_key=data["title_key"],
             children=children,
             file_id=data["file_id"],
             toc_eligible=data["toc_eligible"],

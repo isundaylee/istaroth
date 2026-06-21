@@ -80,7 +80,7 @@ function HierarchyPage() {
 
   const query = search.trim().toLowerCase()
   const searchResults = query
-    ? flattenLeafEntries(nodes, t).filter((entry) =>
+    ? flattenLeafEntries(nodes).filter((entry) =>
         [entry.title, entry.context].join(' ').toLowerCase().includes(query)
       )
     : []
@@ -116,7 +116,7 @@ function HierarchyPage() {
         {children.map((node) => (
           <NavCard
             key={node.key}
-            label={nodeLabel(node, t) || t('library.noFileName')}
+            label={nodeLabel(node) || t('library.noFileName')}
             count={node.children != null ? countLeaves(node) : undefined}
             onClick={() => openChild(node)}
           />
