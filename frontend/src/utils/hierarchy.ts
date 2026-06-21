@@ -24,6 +24,28 @@ export function isLeaf(node: HierarchyNode): boolean {
   return node.file_id != null
 }
 
+// The shared breadcrumb prefix for any in-category view: the Library root, the
+// category, then one clickable crumb per ancestor group node (each linking to
+// its browse path). Callers append their own trailing "current" crumb. Used by
+// both the hierarchy listing pages and the file viewer.
+export function hierarchyCrumbs(
+  category: string,
+  ancestors: HierarchyNode[],
+  t: T
+): { label: string; to: string }[] {
+  return [
+    { label: t('library.title'), to: '/library' },
+    { label: categoryLabel(category, t), to: `/library/${encodeURIComponent(category)}` },
+    ...ancestors.map((node, index) => ({
+      label: nodeLabel(node, t) || t('library.noFileName'),
+      to: `/library/${encodeURIComponent(category)}/browse/${ancestors
+        .slice(0, index + 1)
+        .map((ancestor) => ancestor.key)
+        .join('/')}`,
+    })),
+  ]
+}
+
 // Total number of leaf files under a node (the node itself if it is a leaf).
 export function countLeaves(node: HierarchyNode): number {
   if (node.children == null) return isLeaf(node) ? 1 : 0

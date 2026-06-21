@@ -603,29 +603,36 @@ def generate_all(
 
     # Write the browsable document hierarchies, keyed by category, into one file.
     # Only categories with a dedicated builder are pre-baked here; flat categories
-    # synthesize their (depth-1) tree from the manifest at request time.
+    # synthesize their (depth-1) tree from the manifest at request time. Each
+    # builder runs only when its category was generated, and must then find items
+    # in the manifest, so an empty bucket is a regression rather than a no-op.
     hierarchies: dict[str, dict[str, object]] = {}
-    if quest_items := [
-        (item.id, item.title)
-        for item in manifest_list
-        if item.category == text_types.TextCategory.AGD_QUEST
-    ]:
+    if generate_quest:
+        quest_items = [
+            (item.id, item.title)
+            for item in manifest_list
+            if item.category == text_types.TextCategory.AGD_QUEST
+        ]
+        assert quest_items, "quest generation produced no quest manifest items"
         hierarchies[text_types.TextCategory.AGD_QUEST.value] = (
             quest_hierarchy.build_quest_hierarchy(
                 quest_items, data_repo=data_repo
             ).to_dict()
         )
-    if coop_items := [
-        (item.id, item.title)
-        for item in manifest_list
-        if item.category == text_types.TextCategory.AGD_COOP
-    ]:
+    if generate_hangouts:
+        coop_items = [
+            (item.id, item.title)
+            for item in manifest_list
+            if item.category == text_types.TextCategory.AGD_COOP
+        ]
+        assert coop_items, "hangout generation produced no coop manifest items"
         hierarchies[text_types.TextCategory.AGD_COOP.value] = (
             coop_hierarchy.build_coop_hierarchy(
                 coop_items, data_repo=data_repo
             ).to_dict()
         )
-    if hierarchies:
+    if generate_quest or generate_hangouts:
+        assert hierarchies, "expected at least one document hierarchy to write"
         metadata_dir = output_dir / "metadata" / "agd"
         metadata_dir.mkdir(parents=True, exist_ok=True)
         hierarchy_path = metadata_dir / "hierarchy.json"

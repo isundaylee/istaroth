@@ -18,7 +18,13 @@ def _chapter_title(chapter_id: types.ChapterId, *, data_repo: repo.DataRepo) -> 
 
 
 def _quest_leaf(quest_id: types.QuestId, title: str) -> types.HierarchyNode:
-    return types.HierarchyNode(key=f"q{quest_id}", title=title, file_id=quest_id)
+    return types.HierarchyNode(
+        key=f"q{quest_id}",
+        title=title,
+        title_key=None,
+        children=None,
+        file_id=quest_id,
+    )
 
 
 def _leaf_id(node: types.HierarchyNode) -> types.QuestId:
@@ -77,6 +83,7 @@ def _make_chapters(
         types.HierarchyNode(
             key=f"c{cid}",
             title=_chapter_title(cid, data_repo=data_repo),
+            title_key=None,
             children=_order_quests(
                 by_chapter[cid],
                 # by_chapter ids all come from main-quest chapterIds, every one of
@@ -84,6 +91,7 @@ def _make_chapters(
                 chapters[cid]["beginQuestId"] // 100,
                 main_quests=main_quests,
             ),
+            file_id=None,
         )
         for cid in sorted(by_chapter)
     ]
@@ -161,7 +169,9 @@ def build_quest_hierarchy(
                 types.HierarchyNode(
                     key=f"s{series_id}",
                     title=series_title,
+                    title_key=None,
                     children=series_chapters,
+                    file_id=None,
                 )
             )
 
@@ -179,16 +189,20 @@ def build_quest_hierarchy(
             children.append(
                 types.HierarchyNode(
                     key="standalone",
+                    title=None,
                     title_key="library.standalone",
                     children=standalone,
+                    file_id=None,
                 )
             )
 
         type_nodes.append(
             types.HierarchyNode(
                 key=quest_type,
+                title=None,
                 title_key=f"library.questTypes.{quest_type}",
                 children=children,
+                file_id=None,
             )
         )
 

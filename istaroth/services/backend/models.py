@@ -297,10 +297,10 @@ class HierarchyNode(BaseModel):
     """
 
     key: str
-    title: str | None = None
-    title_key: str | None = None
-    children: list["HierarchyNode"] | None = None
-    file_id: int | None = None
+    title: str | None
+    title_key: str | None
+    children: list["HierarchyNode"] | None
+    file_id: int | None
 
 
 class HierarchyResponse(BaseModel):

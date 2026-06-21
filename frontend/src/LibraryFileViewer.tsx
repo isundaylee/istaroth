@@ -15,7 +15,13 @@ import { useAppNavigate } from './hooks/useAppNavigate'
 import { useProperNounSelection } from './hooks/useProperNounSelection'
 import { buildProperNounMatcher } from './utils/properNouns'
 import { rehypeProperNouns } from './utils/rehypeProperNouns'
-import { categoryLabel, findLeafPath, flattenLeaves, nodeLabel } from './utils/hierarchy'
+import {
+  categoryLabel,
+  findLeafPath,
+  flattenLeaves,
+  hierarchyCrumbs,
+  nodeLabel,
+} from './utils/hierarchy'
 import type {
   HierarchyNode,
   HierarchyResponse,
@@ -87,12 +93,7 @@ function LibraryFileViewer() {
       .join('/')}`
 
   const crumbs: Crumb[] = [
-    { label: t('library.title'), to: '/library' },
-    { label: catLabel, to: `/library/${encodeURIComponent(category)}` },
-    ...ancestors.map((node, index) => ({
-      label: nodeLabel(node, t) || t('library.noFileName'),
-      to: browseTo(index + 1),
-    })),
+    ...hierarchyCrumbs(category, ancestors, t),
     { label: fileTitle || catLabel },
   ]
 

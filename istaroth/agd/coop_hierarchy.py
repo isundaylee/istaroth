@@ -43,7 +43,13 @@ def build_coop_hierarchy(
             continue
         act_title = text_map.get_optional(main_quest["titleTextMapHash"]) or title
         buckets[chapter["avatarId"]][chapter["id"]].append(
-            types.HierarchyNode(key=f"q{quest_id}", title=act_title, file_id=quest_id)
+            types.HierarchyNode(
+                key=f"q{quest_id}",
+                title=act_title,
+                title_key=None,
+                children=None,
+                file_id=quest_id,
+            )
         )
 
     character_nodes = []
@@ -59,7 +65,9 @@ def build_coop_hierarchy(
                         coop_chapters[chapter_id]["chapterNameTextMapHash"]
                     )
                     or "",
+                    title_key=None,
                     children=sorted(buckets[avatar_id][chapter_id], key=_leaf_id),
+                    file_id=None,
                 )
                 for chapter_id in chapter_ids
             ]
@@ -67,7 +75,9 @@ def build_coop_hierarchy(
             types.HierarchyNode(
                 key=f"a{avatar_id}",
                 title=avatar_names.get(avatar_id, str(avatar_id)),
+                title_key=None,
                 children=children,
+                file_id=None,
             )
         )
 

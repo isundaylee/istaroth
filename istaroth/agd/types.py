@@ -815,22 +815,23 @@ class HierarchyNode:
 
     key: str
     """URL-safe identifier, unique among siblings."""
-    title: str | None = None
-    title_key: str | None = None
-    children: list[HierarchyNode] | None = None
-    file_id: int | None = None
+    title: str | None
+    title_key: str | None
+    children: list[HierarchyNode] | None
+    file_id: int | None
 
     def to_dict(self) -> dict[str, Any]:
-        result: dict[str, Any] = {"key": self.key}
-        if self.title is not None:
-            result["title"] = self.title
-        if self.title_key is not None:
-            result["title_key"] = self.title_key
-        if self.children is not None:
-            result["children"] = [child.to_dict() for child in self.children]
-        if self.file_id is not None:
-            result["file_id"] = self.file_id
-        return result
+        return {
+            "key": self.key,
+            "title": self.title,
+            "title_key": self.title_key,
+            "children": (
+                None
+                if self.children is None
+                else [child.to_dict() for child in self.children]
+            ),
+            "file_id": self.file_id,
+        }
 
 
 @attrs.define

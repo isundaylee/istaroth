@@ -1067,7 +1067,11 @@
         },
         "type": "object",
         "required": [
-          "key"
+          "key",
+          "title",
+          "title_key",
+          "children",
+          "file_id"
         ],
         "title": "HierarchyNode",
         "description": "One node in a browsable document hierarchy.\n\nA node is either a group (``children`` set) or a leaf (``file_id`` set, a\nviewable file). Data-derived labels use ``title``; labels translated on the\nfrontend (a quest type, \"standalone\") carry an i18n ``title_key`` instead."

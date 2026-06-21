@@ -7,7 +7,13 @@ import { type Crumb } from './components/Breadcrumbs'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
-import { categoryLabel, countLeaves, flattenLeafEntries, nodeLabel } from './utils/hierarchy'
+import {
+  categoryLabel,
+  countLeaves,
+  flattenLeafEntries,
+  hierarchyCrumbs,
+  nodeLabel,
+} from './utils/hierarchy'
 import type { HierarchyNode, HierarchyResponse } from './types/api'
 
 // Loads a category's whole document tree once for the parent route; the index,
@@ -62,14 +68,7 @@ function HierarchyPage() {
   const browsePath = (depth: number) =>
     `/library/${encodeURIComponent(category)}/browse/${keys.slice(0, depth).join('/')}`
 
-  const crumbs: Crumb[] = [
-    { label: t('library.title'), to: '/library' },
-    { label: catLabel, to: `/library/${encodeURIComponent(category)}` },
-    ...trail.map((node, index) => ({
-      label: nodeLabel(node, t) || t('library.noFileName'),
-      to: browsePath(index + 1),
-    })),
-  ]
+  const crumbs: Crumb[] = hierarchyCrumbs(category, trail, t)
 
   const openLeaf = (fileId: number) =>
     navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(fileId)}`)

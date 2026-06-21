@@ -312,7 +312,7 @@ async def get_hierarchy(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-    if (hierarchy := text_set_obj.get_hierarchy(category)) is not None:
+    if (hierarchy := text_set_obj.get_hierarchy_for_category(category)) is not None:
         return models.HierarchyResponse.model_validate(hierarchy)
 
     # Flat category: synthesize a depth-1 tree of file leaves from the manifest.
@@ -330,7 +330,13 @@ async def get_hierarchy(
     )
     return models.HierarchyResponse(
         nodes=[
-            models.HierarchyNode(key=f"q{item.id}", title=item.title, file_id=item.id)
+            models.HierarchyNode(
+                key=f"q{item.id}",
+                title=item.title,
+                title_key=None,
+                children=None,
+                file_id=item.id,
+            )
             for item in items
         ]
     )

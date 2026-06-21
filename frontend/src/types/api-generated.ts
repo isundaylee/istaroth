@@ -468,13 +468,13 @@ export interface components {
             /** Key */
             key: string;
             /** Title */
-            title?: string | null;
+            title: string | null;
             /** Title Key */
-            title_key?: string | null;
+            title_key: string | null;
             /** Children */
-            children?: components["schemas"]["HierarchyNode"][] | null;
+            children: components["schemas"]["HierarchyNode"][] | null;
             /** File Id */
-            file_id?: number | null;
+            file_id: number | null;
         };
         /**
          * HierarchyResponse
