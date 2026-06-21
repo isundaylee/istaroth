@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 
 interface DragOffset {
   x: number
@@ -20,13 +20,15 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 
 /**
  * Make a floating element draggable from a grab handle via pointer events (mouse,
- * touch, and pen). The returned ``offset`` is a delta from the element's anchored
- * position and is clamped so the element stays within the viewport. Passing a new
- * ``resetKey`` (e.g. the anchor position) restores the default position, so
- * reopening a popup at a fresh anchor starts undragged. The handle's nearest
- * ``.floating-panel`` ancestor is the element being measured/moved.
+ * touch, and pen). ``ref`` points at the element being measured/moved. The
+ * returned ``offset`` is a delta from the element's anchored position and is
+ * clamped so it stays within the viewport. Passing a new ``resetKey`` (e.g. the
+ * anchor position) restores the default position, so reopening a popup at a fresh
+ * anchor starts undragged.
  */
-export function useDraggable({ resetKey, disabled = false }: { resetKey: unknown; disabled?: boolean }): UseDraggableResult {
+export function useDraggable(
+  { ref, resetKey, disabled = false }: { ref: RefObject<HTMLElement>; resetKey: unknown; disabled?: boolean }
+): UseDraggableResult {
   const [offset, setOffset] = useState<DragOffset>({ x: 0, y: 0 })
   const [dragging, setDragging] = useState(false)
   const offsetRef = useRef(offset)
@@ -39,7 +41,7 @@ export function useDraggable({ resetKey, disabled = false }: { resetKey: unknown
     if (event.pointerType === 'mouse' && event.button !== 0) return
     // Don't hijack pointerdowns on interactive controls living in the handle.
     if ((event.target as HTMLElement).closest('button, a, input, textarea, select')) return
-    const panel = (event.currentTarget as HTMLElement).closest('.floating-panel') as HTMLElement | null
+    const panel = ref.current
     if (!panel) return
     event.preventDefault()
 
@@ -69,7 +71,7 @@ export function useDraggable({ resetKey, disabled = false }: { resetKey: unknown
     window.addEventListener('pointermove', handleMove)
     window.addEventListener('pointerup', handleUp)
     window.addEventListener('pointercancel', handleUp)
-  }, [disabled])
+  }, [disabled, ref])
 
   return { offset, dragging, handleProps: { onPointerDown } }
 }

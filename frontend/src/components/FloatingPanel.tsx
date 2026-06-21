@@ -1,4 +1,4 @@
-import { useEffect, type CSSProperties, type ReactNode, type Ref } from 'react'
+import { useCallback, useEffect, useRef, type CSSProperties, type ReactNode, type Ref } from 'react'
 import { createPortal } from 'react-dom'
 import { useT } from '../contexts/LanguageContext'
 import { MinimizedPopupCard } from '../contexts/MinimizedPopupContext'
@@ -59,11 +59,21 @@ export function FloatingPanel({
 }: FloatingPanelProps) {
   const t = useT()
 
+  // Internal ref to the panel element, forwarded to the caller's `panelRef` and
+  // handed to useDraggable so it can measure/move the panel without reaching for
+  // it via a DOM selector.
+  const panelElementRef = useRef<HTMLDivElement | null>(null)
+  const setPanelRef = useCallback((node: HTMLDivElement | null) => {
+    panelElementRef.current = node
+    if (typeof panelRef === 'function') panelRef(node)
+    else if (panelRef) (panelRef as { current: HTMLDivElement | null }).current = node
+  }, [panelRef])
+
   // The header acts as a drag handle for anchored (non-fullscreen, interactive)
   // panels. Hover-only popups (interactive=false) and the fullscreen view aren't
   // draggable; the offset resets when the panel re-anchors at a new position.
   const draggable = !fullscreen && interactive && top != null
-  const { offset, dragging, handleProps } = useDraggable({ resetKey: `${top},${left}`, disabled: !draggable })
+  const { offset, dragging, handleProps } = useDraggable({ ref: panelElementRef, resetKey: `${top},${left}`, disabled: !draggable })
 
   useEffect(() => {
     if (!onClose) return
@@ -117,7 +127,7 @@ export function FloatingPanel({
         />
       )}
     <div
-      ref={panelRef}
+      ref={setPanelRef}
       className={className}
       style={style}
       data-floating-popup
