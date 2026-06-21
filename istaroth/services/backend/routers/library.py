@@ -333,7 +333,6 @@ async def get_hierarchy(
             models.HierarchyNode(
                 key=f"q{item.id}",
                 title=item.title,
-                title_key=None,
                 children=None,
                 file_id=item.id,
                 toc_eligible=False,

@@ -196,14 +196,6 @@ export const chs = {
     noFilterResults: '没有匹配的文档',
     previous: '上一篇',
     next: '下一篇',
-    questTypes: {
-      AQ: '魔神任务',
-      LQ: '传说任务',
-      WQ: '世界任务',
-      EQ: '活动任务',
-      IQ: '每日委托'
-    },
-    standalone: '独立任务',
     questSeriesToc: '本系列任务',
     questSearchPlaceholder: '搜索所有类型的任务...',
     noSearchResults: '没有匹配的任务',

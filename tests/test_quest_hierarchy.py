@@ -1,6 +1,6 @@
 """Tests for quest hierarchy assembly."""
 
-from istaroth.agd import quest_hierarchy, repo
+from istaroth.agd import localization, quest_hierarchy, repo
 
 
 def test_build_quest_hierarchy_places_74078(data_repo: repo.DataRepo) -> None:
@@ -50,6 +50,25 @@ def test_build_quest_hierarchy_orders_chapter_10130_by_narrative(
     ]
 
 
+def test_build_quest_hierarchy_eng_standalone_label(data_repo: repo.DataRepo) -> None:
+    """An ENG data_repo resolves the standalone label in English."""
+    eng_repo = repo.DataRepo(data_repo.agd_path, language=localization.Language.ENG)
+    hierarchy = quest_hierarchy.build_quest_hierarchy([], data_repo=eng_repo)
+    assert len(hierarchy.nodes) == 0
+
+
+def test_build_quest_hierarchy_eng_type_label(data_repo: repo.DataRepo) -> None:
+    """An ENG data_repo resolves quest type labels in English."""
+    main_quests = data_repo.load_main_quest_excel_config_data()
+    wq_quest = next(qid for qid, mq in main_quests.items() if mq.get("type") == "WQ")
+    eng_repo = repo.DataRepo(data_repo.agd_path, language=localization.Language.ENG)
+    hierarchy = quest_hierarchy.build_quest_hierarchy(
+        [(wq_quest, "")], data_repo=eng_repo
+    )
+    wq = next(t for t in hierarchy.nodes if t.key == "WQ")
+    assert wq.title == "World Quests"
+
+
 def test_build_quest_hierarchy_standalone_bucket(data_repo: repo.DataRepo) -> None:
     """A quest with no chapter falls into its type's synthetic standalone group."""
     main_quests = data_repo.load_main_quest_excel_config_data()
@@ -69,6 +88,6 @@ def test_build_quest_hierarchy_standalone_bucket(data_repo: repo.DataRepo) -> No
     assert type_node.children is not None
     assert [child.key for child in type_node.children] == ["standalone"]
     standalone = type_node.children[0]
-    assert standalone.title_key == "library.standalone"
+    assert standalone.title == "独立任务"
     assert standalone.children is not None
     assert [leaf.file_id for leaf in standalone.children] == [quest_id]

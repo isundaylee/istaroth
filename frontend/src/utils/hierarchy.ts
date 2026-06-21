@@ -2,13 +2,7 @@ import type { HierarchyNode } from '../types/api'
 
 type T = (key: string) => string
 
-// Resolve a node's display label: a frontend i18n key (quest type, "standalone",
-// …) wins, then a baked data title, then the raw key as a last resort.
-export function nodeLabel(node: HierarchyNode, t: T): string {
-  if (node.title_key) {
-    const translated = t(node.title_key)
-    if (translated !== node.title_key) return translated
-  }
+export function nodeLabel(node: HierarchyNode): string {
   return node.title || node.key
 }
 
@@ -37,7 +31,7 @@ export function hierarchyCrumbs(
     { label: t('library.title'), to: '/library' },
     { label: categoryLabel(category, t), to: `/library/${encodeURIComponent(category)}` },
     ...ancestors.map((node, index) => ({
-      label: nodeLabel(node, t) || t('library.noFileName'),
+      label: nodeLabel(node) || t('library.noFileName'),
       to: `/library/${encodeURIComponent(category)}/browse/${ancestors
         .slice(0, index + 1)
         .map((ancestor) => ancestor.key)
@@ -74,7 +68,7 @@ export interface LeafSearchEntry {
 
 // Flatten every leaf into a searchable entry whose `context` is the ` / `-joined
 // trail of ancestor labels, so a query matching an ancestor surfaces its leaves.
-export function flattenLeafEntries(nodes: HierarchyNode[], t: T): LeafSearchEntry[] {
+export function flattenLeafEntries(nodes: HierarchyNode[]): LeafSearchEntry[] {
   const entries: LeafSearchEntry[] = []
   const walk = (node: HierarchyNode, ancestors: string[]) => {
     if (node.children == null) {
@@ -83,7 +77,7 @@ export function flattenLeafEntries(nodes: HierarchyNode[], t: T): LeafSearchEntr
       }
       return
     }
-    const next = [...ancestors, nodeLabel(node, t)]
+    const next = [...ancestors, nodeLabel(node)]
     node.children.forEach((child) => walk(child, next))
   }
   nodes.forEach((node) => walk(node, []))

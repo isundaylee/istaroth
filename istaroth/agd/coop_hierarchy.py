@@ -46,7 +46,6 @@ def build_coop_hierarchy(
             processed_types.HierarchyNode(
                 key=f"q{quest_id}",
                 title=act_title,
-                title_key=None,
                 children=None,
                 file_id=quest_id,
                 toc_eligible=False,
@@ -66,7 +65,6 @@ def build_coop_hierarchy(
                         coop_chapters[chapter_id]["chapterNameTextMapHash"]
                     )
                     or "",
-                    title_key=None,
                     children=sorted(buckets[avatar_id][chapter_id], key=_leaf_id),
                     file_id=None,
                     toc_eligible=True,
@@ -77,7 +75,6 @@ def build_coop_hierarchy(
             processed_types.HierarchyNode(
                 key=f"a{avatar_id}",
                 title=avatar_names.get(avatar_id, str(avatar_id)),
-                title_key=None,
                 children=children,
                 file_id=None,
                 toc_eligible=True,

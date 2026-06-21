@@ -196,14 +196,6 @@ export const eng = {
     noFilterResults: 'No documents match your filter',
     previous: 'Previous',
     next: 'Next',
-    questTypes: {
-      AQ: 'Archon Quests',
-      LQ: 'Story Quests',
-      WQ: 'World Quests',
-      EQ: 'Event Quests',
-      IQ: 'Daily Commissions'
-    },
-    standalone: 'Standalone Quests',
     questSeriesToc: 'Quests in this series',
     questSearchPlaceholder: 'Search quests across all types...',
     noSearchResults: 'No quests match your search',

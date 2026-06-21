@@ -4,7 +4,14 @@ from __future__ import annotations
 
 import collections
 
-from istaroth.agd import agd_types, id_types, processed_types, processing, repo
+from istaroth.agd import (
+    agd_types,
+    id_types,
+    localization,
+    processed_types,
+    processing,
+    repo,
+)
 
 # Display order for top-level quest types; any unlisted type is appended after.
 _TYPE_ORDER = ["AQ", "LQ", "WQ", "EQ", "IQ"]
@@ -23,7 +30,6 @@ def _quest_leaf(
     return processed_types.HierarchyNode(
         key=f"q{quest_id}",
         title=title,
-        title_key=None,
         children=None,
         file_id=quest_id,
         toc_eligible=False,
@@ -86,7 +92,6 @@ def _make_chapters(
         processed_types.HierarchyNode(
             key=f"c{cid}",
             title=_chapter_title(cid, data_repo=data_repo),
-            title_key=None,
             children=_order_quests(
                 by_chapter[cid],
                 # by_chapter ids all come from main-quest chapterIds, every one of
@@ -176,7 +181,6 @@ def build_quest_hierarchy(
                 processed_types.HierarchyNode(
                     key=f"s{series_id}",
                     title=series_title,
-                    title_key=None,
                     children=series_chapters,
                     file_id=None,
                     toc_eligible=True,
@@ -197,8 +201,9 @@ def build_quest_hierarchy(
             children.append(
                 processed_types.HierarchyNode(
                     key="standalone",
-                    title=None,
-                    title_key="library.standalone",
+                    title=localization.get_standalone_quest_label(
+                        language=data_repo.language
+                    ),
                     children=standalone,
                     file_id=None,
                     # Unrelated chapter-less quests bucketed together; not a series.
@@ -209,8 +214,9 @@ def build_quest_hierarchy(
         type_nodes.append(
             processed_types.HierarchyNode(
                 key=quest_type,
-                title=None,
-                title_key=f"library.questTypes.{quest_type}",
+                title=localization.get_quest_type_label(
+                    quest_type, language=data_repo.language
+                ),
                 children=children,
                 file_id=None,
                 toc_eligible=True,
