@@ -606,6 +606,69 @@
         }
       }
     },
+    "/api/library/file/{category}/{id}/toc": {
+      "get": {
+        "tags": [
+          "library"
+        ],
+        "summary": "Get File Toc",
+        "description": "Get the table of contents for a single file by category and id.",
+        "operationId": "get_file_toc_api_library_file__category___id__toc_get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Category"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Language code (CHS, ENG)",
+              "title": "Language"
+            },
+            "description": "Language code (CHS, ENG)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TocResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/library/retrieve": {
       "post": {
         "tags": [
@@ -1512,6 +1575,26 @@
         ],
         "title": "ShortURLResponse",
         "description": "Response model for short URL resolution."
+      },
+      "TocResponse": {
+        "properties": {
+          "toc_root": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/HierarchyNode"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "toc_root"
+        ],
+        "title": "TocResponse",
+        "description": "TOC for a single file. toc_root is None when the file has no TOC."
       },
       "ValidationError": {
         "properties": {

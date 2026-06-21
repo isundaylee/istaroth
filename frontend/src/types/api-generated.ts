@@ -261,6 +261,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/library/file/{category}/{id}/toc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get File Toc
+         * @description Get the table of contents for a single file by category and id.
+         */
+        get: operations["get_file_toc_api_library_file__category___id__toc_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/library/retrieve": {
         parameters: {
             query?: never;
@@ -700,6 +720,13 @@ export interface components {
             /** Target Path */
             target_path: string;
         };
+        /**
+         * TocResponse
+         * @description TOC for a single file. toc_root is None when the file has no TOC.
+         */
+        TocResponse: {
+            toc_root: components["schemas"]["HierarchyNode"] | null;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -1102,6 +1129,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HierarchyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_file_toc_api_library_file__category___id__toc_get: {
+        parameters: {
+            query: {
+                /** @description Language code (CHS, ENG) */
+                language: string;
+            };
+            header?: never;
+            path: {
+                category: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TocResponse"];
                 };
             };
             /** @description Validation Error */
