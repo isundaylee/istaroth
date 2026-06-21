@@ -20,6 +20,7 @@ x-backend-common: &backend-common
     - ISTAROTH_DATABASE_URI=sqlite+aiosqlite:////data/state/web.sqlite
     - ISTAROTH_TRAINING_DEVICE=cpu
     - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+    - PYTHONDONTWRITEBYTECODE=1
 
 services:
   backend-deps:
