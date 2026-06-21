@@ -480,11 +480,10 @@ class DataRepo:
         self,
     ) -> dict[types.BookSuitId, types.BookSuitExcelConfigDataItem]:
         """Load BookSuitExcelConfigData.json keyed by suit id."""
-        data: types.BookSuitExcelConfigData = self._load_excel(
-            "BookSuitExcelConfigData.json"
-        )
         return self._index_unique(
-            data, lambda suit: suit["id"], duplicate_name="book suit ID"
+            self._load_excel("BookSuitExcelConfigData.json"),
+            lambda suit: suit["id"],
+            duplicate_name="book suit ID",
         )
 
     @functools.lru_cache(maxsize=None)
@@ -564,10 +563,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def load_material_excel_config_data(self) -> MaterialTracker:
         """Load material Excel configuration data as MaterialTracker."""
-        data: types.MaterialExcelConfigData = self._load_excel(
-            "MaterialExcelConfigData.json"
-        )
-        return MaterialTracker(data)
+        return MaterialTracker(self._load_excel("MaterialExcelConfigData.json"))
 
     @functools.lru_cache(maxsize=None)
     def load_achievement_excel_config_data(
@@ -887,11 +883,10 @@ class DataRepo:
         self,
     ) -> dict[types.SkillDepotId, types.AvatarSkillDepotExcelConfigDataItem]:
         """Load avatar skill-depot data as a dict keyed by depot id."""
-        data: types.AvatarSkillDepotExcelConfigData = self._load_excel(
-            "AvatarSkillDepotExcelConfigData.json"
-        )
         return self._index_unique(
-            data, lambda item: item["id"], duplicate_name="skill depot ID"
+            self._load_excel("AvatarSkillDepotExcelConfigData.json"),
+            lambda item: item["id"],
+            duplicate_name="skill depot ID",
         )
 
     @functools.lru_cache(maxsize=None)
@@ -899,11 +894,10 @@ class DataRepo:
         self,
     ) -> dict[types.TalentId, types.AvatarTalentExcelConfigDataItem]:
         """Load constellation (talent) data as a dict keyed by talent id."""
-        data: types.AvatarTalentExcelConfigData = self._load_excel(
-            "AvatarTalentExcelConfigData.json"
-        )
         return self._index_unique(
-            data, lambda item: item["talentId"], duplicate_name="talent ID"
+            self._load_excel("AvatarTalentExcelConfigData.json"),
+            lambda item: item["talentId"],
+            duplicate_name="talent ID",
         )
 
     @functools.lru_cache(maxsize=None)
@@ -911,11 +905,10 @@ class DataRepo:
         self,
     ) -> dict[types.SkillId, types.AvatarSkillExcelConfigDataItem]:
         """Load avatar skill data as a dict keyed by skill id."""
-        data: types.AvatarSkillExcelConfigData = self._load_excel(
-            "AvatarSkillExcelConfigData.json"
-        )
         return self._index_unique(
-            data, lambda item: item["id"], duplicate_name="skill ID"
+            self._load_excel("AvatarSkillExcelConfigData.json"),
+            lambda item: item["id"],
+            duplicate_name="skill ID",
         )
 
     @functools.lru_cache(maxsize=None)
@@ -933,11 +926,10 @@ class DataRepo:
         self,
     ) -> dict[types.AnimalCodexId, types.AnimalCodexExcelConfigDataItem]:
         """Load AnimalCodexExcelConfigData.json keyed by codex entry id."""
-        data: types.AnimalCodexExcelConfigData = self._load_excel(
-            "AnimalCodexExcelConfigData.json"
-        )
         return self._index_unique(
-            data, lambda entry: entry["id"], duplicate_name="animal codex ID"
+            self._load_excel("AnimalCodexExcelConfigData.json"),
+            lambda entry: entry["id"],
+            duplicate_name="animal codex ID",
         )
 
     @functools.lru_cache(maxsize=None)
@@ -945,11 +937,10 @@ class DataRepo:
         self,
     ) -> dict[types.CreatureDescribeId, types.MonsterDescribeExcelConfigDataItem]:
         """Load MonsterDescribeExcelConfigData.json keyed by describe id."""
-        data: types.MonsterDescribeExcelConfigData = self._load_excel(
-            "MonsterDescribeExcelConfigData.json"
-        )
         return self._index_unique(
-            data, lambda entry: entry["id"], duplicate_name="monster describe ID"
+            self._load_excel("MonsterDescribeExcelConfigData.json"),
+            lambda entry: entry["id"],
+            duplicate_name="monster describe ID",
         )
 
     @functools.lru_cache(maxsize=None)
@@ -957,11 +948,10 @@ class DataRepo:
         self,
     ) -> dict[types.MonsterTitleId, types.MonsterTitleExcelConfigDataItem]:
         """Load MonsterTitleExcelConfigData.json keyed by title id."""
-        data: types.MonsterTitleExcelConfigData = self._load_excel(
-            "MonsterTitleExcelConfigData.json"
-        )
         return self._index_unique(
-            data, lambda entry: entry["titleID"], duplicate_name="monster title ID"
+            self._load_excel("MonsterTitleExcelConfigData.json"),
+            lambda entry: entry["titleID"],
+            duplicate_name="monster title ID",
         )
 
     @functools.lru_cache(maxsize=None)
@@ -976,11 +966,10 @@ class DataRepo:
         self,
     ) -> dict[types.CreatureDescribeId, types.AnimalDescribeExcelConfigDataItem]:
         """Load AnimalDescribeExcelConfigData.json keyed by describe id."""
-        data: types.AnimalDescribeExcelConfigData = self._load_excel(
-            "AnimalDescribeExcelConfigData.json"
-        )
         return self._index_unique(
-            data, lambda entry: entry["id"], duplicate_name="animal describe ID"
+            self._load_excel("AnimalDescribeExcelConfigData.json"),
+            lambda entry: entry["id"],
+            duplicate_name="animal describe ID",
         )
 
     @functools.lru_cache(maxsize=None)
@@ -988,11 +977,10 @@ class DataRepo:
         self,
     ) -> dict[types.QuestId, types.MainQuestExcelConfigDataItem]:
         """Load main quest Excel config data as a dict keyed by quest id."""
-        data: types.MainQuestExcelConfigData = self._load_excel(
-            "MainQuestExcelConfigData.json"
-        )
         return self._index_unique(
-            data, lambda quest: quest["id"], duplicate_name="main quest ID"
+            self._load_excel("MainQuestExcelConfigData.json"),
+            lambda quest: quest["id"],
+            duplicate_name="main quest ID",
         )
 
     @functools.lru_cache(maxsize=None)
@@ -1000,11 +988,10 @@ class DataRepo:
         self,
     ) -> dict[types.ChapterId, types.ChapterExcelConfigDataItem]:
         """Load ChapterExcelConfigData.json keyed by chapter id."""
-        data: types.ChapterExcelConfigData = self._load_excel(
-            "ChapterExcelConfigData.json"
-        )
         return self._index_unique(
-            data, lambda chapter: chapter["id"], duplicate_name="chapter ID"
+            self._load_excel("ChapterExcelConfigData.json"),
+            lambda chapter: chapter["id"],
+            duplicate_name="chapter ID",
         )
 
     def _build_npc_id_to_name(self, text_map: TextMapTracker) -> dict[str, str]:
@@ -1065,11 +1052,10 @@ class DataRepo:
         self,
     ) -> dict[types.WeaponId, types.WeaponExcelConfigDataItem]:
         """Load WeaponExcelConfigData.json as a dict mapping weapon ID to weapon."""
-        data: types.WeaponExcelConfigData = self._load_excel(
-            "WeaponExcelConfigData.json"
-        )
         return self._index_unique(
-            data, lambda weapon: weapon["id"], duplicate_name="weapon ID"
+            self._load_excel("WeaponExcelConfigData.json"),
+            lambda weapon: weapon["id"],
+            duplicate_name="weapon ID",
         )
 
     @functools.lru_cache(maxsize=None)
