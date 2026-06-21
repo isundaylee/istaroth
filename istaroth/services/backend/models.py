@@ -288,101 +288,25 @@ class ProperNounsResponse(BaseModel):
     nouns: list[str]
 
 
-class QuestHierarchyQuest(BaseModel):
-    """A single quest leaf in the quest hierarchy."""
+class HierarchyNode(BaseModel):
+    """One node in a browsable document hierarchy.
 
-    id: int
-    title: str
-
-
-class QuestHierarchyChapter(BaseModel):
-    """One chapter (act) grouping a set of quests."""
-
-    chapter_id: int
-    chapter_title: str
-    quests: list[QuestHierarchyQuest]
-
-
-class QuestHierarchySeries(BaseModel):
-    """A series (questline) grouping chapters that share a chapter group."""
-
-    series_id: int
-    series_title: str
-    chapters: list[QuestHierarchyChapter]
-
-
-class QuestHierarchyType(BaseModel):
-    """A top-level quest type and the quests under it.
-
-    ``chapters`` holds chapters with no series; ``standalone_quests`` holds quests
-    with no chapter.
+    A node is either a group (``children`` set) or a leaf (``file_id`` set, a
+    viewable file). Data-derived labels use ``title``; labels translated on the
+    frontend (a quest type, "standalone") carry an i18n ``title_key`` instead.
     """
 
-    quest_type: str
-    series: list[QuestHierarchySeries]
-    chapters: list[QuestHierarchyChapter]
-    standalone_quests: list[QuestHierarchyQuest]
+    key: str
+    title: str | None
+    title_key: str | None
+    children: list["HierarchyNode"] | None
+    file_id: int | None
 
 
-class QuestHierarchyResponse(BaseModel):
-    """Response model for the quest hierarchy endpoint."""
+class HierarchyResponse(BaseModel):
+    """Response model for the document hierarchy of a single category."""
 
-    types: list[QuestHierarchyType]
-
-
-class QuestSeriesResponse(BaseModel):
-    """The series (or lone chapter) enclosing a quest, for the detail-page TOC.
-
-    Only returned for a quest present in the hierarchy, so ``quest_type`` (the
-    enclosing top-level type, used to point the back button at the right type
-    listing) is always set. ``series`` and ``chapter`` are mutually exclusive and
-    both null for a standalone quest.
-    """
-
-    quest_type: str
-    series: QuestHierarchySeries | None = None
-    chapter: QuestHierarchyChapter | None = None
-
-
-class CoopHierarchyQuest(BaseModel):
-    """A single hangout quest leaf in the hangout hierarchy."""
-
-    id: int
-    title: str
-
-
-class CoopHierarchyChapter(BaseModel):
-    """One hangout chapter (act) grouping a character's hangout quests."""
-
-    chapter_id: int
-    chapter_title: str
-    quests: list[CoopHierarchyQuest]
-
-
-class CoopHierarchyCharacter(BaseModel):
-    """One character and the hangout chapters (acts) under them."""
-
-    avatar_id: int
-    character_name: str
-    chapters: list[CoopHierarchyChapter]
-
-
-class CoopHierarchyResponse(BaseModel):
-    """Response model for the hangout hierarchy endpoint."""
-
-    characters: list[CoopHierarchyCharacter]
-
-
-class CoopCharacterResponse(BaseModel):
-    """The character (and enclosing chapter) of a hangout quest, for its TOC.
-
-    Only returned for a hangout quest present in the hierarchy, so
-    ``character_name`` is always set; ``chapter`` is the enclosing act.
-    """
-
-    avatar_id: int
-    character_name: str
-    chapter: CoopHierarchyChapter
+    nodes: list[HierarchyNode]
 
 
 class VersionResponse(BaseModel):

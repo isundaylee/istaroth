@@ -237,7 +237,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/library/quest-hierarchy": {
+    "/api/library/hierarchy/{category}": {
         parameters: {
             query?: never;
             header?: never;
@@ -245,70 +245,14 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Quest Hierarchy
-         * @description Get the browsable quest hierarchy (type -> series -> chapter -> quest).
+         * Get Hierarchy
+         * @description Get the browsable document hierarchy for a category.
+         *
+         *     Categories with a dedicated builder (quests, hangouts) return their pre-baked
+         *     multi-level tree; any other category returns a flat, depth-1 list of file
+         *     leaves synthesized from the manifest.
          */
-        get: operations["get_quest_hierarchy_api_library_quest_hierarchy_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/library/quest-series/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Quest Series
-         * @description Get the series (or lone chapter) enclosing a quest, for its detail-page TOC.
-         */
-        get: operations["get_quest_series_api_library_quest_series__id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/library/coop-hierarchy": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Coop Hierarchy
-         * @description Get the browsable hangout hierarchy (character -> chapter -> quest).
-         */
-        get: operations["get_coop_hierarchy_api_library_coop_hierarchy_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/library/coop-character/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Coop Character
-         * @description Get the character (and enclosing chapter) of a hangout quest, for its TOC.
-         */
-        get: operations["get_coop_character_api_library_coop_character__id__get"];
+        get: operations["get_hierarchy_api_library_hierarchy__category__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -498,62 +442,6 @@ export interface components {
             created_at: number;
         };
         /**
-         * CoopCharacterResponse
-         * @description The character (and enclosing chapter) of a hangout quest, for its TOC.
-         *
-         *     Only returned for a hangout quest present in the hierarchy, so
-         *     ``character_name`` is always set; ``chapter`` is the enclosing act.
-         */
-        CoopCharacterResponse: {
-            /** Avatar Id */
-            avatar_id: number;
-            /** Character Name */
-            character_name: string;
-            chapter: components["schemas"]["CoopHierarchyChapter"];
-        };
-        /**
-         * CoopHierarchyChapter
-         * @description One hangout chapter (act) grouping a character's hangout quests.
-         */
-        CoopHierarchyChapter: {
-            /** Chapter Id */
-            chapter_id: number;
-            /** Chapter Title */
-            chapter_title: string;
-            /** Quests */
-            quests: components["schemas"]["CoopHierarchyQuest"][];
-        };
-        /**
-         * CoopHierarchyCharacter
-         * @description One character and the hangout chapters (acts) under them.
-         */
-        CoopHierarchyCharacter: {
-            /** Avatar Id */
-            avatar_id: number;
-            /** Character Name */
-            character_name: string;
-            /** Chapters */
-            chapters: components["schemas"]["CoopHierarchyChapter"][];
-        };
-        /**
-         * CoopHierarchyQuest
-         * @description A single hangout quest leaf in the hangout hierarchy.
-         */
-        CoopHierarchyQuest: {
-            /** Id */
-            id: number;
-            /** Title */
-            title: string;
-        };
-        /**
-         * CoopHierarchyResponse
-         * @description Response model for the hangout hierarchy endpoint.
-         */
-        CoopHierarchyResponse: {
-            /** Characters */
-            characters: components["schemas"]["CoopHierarchyCharacter"][];
-        };
-        /**
          * ExampleQuestionResponse
          * @description Response model for example question endpoint.
          */
@@ -567,6 +455,34 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * HierarchyNode
+         * @description One node in a browsable document hierarchy.
+         *
+         *     A node is either a group (``children`` set) or a leaf (``file_id`` set, a
+         *     viewable file). Data-derived labels use ``title``; labels translated on the
+         *     frontend (a quest type, "standalone") carry an i18n ``title_key`` instead.
+         */
+        HierarchyNode: {
+            /** Key */
+            key: string;
+            /** Title */
+            title: string | null;
+            /** Title Key */
+            title_key: string | null;
+            /** Children */
+            children: components["schemas"]["HierarchyNode"][] | null;
+            /** File Id */
+            file_id: number | null;
+        };
+        /**
+         * HierarchyResponse
+         * @description Response model for the document hierarchy of a single category.
+         */
+        HierarchyResponse: {
+            /** Nodes */
+            nodes: components["schemas"]["HierarchyNode"][];
         };
         /**
          * LibraryCategoriesResponse
@@ -774,80 +690,6 @@ export interface components {
             kind: string;
             /** Detail */
             detail: string | null;
-        };
-        /**
-         * QuestHierarchyChapter
-         * @description One chapter (act) grouping a set of quests.
-         */
-        QuestHierarchyChapter: {
-            /** Chapter Id */
-            chapter_id: number;
-            /** Chapter Title */
-            chapter_title: string;
-            /** Quests */
-            quests: components["schemas"]["QuestHierarchyQuest"][];
-        };
-        /**
-         * QuestHierarchyQuest
-         * @description A single quest leaf in the quest hierarchy.
-         */
-        QuestHierarchyQuest: {
-            /** Id */
-            id: number;
-            /** Title */
-            title: string;
-        };
-        /**
-         * QuestHierarchyResponse
-         * @description Response model for the quest hierarchy endpoint.
-         */
-        QuestHierarchyResponse: {
-            /** Types */
-            types: components["schemas"]["QuestHierarchyType"][];
-        };
-        /**
-         * QuestHierarchySeries
-         * @description A series (questline) grouping chapters that share a chapter group.
-         */
-        QuestHierarchySeries: {
-            /** Series Id */
-            series_id: number;
-            /** Series Title */
-            series_title: string;
-            /** Chapters */
-            chapters: components["schemas"]["QuestHierarchyChapter"][];
-        };
-        /**
-         * QuestHierarchyType
-         * @description A top-level quest type and the quests under it.
-         *
-         *     ``chapters`` holds chapters with no series; ``standalone_quests`` holds quests
-         *     with no chapter.
-         */
-        QuestHierarchyType: {
-            /** Quest Type */
-            quest_type: string;
-            /** Series */
-            series: components["schemas"]["QuestHierarchySeries"][];
-            /** Chapters */
-            chapters: components["schemas"]["QuestHierarchyChapter"][];
-            /** Standalone Quests */
-            standalone_quests: components["schemas"]["QuestHierarchyQuest"][];
-        };
-        /**
-         * QuestSeriesResponse
-         * @description The series (or lone chapter) enclosing a quest, for the detail-page TOC.
-         *
-         *     Only returned for a quest present in the hierarchy, so ``quest_type`` (the
-         *     enclosing top-level type, used to point the back button at the right type
-         *     listing) is always set. ``series`` and ``chapter`` are mutually exclusive and
-         *     both null for a standalone quest.
-         */
-        QuestSeriesResponse: {
-            /** Quest Type */
-            quest_type: string;
-            series?: components["schemas"]["QuestHierarchySeries"] | null;
-            chapter?: components["schemas"]["QuestHierarchyChapter"] | null;
         };
         /**
          * ShortURLResponse
@@ -1240,39 +1082,7 @@ export interface operations {
             };
         };
     };
-    get_quest_hierarchy_api_library_quest_hierarchy_get: {
-        parameters: {
-            query: {
-                /** @description Language code (CHS, ENG) */
-                language: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["QuestHierarchyResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_quest_series_api_library_quest_series__id__get: {
+    get_hierarchy_api_library_hierarchy__category__get: {
         parameters: {
             query: {
                 /** @description Language code (CHS, ENG) */
@@ -1280,7 +1090,7 @@ export interface operations {
             };
             header?: never;
             path: {
-                id: string;
+                category: string;
             };
             cookie?: never;
         };
@@ -1292,73 +1102,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["QuestSeriesResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_coop_hierarchy_api_library_coop_hierarchy_get: {
-        parameters: {
-            query: {
-                /** @description Language code (CHS, ENG) */
-                language: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CoopHierarchyResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_coop_character_api_library_coop_character__id__get: {
-        parameters: {
-            query: {
-                /** @description Language code (CHS, ENG) */
-                language: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CoopCharacterResponse"];
+                    "application/json": components["schemas"]["HierarchyResponse"];
                 };
             };
             /** @description Validation Error */

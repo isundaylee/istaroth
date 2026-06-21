@@ -9,14 +9,17 @@ def test_build_quest_hierarchy_places_74078(data_repo: repo.DataRepo) -> None:
         [(74078, "溪舟的尾波")], data_repo=data_repo
     )
 
-    wq = next(t for t in hierarchy.types if t.quest_type == "WQ")
-    series = next(s for s in wq.series if s.series_id == 10152)
-    chapter = next(c for c in series.chapters if c.chapter_id == 10155)
+    wq = next(t for t in hierarchy.nodes if t.key == "WQ")
+    assert wq.children is not None
+    series = next(s for s in wq.children if s.key == "s10152")
+    assert series.children is not None
+    chapter = next(c for c in series.children if c.key == "c10155")
+    assert chapter.children is not None
 
-    assert [q.id for q in chapter.quests] == [74078]
+    assert [leaf.file_id for leaf in chapter.children] == [74078]
     # Series is labeled with its first chapter's title.
-    assert series.series_title == series.chapters[0].chapter_title
-    assert series.series_title
+    assert series.title == series.children[0].title
+    assert series.title
 
 
 def test_build_quest_hierarchy_orders_chapter_10130_by_narrative(
@@ -28,17 +31,27 @@ def test_build_quest_hierarchy_orders_chapter_10130_by_narrative(
         [(qid, str(qid)) for qid in ids], data_repo=data_repo
     )
 
-    wq = next(t for t in hierarchy.types if t.quest_type == "WQ")
-    series = next(s for s in wq.series if s.series_id == 10130)
-    chapter = next(c for c in series.chapters if c.chapter_id == 10130)
+    wq = next(t for t in hierarchy.nodes if t.key == "WQ")
+    assert wq.children is not None
+    series = next(s for s in wq.children if s.key == "s10130")
+    assert series.children is not None
+    chapter = next(c for c in series.children if c.key == "c10130")
+    assert chapter.children is not None
 
     # 73287 is the begin quest yet has the highest id; the suggestTrack chain
     # places it first instead of last (cf. plain id sort).
-    assert [q.id for q in chapter.quests] == [73287, 73219, 73186, 73187, 73103, 73220]
+    assert [leaf.file_id for leaf in chapter.children] == [
+        73287,
+        73219,
+        73186,
+        73187,
+        73103,
+        73220,
+    ]
 
 
 def test_build_quest_hierarchy_standalone_bucket(data_repo: repo.DataRepo) -> None:
-    """A quest with no chapter falls into its type's standalone bucket."""
+    """A quest with no chapter falls into its type's synthetic standalone group."""
     main_quests = data_repo.load_main_quest_excel_config_data()
     quest_id = next(
         qid
@@ -50,8 +63,12 @@ def test_build_quest_hierarchy_standalone_bucket(data_repo: repo.DataRepo) -> No
     hierarchy = quest_hierarchy.build_quest_hierarchy(
         [(quest_id, "standalone")], data_repo=data_repo
     )
-    type_node = next(t for t in hierarchy.types if t.quest_type == quest_type)
+    type_node = next(t for t in hierarchy.nodes if t.key == quest_type)
 
-    assert [q.id for q in type_node.standalone_quests] == [quest_id]
-    assert not type_node.series
-    assert not type_node.chapters
+    # The only child is the standalone group holding the lone quest leaf.
+    assert type_node.children is not None
+    assert [child.key for child in type_node.children] == ["standalone"]
+    standalone = type_node.children[0]
+    assert standalone.title_key == "library.standalone"
+    assert standalone.children is not None
+    assert [leaf.file_id for leaf in standalone.children] == [quest_id]
