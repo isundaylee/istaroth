@@ -75,10 +75,16 @@ the corpus contains is a retrieval gap.
 
 ## The corpus
 
-CHS corpus: `/usr/scratch/git/istaroth/text/chs` (the `text/` submodule in a
-worktree may be empty; use that path). Files are `agd_<category>/<id>_<name>.txt`
-(e.g. `agd_character_story/`, `agd_quest/`, `agd_book/`, `agd_voiceline/`) plus
-non-official `tps_shishu/`. Filenames carry names, so they are searchable.
+CHS corpus: `text/chs` (the `text/` submodule). In a worktree the submodule is
+usually empty — populate it with a shallow clone before searching:
+
+```bash
+git submodule update --init --depth 1 text/
+```
+
+Files are `agd_<category>/<id>_<name>.txt` (e.g. `agd_character_story/`,
+`agd_quest/`, `agd_book/`, `agd_voiceline/`) plus non-official `tps_shishu/`.
+Filenames carry names, so they are searchable.
 
 ## Procedure
 
@@ -94,7 +100,7 @@ non-official `tps_shishu/`. Filenames carry names, so they are searchable.
 3. **For each facet, find anchors with `rg`** (run from the corpus dir):
 
    ```bash
-   cd /usr/scratch/git/istaroth/text/chs
+   cd text/chs
    rg -l "潘塔罗涅" -g'!tps_shishu/**' .                                  # official files attesting the facet
    rg -No "潘塔罗涅卡财务审批卡得非常紧[^\n]{0,30}" agd_book/201154_木偶的笔记本.txt  # pull a verbatim slice
    ```
@@ -105,7 +111,7 @@ non-official `tps_shishu/`. Filenames carry names, so they are searchable.
 4. **Verify every anchor exists verbatim:**
 
    ```bash
-   cd /usr/scratch/git/istaroth/text/chs
+   cd text/chs
    chk() { rg -q -- "$1" "$2" && echo "OK   $1" || echo "MISS $1"; }
    chk "潘塔罗涅卡财务审批卡得非常紧" agd_book/201154_木偶的笔记本.txt
    ```
@@ -184,21 +190,3 @@ equals its filename stem; facet names in `expected_coverage` are unique; every
 `covers` entry names a known facet; every passage covers ≥1 facet; every expected
 facet is covered by ≥1 passage. `subtype`, `known_redundancy`, `notes` are
 optional.
-
-## Backlog of candidate cases
-
-Breadth category (atomic queries — derive ground truth per the procedure):
-
-- `broad_theme`: 天空岛是什么？ (Celestia — its own intent, separate from 天理);
-  深渊教团的目的是什么？; 世界树与虚空是什么关系？.
-- `enumeration`: 璃月七星有哪些成员？; 七神的神之心都在谁手里？.
-- Also harden the existing 5 fixtures (rule 5) so every MISSING is a true miss.
-
-Avoid per-region survey phrasings ("各国…分别…") — the decomposition layer splits
-those upstream (rule 8); recast them as one focused intent (e.g. "神之眼代表着
-什么？" instead of "神之眼在不同地区代表什么").
-
-New categories worth adding (each a new JSON file): `precision` (a narrow query
-must surface ONE specific source, not near-duplicates/distractors); `negative`
-(a query whose answer is NOT in the corpus should retrieve nothing on-topic);
-`disambiguation` (same surface term, different referents).
