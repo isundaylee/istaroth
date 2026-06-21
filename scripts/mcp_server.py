@@ -18,6 +18,15 @@ from istaroth.rag import document_store_set, output_rendering
 
 mcp: FastMCP = FastMCP("istaroth")
 
+_HINT_GET_FILE_CONTENT = "\n".join(
+    [
+        "=" * 60,
+        "提示：如需获取某个文件的完整内容，请使用 get_file_content 工具，",
+        "传入上面结果中的文件ID（file_id）即可获取该文件的所有内容片段。",
+        "注意：大文件可能需要多次调用，使用不同的 start_index 参数来获取所有内容。",
+    ]
+)
+
 try:
     if os.getenv("ISTAROTH_RETRIEVAL_SERVICE_URL"):
         _store_set = document_store_set.DocumentStoreSet.from_retrieval_service()
@@ -162,9 +171,7 @@ def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
                         ),
                         "",
                         "=" * 60,
-                        "提示：如需获取某个文件的完整内容，请使用 get_file_content 工具，",
-                        "传入上面结果中的文件ID（file_id）即可获取该文件的所有内容片段。",
-                        "注意：大文件可能需要多次调用，使用不同的 start_index 参数来获取所有内容。",
+                        _HINT_GET_FILE_CONTENT,
                     ]
                 )
 
@@ -191,12 +198,12 @@ def retrieve_bm25(query: str, k: int = 10, chunk_context: int = 5) -> str:
     - k: 返回文档数量，默认10个；建议设置为10至20之间，以获取更全面的结果。
     - chunk_context: 返回匹配文档块周围的上下文块数量，默认5个
 
-    适用场景（推荐使用retrieve_bm25）：
+    本工具适用场景（BM25关键词检索）：
     - 查找特定角色名称、地名或物品的精确出现
     - 验证某个具体术语是否在知识库中出现
     - 需要精确字面匹配而非语义理解的结果
 
-    适用场景（推荐使用retrieve）：
+    如需语义/概念检索，请使用retrieve工具：
     - 语义/概念查询，需要模糊匹配和理解
     - 用完整句子或问题形式提问
     - 需要基于语义相似度而非字面匹配的检索
@@ -226,9 +233,7 @@ def retrieve_bm25(query: str, k: int = 10, chunk_context: int = 5) -> str:
                         ),
                         "",
                         "=" * 60,
-                        "提示：如需获取某个文件的完整内容，请使用 get_file_content 工具，",
-                        "传入上面结果中的文件ID（file_id）即可获取该文件的所有内容片段。",
-                        "注意：大文件可能需要多次调用，使用不同的 start_index 参数来获取所有内容。",
+                        _HINT_GET_FILE_CONTENT,
                     ]
                 )
 
