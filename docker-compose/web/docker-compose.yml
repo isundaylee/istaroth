@@ -124,6 +124,7 @@ services:
     environment:
       - NODE_ENV=development
       - VITE_API_PROXY_TARGET=http://istaroth:8000
+      - VITE_PUBLIC_HOST=${VITE_PUBLIC_HOST:-}
 
   frontend-deps:
     # Keep in sync with frontend/.nvmrc
