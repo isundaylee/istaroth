@@ -310,6 +310,12 @@ class HierarchyResponse(BaseModel):
     nodes: list[HierarchyNode]
 
 
+class TocResponse(BaseModel):
+    """TOC for a single file. toc_root is None when the file has no TOC."""
+
+    toc_root: HierarchyNode | None
+
+
 class VersionResponse(BaseModel):
     """Response model for version endpoint."""
 

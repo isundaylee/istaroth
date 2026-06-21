@@ -30,6 +30,7 @@ export type LibraryFileResponse = components['schemas']['LibraryFileResponse']
 export type ProperNounsResponse = components['schemas']['ProperNounsResponse']
 export type HierarchyResponse = components['schemas']['HierarchyResponse']
 export type HierarchyNode = components['schemas']['HierarchyNode']
+export type TocResponse = components['schemas']['TocResponse']
 
 // Additional types that may not be in the OpenAPI spec but are used by the frontend
 export interface ErrorResponse {

@@ -43,7 +43,12 @@ async def test_list_tools(mcp_client: Client) -> None:
     """Server exposes exactly the retrieve and get_file_content tools."""
     tools = await mcp_client.list_tools()
     tool_names = sorted(t.name for t in tools)
-    assert tool_names == ["get_document_hierarchy", "get_file_content", "retrieve", "retrieve_bm25"]
+    assert tool_names == [
+        "get_document_hierarchy",
+        "get_file_content",
+        "retrieve",
+        "retrieve_bm25",
+    ]
 
 
 async def test_retrieve(mcp_client: Client) -> None:

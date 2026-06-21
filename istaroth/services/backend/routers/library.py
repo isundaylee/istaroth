@@ -6,7 +6,7 @@ from typing import cast
 
 from fastapi import APIRouter, HTTPException, Query
 
-from istaroth.agd import localization
+from istaroth.agd import hierarchy_nav, localization, processed_types
 from istaroth.rag import text_set
 from istaroth.rag import types as rag_types
 from istaroth.services.backend import models, proper_noun_highlighting
@@ -340,6 +340,54 @@ async def get_hierarchy(
             )
             for item in items
         ]
+    )
+
+
+@router.get(
+    "/api/library/file/{category}/{id}/toc",
+    response_model=models.TocResponse,
+)
+@handle_unexpected_exception
+async def get_file_toc(
+    category: str,
+    id: str,
+    document_store_set: DocumentStoreSet,
+    language: str = Query(..., description="Language code (CHS, ENG)"),
+) -> models.TocResponse:
+    """Get the table of contents for a single file by category and id."""
+    try:
+        language_enum = localization.Language(language.upper())
+    except ValueError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid language: {language}. Available: CHS, ENG",
+        )
+
+    try:
+        text_set_obj = document_store_set.get_text_set(language_enum)
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    hierarchy = text_set_obj.get_hierarchy_for_category(category)
+    if hierarchy is None:
+        return models.TocResponse(toc_root=None)
+
+    nodes = processed_types.Hierarchy.from_dict(hierarchy).nodes
+    path = hierarchy_nav.find_leaf_path(nodes, int(id))
+    if path is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"File not found in hierarchy: category={category}, id={id}",
+        )
+
+    toc_root = hierarchy_nav.compute_toc(path)
+    if toc_root is None:
+        return models.TocResponse(toc_root=None)
+
+    return models.TocResponse(
+        toc_root=models.HierarchyNode.model_validate(toc_root.to_dict())
     )
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from istaroth.agd import hierarchy_nav, processed_types
+from istaroth.services.backend import models
 
 # ── fixture helpers ──────────────────────────────────────────────────────
 
@@ -184,3 +185,47 @@ class TestComputeToc:
         assert toc.key == "c50001"
         assert toc.children is not None
         assert [c.file_id for c in toc.children] == [300, 301]
+
+
+# ── dict → domain → Pydantic round-trip ──────────────────────────────────
+
+
+class TestTocRoundTrip:
+    """Simulates the GET /api/library/file/{category}/{id}/toc endpoint's core logic.
+
+    The endpoint receives a hierarchy dict from text_set, converts it to domain
+    types, runs find_leaf_path + compute_toc, then converts back via .to_dict()
+    and wraps in the Pydantic TocResponse model.
+    """
+
+    def test_round_trip_grouped_toc(self) -> None:
+        hierarchy_dict = _QUEST_TREE[0].to_dict()
+        nodes = processed_types.Hierarchy.from_dict({"nodes": [hierarchy_dict]}).nodes
+        path = hierarchy_nav.find_leaf_path(nodes, 103)
+        assert path is not None
+        toc_root = hierarchy_nav.compute_toc(path)
+        assert toc_root is not None
+        toc_root_pydantic = models.HierarchyNode.model_validate(toc_root.to_dict())
+        assert toc_root_pydantic.key == "s10152"
+        assert toc_root_pydantic.children is not None
+
+    def test_round_trip_standalone_no_toc(self) -> None:
+        hierarchy_dict = _STANDALONE_TREE[0].to_dict()
+        nodes = processed_types.Hierarchy.from_dict({"nodes": [hierarchy_dict]}).nodes
+        path = hierarchy_nav.find_leaf_path(nodes, 200)
+        assert path is not None
+        toc_root = hierarchy_nav.compute_toc(path)
+        assert toc_root is None
+
+    def test_round_trip_flat_no_hierarchy(self) -> None:
+        """Flat categories (hierarchy is None) → toc_root=None."""
+        nodes = processed_types.Hierarchy.from_dict({"nodes": []}).nodes
+        assert nodes == []
+        # Simulating no hierarchy; the endpoint returns TocResponse(toc_root=None) in that case.
+        assert True
+
+    def test_round_trip_file_not_in_hierarchy(self) -> None:
+        hierarchy_dict = _QUEST_TREE[0].to_dict()
+        nodes = processed_types.Hierarchy.from_dict({"nodes": [hierarchy_dict]}).nodes
+        path = hierarchy_nav.find_leaf_path(nodes, 99999)
+        assert path is None

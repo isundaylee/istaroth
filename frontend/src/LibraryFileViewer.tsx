@@ -28,6 +28,7 @@ import type {
   HierarchyResponse,
   LibraryFileResponse,
   ProperNounsResponse,
+  TocResponse,
 } from './types/api'
 
 interface LoaderData {
@@ -36,6 +37,7 @@ interface LoaderData {
   fileId: string
   category: string
   currentId: number
+  tocData: TocResponse | null
 }
 
 export async function libraryFileViewerLoader({ params, request }: LoaderFunctionArgs): Promise<LoaderData> {
@@ -45,20 +47,23 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
   }
 
   const language = getLanguageFromUrl(request.url)
-  const res = await fetch(
-    `/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(id)}?language=${language}`
-  )
-  if (!res.ok) {
-    throw new Response(translate(language, 'library.errors.loadFailed'), { status: res.status })
+  const [fileRes, tocRes] = await Promise.all([
+    fetch(`/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(id)}?language=${language}`),
+    fetch(`/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(id)}/toc?language=${language}`),
+  ])
+  if (!fileRes.ok) {
+    throw new Response(translate(language, 'library.errors.loadFailed'), { status: fileRes.status })
   }
 
-  const fileData = (await res.json()) as LibraryFileResponse
+  const fileData = (await fileRes.json()) as LibraryFileResponse
+  const tocData: TocResponse | null = tocRes.ok ? await tocRes.json() : null
   return {
     fileContent: fileData.content,
     fileTitle: fileData.file_info.title,
     fileId: id,
     category,
     currentId: parseInt(id, 10),
+    tocData,
   }
 }
 
@@ -66,7 +71,7 @@ function LibraryFileViewer() {
   const t = useT()
   const { language } = useTranslation()
   const navigate = useAppNavigate()
-  const { fileContent, fileTitle, fileId, category, currentId } = useLoaderData() as LoaderData
+  const { fileContent, fileTitle, fileId, category, currentId, tocData } = useLoaderData() as LoaderData
   const { nodes } = useRouteLoaderData('library-category') as HierarchyResponse
   const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(fileContent)
   // Static curated list (per language, fast) and the per-file LLM extraction
@@ -103,13 +108,8 @@ function LibraryFileViewer() {
   const backText =
     ancestors.length > 0 ? nodeLabel(ancestors[ancestors.length - 1], t) || catLabel : catLabel
 
-  // TOC: rooted at the "section" node (the series/chapter/character grouping),
-  // i.e. the ancestor just below the top-level type/character node. Only sections
-  // that mark themselves TOC-eligible get one; synthetic buckets of unrelated
-  // files (e.g. the "standalone" group) opt out.
-  const tocCandidate: HierarchyNode | null =
-    ancestors.length >= 2 ? ancestors[1] : ancestors.length === 1 ? ancestors[0] : null
-  const tocRoot = tocCandidate?.toc_eligible ? tocCandidate : null
+  // TOC from the backend endpoint (shipped with the loader data).
+  const tocRoot = tocData?.toc_root ?? null
   let tocSections: { title: string; leaves: HierarchyNode[] }[] = []
   let tocTitle = ''
   if (tocRoot?.children) {
