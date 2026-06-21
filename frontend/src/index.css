@@ -605,28 +605,6 @@ body {
   overscroll-behavior: contain;
 }
 
-/* Citation popup custom scrollbar */
-.citation-popup-content::-webkit-scrollbar {
-  width: 12px;
-}
-
-.citation-popup-content::-webkit-scrollbar-track {
-  background: transparent;
-  margin: 0px 6px;
-}
-
-.citation-popup-content::-webkit-scrollbar-thumb {
-  background: var(--color-primary-fill);
-  border-radius: var(--radius-sm);
-  border: 2px solid transparent;
-  background-clip: content-box;
-}
-
-.citation-popup-content::-webkit-scrollbar-thumb:hover {
-  background: var(--color-primary-fill-hover);
-  background-clip: content-box;
-}
-
 /* Cited chunk marked with a left accent bar within the full document text */
 .citation-cited {
   margin: 12px 0;
@@ -957,6 +935,8 @@ body {
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
+  /* Reserve room for the scrollbar so it never overlaps/clips the content */
+  scrollbar-gutter: stable;
   font-size: var(--font-sm);
   line-height: 1.6;
   color: var(--color-text);
