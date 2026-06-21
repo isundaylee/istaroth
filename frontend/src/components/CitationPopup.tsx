@@ -15,6 +15,8 @@ interface CitationPopupProps {
   fullText?: string
   isSticky?: boolean
   isFullscreen?: boolean
+  minimized?: boolean
+  onRestore?: () => void
   placement: FloatingPlacement
   top: number
   left: number
@@ -33,6 +35,8 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
       fullText,
       isSticky = false,
       isFullscreen = false,
+      minimized = false,
+      onRestore,
       placement,
       top,
       left,
@@ -107,6 +111,8 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
         fullscreen={isFullscreen}
         onToggleFullscreen={isSticky ? onToggleFullscreen : undefined}
         interactive={isSticky}
+        minimized={isSticky ? minimized : false}
+        onRestore={isSticky ? onRestore : undefined}
         eyebrow={t.citation.source}
         title={title}
         onClose={isSticky ? onClose : undefined}

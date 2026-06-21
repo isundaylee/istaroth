@@ -8,6 +8,7 @@ export const chs = {
     copied: '已复制',
     copyFailed: '复制失败',
     close: '关闭',
+    expand: '展开',
     download: '下载',
     unexpectedError: '发生了意外错误'
   },

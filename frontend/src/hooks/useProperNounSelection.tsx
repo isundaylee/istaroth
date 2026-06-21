@@ -46,7 +46,12 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   const defaultModelRef = useRef<string | null>(null)
   const [selection, setSelection] = useState<SelectionState | null>(null)
   const [panel, setPanel] = useState<SelectionPanel | null>(null)
+  const [isMinimized, setIsMinimized] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  // Mirrors whether a panel is open so the outside-click handler (registered
+  // once) can decide between minimizing and closing without re-subscribing.
+  const panelOpenRef = useRef(false)
+  panelOpenRef.current = panel !== null
 
   const normalizeSelectionText = (text: string) => text.replace(/\s+/g, ' ').trim()
   const isEntityLikeSelection = (text: string) =>
@@ -64,16 +69,24 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
     const { top, left, placement } = calculateFloatingPlacement(rect)
     setSelection({ text, top, left, placement })
     setPanel(null)
+    setIsMinimized(false)
     setIsFullscreen(false)
     return true
   }, [])
 
   const captureSelection = useCallback(() => {
+    // A bare click (collapsed/invalid selection) should dismiss only an
+    // unconfirmed selection toolbar — never an open or minimized panel, whose
+    // side-rail card must survive clicks in the answer area.
+    const clearToolbar = () => {
+      if (panelOpenRef.current) return
+      setSelection(null)
+      setPanel(null)
+    }
     const currentSelection = window.getSelection()
     const container = answerRef.current
     if (!currentSelection || !container || currentSelection.rangeCount === 0 || currentSelection.isCollapsed) {
-      setSelection(null)
-      setPanel(null)
+      clearToolbar()
       return
     }
 
@@ -88,14 +101,12 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
 
     const selectedText = normalizeSelectionText(currentSelection.toString())
     if (!isEntityLikeSelection(selectedText)) {
-      setSelection(null)
-      setPanel(null)
+      clearToolbar()
       return
     }
 
     if (!openSelectionAtRect(selectedText, range.getBoundingClientRect())) {
-      setSelection(null)
-      setPanel(null)
+      clearToolbar()
     }
   }, [openSelectionAtRect])
 
@@ -112,6 +123,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   useEffect(() => {
     setSelection(null)
     setPanel(null)
+    setIsMinimized(false)
     setIsFullscreen(false)
     activeRequestIdRef.current += 1
   }, [resetKey])
@@ -120,8 +132,14 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
     const handleMouseDown = (event: MouseEvent) => {
       const target = event.target as HTMLElement
       // Keep this panel open for clicks in its own answer or in any floating
-      // popup (including nested ones, which portal out of this subtree).
+      // popup/card (including nested ones, which portal out of this subtree).
       if (answerRef.current?.contains(target) || target.closest?.('[data-floating-popup]')) return
+      // With a panel open, an outside click minimizes it to a side-rail card
+      // (kept open, full close happens via the card); a bare toolbar just closes.
+      if (panelOpenRef.current) {
+        setIsMinimized(true)
+        return
+      }
       setSelection(null)
       setPanel(null)
       setIsFullscreen(false)
@@ -131,6 +149,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
       if (event.key !== 'Escape') return
       setSelection(null)
       setPanel(null)
+      setIsMinimized(false)
       setIsFullscreen(false)
       activeRequestIdRef.current += 1
     }
@@ -267,6 +286,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   const closeSelectionPanel = () => {
     setSelection(null)
     setPanel(null)
+    setIsMinimized(false)
     setIsFullscreen(false)
     activeRequestIdRef.current += 1
   }
@@ -279,8 +299,10 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
         top={selection.top}
         left={selection.left}
         fullscreen={isFullscreen}
+        minimized={isMinimized}
         retrievePagePath={retrievePagePath}
         onClose={closeSelectionPanel}
+        onRestore={() => setIsMinimized(false)}
         onToggleFullscreen={() => setIsFullscreen((value) => !value)}
       />
     ) : (

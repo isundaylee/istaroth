@@ -755,6 +755,91 @@ body {
   pointer-events: none;
 }
 
+/* Minimized popups stay mounted (so nested popups survive) but are hidden; a
+   card in the side rail represents them. */
+.floating-panel--minimized {
+  display: none;
+}
+
+/* Fixed rail collecting minimized popup cards beside the main content column
+   (horizontal position set inline; falls back to the right edge). The rail
+   itself passes clicks through; only the cards are interactive. */
+.minimized-popup-rail {
+  position: fixed;
+  top: 4.5rem;
+  right: 1rem;
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(16rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+  pointer-events: none;
+}
+
+.minimized-popup-card {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  pointer-events: auto;
+  animation: fadeIn 0.2s ease;
+}
+
+.minimized-popup-card__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  border: 0;
+  padding: 0.5rem 0.65rem;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.minimized-popup-card__body:hover {
+  background: var(--color-surface-hover);
+}
+
+.minimized-popup-card__eyebrow {
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.minimized-popup-card__title {
+  color: var(--color-heading);
+  font-size: var(--font-sm);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.minimized-popup-card__close {
+  flex: 0 0 auto;
+  width: 1.8rem;
+  border: 0;
+  border-left: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.minimized-popup-card__close:hover {
+  background: var(--color-surface-hover);
+}
+
 .floating-panel__header {
   flex-shrink: 0;
   display: flex;

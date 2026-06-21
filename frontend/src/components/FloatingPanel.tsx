@@ -1,6 +1,7 @@
 import { useEffect, type CSSProperties, type ReactNode, type Ref } from 'react'
 import { createPortal } from 'react-dom'
 import { useT } from '../contexts/LanguageContext'
+import { MinimizedPopupCard } from '../contexts/MinimizedPopupContext'
 import type { FloatingPlacement } from '../utils/floatingPanel'
 
 interface FloatingPanelProps {
@@ -16,6 +17,10 @@ interface FloatingPanelProps {
   actions?: ReactNode
   /** When provided, a close button is shown and Escape dismisses the panel. */
   onClose?: () => void
+  /** When true, the panel is hidden and represented by a card in the side rail. */
+  minimized?: boolean
+  /** Re-open the full panel from its minimized card. */
+  onRestore?: () => void
   fullscreen?: boolean
   /** When provided, a fullscreen toggle button is shown in the actions row. */
   onToggleFullscreen?: () => void
@@ -42,6 +47,8 @@ export function FloatingPanel({
   topLink,
   actions,
   onClose,
+  minimized = false,
+  onRestore,
   fullscreen = false,
   onToggleFullscreen,
   interactive = true,
@@ -63,7 +70,10 @@ export function FloatingPanel({
   const className = [
     'floating-panel',
     fullscreen ? 'floating-panel--fullscreen' : `floating-panel--${placement}`,
-    interactive ? '' : 'floating-panel--static'
+    interactive ? '' : 'floating-panel--static',
+    // Kept mounted (not unmounted) while minimized so nested popups rendered in
+    // the body survive and can show their own cards.
+    minimized ? 'floating-panel--minimized' : ''
   ].filter(Boolean).join(' ')
 
   const style: CSSProperties | undefined = fullscreen
@@ -84,6 +94,17 @@ export function FloatingPanel({
   // block and `overflow: hidden` would clip it. `data-floating-popup` lets
   // outside-click handlers recognise clicks landing in any (nested) popup.
   return createPortal(
+    <>
+      {minimized && onRestore && onClose && (
+        <MinimizedPopupCard
+          eyebrow={eyebrow}
+          title={title}
+          onRestore={onRestore}
+          onClose={onClose}
+          expandLabel={t('common.expand')}
+          closeLabel={t('common.close')}
+        />
+      )}
     <div
       ref={panelRef}
       className={className}
@@ -126,7 +147,8 @@ export function FloatingPanel({
       <div className={`floating-panel__body${bodyClassName ? ` ${bodyClassName}` : ''}`}>
         {children}
       </div>
-    </div>,
+    </div>
+    </>,
     document.body
   )
 }

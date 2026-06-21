@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration } from '
 import { LanguageProvider } from './contexts/LanguageContext'
 import { FooterProvider } from './contexts/FooterContext'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { MinimizedPopupProvider } from './contexts/MinimizedPopupContext'
 import DocumentTitle from './components/DocumentTitle'
 import KeyboardShortcuts from './components/KeyboardShortcuts'
 import Footer from './components/Footer'
@@ -21,13 +22,15 @@ function RootLayout() {
     <LanguageProvider>
       <ThemeProvider>
       <FooterProvider>
-        <DocumentTitle />
-        <KeyboardShortcuts />
-        <div className="app">
-          <Outlet />
-          <Footer />
-        </div>
-        <ScrollRestoration />
+        <MinimizedPopupProvider>
+          <DocumentTitle />
+          <KeyboardShortcuts />
+          <div className="app">
+            <Outlet />
+            <Footer />
+          </div>
+          <ScrollRestoration />
+        </MinimizedPopupProvider>
       </FooterProvider>
       </ThemeProvider>
     </LanguageProvider>
