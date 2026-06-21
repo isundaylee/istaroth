@@ -28,7 +28,7 @@ def _get_unique_monster_special_name_hash(
     return matches[0]["specialNameTextMapHash"] if len(matches) == 1 else None
 
 
-def get_creature_info(
+def _get_creature_info(
     codex_id: id_types.AnimalCodexId, *, data_repo: repo.DataRepo
 ) -> processed_types.CreatureInfo:
     """Get a living-beings archive entry (monster or wildlife) by its codex id."""
@@ -102,7 +102,7 @@ def get_creature_group_info(
             subtype, language=data_repo.language
         ),
         creatures=[
-            get_creature_info(entry["id"], data_repo=data_repo) for entry in entries
+            _get_creature_info(entry["id"], data_repo=data_repo) for entry in entries
         ],
     )
 

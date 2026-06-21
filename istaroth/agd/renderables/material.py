@@ -45,7 +45,7 @@ def _humanize_material_type(material_type: str) -> str:
     return material_type.removeprefix("MATERIAL_").replace("_", " ").title()
 
 
-def render_material(
+def _render_material(
     material_info: processed_types.MaterialInfo,
 ) -> processed_types.RenderedItem:
     """Render material content into RAG-suitable format."""

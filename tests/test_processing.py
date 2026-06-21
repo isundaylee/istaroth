@@ -511,7 +511,7 @@ def test_english_language_support(english_data_repo: repo.DataRepo) -> None:
 
 def test_creature_24068801_info(data_repo: repo.DataRepo) -> None:
     """The Fontaine Assault Specialist Mek resolves its names and description."""
-    info = creature.get_creature_info(24068801, data_repo=data_repo)
+    info = creature._get_creature_info(24068801, data_repo=data_repo)
 
     assert info.codex_id == 24068801
     assert info.name == "攻坚特化型机关"
@@ -522,7 +522,7 @@ def test_creature_24068801_info(data_repo: repo.DataRepo) -> None:
 
 def test_creature_wildlife_info_has_no_monster_names(data_repo: repo.DataRepo) -> None:
     """Wildlife entries carry only a name; no special name or title."""
-    info = creature.get_creature_info(28020101, data_repo=data_repo)
+    info = creature._get_creature_info(28020101, data_repo=data_repo)
 
     assert info.special_name is None
     assert info.title is None
