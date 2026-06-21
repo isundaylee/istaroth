@@ -231,13 +231,19 @@ def _ranked_source_texts(
 
 @cli.command("eval-retrieval")
 @click.option(
-    "-k", "--k", default=20, help="Sources retrieved per query (measurement ceiling)"
+    "-k",
+    "--k",
+    default=10,
+    help="Sources retrieved per query (default 10 = the 'thorough' frontend preset, the most generous production setting)",
 )
 @click.option(
-    "-c", "--chunk-context", default=2, help="Chunk context used during retrieval"
+    "-c",
+    "--chunk-context",
+    default=5,
+    help="Chunk context used during retrieval (default 5 = 'thorough' frontend preset)",
 )
 @click.option(
-    "--default-k", default=10, help="Production cutoff to highlight coverage at"
+    "--default-k", default=10, help="Cutoff to highlight coverage at (default = k)"
 )
 @click.option(
     "--category",

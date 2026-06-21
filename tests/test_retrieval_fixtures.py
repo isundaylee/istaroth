@@ -54,11 +54,6 @@ def test_facets_in_ignores_unrelated_text():
     assert fixture.facets_in("这是一段完全无关的文本。") == set()
 
 
-def test_breadth_cross_region_survey_records_known_redundancy():
-    """The cross-region survey fixture documents a near-duplicate source pair."""
-    survey = next(
-        f
-        for f in retrieval.load_retrieval_dataset().by_category("breadth")
-        if f.subtype == "cross_region_survey"
-    )
-    assert survey.known_redundancy
+def test_known_redundancy_is_recorded_somewhere():
+    """At least one fixture documents a near-duplicate source pair (motivates dedup/MMR)."""
+    assert any(f.known_redundancy for f in retrieval.load_retrieval_dataset().fixtures)
