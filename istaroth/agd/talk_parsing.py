@@ -101,6 +101,8 @@ class TalkParser:
 
         self.talk_id_to_path: dict[types.TalkId, str] = {}
         self.talk_group_id_to_path: dict[tuple[TalkGroupType, TalkGroupId], str] = {}
+        self._talk_group_candidates: dict[tuple[TalkGroupType, TalkGroupId], list[str]]
+        self._talk_group_candidates = collections.defaultdict(list)
 
         # coopStoryId -> Coop talk file paths, sorted by local talk id below.
         _coop_group: dict[types.CoopStoryId, list[tuple[int, str]]] = (
@@ -123,7 +125,9 @@ class TalkParser:
         invalid_paths = dict[pathlib.Path, str]()
 
         # Scan Talk directory and all subdirectories for JSON files
-        for json_file in (self.agd_path / "BinOutput" / "Talk").glob("**/*.json"):
+        for json_file in sorted(
+            (self.agd_path / "BinOutput" / "Talk").glob("**/*.json")
+        ):
             relative_path = json_file.relative_to(self.agd_path)
 
             if relative_path in self._BAD_TALK_PATHS:
@@ -166,6 +170,8 @@ class TalkParser:
                 f"{len(invalid_paths)} invalid talk file paths: {invalid_paths}"
             )
 
+        self._resolve_talk_group_candidates()
+
         for quest_id, talks in _free_group.items():
             self.free_group_quest_to_paths[quest_id] = [
                 path for _, path in sorted(talks)
@@ -201,16 +207,34 @@ class TalkParser:
 
         assert isinstance(id, int), relative_path
         key = (group_type, str(id))
-        if key in self.talk_group_id_to_path:
-            logger.warning(
-                "Ignoring %s already present as %s in %s",
-                relative_path,
-                key,
-                self.talk_group_id_to_path[key],
-            )
-            return
+        self._talk_group_candidates[key].append(relative_path.as_posix())
 
-        self.talk_group_id_to_path[key] = (relative_path).as_posix()
+    def _resolve_talk_group_candidates(self) -> None:
+        for key, candidates in self._talk_group_candidates.items():
+            winner = min(
+                candidates, key=lambda p: self._talk_group_preference_key(key, p)
+            )
+            self.talk_group_id_to_path[key] = winner
+            for dropped in sorted(set(candidates) - {winner}):
+                logger.warning(
+                    "Ignoring %s already present as %s in %s",
+                    dropped,
+                    key,
+                    winner,
+                )
+
+    @staticmethod
+    def _talk_group_preference_key(
+        key: tuple[TalkGroupType, TalkGroupId], path: str
+    ) -> tuple[int, int, str]:
+        _, group_id = key
+        stem = pathlib.Path(path).stem
+        if stem == group_id:
+            return (0, 0, path)
+        prefix, separator, suffix = stem.partition("_")
+        if prefix == group_id and separator and suffix.isdigit():
+            return (1, -int(suffix), path)
+        return (2, 0, path)
 
     def _handle_talk_file(
         self, relative_path: pathlib.Path, talk_data: dict[str, Any]
