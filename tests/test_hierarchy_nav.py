@@ -159,16 +159,15 @@ class TestComputeToc:
         assert path is not None
         toc = hierarchy_nav.compute_toc(path)
         assert toc is not None
-        assert toc.root.key == "s10152"
-        assert len(toc.sections) == 2
-        assert (
-            toc.sections[0].title is not None and toc.sections[0].title.key == "c10155"
-        )
-        assert [c.file_id for c in toc.sections[0].children] == [100, 101, 102]
-        assert (
-            toc.sections[1].title is not None and toc.sections[1].title.key == "c10156"
-        )
-        assert [c.file_id for c in toc.sections[1].children] == [103]
+        assert toc.key == "s10152"
+        assert toc.children is not None
+        assert any(c.children is not None for c in toc.children)
+        assert toc.children[0].key == "c10155"
+        assert toc.children[0].children is not None
+        assert [c.file_id for c in toc.children[0].children] == [100, 101, 102]
+        assert toc.children[1].key == "c10156"
+        assert toc.children[1].children is not None
+        assert [c.file_id for c in toc.children[1].children] == [103]
 
     def test_standalone_not_toc_eligible(self) -> None:
         path = hierarchy_nav.find_leaf_path(_STANDALONE_TREE, 200)
@@ -180,10 +179,10 @@ class TestComputeToc:
         assert path is not None
         toc = hierarchy_nav.compute_toc(path)
         assert toc is not None
-        assert toc.root.key == "a10000002"
-        assert len(toc.sections) == 1
-        assert toc.sections[0].title is None
-        assert [c.file_id for c in toc.sections[0].children] == [400, 401]
+        assert toc.key == "a10000002"
+        assert toc.children is not None
+        assert not any(c.children is not None for c in toc.children)
+        assert [c.file_id for c in toc.children] == [400, 401]
 
     def test_direct_leaf_no_toc(self) -> None:
         leaf = _leaf("q1", 100, "Solo")
@@ -195,7 +194,6 @@ class TestComputeToc:
         assert path is not None
         toc = hierarchy_nav.compute_toc(path)
         assert toc is not None
-        assert toc.root.key == "c50001"
-        assert len(toc.sections) == 1
-        assert toc.sections[0].title is None
-        assert [c.file_id for c in toc.sections[0].children] == [300, 301]
+        assert toc.key == "c50001"
+        assert toc.children is not None
+        assert [c.file_id for c in toc.children] == [300, 301]

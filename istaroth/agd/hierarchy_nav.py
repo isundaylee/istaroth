@@ -7,31 +7,7 @@ so that MCP tools and future backend callers share one implementation.
 
 from __future__ import annotations
 
-import attrs
-
 from istaroth.agd import processed_types
-
-
-@attrs.define
-class TocSection:
-    """One section of a table of contents.
-
-    ``title`` is the group node (e.g. a chapter) when the TOC root has grouped
-    children; ``None`` when the root's direct children are leaves (flat case).
-    ``children`` preserves the original nested hierarchy — the renderer walks
-    it to display nested levels rather than receiving a pre-flattened list.
-    """
-
-    title: processed_types.HierarchyNode | None
-    children: list[processed_types.HierarchyNode]
-
-
-@attrs.define
-class Toc:
-    """A computed table of contents for a file's narrative container."""
-
-    root: processed_types.HierarchyNode
-    sections: list[TocSection]
 
 
 def find_leaf_path(
@@ -70,45 +46,27 @@ def flatten_leaves(
     return leaves
 
 
-def compute_toc(path: list[processed_types.HierarchyNode]) -> Toc | None:
-    """Compute the table of contents for a file from its leaf path.
+def compute_toc(
+    path: list[processed_types.HierarchyNode],
+) -> processed_types.HierarchyNode | None:
+    """Return the TOC root node for a file's leaf path, or ``None``.
 
-    The TOC is rooted at the section node (the ancestor just below the top-level
-    type/character node).  Only sections that mark themselves ``toc_eligible``
-    get a TOC; synthetic buckets of unrelated files (e.g. the *standalone* group)
-    opt out.
+    The TOC is rooted at the ancestor just below the top-level type/character
+    node (``ancestors[1]`` when depth ≥ 3, else ``ancestors[0]`` at depth 2).
+    Only nodes that mark themselves ``toc_eligible`` get a TOC; synthetic
+    buckets of unrelated files (e.g. the *standalone* group) opt out.
 
-    Returns ``None`` when the file has no hierarchy placement or its section is
-    not TOC-eligible.
+    The caller inspects ``root.children`` to determine the display:
+    - If any child has ``children`` → grouped sections (each group node is a
+      titled section with leaf children).
+    - If all children are direct leaves → flat list (one untitled section).
     """
     ancestors = path[:-1]
-
-    toc_candidate: processed_types.HierarchyNode | None
-    if len(ancestors) >= 2:
-        toc_candidate = ancestors[1]
-    elif len(ancestors) == 1:
-        toc_candidate = ancestors[0]
-    else:
-        toc_candidate = None
-
-    toc_root = (
-        toc_candidate
-        if (toc_candidate is not None and toc_candidate.toc_eligible)
-        else None
-    )
-    if toc_root is None or toc_root.children is None:
+    if len(ancestors) == 0:
         return None
 
-    sections: list[TocSection] = []
-    if any(child.children is not None for child in toc_root.children):
-        for group in toc_root.children:
-            sections.append(
-                TocSection(
-                    title=group,
-                    children=list(group.children) if group.children else [],
-                )
-            )
-    else:
-        sections.append(TocSection(title=None, children=list(toc_root.children)))
+    toc_candidate = ancestors[1] if len(ancestors) >= 2 else ancestors[0]
+    if not toc_candidate.toc_eligible or toc_candidate.children is None:
+        return None
 
-    return Toc(root=toc_root, sections=sections)
+    return toc_candidate

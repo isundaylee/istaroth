@@ -339,35 +339,38 @@ def get_document_hierarchy(file_id: str) -> str:
             current = path[-1]
             breadcrumb = " → ".join(_node_label(n) for n in [*ancestors, current])
 
-            toc = hierarchy_nav.compute_toc(path)
+            toc_root = hierarchy_nav.compute_toc(path)
             output_lines = [f"文件层级归属：", breadcrumb, ""]
 
-            if toc is not None:
-                toc_title = _node_label(toc.root)
+            if toc_root is not None and toc_root.children:
+                toc_title = _node_label(toc_root)
                 output_lines.append(f"目录 — {toc_title}：")
-                for section in toc.sections:
-                    section_title = (
-                        ""
-                        if section.title is None
-                        else f"  {_node_label(section.title)}："
-                    )
-                    if section_title:
-                        output_lines.append(section_title)
-                    for child in section.children:
-                        assert child.file_id is not None
-                        child_manifest = _text_set.get_manifest_item(
-                            category, child.file_id
+
+                has_groups = any(c.children is not None for c in toc_root.children)
+                for child in toc_root.children:
+                    if has_groups:
+                        group_label = _node_label(child)
+                        if group_label:
+                            output_lines.append(f"  {group_label}：")
+                        sub_children = child.children or []
+                    else:
+                        sub_children = [child]
+
+                    for leaf in sub_children:
+                        assert leaf.file_id is not None
+                        leaf_manifest = _text_set.get_manifest_item(
+                            category, leaf.file_id
                         )
-                        child_md5 = (
+                        leaf_md5 = (
                             hashlib.md5(
-                                child_manifest.relative_path.encode("utf-8")
+                                leaf_manifest.relative_path.encode("utf-8")
                             ).hexdigest()
-                            if child_manifest is not None
+                            if leaf_manifest is not None
                             else "?"
                         )
-                        marker = " ← 当前文件" if child.file_id == doc_id else ""
+                        marker = " ← 当前文件" if leaf.file_id == doc_id else ""
                         output_lines.append(
-                            f"    - {child.title or _node_label(child)} (file_id: {child_md5}){marker}"
+                            f"    - {leaf.title or _node_label(leaf)} (file_id: {leaf_md5}){marker}"
                         )
                 output_lines.append("")
                 output_lines.append(
@@ -385,7 +388,7 @@ def get_document_hierarchy(file_id: str) -> str:
                     "category": category.value,
                     "id": doc_id,
                     "breadcrumb": breadcrumb,
-                    "has_toc": toc is not None,
+                    "has_toc": toc_root is not None,
                     "output": formatted_output,
                 }
             )
