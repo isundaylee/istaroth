@@ -17,20 +17,24 @@ const RAIL_MAX_WIDTH = 256 // matches the CSS `min(16rem, ...)` cap
 const RAIL_GAP = 12 // gap between the content area and the rail
 const RAIL_MARGIN = 8 // minimum gap from the viewport edge
 
-/** Anchor the rail just right of the answer area when there is room (otherwise
- * the top-right corner), and vertically to the top of the answer area or the
- * top of the screen, whichever is lower. Falls back to the CSS default when no
- * content element is registered. */
+/** Position the rail relative to the answer area: horizontally a small gap from
+ * the right border of the surrounding content card — just outside it when there
+ * is room, otherwise inset just inside it (e.g. the wide library viewer) — and
+ * vertically at the top of the answer text or the top of the screen, whichever
+ * is lower. Falls back to the CSS default when no content element is registered. */
 function computeRailStyle(anchor: HTMLElement | null): CSSProperties {
   if (!anchor) return {}
-  const rect = anchor.getBoundingClientRect()
+  // The visual "answer area" is the content card; gap from its border rather
+  // than the inner text box (whose padding would push the rail past the edge).
+  const cardRight = (anchor.closest('.card') ?? anchor).getBoundingClientRect().right
   const railWidth = Math.min(RAIL_MAX_WIDTH, window.innerWidth - 2 * RAIL_MARGIN)
-  const besideLeft = rect.right + RAIL_GAP
+  const besideLeft = cardRight + RAIL_GAP
   const left = besideLeft + railWidth <= window.innerWidth - RAIL_MARGIN
-    ? besideLeft
-    : window.innerWidth - railWidth - RAIL_MARGIN
-  const top = Math.max(rect.top, RAIL_MARGIN)
-  return { left: `${Math.round(left)}px`, right: 'auto', top: `${Math.round(top)}px` }
+    ? besideLeft // room to sit just outside the card's right border
+    : cardRight - RAIL_GAP - railWidth // inset just inside it
+  const clampedLeft = Math.min(Math.max(left, RAIL_MARGIN), window.innerWidth - railWidth - RAIL_MARGIN)
+  const top = Math.max(anchor.getBoundingClientRect().top, RAIL_MARGIN)
+  return { left: `${Math.round(clampedLeft)}px`, right: 'auto', top: `${Math.round(top)}px` }
 }
 
 /**
