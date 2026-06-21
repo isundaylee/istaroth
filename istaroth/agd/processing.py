@@ -865,6 +865,20 @@ def get_voiceline_info(
     )
 
 
+def _get_unique_monster_special_name_hash(
+    special_names: types.MonsterSpecialNameExcelConfigData,
+    special_name_lab_id: types.MonsterSpecialNameLabId,
+) -> types.TextMapHash | None:
+    matches = [
+        entry
+        for entry in special_names
+        if entry["specialNameLabID"] == special_name_lab_id
+    ]
+    if not matches:
+        raise ValueError(f"Missing monster special-name lab ID {special_name_lab_id}")
+    return matches[0]["specialNameTextMapHash"] if len(matches) == 1 else None
+
+
 def get_creature_info(
     codex_id: types.AnimalCodexId, *, data_repo: repo.DataRepo
 ) -> types.CreatureInfo:
@@ -886,10 +900,14 @@ def get_creature_info(
                     "titleNameTextMapHash"
                 ]
             )
-            special_name = text_map.get_optional(
-                data_repo.load_monster_special_name_excel_config_data()[
-                    describe["specialNameLabID"]
-                ]["specialNameTextMapHash"]
+            special_name_hash = _get_unique_monster_special_name_hash(
+                data_repo.load_monster_special_name_excel_config_data(),
+                describe["specialNameLabID"],
+            )
+            special_name = (
+                None
+                if special_name_hash is None
+                else text_map.get_optional(special_name_hash)
             )
             name_hash = describe["nameTextMapHash"]
         case "CODEX_ANIMAL":
