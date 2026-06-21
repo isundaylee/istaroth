@@ -21,7 +21,7 @@ JSON file; the runner and tests pick it up automatically.
 A query plus the ground truth for grading retrieval on it:
 
 - `query` — the user question (Chinese, for the CHS corpus).
-- `subtype` — optional, category-specific tag (breadth uses `enumeration` / `cross_region_survey` / `broad_theme`); omit if the category has none.
+- `subtype` — optional, category-specific tag (breadth uses `enumeration` / `broad_theme`); omit if the category has none.
 - `expected_coverage` — the **facets** a complete answer must cover (entities, regions, sub-topics, …).
 - `relevant_passages` — for each facet, one or more **anchor passages**: short verbatim slices of corpus text identifying a source that attests the facet. A facet is covered if ANY of its passages matches a retrieved source.
 - `rationale`, `notes`, `known_redundancy` — free text (`known_redundancy` notes near-duplicate sources, else `""`).
@@ -63,6 +63,16 @@ the corpus contains is a retrieval gap.
 7. **`chunk_context` does not affect the metric** — the runner matches each
    source's full file content, so coverage = which files surface, not depth.
 
+8. **Use ATOMIC, single-intent queries.** A retrieval-layer fixture must test
+   retrieval, not the upstream question-decomposition layer:
+   `pipeline._preprocess_question` splits a compound question into 1-3 sub-queries
+   before retrieval, but `eval-retrieval` calls `store.retrieve` directly
+   (bypassing it). So a compound query ("七神分别是谁，掌管什么元素与理想") or a
+   per-region survey ("…在不同地区分别代表什么") would test a path production never
+   uses. Phrase each query as one focused intent ("提瓦特的七位执政官分别是谁？",
+   "神之眼代表着什么？"); breadth still arises because that single intent's evidence
+   is scattered across many files.
+
 ## The corpus
 
 CHS corpus: `/usr/scratch/git/istaroth/text/chs` (the `text/` submodule in a
@@ -77,8 +87,9 @@ non-official `tps_shishu/`. Filenames carry names, so they are searchable.
    `"category": "<category>"` (must equal the filename stem) and `"description"`,
    plus `"fixtures": [...]`.
 
-2. **Pick a query** and decide its facet list (`expected_coverage`). Use Genshin
-   lore knowledge (the `genshin` skill) for what a complete answer needs.
+2. **Pick an atomic query** (one focused retrieval intent — rule 8) and decide its
+   facet list (`expected_coverage`). Use Genshin lore knowledge (the `genshin`
+   skill) for what a complete answer needs.
 
 3. **For each facet, find anchors with `rg`** (run from the corpus dir):
 
@@ -114,13 +125,15 @@ non-official `tps_shishu/`. Filenames carry names, so they are searchable.
 
    ```bash
    set -a; source .env.common; source .env.web; set +a   # cohere key is CO_API_KEY (NOT COHERE_API_KEY); deepinfra key for embeddings
-   uv run python scripts/rag_tools.py eval-retrieval -k 20 -c 2 --default-k 10
+   uv run python scripts/rag_tools.py eval-retrieval --repeat 3
    # add --category <name> to run just one category
    ```
-   Production retrieval presets (frontend `QueryForm.tsx`): fast k=4, balanced
-   k=7, thorough k=10; reranker `cohere`, query transformer `rewrite`. `rewrite`
-   uses an LLM and is **non-deterministic** — a facet's rank wobbles run-to-run;
-   run a few times before trusting a single number.
+   The eval defaults to the most generous production preset (**thorough: k=10,
+   chunk_context=5**) and retrieves at that actual k, so the candidate pool matches
+   production. Other presets (frontend `QueryForm.tsx`): fast k=4, balanced k=7.
+   Reranker `cohere`, query transformer `rewrite`. `rewrite` is LLM-driven and
+   **non-deterministic** — a facet's rank wobbles run-to-run; use `--repeat N`
+   (reports mean coverage + per-facet hit rate) rather than trusting one run.
 
 8. **Harden against false misses** (rule 5). For each MISSING facet:
 
@@ -130,7 +143,7 @@ non-official `tps_shishu/`. Filenames carry names, so they are searchable.
    from istaroth.rag import document_store_set
    ss = document_store_set.DocumentStoreSet.from_env()
    store = ss.get_store(ss.available_languages[0])
-   out = store.retrieve("<your query>", k=10, chunk_context=2)
+   out = store.retrieve("<your query>", k=10, chunk_context=5)  # thorough preset
    for i,(s,docs) in enumerate(out.results,1):
        print(i, docs[0].metadata["path"])
    PY
@@ -151,13 +164,13 @@ File: `retrieval_fixtures/<category>.json`
   "caveat": "Matching/measurement caveats.",
   "fixtures": [
     {
-      "query": "七神分别是谁，掌管什么元素与理想",
+      "query": "提瓦特的七位执政官分别是谁？",
       "language": "CHS",
       "subtype": "enumeration",
-      "rationale": "Why this query stresses the property (1-3 sentences).",
-      "expected_coverage": ["anemo_freedom", "geo_contract", "..."],
+      "rationale": "Why this atomic query stresses the property (1-3 sentences).",
+      "expected_coverage": ["venti_anemo", "zhongli_geo", "..."],
       "relevant_passages": [
-        {"passage": "<verbatim slice>", "label": "<who/what + source>", "official": true, "covers": ["anemo_freedom"]}
+        {"passage": "<verbatim slice>", "label": "<who/what + source>", "official": true, "covers": ["venti_anemo"]}
       ],
       "known_redundancy": "",
       "notes": ""
@@ -174,13 +187,16 @@ optional.
 
 ## Backlog of candidate cases
 
-Breadth category (derive ground truth per the procedure):
+Breadth category (atomic queries — derive ground truth per the procedure):
 
-- `broad_theme`: deepen 天理/天空岛 (add anchors for `ascension_on_death` and
-  `false_sky`, currently true misses); 深渊教团的起源与目的; 世界树与虚空.
-- `enumeration`: 璃月七星成员; 七神的神之心去向 (per-Archon Gnosis whereabouts).
-- `cross_region_survey`: 各国的执法/治安组织 (Knights of Favonius / Millelith /
-  Tenryou Commission / …); 各国民众对自己执政官的态度.
+- `broad_theme`: 天空岛是什么？ (Celestia — its own intent, separate from 天理);
+  深渊教团的目的是什么？; 世界树与虚空是什么关系？.
+- `enumeration`: 璃月七星有哪些成员？; 七神的神之心都在谁手里？.
+- Also harden the existing 5 fixtures (rule 5) so every MISSING is a true miss.
+
+Avoid per-region survey phrasings ("各国…分别…") — the decomposition layer splits
+those upstream (rule 8); recast them as one focused intent (e.g. "神之眼代表着
+什么？" instead of "神之眼在不同地区代表什么").
 
 New categories worth adding (each a new JSON file): `precision` (a narrow query
 must surface ONE specific source, not near-duplicates/distractors); `negative`
