@@ -1,3 +1,11 @@
+x-backend-env: &backend-env
+  PATH: /app/.venv/bin:/usr/local/bin:/usr/bin:/bin
+  ISTAROTH_DOCUMENT_STORE_SET: CHS:/data/checkpoints/chs
+  ISTAROTH_DATABASE_URI: sqlite+aiosqlite:////data/state/web.sqlite
+  ISTAROTH_TRAINING_DEVICE: cpu
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+  PYTHONDONTWRITEBYTECODE: "1"
+
 x-backend-common: &backend-common
   image: python:3.12-slim
   working_dir: /app
@@ -14,13 +22,7 @@ x-backend-common: &backend-common
   env_file:
     - ../../.env.common
     - ../../.env.web
-  environment:
-    - PATH=/app/.venv/bin:/usr/local/bin:/usr/bin:/bin
-    - ISTAROTH_DOCUMENT_STORE_SET=CHS:/data/checkpoints/chs
-    - ISTAROTH_DATABASE_URI=sqlite+aiosqlite:////data/state/web.sqlite
-    - ISTAROTH_TRAINING_DEVICE=cpu
-    - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
-    - PYTHONDONTWRITEBYTECODE=1
+  environment: *backend-env
 
 services:
   backend-deps:
@@ -28,7 +30,7 @@ services:
     image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
     command: ["uv", "sync", "--frozen", "--no-group", "dev", "--group", "ml"]
     environment:
-      - UV_LINK_MODE=symlink
+      UV_LINK_MODE: symlink
     volumes:
       - ../../pyproject.toml:/app/pyproject.toml:ro
       - ../../uv.lock:/app/uv.lock:ro
@@ -52,16 +54,6 @@ services:
         condition: service_started
     ports:
       - "${CONDUCTOR_RETRIEVAL_METRICS_HOST_PORT:-8092}:8092"
-    volumes:
-      - ./checkpoints:/data/checkpoints
-      - ./data:/data/state
-      - ../../istaroth:/app/istaroth
-      - ../../scripts:/app/scripts:ro
-      - ../../migrations:/app/migrations:ro
-      - ../../alembic.ini:/app/alembic.ini:ro
-      - backend-venv:/app/.venv
-      - uv-cache:/root/.cache/uv:ro
-      - hf-cache:/root/.cache/huggingface
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/docs')"]
       # Probe every 1s while starting up (fast readiness detection), but relax to
@@ -88,23 +80,11 @@ services:
         condition: service_started
       jaeger:
         condition: service_started
-    volumes:
-      - ./checkpoints:/data/checkpoints
-      - ./data:/data/state
-      - ../../istaroth:/app/istaroth
-      - ../../scripts:/app/scripts
-      - ../../migrations:/app/migrations
-      - ../../alembic.ini:/app/alembic.ini
-      - backend-venv:/app/.venv
-      - uv-cache:/root/.cache/uv:ro
     ports:
       - "${CONDUCTOR_BACKEND_METRICS_HOST_PORT:-8090}:8090"
     environment:
-      - PATH=/app/.venv/bin:/usr/local/bin:/usr/bin:/bin
-      - ISTAROTH_DOCUMENT_STORE_SET=CHS:/data/checkpoints/chs
-      - ISTAROTH_DATABASE_URI=sqlite+aiosqlite:////data/state/web.sqlite
-      - ISTAROTH_RETRIEVAL_SERVICE_URL=http://retrieval:8002
-      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      <<: *backend-env
+      ISTAROTH_RETRIEVAL_SERVICE_URL: http://retrieval:8002
 
   frontend:
     # Keep in sync with frontend/.nvmrc
