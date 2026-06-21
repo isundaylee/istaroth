@@ -134,29 +134,12 @@ _load_env() {
 }
 
 _refresh_paseo_port() {
-  local paseo_port=""
-  local paseo_port_helper=""
-  if paseo_port_helper="$(command -v paseo-port 2>/dev/null)"; then
-    :
-  elif [[ -x "$REPO_ROOT/paseo-port" ]]; then
-    paseo_port_helper="$REPO_ROOT/paseo-port"
+  [[ -n "${PASEO_PORT:-}" ]] || return
+  if [[ ! "$PASEO_PORT" =~ ^[0-9]+$ ]]; then
+    echo "dev-compose.sh: PASEO_PORT must be numeric, got '$PASEO_PORT'" >&2
+    exit 1
   fi
-  if [[ -n "$paseo_port_helper" ]]; then
-    if ! paseo_port="$("$paseo_port_helper" 2>/dev/null)"; then
-      echo "dev-compose.sh: paseo-port failed; keeping CONDUCTOR_PORT=$CONDUCTOR_PORT" >&2
-      return
-    fi
-  elif [[ -r "$REPO_ROOT/paseo-port" ]]; then
-    paseo_port="$(<"$REPO_ROOT/paseo-port")"
-  elif [[ -n "${PASEO_PORT:-}" ]]; then
-    paseo_port="$PASEO_PORT"
-  fi
-  [[ -n "$paseo_port" ]] || return
-  if [[ ! "$paseo_port" =~ ^[0-9]+$ ]]; then
-    echo "dev-compose.sh: paseo-port returned non-numeric port '$paseo_port'; keeping CONDUCTOR_PORT=$CONDUCTOR_PORT" >&2
-    return
-  fi
-  export CONDUCTOR_PORT="$paseo_port"
+  export CONDUCTOR_PORT="$PASEO_PORT"
   _export_ports
   _write_env_file
 }
