@@ -48,10 +48,11 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   const [panel, setPanel] = useState<SelectionPanel | null>(null)
   const [isMinimized, setIsMinimized] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  // Mirrors whether a panel is open so the outside-click handler (registered
-  // once) can decide between minimizing and closing without re-subscribing.
-  const panelOpenRef = useRef(false)
-  panelOpenRef.current = panel !== null
+  // Whether a panel (search/ask result) is open vs just a bare selection
+  // toolbar. Only flips on open/close, so handlers below can depend on it
+  // directly (no re-subscribe churn during answer streaming, which leaves it
+  // unchanged).
+  const hasPanel = panel !== null
 
   const normalizeSelectionText = (text: string) => text.replace(/\s+/g, ' ').trim()
   const isEntityLikeSelection = (text: string) =>
@@ -79,7 +80,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
     // unconfirmed selection toolbar — never an open or minimized panel, whose
     // side-rail card must survive clicks in the answer area.
     const clearToolbar = () => {
-      if (panelOpenRef.current) return
+      if (hasPanel) return
       setSelection(null)
       setPanel(null)
     }
@@ -108,7 +109,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
     if (!openSelectionAtRect(selectedText, range.getBoundingClientRect())) {
       clearToolbar()
     }
-  }, [openSelectionAtRect])
+  }, [openSelectionAtRect, hasPanel])
 
   const handleProperNounClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -118,15 +119,17 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
         if (text) openSelectionAtRect(text, target.getBoundingClientRect())
         return
       }
-      // A plain click inside the answer (not on a proper noun, no text selected)
-      // is "outside the popup" too — minimize an open panel to its card. The
-      // document mousedown handler can't do this because the answer area (the
-      // whole document in the library viewer) is exempt to allow text selection.
-      if (panelOpenRef.current && window.getSelection()?.isCollapsed) {
+      // Otherwise it's a plain click in the answer (not on a proper noun). A
+      // collapsed selection means the click didn't select any text, so it counts
+      // as "clicking outside the popup" — minimize an open panel to its card.
+      // (The document mousedown handler can't: the answer area, the whole
+      // document in the library viewer, is exempt there so text selection works.)
+      const selectedNoText = window.getSelection()?.isCollapsed ?? true
+      if (hasPanel && selectedNoText) {
         setIsMinimized(true)
       }
     },
-    [openSelectionAtRect]
+    [openSelectionAtRect, hasPanel]
   )
 
   useEffect(() => {
@@ -146,7 +149,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
       if (answerRef.current?.contains(target) || target.closest?.('[data-floating-popup]')) return
       // With a panel open, an outside click minimizes it to a side-rail card
       // (kept open, full close happens via the card); a bare toolbar just closes.
-      if (panelOpenRef.current) {
+      if (hasPanel) {
         setIsMinimized(true)
         return
       }
@@ -169,7 +172,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
       document.removeEventListener('mousedown', handleMouseDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [])
+  }, [hasPanel])
 
   const runKeywordSearch = async () => {
     if (!selection) return
