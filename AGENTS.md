@@ -178,3 +178,13 @@ This project tracks follow-up work as GitHub issues (`gh issue list`).
 - Keep the issue body brief but with enough context to act on later, including relevant quest/talk IDs when applicable.
 - File an issue as work comes up; when a change completes one, include a closing keyword (e.g. `Closes #55`) in the commit message body so GitHub auto-closes it on push.
 - Do NOT use `bd`/beads; the `.beads/` directory is legacy and no longer maintained.
+
+## Planning
+
+- When asked to write a plan (e.g. for investigating an issue or designing a
+  feature), write it as a markdown file under `tmp/plans/` (the `tmp/` symlink
+  is git-ignored, so plans are NOT committed). Name files
+  `tmp/plans/<YYYYMMDD>-<short-slug>.md`.
+- Plans are scratch/working documents, not tracked artifacts. Durable
+  follow-up work belongs in GitHub issues (see Task Tracking above), not in a
+  committed plan file.

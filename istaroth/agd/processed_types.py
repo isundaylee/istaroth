@@ -78,11 +78,40 @@ class TalkGroupInfo:
 
 
 @attrs.define
+class CondEntry:
+    """A single condition within a cond group (e.g. ``COOP_COND_QUEST_FINISH [1901503]``)."""
+
+    type: str
+    param: list[int]
+
+
+@attrs.define
+class CondGrp:
+    """A group of conditions with a combiner (``LOGIC_NONE``, ``LOGIC_AND``, ``LOGIC_OR``)."""
+
+    logic: str
+    conds: list[CondEntry]
+
+
+@attrs.define
+class EndingInfo:
+    """Metadata about a terminal ending reached by a coop branch."""
+
+    save_point_id: id_types.CoopNodeId
+
+
+@attrs.define
 class CoopChoiceOption:
     """One branch of a hangout player choice: its prompt and the steps it leads to."""
 
     prompt: str | None
     steps: list[CoopStep]
+    cond: CondGrp | None
+    """Routing condition (for COND branches; ``None`` for SELECT/default-branch)."""
+    show_cond: CondGrp | None
+    """Visibility gate (``showCond`` on SELECT options)."""
+    enable_cond: CondGrp | None
+    """Enablement gate (``enableCond`` on SELECT options)."""
 
 
 @attrs.define
@@ -94,10 +123,11 @@ class CoopChoice:
 
 @attrs.define
 class CoopStep:
-    """One play-ordered step of a hangout story: a talk OR a player choice."""
+    """One play-ordered step of a hangout story: a talk, a player choice, or an ending."""
 
     talk: TalkInfo | None
     choice: CoopChoice | None
+    ending: EndingInfo | None
 
 
 @attrs.define

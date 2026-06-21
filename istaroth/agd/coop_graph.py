@@ -30,6 +30,12 @@ class _CoopNode:
     select_dialog_ids: list[id_types.DialogId]
     """``selectList`` dialog ids (SELECT nodes only), positionally paired with
     ``next_node_ids``."""
+    select_items: list[dict[str, Any]]
+    """Full ``selectList`` items (with ``showCond``/``enableCond``)."""
+    cond_grp: dict[str, Any] | None
+    """``coopCondGrp`` on COND nodes (the routing predicate); ``None`` on others."""
+    save_point_id: id_types.CoopNodeId | None
+    """``savePointId`` on END nodes (the ending/save-point id); ``None`` on others."""
 
 
 @attrs.define
@@ -50,16 +56,30 @@ class TalkStep:
 class ChoiceBranch:
     dialog_id: id_types.DialogId | None
     steps: list[PlayStep]
+    cond_grp: dict[str, Any] | None
+    """Raw ``coopCondGrp`` dict (COND branch 0 only; ``None`` for else/SELECT)."""
+    show_cond: dict[str, Any] | None
+    """Raw ``selectList[i].showCond`` dict (SELECT only)."""
+    enable_cond: dict[str, Any] | None
+    """Raw ``selectList[i].enableCond`` dict (SELECT only)."""
 
 
 @attrs.define
 class ChoiceStep:
-    """A player choice fanning into one branch per option."""
+    """A player choice or conditional branch fanning into one branch per option."""
 
     branches: list[ChoiceBranch]
+    is_conditional: bool
 
 
-PlayStep: TypeAlias = TalkStep | ChoiceStep
+@attrs.define
+class EndStep:
+    """A terminal ending step reached by walking to a ``COOP_NODE_END``."""
+
+    save_point_id: id_types.CoopNodeId
+
+
+PlayStep: TypeAlias = TalkStep | ChoiceStep | EndStep
 
 
 def build_story_graph(story: dict[str, Any]) -> CoopStoryGraph:
@@ -69,8 +89,13 @@ def build_story_graph(story: dict[str, Any]) -> CoopStoryGraph:
             node_id=node["coopNodeId"],
             node_type=node["coopNodeType"],
             next_node_ids=node["nextNodeArray"],
-            # selectList is present only on SELECT nodes.
+            # selectList is present only on SELECT nodes (other node types lack it).
             select_dialog_ids=[s["dialogId"] for s in node.get("selectList", [])],
+            select_items=node.get("selectList", []),
+            # coopCondGrp is present only on COND nodes.
+            cond_grp=node.get("coopCondGrp"),
+            # savePointId is present only on END nodes.
+            save_point_id=node.get("savePointId"),
         )
         for node in story["coopMap"].values()
     }
@@ -104,6 +129,13 @@ def _walk_from(
         # COND is a state-based branch (no prompts). Both fan out, so walk every
         # branch to avoid dropping the alternative outcome's dialogue.
         if node.node_type in ("COOP_NODE_SELECT", "COOP_NODE_COND"):
+            is_cond = node.node_type == "COOP_NODE_COND"
+            # COND branches: index 0 is the true/positive outcome (carries the
+            # routing cond_grp), index 1 is the else/default (no cond_grp).
+            # SELECT branches: per-option showCond/enableCond from the paired
+            # selectList entry (present on every select_item after deobfuscation).
+            # The `not is_cond and i < len(node.select_items)` guard is needed
+            # because COND nodes have an empty select_items list.
             steps.append(
                 ChoiceStep(
                     branches=[
@@ -114,13 +146,27 @@ def _walk_from(
                                 else None
                             ),
                             steps=_walk_from(graph, next_id, visited),
+                            cond_grp=(node.cond_grp if is_cond and i == 0 else None),
+                            show_cond=(
+                                node.select_items[i]["showCond"]
+                                if not is_cond and i < len(node.select_items)
+                                else None
+                            ),
+                            enable_cond=(
+                                node.select_items[i]["enableCond"]
+                                if not is_cond and i < len(node.select_items)
+                                else None
+                            ),
                         )
                         for i, next_id in enumerate(node.next_node_ids)
-                    ]
+                    ],
+                    is_conditional=is_cond,
                 )
             )
             break  # the branches are the continuation
         elif node.node_type == "COOP_NODE_END":
+            if node.save_point_id is not None:
+                steps.append(EndStep(save_point_id=node.save_point_id))
             break
         else:  # COOP_NODE_TALK emits; COOP_NODE_ACTION and others pass through
             if node.node_type == "COOP_NODE_TALK":

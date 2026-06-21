@@ -220,6 +220,9 @@ istaroth.code-workspace
 /tmp
 /claude-prompts
 
+# Planning docs are scratch files kept under tmp/plans (see AGENTS.md), never committed
+/plans
+
 # Helm local values files
 helm/*/values-local.yaml
 **/values-local.yaml

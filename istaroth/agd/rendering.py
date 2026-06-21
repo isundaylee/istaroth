@@ -1074,34 +1074,143 @@ def render_talk_group(
     )
 
 
-def _render_coop_steps(
-    steps: list[processed_types.CoopStep], language: localization.Language
-) -> list[str]:
-    """Render a hangout story's play-ordered steps, expanding choice branches."""
+def _render_cond(cond: processed_types.CondGrp) -> str:
+    """Render a ``CondGrp`` into a human-readable inline string."""
+    parts = [_render_cond_entry(e) for e in cond.conds]
+    joiner = (
+        " and "
+        if cond.logic == "LOGIC_AND"
+        else " or " if cond.logic == "LOGIC_OR" else ", "
+    )
+    return joiner.join(parts)
+
+
+def _render_cond_entry(entry: processed_types.CondEntry) -> str:
+    """Render a single cond entry as ``TYPE [param, ...]``."""
+    return f"{entry.type} {entry.param}"
+
+
+def _assign_fork_numbers(
+    steps: list[processed_types.CoopStep], counter: list[int]
+) -> dict[int, int]:
+    """Depth-first numbering of all choice steps. Returns ``id(step) -> fork_number``.
+
+    ``counter`` is a single-element ``list[int]`` (mutable container) threaded
+    through recursive calls so the counter is shared without a ``nonlocal``
+    declaration or a global.
+    """
+    mapping: dict[int, int] = {}
+    for step in steps:
+        if step.choice is not None:
+            counter[0] += 1
+            mapping[id(step)] = counter[0]
+            for option in step.choice.options:
+                mapping.update(_assign_fork_numbers(option.steps, counter))
+    return mapping
+
+
+def _render_choice_section(
+    choice_step: processed_types.CoopStep,
+    fork_num: int,
+    language: localization.Language,
+    fork_map: dict[int, int],
+) -> tuple[list[str], list[list[str]]]:
+    """Render a ``### Choice N:`` section and return (lines, nested_sections).
+
+    ``nested_sections`` contains fully-rendered ``### Choice N:`` sections for
+    choices nested inside branches (to be appended after the current level).
+    The nested sections are rendered as separate top-level ``### Choice`` blocks
+    that the ``*→ Next: Choice N*`` markers at the end of each branch reference.
+    """
     lines: list[str] = []
+    nested: list[list[str]] = []
+
+    assert choice_step.choice is not None
+    lines.append(f"### Choice {fork_num}")
+    lines.append("")
+
+    # Condition annotation for COND branches — shown once above the options.
+    for opt in choice_step.choice.options:
+        if opt.cond is not None and opt.cond.conds:
+            lines.append(f"*Condition: {_render_cond(opt.cond)}*")
+            lines.append("")
+            break
+
+    for i, option in enumerate(choice_step.choice.options, 1):
+        heading = f"#### Branch {i}"
+        if option.prompt:
+            heading += f": {option.prompt}"
+        if option.show_cond and option.show_cond.conds:
+            heading += f" (only shown if {_render_cond(option.show_cond)})"
+        if option.cond and option.cond.conds:
+            heading += f" (applies if {_render_cond(option.cond)})"
+        lines.append(heading)
+        lines.append("")
+
+        # Render branch content: talks inline, nested choices become → Next pointers.
+        # The nested choice's full ### Choice N section is rendered recursively
+        # and collected for flat emission after the current choice's branches.
+        next_marker = "*→ End of conversation*"
+        for step in option.steps:
+            if step.talk is not None:
+                lines.extend(_render_talk_content(step.talk, language))
+            elif step.choice is not None:
+                nested_fork_num = fork_map[id(step)]
+                next_marker = f"*→ Next: Choice {nested_fork_num}*"
+
+                section_lines, new_nested = _render_choice_section(
+                    step, nested_fork_num, language, fork_map
+                )
+                nested.append(section_lines)
+                nested.extend(new_nested)
+            elif step.ending is not None:
+                next_marker = f"*→ Ending (save point {step.ending.save_point_id})*"
+
+        lines.append(next_marker)
+        lines.append("")
+
+    return lines, nested
+
+
+def _render_coop_steps(
+    steps: list[processed_types.CoopStep],
+    language: localization.Language,
+    fork_map: dict[int, int],
+) -> list[str]:
+    """Render a hangout story's play-ordered steps with explicit branch routing.
+
+    ``fork_map`` is the output of ``_assign_fork_numbers`` — a mapping from
+    ``id(CoopStep)`` to its ``Choice N`` number.
+    """
+    lines: list[str] = []
+    nested_sections: list[list[str]] = []
+
     for step in steps:
         if step.talk is not None:
-            lines.extend(_render_talk_content(step.talk, language))
-            lines.append("")
-        elif step.choice is not None:
-            options = step.choice.options
-            # A hangout fork is either a player choice (SELECT, whose options carry
-            # prompts) or a story-state branch (COND, no prompts). Label both with
-            # "Branch N" — distinct from the intra-talk "Option N:" lines so the
-            # conversation-level fork is not conflated with in-talk dialog options.
-            # Some non-player story-state branches have no prompt text, unlike
-            # player choices whose dropped TextMap strings are recovered globally.
-            is_player_choice = any(option.prompt for option in options)
-            lines.append(
-                "[Player choice]" if is_player_choice else "[Conditional branch]"
-            )
-            for i, option in enumerate(options, 1):
+            talk_lines = _render_talk_content(step.talk, language)
+            if talk_lines:
+                # Entry talk in the conversation-level steps gets a ### Talk: header.
+                # Talks nested inside branches are inlined without headers.
+                title = talk_lines[0].rstrip()
+                lines.append(f"### Talk: {title}")
                 lines.append("")
-                lines.append(
-                    f"Branch {i}: {option.prompt}" if option.prompt else f"Branch {i}"
-                )
-                lines.extend(_render_coop_steps(option.steps, language))
+                lines.extend(talk_lines)
+        elif step.choice is not None:
+            fork_num = fork_map[id(step)]
+            section_lines, new_nested = _render_choice_section(
+                step, fork_num, language, fork_map
+            )
             lines.append("")
+            lines.extend(section_lines)
+            nested_sections.extend(new_nested)
+        elif step.ending is not None:
+            lines.append("")
+            lines.append(f"*→ Ending (save point {step.ending.save_point_id})*")
+
+    for ns in nested_sections:
+        lines.append("")
+        lines.extend(ns)
+
     return lines
 
 
@@ -1119,7 +1228,13 @@ def render_hangout(
     content_lines = [f"# Hangout: {title}\n"]
     for i, story in enumerate(hangout.stories, 1):
         content_lines.append(f"## Conversation {i}\n")
-        content_lines.extend(_render_coop_steps(story.steps, language))
+
+        # Phase 1: number all forks in the story.
+        fork_counter: list[int] = [0]
+        fork_map = _assign_fork_numbers(story.steps, fork_counter)
+
+        # Phase 2: render using the fork numbers.
+        content_lines.extend(_render_coop_steps(story.steps, language, fork_map))
 
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(

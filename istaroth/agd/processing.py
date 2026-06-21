@@ -1197,6 +1197,17 @@ def get_talk_group_info(
     return processed_types.TalkGroupInfo(talks=talks)
 
 
+def _parse_cond_grp(raw: dict[str, typing.Any]) -> processed_types.CondGrp:
+    """Convert a raw deobfuscated cond-group dict into a ``CondGrp`` attrs."""
+    return processed_types.CondGrp(
+        logic=raw["condCombType"],
+        conds=[
+            processed_types.CondEntry(type=e["type"], param=list(e["param"]))
+            for e in raw["coopCondList"]
+        ],
+    )
+
+
 def _resolve_coop_steps(
     play_steps: list[coop_graph.PlayStep],
     *,
@@ -1215,7 +1226,11 @@ def _resolve_coop_steps(
                     continue
                 seen.add(local_talk_id)
                 if (talk_info := get_talk_info(path, data_repo=data_repo)).text:
-                    steps.append(processed_types.CoopStep(talk=talk_info, choice=None))
+                    steps.append(
+                        processed_types.CoopStep(
+                            talk=talk_info, choice=None, ending=None
+                        )
+                    )
             case coop_graph.ChoiceStep(branches=branches):
                 options = []
                 for branch in branches:
@@ -1235,19 +1250,43 @@ def _resolve_coop_steps(
                         dialog_content_hashes=dialog_content_hashes,
                         data_repo=data_repo,
                     )
-                    if prompt is not None or branch_steps:
-                        options.append(
-                            processed_types.CoopChoiceOption(
-                                prompt=prompt, steps=branch_steps
-                            )
+                    # Parse cond groups.
+                    cond = _parse_cond_grp(branch.cond_grp) if branch.cond_grp else None
+                    show_cond = (
+                        _parse_cond_grp(branch.show_cond) if branch.show_cond else None
+                    )
+                    enable_cond = (
+                        _parse_cond_grp(branch.enable_cond)
+                        if branch.enable_cond
+                        else None
+                    )
+                    # Include the option even if prompt/steps are empty (e.g. an
+                    # ending-only COND branch whose steps are a single EndStep).
+                    options.append(
+                        processed_types.CoopChoiceOption(
+                            prompt=prompt,
+                            steps=branch_steps,
+                            cond=cond,
+                            show_cond=show_cond,
+                            enable_cond=enable_cond,
                         )
+                    )
                 if options:
                     steps.append(
                         processed_types.CoopStep(
                             talk=None,
                             choice=processed_types.CoopChoice(options=options),
+                            ending=None,
                         )
                     )
+            case coop_graph.EndStep(save_point_id=save_point_id):
+                steps.append(
+                    processed_types.CoopStep(
+                        talk=None,
+                        choice=None,
+                        ending=processed_types.EndingInfo(save_point_id=save_point_id),
+                    )
+                )
     return steps
 
 
@@ -1308,7 +1347,9 @@ def get_hangout_info(
             if local_talk_id in seen:
                 continue
             if (talk_info := get_talk_info(path, data_repo=data_repo)).text:
-                steps.append(processed_types.CoopStep(talk=talk_info, choice=None))
+                steps.append(
+                    processed_types.CoopStep(talk=talk_info, choice=None, ending=None)
+                )
 
         if steps:
             story_infos.append(
