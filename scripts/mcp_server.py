@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """HTTP/WebSocket MCP server for Istaroth RAG functionality."""
 
+import hashlib
 import os
 import pathlib
 import sys
@@ -13,7 +14,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 import langsmith as ls
 
-from istaroth.agd import localization
+from istaroth.agd import hierarchy_nav, localization, processed_types
 from istaroth.rag import document_store_set, output_rendering
 
 mcp: FastMCP = FastMCP("istaroth")
@@ -40,6 +41,28 @@ except Exception as e:
     raise RuntimeError(
         f"Failed to initialize document store: {e} from \n\n{"".join(traceback.format_exc())}"
     ) from e
+
+
+_TITLE_KEY_LABELS: dict[str, str] = {
+    "library.questTypes.AQ": "魔神任务",
+    "library.questTypes.LQ": "传说任务",
+    "library.questTypes.WQ": "世界任务",
+    "library.questTypes.EQ": "活动任务",
+    "library.questTypes.IQ": "每日委托",
+    "library.standalone": "独立任务",
+    "library.categories.agd_quest": "任务",
+    "library.categories.agd_coop": "邀约事件",
+    "library.tableOfContents": "目录",
+    "library.noFileName": "未命名",
+}
+
+
+def _node_label(node: processed_types.HierarchyNode) -> str:
+    if node.title_key is not None:
+        resolved = _TITLE_KEY_LABELS.get(node.title_key)
+        if resolved is not None:
+            return resolved
+    return node.title or node.key
 
 
 @mcp.tool()
@@ -251,6 +274,126 @@ def retrieve_bm25(query: str, k: int = 10, chunk_context: int = 5) -> str:
         return formatted_output
     except Exception as e:
         return f"检索文档时发生错误：{e}"
+
+
+@mcp.tool()
+def get_document_hierarchy(file_id: str) -> str:
+    """获取指定文档的层级归属与目录
+
+    根据文件ID返回该文档在游戏内容层级中的位置（如任务类型→系列→章节），
+    以及同级文档的目录列表，帮助用户理解文档在叙事上下文中的位置。
+
+    参数：
+    - file_id: 文件ID（MD5哈希值）
+
+    返回：
+    - 文件的层级归属信息（面包屑路径）
+    - 同级文档目录列表（含各文件的file_id，可供 get_file_content 使用）
+    """
+    try:
+        if _store.num_documents == 0:
+            return "错误：文档库为空。"
+
+        with ls.trace(
+            "mcp_get_document_hierarchy",
+            "chain",
+            inputs={"file_id": file_id},
+        ) as rt:
+            chunks = _store.get_file_chunks(file_id)
+            if chunks is None:
+                error_msg = f"错误：未找到文件ID '{file_id}'。"
+                rt.end(outputs={"error": error_msg})
+                return error_msg
+
+            relative_path = chunks[0].metadata["path"]
+            manifest_item = _text_set.get_manifest_item_by_relative_path(relative_path)
+            if manifest_item is None:
+                error_msg = f"错误：未找到文件路径 '{relative_path}' 的清单条目。"
+                rt.end(outputs={"error": error_msg})
+                return error_msg
+
+            category = manifest_item.category
+            doc_id = manifest_item.id
+
+            hierarchy_dict = _text_set.get_hierarchy_for_category(category.value)
+            if hierarchy_dict is None:
+                cat_label = _TITLE_KEY_LABELS.get(
+                    f"library.categories.{category.value}", category.value
+                )
+                result = f"文件“{manifest_item.title}”属于扁平分类（{cat_label}），无层级归属。"
+                rt.end(
+                    outputs={"result": result, "category": category.value, "id": doc_id}
+                )
+                return result
+
+            hierarchy = processed_types.Hierarchy.from_dict(hierarchy_dict)
+            path = hierarchy_nav.find_leaf_path(hierarchy.nodes, doc_id)
+            if path is None:
+                result = f"文件“{manifest_item.title}”未在层级中找到对应位置。"
+                rt.end(
+                    outputs={"result": result, "category": category.value, "id": doc_id}
+                )
+                return result
+
+            ancestors = path[:-1]
+            current = path[-1]
+            breadcrumb = " → ".join(_node_label(n) for n in [*ancestors, current])
+
+            toc = hierarchy_nav.compute_toc(path)
+            output_lines = [f"文件层级归属：", breadcrumb, ""]
+
+            if toc is not None:
+                toc_title = _node_label(toc.root)
+                output_lines.append(f"目录 — {toc_title}：")
+                for section in toc.sections:
+                    section_title = (
+                        ""
+                        if section.title is None
+                        else f"  {_node_label(section.title)}："
+                    )
+                    if section_title:
+                        output_lines.append(section_title)
+                    for leaf in section.leaves:
+                        assert leaf.file_id is not None
+                        leaf_manifest = _text_set.get_manifest_item(
+                            category, leaf.file_id
+                        )
+                        leaf_md5 = (
+                            hashlib.md5(
+                                leaf_manifest.relative_path.encode("utf-8")
+                            ).hexdigest()
+                            if leaf_manifest is not None
+                            else "?"
+                        )
+                        marker = " ← 当前文件" if leaf.file_id == doc_id else ""
+                        output_lines.append(
+                            f"    - {leaf.title or _node_label(leaf)} (file_id: {leaf_md5}){marker}"
+                        )
+                output_lines.append("")
+                output_lines.append(
+                    "提示：如需获取某个文件的完整内容，请使用 get_file_content 工具，"
+                )
+                output_lines.append("传入上面结果中的 file_id 即可。")
+            else:
+                output_lines.append("（该文件无同级目录列表。）")
+
+            formatted_output = "\n".join(output_lines)
+
+            rt.end(
+                outputs={
+                    "file_id": file_id,
+                    "category": category.value,
+                    "id": doc_id,
+                    "breadcrumb": breadcrumb,
+                    "has_toc": toc is not None,
+                    "output": formatted_output,
+                }
+            )
+
+            return formatted_output
+
+    except Exception as e:
+        return f"获取文档层级时发生错误：{e}"
 
 
 if __name__ == "__main__":

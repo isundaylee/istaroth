@@ -187,6 +187,22 @@ class HierarchyNode:
             "toc_eligible": self.toc_eligible,
         }
 
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> HierarchyNode:
+        children = (
+            None
+            if data.get("children") is None
+            else [HierarchyNode.from_dict(child) for child in data["children"]]
+        )
+        return cls(
+            key=data["key"],
+            title=data.get("title"),
+            title_key=data.get("title_key"),
+            children=children,
+            file_id=data.get("file_id"),
+            toc_eligible=data.get("toc_eligible", False),
+        )
+
 
 @attrs.define
 class Hierarchy:
@@ -196,6 +212,10 @@ class Hierarchy:
 
     def to_dict(self) -> dict[str, Any]:
         return {"nodes": [node.to_dict() for node in self.nodes]}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> Hierarchy:
+        return cls(nodes=[HierarchyNode.from_dict(node) for node in data["nodes"]])
 
 
 @attrs.define
