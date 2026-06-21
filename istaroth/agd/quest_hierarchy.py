@@ -9,9 +9,9 @@ from istaroth.agd import (
     id_types,
     localization,
     processed_types,
-    processing,
     repo,
 )
+from istaroth.agd.renderables import quest
 
 # Display order for top-level quest types; any unlisted type is appended after.
 _TYPE_ORDER = ["AQ", "LQ", "WQ", "EQ", "IQ"]
@@ -21,7 +21,7 @@ def _chapter_title(chapter_id: id_types.ChapterId, *, data_repo: repo.DataRepo) 
     """Resolve a chapter's display title."""
     if (chapter := data_repo.load_chapter_excel_config_data().get(chapter_id)) is None:
         raise ValueError(f"Unknown chapter {chapter_id}")
-    return processing.get_chapter_title(chapter, data_repo=data_repo)
+    return quest.get_chapter_title(chapter, data_repo=data_repo)
 
 
 def _quest_leaf(

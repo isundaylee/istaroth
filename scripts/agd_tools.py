@@ -28,9 +28,7 @@ from istaroth.agd import (
     issues,
     localization,
     processed_types,
-    processing,
     quest_hierarchy,
-    rendering,
     repo,
 )
 from istaroth.agd.renderable_types import (
@@ -51,6 +49,11 @@ from istaroth.agd.renderable_types import (
     Voicelines,
     Weapons,
     Wings,
+)
+from istaroth.agd.renderables import (
+    _talk,
+    quest,
+    readable,
 )
 from istaroth.text import manifest
 from istaroth.text import types as text_types
@@ -684,7 +687,7 @@ def render_readable(readable_path: str) -> None:
         data_repo = repo.DataRepo.from_env()
 
         # Get readable metadata
-        metadata = processing.get_readable_metadata(readable_path, data_repo=data_repo)
+        metadata = readable.get_readable_metadata(readable_path, data_repo=data_repo)
 
         # Read the actual readable content
         readable_file_path = data_repo.agd_path / readable_path
@@ -692,7 +695,7 @@ def render_readable(readable_path: str) -> None:
             content = f.read()
 
         # Render the content
-        rendered = rendering.render_readable(content, metadata)
+        rendered = readable.render_readable(content, metadata)
 
         # Output only the content
         click.echo(rendered.content)
@@ -710,13 +713,13 @@ def render_talk(talk_path: str) -> None:
         data_repo = repo.DataRepo.from_env()
 
         # Get talk info
-        talk_info = processing.get_talk_info(talk_path, data_repo=data_repo)
+        talk_info = _talk.get_talk_info(talk_path, data_repo=data_repo)
 
         # Extract talk ID from path (e.g., "BinOutput/Talk/NPC/100001.json" -> 100001)
         talk_id = int(pathlib.Path(talk_path).stem)
 
         # Render the talk
-        rendered = rendering.render_talk(
+        rendered = _talk.render_talk(
             talk_info,
             talk_id=talk_id,
             talk_file_path=talk_path,
@@ -741,15 +744,11 @@ def render_quest(quest_path: str) -> None:
         # Extract quest ID from path
         quest_id = int(pathlib.Path(quest_path).stem)
         # Get quest info
-        if (
-            quest_info := processing.get_quest_info(quest_id, data_repo=data_repo)
-        ) is None:
+        if (quest_info := quest.get_quest_info(quest_id, data_repo=data_repo)) is None:
             raise click.ClickException(f"Quest {quest_id} is a test/hidden quest")
 
         # Render the quest
-        rendered = rendering.render_quest(
-            quest_info, language=localization.Language.CHS
-        )
+        rendered = quest.render_quest(quest_info, language=localization.Language.CHS)
 
         # Output only the content
         click.echo(rendered.content)
@@ -786,7 +785,7 @@ def list_readables() -> None:
     for txt_file in txt_files:
         relative_path = f"Readable/{data_repo.language.value}/{txt_file.name}"
         try:
-            metadata = processing.get_readable_metadata(
+            metadata = readable.get_readable_metadata(
                 relative_path, data_repo=data_repo
             )
             click.echo(f"{txt_file.name:<20} -> {metadata.title}")
