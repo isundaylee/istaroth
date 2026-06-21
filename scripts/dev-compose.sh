@@ -133,6 +133,34 @@ _load_env() {
     CONDUCTOR_JAEGER_UI_HOST_PORT CONDUCTOR_JAEGER_OTLP_HOST_PORT VITE_PUBLIC_HOST
 }
 
+_refresh_paseo_port() {
+  local paseo_port=""
+  local paseo_port_helper=""
+  if paseo_port_helper="$(command -v paseo-port 2>/dev/null)"; then
+    :
+  elif [[ -x "$REPO_ROOT/paseo-port" ]]; then
+    paseo_port_helper="$REPO_ROOT/paseo-port"
+  fi
+  if [[ -n "$paseo_port_helper" ]]; then
+    if ! paseo_port="$("$paseo_port_helper" 2>/dev/null)"; then
+      echo "dev-compose.sh: paseo-port failed; keeping CONDUCTOR_PORT=$CONDUCTOR_PORT" >&2
+      return
+    fi
+  elif [[ -r "$REPO_ROOT/paseo-port" ]]; then
+    paseo_port="$(<"$REPO_ROOT/paseo-port")"
+  elif [[ -n "${PASEO_PORT:-}" ]]; then
+    paseo_port="$PASEO_PORT"
+  fi
+  [[ -n "$paseo_port" ]] || return
+  if [[ ! "$paseo_port" =~ ^[0-9]+$ ]]; then
+    echo "dev-compose.sh: paseo-port returned non-numeric port '$paseo_port'; keeping CONDUCTOR_PORT=$CONDUCTOR_PORT" >&2
+    return
+  fi
+  export CONDUCTOR_PORT="$paseo_port"
+  _export_ports
+  _write_env_file
+}
+
 cmd_setup() {
   _rebase_onto_upstream
   _resolve_main_root
@@ -155,10 +183,7 @@ cmd_up() {
     esac
   done
   _load_env
-  # When run as a Paseo service, bind the Web UI to the port Paseo proxies.
-  if [[ -n "${PASEO_PORT:-}" ]]; then
-    export CONDUCTOR_PORT="$PASEO_PORT"
-  fi
+  _refresh_paseo_port
   cd "$COMPOSE_DIR"
   # shellcheck disable=SC2086
   docker compose up $detach "$@"
