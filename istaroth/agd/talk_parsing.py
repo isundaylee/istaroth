@@ -25,7 +25,34 @@ logger = logging.getLogger(__name__)
 TalkGroupType: TypeAlias = Literal["ActivityGroup", "GadgetGroup", "NpcGroup"]
 
 TalkGroupId: TypeAlias = str
-"""Str half of a talk-group key; pairs with ``TalkGroupType`` (e.g. an NPC id)."""
+"""Str half of a talk-group key; pairs with ``TalkGroupType``.
+
+For most types this is a single AGD id (NPC id, activity id, ...). For
+``GadgetGroup`` it is the composite ``"<configId>_<groupId>"`` form: a
+``configId`` alone is not unique across GadgetGroup files (issue #186), so the
+``groupId`` disambiguator from the file's own top-level field is folded in.
+"""
+
+# ``GadgetGroupId`` always ships as a 9-digit int (min 111101079), so
+# ``configId * 10**GADGET_GROUP_ID_DIGITS + groupId`` is collision-free and fits
+# both ``TextMetadata.id`` and JS ``Number.MAX_SAFE_INTEGER`` (max composite
+# ~8.4e14 vs ~9.0e15). Used to derive a stable int id for the rendered file.
+_GADGET_GROUP_ID_DIGITS = 9
+
+
+def gadget_group_composite_id(
+    config_id: types.GadgetConfigId, group_id: types.GadgetGroupId
+) -> int:
+    """Stable int id for a GadgetGroup from its ``(configId, groupId)`` pair."""
+    return config_id * 10**_GADGET_GROUP_ID_DIGITS + group_id
+
+
+def parse_gadget_group_composite_id(
+    composite_id: str,
+) -> tuple[types.GadgetConfigId, types.GadgetGroupId]:
+    """Inverse of the ``"<configId>_<groupId>"`` composite-key string form."""
+    config_str, _, group_str = composite_id.partition("_")
+    return int(config_str), int(group_str)
 
 
 def _free_group_quest_id(talk_id: str) -> types.QuestId | None:
@@ -200,13 +227,18 @@ class TalkParser:
                     or data.get("npcId")
                     or data.get("storyboardId")
                 )
+                assert isinstance(id, int), relative_path
+                key_id = str(id)
             case "GadgetGroup":
-                id = data.get("configId")
+                # configId alone is not unique across GadgetGroup files (issue
+                # #186); fold in groupId as the file's own composite key. Both
+                # fields are required on every GadgetGroup file, so let a
+                # missing key raise rather than silently mis-keying the file.
+                key_id = f'{data["configId"]}_{data["groupId"]}'
             case _:
                 assert_never(group_type)
 
-        assert isinstance(id, int), relative_path
-        key = (group_type, str(id))
+        key = (group_type, key_id)
         self._talk_group_candidates[key].append(relative_path.as_posix())
 
     def _resolve_talk_group_candidates(self) -> None:

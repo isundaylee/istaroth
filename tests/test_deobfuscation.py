@@ -87,18 +87,31 @@ def test_deobfuscate_talk_data(data_repo: repo.DataRepo) -> None:
 
 
 def test_deobfuscate_talk_group_data(data_repo: repo.DataRepo) -> None:
-    """De-obfuscate an activity talk group, covering activityId and talks[].id."""
-    group_path = "BinOutput/Talk/ActivityGroup/2022.json"
-    deobfuscated_data = deobfuscation.deobfuscate_talk_group_data(
-        _load_raw(data_repo, group_path)
+    """De-obfuscate activity and gadget talk groups.
+
+    The ActivityGroup case covers activityId and talks[].id. The GadgetGroup
+    case covers the ``groupId`` field (the (configId, groupId) composite
+    disambiguator from issue #186) alongside configId.
+    """
+    activity_path = "BinOutput/Talk/ActivityGroup/2022.json"
+    activity = deobfuscation.deobfuscate_talk_group_data(
+        _load_raw(data_repo, activity_path)
     )
+    assert activity["activityId"] == 2022
+    assert activity["talks"][0]["id"] == 4011141
 
-    assert deobfuscated_data["activityId"] == 2022
-    assert deobfuscated_data["talks"][0]["id"] == 4011141
+    gadget_path = "BinOutput/Talk/GadgetGroup/1003_220200001.json"
+    gadget = deobfuscation.deobfuscate_talk_group_data(
+        _load_raw(data_repo, gadget_path)
+    )
+    assert gadget["configId"] == 1003
+    assert gadget["groupId"] == 220200001
+    assert gadget["talks"][0]["id"] == 1400825
 
-    # load_talk_group_data returns the same structure.
-    loaded_data = data_repo.load_talk_group_data(group_path)
-    assert loaded_data["talks"][0]["id"] == 4011141
+    # load_talk_group_data returns the same structure for both group types.
+    assert data_repo.load_talk_group_data(activity_path)["talks"][0]["id"] == 4011141
+    assert data_repo.load_talk_group_data(gadget_path)["configId"] == 1003
+    assert data_repo.load_talk_group_data(gadget_path)["groupId"] == 220200001
 
 
 def test_deobfuscate_coop_graph_data(data_repo: repo.DataRepo) -> None:
