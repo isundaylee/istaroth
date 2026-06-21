@@ -710,7 +710,7 @@ body {
 
 .library-selection-toolbar.library-selection--above,
 .floating-panel.floating-panel--above {
-  transform: translate(-50%, -100%);
+  transform: translate(calc(-50% + var(--drag-x, 0px)), calc(-100% + var(--drag-y, 0px)));
 }
 
 .library-selection-toolbar button {
@@ -742,7 +742,7 @@ body {
   border-radius: var(--radius-md);
   background: var(--color-surface);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
-  transform: translateX(-50%);
+  transform: translate(calc(-50% + var(--drag-x, 0px)), var(--drag-y, 0px));
   animation: fadeIn 0.2s ease;
 }
 
@@ -858,6 +858,23 @@ body {
   align-items: flex-start;
   gap: 0.75rem;
   margin-bottom: 0.75rem;
+}
+
+/* Header doubles as the drag handle: a grab cursor on the title area, no text
+   selection while dragging, and touch-action: none so touch drags move the panel
+   instead of scrolling the page. The action buttons re-assert their own cursor. */
+.floating-panel__header--draggable {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.floating-panel__header--dragging {
+  cursor: grabbing;
+}
+
+.floating-panel__header--draggable button {
+  cursor: pointer;
 }
 
 .floating-panel__heading {

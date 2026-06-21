@@ -2,6 +2,7 @@ import { useEffect, type CSSProperties, type ReactNode, type Ref } from 'react'
 import { createPortal } from 'react-dom'
 import { useT } from '../contexts/LanguageContext'
 import { MinimizedPopupCard } from '../contexts/MinimizedPopupContext'
+import { useDraggable } from '../hooks/useDraggable'
 import type { FloatingPlacement } from '../utils/floatingPanel'
 
 interface FloatingPanelProps {
@@ -58,6 +59,12 @@ export function FloatingPanel({
 }: FloatingPanelProps) {
   const t = useT()
 
+  // The header acts as a drag handle for anchored (non-fullscreen, interactive)
+  // panels. Hover-only popups (interactive=false) and the fullscreen view aren't
+  // draggable; the offset resets when the panel re-anchors at a new position.
+  const draggable = !fullscreen && interactive && top != null
+  const { offset, dragging, handleProps } = useDraggable({ resetKey: `${top},${left}`, disabled: !draggable })
+
   useEffect(() => {
     if (!onClose) return
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -85,7 +92,11 @@ export function FloatingPanel({
           ? placement === 'above'
             ? `calc(${top}px - 1rem)`
             : `calc(100vh - ${top}px - 1rem)`
-          : undefined
+          : undefined,
+        // Folded into the centering transform via CSS custom properties so a drag
+        // shifts the panel without overwriting its `translate(-50% ...)` base.
+        ['--drag-x' as string]: `${offset.x}px`,
+        ['--drag-y' as string]: `${offset.y}px`
       }
 
   // Portalled to body so the fixed-positioned panel is anchored to the viewport
@@ -112,7 +123,14 @@ export function FloatingPanel({
       data-floating-popup
       onMouseDown={(e) => e.stopPropagation()}
     >
-      <div className="floating-panel__header">
+      <div
+        className={[
+          'floating-panel__header',
+          draggable ? 'floating-panel__header--draggable' : '',
+          dragging ? 'floating-panel__header--dragging' : ''
+        ].filter(Boolean).join(' ')}
+        {...(draggable ? handleProps : {})}
+      >
         <div className="floating-panel__heading">
           {eyebrow && <p className="floating-panel__eyebrow">{eyebrow}</p>}
           <h3 className="floating-panel__title">{title}</h3>
