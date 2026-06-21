@@ -16,6 +16,7 @@ import langsmith as ls
 
 from istaroth.agd import hierarchy_nav, localization, processed_types
 from istaroth.rag import document_store_set, output_rendering
+from istaroth.text import types as text_types
 
 mcp: FastMCP = FastMCP("istaroth")
 
@@ -379,6 +380,178 @@ def get_document_hierarchy(file_id: str) -> str:
 
     except Exception as e:
         return f"获取文档层级时发生错误：{e}"
+
+
+@mcp.tool()
+def list_categories() -> str:
+    """列出语料库中的所有分类及其文件数量
+
+    返回所有可用分类的列表，每个分类包含其名称、本地化标签和文件数量。
+    可用于浏览语料库结构，再配合 get_category_hierarchy 深入查看具体分类。
+
+    返回：
+    - 分类列表，每行包含分类名称、标签和文件数量
+    """
+    try:
+        with ls.trace("mcp_list_categories", "chain") as rt:
+            manifest = _text_set.get_manifest()
+            category_counts: dict[str, int] = {}
+            for item in manifest:
+                cat_val = item.category.value
+                category_counts[cat_val] = category_counts.get(cat_val, 0) + 1
+
+            sorted_categories = sorted(category_counts.items())
+
+            output_lines = [
+                "语料库分类列表：",
+                "=" * 60,
+            ]
+            for cat_val, count in sorted_categories:
+                cat_enum = text_types.TextCategory(cat_val)
+                label = localization.get_category_label(
+                    cat_enum, language=_mcp_language
+                )
+                output_lines.append(f"  {cat_val} ({label}) — {count} 个文件")
+
+            formatted_output = "\n".join(output_lines)
+
+            rt.end(
+                outputs={
+                    "categories": [
+                        {"value": v, "count": c} for v, c in sorted_categories
+                    ],
+                    "output": formatted_output,
+                }
+            )
+
+            return formatted_output
+    except Exception as e:
+        return f"获取分类列表时发生错误：{e}"
+
+
+@mcp.tool()
+def get_category_hierarchy(category: str) -> str:
+    """获取指定分类的层级结构
+
+    对于有预建层级结构的分类（如任务 agd_quest、逸闻 agd_coop），返回多级树形结构，
+    便于浏览内容组织方式。
+    对于扁平分类（如阅读物 agd_readable、角色故事 agd_character_story 等），返回按ID
+    排序的文件列表，每行包含标题和 file_id。
+
+    参数：
+    - category: 分类名称，例如 agd_quest、agd_readable、agd_character_story 等
+
+    可通过 list_categories 获取所有可用的分类名称。
+    """
+    try:
+        with ls.trace(
+            "mcp_get_category_hierarchy",
+            "chain",
+            inputs={"category": category},
+        ) as rt:
+            hierarchy_dict = _text_set.get_hierarchy_for_category(category)
+
+            if hierarchy_dict is not None:
+                # Pre-baked hierarchy (quests, hangouts) — render multi-level tree
+                hierarchy = processed_types.Hierarchy.from_dict(hierarchy_dict)
+                output_lines = [f"分类“{category}”层级结构：", ""]
+
+                def _render_node(
+                    node: processed_types.HierarchyNode, indent: int = 0
+                ) -> None:
+                    prefix = "  " * indent
+                    label = _node_label(node)
+                    if node.children is not None:
+                        output_lines.append(f"{prefix}{label}：")
+                        for child in node.children:
+                            _render_node(child, indent + 1)
+                    else:
+                        file_id_str: str = "?"
+                        if node.file_id is not None:
+                            leaf_manifest = _text_set.get_manifest_item(
+                                text_types.TextCategory(category), node.file_id
+                            )
+                            if leaf_manifest is not None:
+                                file_id_str = hashlib.md5(
+                                    leaf_manifest.relative_path.encode("utf-8")
+                                ).hexdigest()
+                        output_lines.append(
+                            f"{prefix}- {label} (file_id: {file_id_str})"
+                        )
+
+                for node in hierarchy.nodes:
+                    _render_node(node)
+
+                output_lines.extend(
+                    [
+                        "",
+                        "提示：如需获取某个文件的完整内容，请使用 get_file_content 工具，",
+                        "传入上面结果中的 file_id 即可。",
+                    ]
+                )
+
+                formatted_output = "\n".join(output_lines)
+                rt.end(
+                    outputs={
+                        "category": category,
+                        "has_hierarchy": True,
+                        "output": formatted_output,
+                    }
+                )
+                return formatted_output
+
+            # Flat category: synthesize a depth-1 list from the manifest.
+            try:
+                text_category = text_types.TextCategory(category)
+            except ValueError:
+                error_msg = (
+                    f"错误：未知分类 '{category}'。请使用 list_categories"
+                    " 查看所有可用分类。"
+                )
+                rt.end(outputs={"error": error_msg, "category": category})
+                return error_msg
+
+            items = sorted(
+                (
+                    item
+                    for item in _text_set.get_manifest()
+                    if item.category == text_category
+                ),
+                key=lambda item: item.id,
+            )
+
+            cat_label = localization.get_category_label(
+                text_category, language=_mcp_language
+            )
+            output_lines = [
+                f"分类“{cat_label}”（{category}）— 共 {len(items)} 个文件：",
+                "",
+            ]
+            for item in items:
+                file_id = hashlib.md5(item.relative_path.encode("utf-8")).hexdigest()
+                output_lines.append(f"  - {item.title} (file_id: {file_id})")
+
+            output_lines.extend(
+                [
+                    "",
+                    "提示：如需获取某个文件的完整内容，请使用 get_file_content 工具，",
+                    "传入上面结果中的 file_id 即可。",
+                ]
+            )
+
+            formatted_output = "\n".join(output_lines)
+            rt.end(
+                outputs={
+                    "category": category,
+                    "has_hierarchy": False,
+                    "item_count": len(items),
+                    "output": formatted_output,
+                }
+            )
+            return formatted_output
+
+    except Exception as e:
+        return f"获取层级结构时发生错误：{e}"
 
 
 if __name__ == "__main__":
