@@ -1,0 +1,161 @@
+{
+  "category": "breadth",
+  "description": "Breadth: does retrieval surface ALL the distinct sources a single focused query needs, not just the top one? Each fixture's subtype is enumeration / broad_theme. Queries are deliberately ATOMIC (single retrieval intent) so they test the retrieval layer itself — not the upstream question-decomposition layer, which would split a compound question into sub-queries before retrieval ever runs.",
+  "captured_at": "2026-06-21",
+  "capture_method": "Ground truth is derived by searching the text/ corpus DIRECTLY (rg over text/chs), independent of what the retrieval stack returns — so it captures relevant sources retrieval MISSES rather than only confirming what it surfaces. (Seeding from retrieval output is circular and undercounts misses: e.g. corpus search finds 57 official sources for the Five Sinners and an official Pantalone source the stack failed to surface.) Each facet is anchored by one or more verbatim passages from authoritative sources; a facet counts as covered if ANY of its passages matches. Passages are anchored by text — not file_id/chunk_index/score — so the fixture survives re-chunking, re-embedding, path renames, and reranker changes. Queries are atomic single retrieval intents so the eval probes retrieval in isolation (the pipeline's question-decomposition layer is bypassed; `rag_tools.py eval-retrieval` calls store.retrieve directly).",
+  "caveat": "Passages are matched by whitespace-normalized containment against a retrieved source's full file content. Each passage is just the relevant portion identifying the source — a short distinctive verbatim slice — not the whole chunk. The eval runs at the most generous production preset (thorough: k=10, chunk_context=5) and reports coverage by prefix-slicing that single retrieval; because it retrieves at the actual production k, the candidate pool matches production (no smaller-k extrapolation). With ISTAROTH_QUERY_TRANSFORMER=rewrite retrieval is non-deterministic, so a facet's rank wobbles run-to-run; use eval-retrieval --repeat N to average.",
+  "fixtures": [
+    {
+      "query": "坎瑞亚灾变的历史",
+      "language": "CHS",
+      "subtype": "broad_theme",
+      "rationale": "A single topic (the Cataclysm) whose evidence is genuinely scattered across every nation plus books and character stories. One focused query, but a complete answer needs ~17 distinct sources with a smoothly decaying relevance curve, so a fixed top-K truncates it.",
+      "expected_coverage": [
+        "khaenriah_origin",
+        "cataclysm_overview",
+        "five_sinners",
+        "seven_archons_battle",
+        "forbidden_knowledge",
+        "abyss_nature",
+        "abyss_order_motive",
+        "mondstadt_impact",
+        "liyue_impact",
+        "natlan_impact",
+        "inazuma_archon_witness",
+        "sumeru_impact",
+        "kaeya_spy",
+        "dainsleif_account",
+        "black_serpent_knights",
+        "traveler_sibling",
+        "dragonspine_nail"
+      ],
+      "relevant_passages": [
+        {"passage": "一群不再信仰神的人们在须弥地底建立无神的国度坎瑞亚。", "label": "诗漱世界观手册·坎瑞亚的建立", "official": false, "covers": ["khaenriah_origin"]},
+        {"passage": "五百年前，是众神一同降临，覆灭了坎瑞亚。", "label": "戴因斯雷布·众神覆灭坎瑞亚", "official": true, "covers": ["cataclysm_overview"]},
+        {"passage": "关于坎瑞亚的事，我知道的应该比你们多。", "label": "戴因斯雷布的视角", "official": true, "covers": ["dainsleif_account"]},
+        {"passage": "「贤者」海洛塔帝，「预言家」维瑟弗尼尔，「黄金」莱茵多特，「极恶骑」苏尔特洛奇，以及「猎月人」雷利尔。", "label": "戴因列出五大罪人姓名", "official": true, "covers": ["five_sinners"]},
+        {"passage": "师父——他的真名叫做苏尔特洛奇——", "label": "丝柯克角色故事·其师苏尔特洛奇为五罪人之一（rg 找到的替代来源）", "official": true, "covers": ["five_sinners"]},
+        {"passage": "其余六神（温迪、钟离、雷电真、厄歌莉娅、玛薇卡、白沙皇）均被召集前往坎瑞亚抗击深渊。", "label": "诗漱世界观手册·七神出征坎瑞亚", "official": false, "covers": ["seven_archons_battle"]},
+        {"passage": "灾难的降临是伴随着禁忌知识的污染而出现的", "label": "大慈树王·禁忌知识与世界树", "official": true, "covers": ["forbidden_knowledge"]},
+        {"passage": "在侵袭而来的深渊面前，无论是人类还是妖精还是神明，都无比渺小。", "label": "菲林斯·深渊的本质", "official": true, "covers": ["abyss_nature"]},
+        {"passage": "坎瑞亚是被神覆灭的国度，而这就是…深渊教团想要覆灭七神国度的原因。", "label": "戴因·深渊教团的动机", "official": true, "covers": ["abyss_order_motive"]},
+        {"passage": "漆黑的大蛇——恶龙，「杜林」从海上升起，阴影迫近了蒙德。", "label": "蒙德传说·恶龙杜林", "official": true, "covers": ["mondstadt_impact"]},
+        {"passage": "千岩的干城与漆黑的军势相撞", "label": "诗漱世界观手册·璃月受灾", "official": false, "covers": ["liyue_impact"]},
+        {"passage": "原本纳塔的地脉就相较之下更为特殊和脆弱", "label": "蒂图·纳塔地脉受灾", "official": true, "covers": ["natlan_impact"]},
+        {"passage": "抵达那里时，最惨烈的战斗已经结束了。", "label": "雷电将军（影）目睹坎瑞亚战场", "official": true, "covers": ["inazuma_archon_witness"]},
+        {"passage": "当初除我以外的七神都被召集前往名为坎瑞亚的国度，而我却有另一项更加重要的任务。", "label": "大慈树王·须弥与世界树之责", "official": true, "covers": ["sumeru_impact"]},
+        {"passage": "他是坎瑞亚安插在蒙德的棋子，理应为坎瑞亚效力。", "label": "凯亚·坎瑞亚间谍身世", "official": true, "covers": ["kaeya_spy"]},
+        {"passage": "那是古坎瑞亚语的「快逃」。", "label": "戴因·坎瑞亚遗迹的黑蛇骑士", "official": true, "covers": ["black_serpent_knights"]},
+        {"passage": "「救世主」的名号便是那个时期，相信这种论调的人对公主殿下的爱称。", "label": "戴因·灾变前对旅行者血亲的「救世主」称呼", "official": true, "covers": ["traveler_sibling"]},
+        {"passage": "于是坎瑞亚人就向龙脊雪山派出了一队机器人，想要夺取寒天之钉", "label": "诗漱世界观手册·坎瑞亚夺钉计划", "official": false, "covers": ["dragonspine_nail"]}
+      ],
+      "known_redundancy": "",
+      "notes": "abyss_order_motive, black_serpent_knights, traveler_sibling, and kaeya_spy are the facets most often lost to a small top-K."
+    },
+    {
+      "query": "天理是什么？",
+      "language": "CHS",
+      "subtype": "broad_theme",
+      "rationale": "A single concept whose attestations are scattered across late-game quests and readables with deliberately varied wording, so a focused query needs several sources to assemble what 天理 is.",
+      "expected_coverage": [
+        "heavenly_principles",
+        "four_executors",
+        "created_teyvat",
+        "sleeping"
+      ],
+      "relevant_passages": [
+        {"passage": "天理之下存在着四大执政，分别司掌生、死、时、空。", "label": "天理之下的四大执政（生死时空）", "official": true, "covers": ["heavenly_principles", "four_executors"]},
+        {"passage": "天理创造了提瓦特如今的绝大部分事物", "label": "通天塔·天理创造提瓦特", "official": true, "covers": ["created_teyvat"]},
+        {"passage": "天理便陷入了沉睡，没有了声息", "label": "以世界之格的诉说·天理沉睡", "official": true, "covers": ["sleeping"]}
+      ],
+      "known_redundancy": "",
+      "notes": "Scoped to 天理 itself; the related-but-separate intents (天空岛/Celestia, 降临者/descenders, 飞升, 虚假之天) would be their own queries — pulling them in here would conflate distinct retrieval intents the decomposition layer separates upstream."
+    },
+    {
+      "query": "提瓦特的七位执政官分别是谁？",
+      "language": "CHS",
+      "subtype": "enumeration",
+      "rationale": "A single 'who are the seven Archons' intent, but each Archon is elaborated in its own nation's sources, so the answer needs ~7 distinct sources. One Zhongli line names three at once; the rest — especially the sparsely-documented cryo Tsaritsa — are scattered.",
+      "expected_coverage": [
+        "venti_anemo",
+        "zhongli_geo",
+        "raiden_electro",
+        "nahida_dendro",
+        "furina_hydro",
+        "mavuika_pyro",
+        "tsaritsa_cryo"
+      ],
+      "relevant_passages": [
+        {"passage": "风神是「自由」之神、岩神是「契约」之神，而雷电将军是追求「永恒」的神。", "label": "钟离·一处指明风/岩/雷三神（送仙）", "official": true, "covers": ["venti_anemo", "zhongli_geo", "raiden_electro"]},
+        {"passage": "智慧之神力量的具现。", "label": "纳西妲·智慧之神（草神）", "official": true, "covers": ["nahida_dendro"]},
+        {"passage": "正义之神的我，与这位异乡的旅者在法庭上展开对决吧！", "label": "芙宁娜·正义之神（水神）", "official": true, "covers": ["furina_hydro"]},
+        {"passage": "芙卡洛斯邀请他来枫丹廷看看", "label": "那维莱特故事·水神芙卡洛斯（替代来源）", "official": true, "covers": ["furina_hydro"]},
+        {"passage": "火神玛薇卡大人。", "label": "玛薇卡·火神（纳塔）", "official": true, "covers": ["mavuika_pyro"]},
+        {"passage": "承担为「冰之女皇」而战的责任", "label": "冰之女皇·冰神（至冬）", "official": true, "covers": ["tsaritsa_cryo"]}
+      ],
+      "known_redundancy": "",
+      "notes": "venti/zhongli/raiden co-locate in the single 送仙 passage, so they stand or fall together on whether that one source is retrieved; the other four each need their own scattered source, and tsaritsa_cryo is the most weakly attested."
+    },
+    {
+      "query": "愚人众的十一位执行官分别是谁？",
+      "language": "CHS",
+      "subtype": "enumeration",
+      "rationale": "A single 'who are the eleven Harbingers' intent with a built-in breadth floor of 11: each seat is attested in its own quests/character stories, so a small top-K yields only a partial roster.",
+      "expected_coverage": [
+        "pierro",
+        "capitano",
+        "dottore",
+        "columbina",
+        "servant",
+        "scaramouche",
+        "tartaglia",
+        "sandrone",
+        "pulcinella",
+        "signora",
+        "pantalone"
+      ],
+      "relevant_passages": [
+        {"passage": "他是愚人众最初的执行官，也是今日执行官们的领袖", "label": "公子语音·关于丑角皮耶罗", "official": true, "covers": ["pierro"]},
+        {"passage": "我曾见过他在战场上的模样，实在是过于强悍了。", "label": "公子语音·关于队长卡皮塔诺", "official": true, "covers": ["capitano"]},
+        {"passage": "愚人众执行官「博士」在蒙德也有过多次犯罪行为。", "label": "法尔伽·博士多托雷", "official": true, "covers": ["dottore"]},
+        {"passage": "我不明白那个女孩为什么是「第三席」。", "label": "公子语音·关于少女哥伦比娅", "official": true, "covers": ["columbina"]},
+        {"passage": "正是如今的愚人众执行官第四席，「仆人」阿蕾奇诺。", "label": "阿蕾奇诺角色故事·第四席仆人", "official": true, "covers": ["servant"]},
+        {"passage": "愚人众执行官第六席，「散兵」。", "label": "散兵自我介绍·第六席", "official": true, "covers": ["scaramouche"]},
+        {"passage": "愚人众执行官第十一位，「公子」，其战绩威名远扬。", "label": "角色档案·达达利亚第十一席", "official": true, "covers": ["tartaglia"]},
+        {"passage": "就是现在身处挪德卡莱的…「木偶」。", "label": "卓新·木偶桑多涅", "official": true, "covers": ["sandrone"]},
+        {"passage": "他看我的眼神，就像看待家人一样。", "label": "公子语音·关于公鸡普尔奇内拉", "official": true, "covers": ["pulcinella"]},
+        {"passage": "刚才的愚人众执行官，抢走「神之心」以后，马上就离开了呢。", "label": "温迪·女士抢走神之心", "official": true, "covers": ["signora"]},
+        {"passage": "潘塔罗涅卡财务审批卡得非常紧", "label": "木偶的笔记本·潘塔罗涅掌管财务（官方）", "official": true, "covers": ["pantalone"]},
+        {"passage": "以金钱的名义，我会遵守我们之间的『契约』", "label": "诗漱世界观手册·潘塔罗涅（非官方替代来源）", "official": false, "covers": ["pantalone"]}
+      ],
+      "known_redundancy": "",
+      "notes": "Filter passages by `official` to measure official-only coverage; the dedicated profiles for the lower-ranked seats (servant/Arlecchino, scaramouche) sit deep in the ranking."
+    },
+    {
+      "query": "神之眼代表着什么？",
+      "language": "CHS",
+      "subtype": "broad_theme",
+      "rationale": "A single 'what does a Vision mean' intent whose answer is a spread of distinct in-world interpretations across many character stories. Retrieval tends to cluster on a few similar takes and miss the rest, and near-duplicate Traveler files waste slots.",
+      "expected_coverage": [
+        "responsibility",
+        "wish",
+        "divine_recognition",
+        "proof_not_source",
+        "canonical_definition",
+        "outsider_cannot"
+      ],
+      "relevant_passages": [
+        {"passage": "帝君曾言，「神之眼」代表的是一份责任", "label": "闲云·神之眼代表责任", "official": true, "covers": ["responsibility"]},
+        {"passage": "神之眼便代表着那个人的愿望", "label": "托马·神之眼代表愿望", "official": true, "covers": ["wish"]},
+        {"passage": "在我眼中，「神之眼」便是愿望的象征", "label": "心海·愿望的象征（替代来源）", "official": true, "covers": ["wish"]},
+        {"passage": "神之眼代表着神明的认可", "label": "瑶瑶·神明的认可", "official": true, "covers": ["divine_recognition"]},
+        {"passage": "神之眼是旗帜，代表了神的认可", "label": "北斗·神的认可（替代来源）", "official": true, "covers": ["divine_recognition"]},
+        {"passage": "神之眼是力量的「证明」，而不是力量的「来源」", "label": "万叶·力量的证明而非来源", "official": true, "covers": ["proof_not_source"]},
+        {"passage": "受神认可者所获的外置魔力器官，用以引导元素之力。", "label": "钟离·神之眼的权威定义", "official": true, "covers": ["canonical_definition"]},
+        {"passage": "你自己是得不到「神之眼」的。外界生物不属于世间众生", "label": "旅行者角色故事·外界生物无法获得", "official": true, "covers": ["outsider_cannot"]}
+      ],
+      "known_redundancy": "The canonical_definition and outsider_cannot passages appear verbatim in two near-identical Traveler character-story files (male/female protagonist variants), so a naive top-K commonly returns both as adjacent results — a wasted slot a dedup/MMR pass should reclaim.",
+      "notes": "Facets are distinct interpretations, not regions, so this stays a single retrieval intent rather than a per-region survey (which the decomposition layer would split)."
+    }
+  ]
+}

@@ -8,6 +8,7 @@ import logging
 import os
 import pathlib
 import shutil
+import statistics
 import sys
 
 import click
@@ -28,7 +29,7 @@ from istaroth.rag import (
     text_set,
     types,
 )
-from istaroth.rag.eval import dataset
+from istaroth.rag.eval import dataset, retrieval
 from istaroth.text import manifest
 
 logger = logging.getLogger(__name__)
@@ -203,6 +204,143 @@ def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
                 k: v for k, v in os.environ.items() if k.startswith("ISTAROTH_")
             }
             (output / f"{query_hash}.json").write_text(json.dumps(data))
+
+
+def _ranked_source_texts(
+    store: types.Retriever,
+    fixture: retrieval.RetrievalFixture,
+    *,
+    k: int,
+    chunk_context: int,
+    bm25: bool,
+) -> list[str]:
+    """Full file content of each retrieved source, in rank order."""
+    retrieve_output = (
+        store.retrieve_bm25(fixture.query, k=k, chunk_context=chunk_context)
+        if bm25
+        else store.retrieve(fixture.query, k=k, chunk_context=chunk_context)
+    )
+    texts = []
+    for _, docs in retrieve_output.results:
+        chunks = store.get_file_chunks(docs[0].metadata["file_id"])
+        texts.append(
+            "\n".join(c.page_content for c in (chunks if chunks is not None else docs))
+        )
+    return texts
+
+
+@cli.command("eval-retrieval")
+@click.option(
+    "-k",
+    "--k",
+    default=10,
+    help="Sources retrieved per query (default 10 = the 'thorough' frontend preset, the most generous production setting)",
+)
+@click.option(
+    "-c",
+    "--chunk-context",
+    default=5,
+    help="Chunk context used during retrieval (default 5 = 'thorough' frontend preset)",
+)
+@click.option(
+    "--default-k", default=10, help="Cutoff to highlight coverage at (default = k)"
+)
+@click.option(
+    "--category",
+    default=None,
+    help="Only run fixtures from this category (default: all)",
+)
+@click.option(
+    "--repeat",
+    default=1,
+    help="Run each query N times and average (the rewrite transformer is non-deterministic)",
+)
+@click.option("--bm25", is_flag=True, help="Use BM25-only retrieval instead of hybrid")
+def eval_retrieval(
+    *,
+    k: int,
+    chunk_context: int,
+    default_k: int,
+    category: str | None,
+    repeat: int,
+    bm25: bool,
+) -> None:
+    """Measure facet coverage of the retrieval-eval fixtures against retrieval.
+
+    Runs every fixture category (or just --category) for the store's language.
+    Each fixture's relevant passages are matched against the FULL file content of
+    every retrieved source, so coverage reflects which sources are surfaced
+    independent of chunk_context. Reports mean coverage at the production cutoff
+    vs. the full retrieved ranking, and per-facet how reliably (over --repeat
+    runs) it is surfaced within the cutoff. Use --repeat > 1 to average out the
+    non-determinism of the rewrite query transformer.
+    """
+    store, language, _ = _load_store()
+    if store.num_documents == 0:
+        logger.error("No documents in store.")
+        sys.exit(1)
+
+    fixtures = [
+        f
+        for f in retrieval.load_retrieval_dataset().fixtures
+        if f.language == language.value and (category is None or f.category == category)
+    ]
+    if not fixtures:
+        logger.error(
+            "No fixtures for store language %s%s.",
+            language.value,
+            f" in category {category!r}" if category else "",
+        )
+        sys.exit(1)
+
+    current_category = None
+    for fixture in fixtures:
+        if fixture.category != current_category:
+            current_category = fixture.category
+            print("#" * 80)
+            print(f"# CATEGORY: {current_category}")
+
+        total = len(fixture.expected_coverage)
+        runs = [
+            _ranked_source_texts(
+                store, fixture, k=k, chunk_context=chunk_context, bm25=bm25
+            )
+            for _ in range(repeat)
+        ]
+        first_ranks = [fixture.first_covered_rank(texts) for texts in runs]
+
+        n_sources = [len(texts) for texts in runs]
+        cov_default = [len(fixture.coverage_at_k(texts, default_k)) for texts in runs]
+        cov_full = [len(fixture.coverage_at_k(texts, len(texts))) for texts in runs]
+
+        print("=" * 80)
+        print(f"[{fixture.subtype or fixture.category}] {fixture.query}")
+        print(
+            f"runs={repeat} | sources: {statistics.mean(n_sources):.1f} | "
+            f"coverage@{default_k}: {statistics.mean(cov_default):.1f}/{total} | "
+            f"coverage@full: {statistics.mean(cov_full):.1f}/{total}"
+        )
+        for facet in fixture.expected_coverage:
+            ranks = [fr[facet] for fr in first_ranks]
+            within = [r for r in ranks if r is not None and r <= default_k]
+            anywhere = [r for r in ranks if r is not None]
+            if within:
+                detail = f"median rank {statistics.median(within):.0f}"
+                label = f"covered {len(within)}/{repeat} @<=k ({detail})"
+            elif anywhere:
+                label = (
+                    f"TAIL: covered {len(anywhere)}/{repeat} only beyond k={default_k}"
+                )
+            else:
+                label = f"MISSING (0/{repeat} runs)"
+            print(f"  - {facet}: {label}")
+        for passage in fixture.relevant_passages:
+            counts = [sum(passage.matches(t) for t in texts) for texts in runs]
+            if (mean_count := statistics.mean(counts)) > 1:
+                print(
+                    f"  [redundant] mean {mean_count:.1f} sources/run match passage: {passage.label}"
+                )
+    print("=" * 80)
 
 
 @cli.command()
