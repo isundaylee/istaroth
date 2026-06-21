@@ -34,6 +34,7 @@ interface CitationContentData {
 function CitationRenderer({ content, properNouns, children }: CitationRendererProps) {
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
   const [stickyCitation, setStickyCitation] = useState<string | null>(null)
+  const [isMinimized, setIsMinimized] = useState<boolean>(false)
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false)
   const [popupPosition, setPopupPosition] = useState<FloatingPosition>({ top: 0, left: 0, placement: 'below' })
   const [citationCache, setCitationCache] = useState<Record<string, CachedCitation>>({})
@@ -248,13 +249,14 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     setPopupPosition(position)
 
     // Toggle sticky state
-    if (stickyCitation === citationId) {
+    if (stickyCitation === citationId && !isMinimized) {
       setStickyCitation(null)
     } else {
       setStickyCitation(citationId)
+      setIsMinimized(false) // Re-open fully when (re)clicking a citation
       setHoveredCitation(null) // Clear hover when making sticky
     }
-  }, [stickyCitation, fetchCitationsBatch, calculatePopupPosition])
+  }, [stickyCitation, isMinimized, fetchCitationsBatch, calculatePopupPosition])
 
   const handleCitationListClick = useCallback((e: React.MouseEvent<HTMLElement>, citationId: string) => {
     e.preventDefault()
@@ -266,28 +268,33 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     // Always open fullscreen when clicking from citation list
     // Position doesn't matter for fullscreen popups
     setStickyCitation(citationId)
+    setIsMinimized(false)
     setIsFullscreen(true)
     setHoveredCitation(null) // Clear hover when making sticky
   }, [fetchCitationsBatch])
 
   const handleCloseSticky = useCallback(() => {
     setStickyCitation(null)
+    setIsMinimized(false)
     setIsFullscreen(false)
   }, [])
 
-  // Close sticky popup when clicking outside
+  // Minimize the sticky popup (instead of closing) when clicking outside it. The
+  // popup keeps its state and collapses to a card in the side rail; full close
+  // happens via that card. Clicks landing in any floating popup/card are ignored.
   useEffect(() => {
-    if (!stickyCitation) return
+    if (!stickyCitation || isMinimized) return
 
     const handleMouseDown = (e: MouseEvent) => {
       if (popupRef.current?.contains(e.target as Node)) return
       if ((e.target as HTMLElement).closest?.('[data-citation-id]')) return
-      handleCloseSticky()
+      if ((e.target as HTMLElement).closest?.('[data-floating-popup]')) return
+      setIsMinimized(true)
     }
 
     document.addEventListener('mousedown', handleMouseDown)
     return () => document.removeEventListener('mousedown', handleMouseDown)
-  }, [stickyCitation, handleCloseSticky])
+  }, [stickyCitation, isMinimized])
 
   const handleToggleFullscreen = useCallback(() => {
     setIsFullscreen(!isFullscreen)
@@ -420,6 +427,8 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
           fullText={isSticky ? popupData.fullText : undefined}
           isSticky={isSticky}
           isFullscreen={isFullscreen}
+          minimized={isMinimized}
+          onRestore={() => setIsMinimized(false)}
           placement={popupPosition.placement}
           top={popupPosition.top}
           left={popupPosition.left}

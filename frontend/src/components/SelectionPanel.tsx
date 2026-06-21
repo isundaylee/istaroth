@@ -40,8 +40,10 @@ interface SelectionPanelFrameProps {
   top: number
   left: number
   fullscreen: boolean
+  minimized: boolean
   retrievePagePath: (query: string) => string
   onClose: () => void
+  onRestore: () => void
   onToggleFullscreen: () => void
 }
 
@@ -121,8 +123,10 @@ export function SelectionPanelFrame({
   top,
   left,
   fullscreen,
+  minimized,
   retrievePagePath,
   onClose,
+  onRestore,
   onToggleFullscreen
 }: SelectionPanelFrameProps) {
   const t = useT()
@@ -147,6 +151,8 @@ export function SelectionPanelFrame({
       top={top}
       left={left}
       fullscreen={fullscreen}
+      minimized={minimized}
+      onRestore={onRestore}
       onToggleFullscreen={onToggleFullscreen}
       eyebrow={eyebrow}
       title={title}

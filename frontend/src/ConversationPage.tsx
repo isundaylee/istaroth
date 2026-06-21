@@ -10,6 +10,7 @@ import QueryForm from './QueryForm'
 import Card from './components/Card'
 import Navigation from './components/Navigation'
 import CitationRenderer from './components/CitationRenderer'
+import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import { useProperNounSelection } from './hooks/useProperNounSelection'
 import type { ConversationResponse } from './types/api'
 
@@ -135,7 +136,7 @@ function ConversationPage() {
         <QueryForm key={conversation.uuid} currentQuestion={conversation.question} onSubmitStart={() => setSubmittingNew(true)} />
 
         {!submittingNew &&
-        <div className="conversation-content">
+        <MinimizedPopupRegion className="conversation-content">
           <Card borderColor="green">
             <h3 style={{ margin: 0 }}>{conversation.question}</h3>
           </Card>
@@ -230,7 +231,7 @@ function ConversationPage() {
               </>
             )}
           </CitationRenderer>
-        </div>}
+        </MinimizedPopupRegion>}
         {selectionUi}
       </main>
     </>
