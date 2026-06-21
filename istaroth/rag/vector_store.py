@@ -105,7 +105,11 @@ class ChromaBaseVectorStore(VectorStore):
                     n_results=k,
                 )
 
-            # Convert results to ScoredChunk format (discard page_content — empty strings)
+            # Build ScoredChunk references from Chroma results. Chroma stores
+            # empty strings as documents (see build()), so we discard the
+            # documents field entirely and reconstruct from metadata + distance.
+            # Invert L2 distance (0 = identical) to a similarity score (1 = most similar)
+            # so higher scores consistently mean better matches across all backends.
             scored_chunks = []
             metadatas = cast(list[list[Any]], results["metadatas"])[0]
             distances = cast(list[list[float]], results["distances"])[0]
@@ -184,6 +188,9 @@ class ChromaVectorStore(ChromaBaseVectorStore):
                         len(batch_texts),
                     )
 
+                    # Store empty strings — Chroma's stored page_content is never
+                    # consumed downstream; search returns ScoredChunk references
+                    # that resolve to full Documents from DocumentStore._documents.
                     collection.add(
                         ids=batch_ids,
                         documents=[""] * len(batch_texts),

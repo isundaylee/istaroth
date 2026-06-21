@@ -332,6 +332,18 @@ class DocumentStore:
             ],
         )
 
+    def _resolve_chunks(
+        self, scored_chunks: list[types.ScoredChunk]
+    ) -> list[types.ScoredDocument]:
+        """Resolve ScoredChunk references to full ScoredDocuments from self._documents."""
+        return [
+            types.ScoredDocument(
+                document=self._documents[sc.file_id][sc.chunk_index],
+                score=sc.score,
+            )
+            for sc in scored_chunks
+        ]
+
     @classmethod
     def build(
         cls,
@@ -442,14 +454,7 @@ class DocumentStore:
 
         # Resolve ScoredChunk → ScoredDocument from self._documents
         resolved_results = [
-            [
-                types.ScoredDocument(
-                    document=self._documents[sc.file_id][sc.chunk_index],
-                    score=sc.score,
-                )
-                for sc in result_list
-            ]
-            for result_list in all_results
+            self._resolve_chunks(result_list) for result_list in all_results
         ]
 
         weights = [1.0] * len(queries) + [float(len(queries))]
@@ -478,14 +483,7 @@ class DocumentStore:
     ) -> types.RetrieveOutput:
         """Search using BM25 keyword retrieval only."""
         scored_chunks = self._bm25_store.search(query, k * 2)
-        # Resolve ScoredChunk → ScoredDocument from self._documents
-        scored_docs = [
-            types.ScoredDocument(
-                document=self._documents[sc.file_id][sc.chunk_index],
-                score=sc.score,
-            )
-            for sc in scored_chunks
-        ]
+        scored_docs = self._resolve_chunks(scored_chunks)
         return self._select_scored_documents(
             query, scored_docs, k=k, chunk_context=chunk_context
         )
