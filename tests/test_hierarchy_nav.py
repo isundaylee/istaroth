@@ -137,19 +137,6 @@ class TestFindLeafPath:
         assert [n.key for n in path] == ["WQ", "standalone", "q10"]
 
 
-# ── flatten_leaves ───────────────────────────────────────────────────────
-
-
-class TestFlattenLeaves:
-    def test_flattens_nested_tree(self) -> None:
-        leaves = hierarchy_nav.flatten_leaves(_QUEST_TREE)
-        assert [leaf.file_id for leaf in leaves] == [100, 101, 102, 103]
-
-    def test_flattens_flat_coop(self) -> None:
-        leaves = hierarchy_nav.flatten_leaves(_FLAT_COOP_TREE)
-        assert [leaf.file_id for leaf in leaves] == [400, 401]
-
-
 # ── compute_toc ──────────────────────────────────────────────────────────
 
 

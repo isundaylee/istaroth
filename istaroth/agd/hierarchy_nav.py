@@ -27,25 +27,6 @@ def find_leaf_path(
     return None
 
 
-def flatten_leaves(
-    nodes: list[processed_types.HierarchyNode],
-) -> list[processed_types.HierarchyNode]:
-    """All leaf nodes under *nodes*, in depth-first order."""
-    leaves: list[processed_types.HierarchyNode] = []
-
-    def _walk(node: processed_types.HierarchyNode) -> None:
-        if node.children is None:
-            if node.file_id is not None:
-                leaves.append(node)
-            return
-        for child in node.children:
-            _walk(child)
-
-    for node in nodes:
-        _walk(node)
-    return leaves
-
-
 def compute_toc(
     path: list[processed_types.HierarchyNode],
 ) -> processed_types.HierarchyNode | None:
