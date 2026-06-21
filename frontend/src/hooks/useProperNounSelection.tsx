@@ -132,9 +132,18 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   const handleProperNounClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       const target = (event.target as HTMLElement).closest('.proper-noun')
-      if (!target || !answerNodeRef.current?.contains(target)) return
-      const text = target.textContent?.trim()
-      if (text) openSelectionAtRect(text, target.getBoundingClientRect())
+      if (target && answerNodeRef.current?.contains(target)) {
+        const text = target.textContent?.trim()
+        if (text) openSelectionAtRect(text, target.getBoundingClientRect())
+        return
+      }
+      // A plain click inside the answer (not on a proper noun, no text selected)
+      // is "outside the popup" too — minimize an open panel to its card. The
+      // document mousedown handler can't do this because the answer area (the
+      // whole document in the library viewer) is exempt to allow text selection.
+      if (panelOpenRef.current && window.getSelection()?.isCollapsed) {
+        setIsMinimized(true)
+      }
     },
     [openSelectionAtRect]
   )
@@ -150,8 +159,9 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   useEffect(() => {
     const handleMouseDown = (event: MouseEvent) => {
       const target = event.target as HTMLElement
-      // Keep this panel open for clicks in its own answer or in any floating
-      // popup/card (including nested ones, which portal out of this subtree).
+      // Ignore clicks in any floating popup/card (incl. nested ones that portal
+      // out of this subtree) and in this answer area — the latter is exempt so
+      // text selection works; plain answer clicks minimize via the click handler.
       if (answerNodeRef.current?.contains(target) || target.closest?.('[data-floating-popup]')) return
       // With a panel open, an outside click minimizes it to a side-rail card
       // (kept open, full close happens via the card); a bare toolbar just closes.
