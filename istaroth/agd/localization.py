@@ -52,7 +52,7 @@ _STANDALONE_QUEST_LABEL: dict[Language, str] = {
 }
 _CATEGORY_LABELS: dict[text_types.TextCategory, dict[Language, str]] = {
     text_types.TextCategory.AGD_QUEST: {Language.CHS: "任务", Language.ENG: "Quests"},
-    text_types.TextCategory.AGD_COOP: {
+    text_types.TextCategory.AGD_HANGOUT: {
         Language.CHS: "邀约事件",
         Language.ENG: "Hangout Events",
     },

@@ -536,7 +536,9 @@ class TalkGroups(
 class Hangouts(BaseRenderableType[id_types.QuestId]):
     """Hangout (Coop) content type: one file per hangout quest, in play order."""
 
-    text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_COOP
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_HANGOUT
+    )
     error_limit: ClassVar[int] = 50
     error_limit_non_chinese: ClassVar[int] = 200
 

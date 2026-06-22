@@ -488,7 +488,7 @@ def generate_all(
         only_category is None or only_category == text_types.TextCategory.AGD_TALK
     )
     generate_hangouts = (
-        only_category is None or only_category == text_types.TextCategory.AGD_COOP
+        only_category is None or only_category == text_types.TextCategory.AGD_HANGOUT
     )
     generate_artifact_sets = (
         only_category is None
@@ -630,10 +630,10 @@ def generate_all(
         coop_items = [
             (item.id, item.title)
             for item in manifest_list
-            if item.category == text_types.TextCategory.AGD_COOP
+            if item.category == text_types.TextCategory.AGD_HANGOUT
         ]
         assert coop_items, "hangout generation produced no coop manifest items"
-        hierarchies[text_types.TextCategory.AGD_COOP.value] = (
+        hierarchies[text_types.TextCategory.AGD_HANGOUT.value] = (
             coop_hierarchy.build_coop_hierarchy(
                 coop_items, data_repo=data_repo
             ).to_dict()

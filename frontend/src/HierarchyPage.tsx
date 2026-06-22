@@ -38,7 +38,7 @@ export async function libraryCategoryLoader({
 
 function searchPlaceholderKey(category: string): string {
   if (category === 'agd_quest') return 'library.questSearchPlaceholder'
-  if (category === 'agd_coop') return 'library.coopSearchPlaceholder'
+  if (category === 'agd_hangout') return 'library.hangoutSearchPlaceholder'
   return 'library.filterPlaceholder'
 }
 

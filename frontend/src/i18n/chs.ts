@@ -180,7 +180,7 @@ export const chs = {
       agd_subtitle: '字幕',
       agd_talk_group: '对话组',
       agd_talk: '对话',
-      agd_coop: '邀约事件',
+      agd_hangout: '邀约事件',
       agd_voiceline: '语音台词',
       agd_creature: '生物志',
       tps_shishu: '诗漱原神世界观手册'
@@ -200,8 +200,8 @@ export const chs = {
     questSeriesToc: '本系列任务',
     questSearchPlaceholder: '搜索所有类型的任务...',
     noSearchResults: '没有匹配的任务',
-    coopCharacterToc: '本邀约的剧情',
-    coopSearchPlaceholder: '搜索所有角色的邀约...',
+    hangoutCharacterToc: '本邀约的剧情',
+    hangoutSearchPlaceholder: '搜索所有角色的邀约...',
     selection: {
       keywordSearch: '关键词检索',
       ask: '提问',

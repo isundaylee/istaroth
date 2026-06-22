@@ -29,20 +29,34 @@ When the user asks to **regen corpus**:
 
 4. In `text/`, check out `main` before committing. If the shallow checkout lacks the local branch, create or reset it at the pinned commit without discarding changes.
 5. Time a complete regeneration of both languages. The two write to
-   independent directories (`text/chs` vs `text/eng`), so run them in parallel
-   and wait for both:
+   independent directories (`text/chs` vs `text/eng`), so run them in parallel.
+   Each run writes its exit code to a sentinel file the moment it finishes, so
+   completion (and success) can be detected reliably — including across separate
+   tool calls when the regen is launched detached/in the background:
 
    ```bash
-   uv run scripts/agd_tools.py generate-all -f text/chs > /tmp/regen-chs.log 2>&1 &
-   chs_pid=$!
-   AGD_LANGUAGE=ENG uv run scripts/agd_tools.py generate-all -f text/eng > /tmp/regen-eng.log 2>&1 &
-   eng_pid=$!
-   wait "$chs_pid"; chs_status=$?
-   wait "$eng_pid"; eng_status=$?
-   echo "chs=$chs_status eng=$eng_status"
+   rm -f /tmp/regen-chs.status /tmp/regen-eng.status
+   ( uv run scripts/agd_tools.py generate-all -f text/chs > /tmp/regen-chs.log 2>&1; echo $? > /tmp/regen-chs.status ) &
+   ( AGD_LANGUAGE=ENG uv run scripts/agd_tools.py generate-all -f text/eng > /tmp/regen-eng.log 2>&1; echo $? > /tmp/regen-eng.status ) &
    ```
 
-   Both must exit 0; inspect the corresponding log on any non-zero status.
+   To check for completion, poll for both sentinel files to exist, then read the
+   codes — do NOT use `pgrep`/`ps` name matching (it is fragile and can match the
+   checker itself):
+
+   ```bash
+   if [ -f /tmp/regen-chs.status ] && [ -f /tmp/regen-eng.status ]; then
+     echo "chs=$(cat /tmp/regen-chs.status) eng=$(cat /tmp/regen-eng.status)"   # both present => both done
+   else
+     echo "still running"
+   fi
+   ```
+
+   When running both in the same foreground shell instead, capture the PIDs
+   (`chs_pid=$!`) right after each `&` and `wait "$chs_pid"; chs_status=$?` on
+   each. Either way, both must exit 0; inspect the corresponding log on any
+   non-zero status. A finished log ends with a `Document hierarchy written to
+   …/metadata/agd/hierarchy.json` line, a useful secondary completeness signal.
    Never use `--only` for committed corpus output. It is allowed only for ad hoc output in a throwaway directory.
 
 6. Audit the generated diff using the procedure below. Treat any unexplained lost content as a failure to investigate before committing.

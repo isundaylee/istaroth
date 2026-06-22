@@ -180,7 +180,7 @@ export const eng = {
       agd_subtitle: 'Subtitles',
       agd_talk_group: 'Talk Groups',
       agd_talk: 'Talks',
-      agd_coop: 'Hangout Events',
+      agd_hangout: 'Hangout Events',
       agd_voiceline: 'Voicelines',
       agd_creature: 'Living Beings',
       tps_shishu: 'Shishu Lore Manual'
@@ -200,8 +200,8 @@ export const eng = {
     questSeriesToc: 'Quests in this series',
     questSearchPlaceholder: 'Search quests across all types...',
     noSearchResults: 'No quests match your search',
-    coopCharacterToc: 'Acts in this hangout',
-    coopSearchPlaceholder: 'Search hangouts across all characters...',
+    hangoutCharacterToc: 'Acts in this hangout',
+    hangoutSearchPlaceholder: 'Search hangouts across all characters...',
     selection: {
       keywordSearch: 'Keyword search',
       ask: 'Ask',
