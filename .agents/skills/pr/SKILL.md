@@ -23,7 +23,7 @@ Each separate tool call costs a model round-trip, so batch aggressively:
 Happy path at a glance (one-commit-or-clean branch, checks pass):
 1. Kickoff — parallel: `(a)` branch + fetch + merge-base inspection, `(b)`
    `pre-commit run` (+ frontend `tsc` if `frontend/` changed).
-2. Write `/tmp/commit-msg.txt` and `/tmp/pr-body.md` (two `Write` calls, parallel).
+2. Write `/tmp/pr-<branch>-commit.txt` and `/tmp/pr-<branch>-body.md` (two `Write` calls, parallel). Substitute `<branch>` with the actual branch name (from kickoff) so the paths are unique per PR — never reuse a fixed `/tmp/commit-msg.txt`, since a leftover file from a prior run trips the Write tool's read-before-overwrite guard. Use the SAME concrete paths in the Write calls and the finalize chain.
 3. Finalize — one `&&` chain: squash, commit, push, create PR.
 
 Keep a rough **per-phase** timing (kickoff, finalize) and surface it in step 6 —
@@ -68,8 +68,8 @@ When first opening the PR, collapse the branch's incremental work into one
 commit (subsequent review rounds will add commits on top — see Notes). Because
 `git add -A` stages everything including the moved `text/` submodule pointer,
 the squash is a single commit with no separate "Update text" amend:
-- Several commits (usual): `git reset --soft $(git merge-base HEAD origin/main) && git add -A && git commit -F /tmp/commit-msg.txt`.
-- Exactly one commit already: amend into it: `git add -A && git commit --amend -F /tmp/commit-msg.txt`.
+- Several commits (usual): `git reset --soft $(git merge-base HEAD origin/main) && git add -A && git commit -F /tmp/pr-<branch>-commit.txt`.
+- Exactly one commit already: amend into it: `git add -A && git commit --amend -F /tmp/pr-<branch>-commit.txt`.
 - Only if you committed the code BEFORE the submodule pointer moved do you need a
   follow-up `git add text && git commit --amend --no-edit`; the `git add -A`
   above already covers the common case.
@@ -78,7 +78,7 @@ The branch is squash-merged on GitHub, so the final commit message comes from th
 PR title + description (step 4), NOT these per-commit messages — keep the PR
 description complete and accurate.
 
-Write the commit message to `/tmp/commit-msg.txt` (a `Write` call, done during
+Write the commit message to `/tmp/pr-<branch>-commit.txt` (a `Write` call, done during
 the step-1 kickoff) and pass it with `-F`, never inline `-m`/`--body` — bodies
 routinely contain backticks/apostrophes the shell mangles.
 - Subject: concise, imperative.
@@ -97,15 +97,15 @@ dependency chain — run them as a single `&&` call so each round-trip is paid
 once. With the squash already done in step 3, the rest is:
 ```bash
 git push -u origin HEAD \
-  && gh pr create --title "<concise title>" --body-file /tmp/pr-body.md
+  && gh pr create --title "<concise title>" --body-file /tmp/pr-<branch>-body.md
 ```
 Or fold step 3's squash in too, for the full happy-path one-liner:
 ```bash
 git reset --soft "$(git merge-base HEAD origin/main)" \
   && git add -A \
-  && git commit -F /tmp/commit-msg.txt \
+  && git commit -F /tmp/pr-<branch>-commit.txt \
   && git push -u origin HEAD \
-  && gh pr create --title "<concise title>" --body-file /tmp/pr-body.md
+  && gh pr create --title "<concise title>" --body-file /tmp/pr-<branch>-body.md
 ```
 Force-pushing your own PR branch is fine (`--force-with-lease` when updating an
 already-pushed branch you own). NEVER force-push or rebase shared history such as
@@ -114,9 +114,9 @@ the `istaroth-text` submodule `main`.
 **Updating an existing PR** (review rounds): the push already refreshes the diff,
 so don't blindly create. Check once and branch:
 ```bash
-git push && { gh pr view --json url -q .url || gh pr create --title "<title>" --body-file /tmp/pr-body.md; }
+git push && { gh pr view --json url -q .url || gh pr create --title "<title>" --body-file /tmp/pr-<branch>-body.md; }
 ```
-Refresh the description only when the scope changed: `gh pr edit --body-file /tmp/pr-body.md`.
+Refresh the description only when the scope changed: `gh pr edit --body-file /tmp/pr-<branch>-body.md`.
 
 PR description should cover, briefly (it becomes the squash-merge commit message,
 so make it self-contained):

@@ -54,10 +54,11 @@ def _get_chinese_prompts() -> RAGPrompts:
         雷电将军实行眼狩令的原因
         珊瑚宫反抗军反抗眼狩令的原因
 
-        请同时判断该问题属于以下哪种检索意图类型（基于证据分布，而非问题复杂程度）：
-        - variety：证据分散在大量不同的来源中（如列举型问题"七位执政官分别是谁"，或覆盖多个独立事件/角色的宽泛主题）
-        - context：答案集中在同一个来源的连续段落中，需要获取其上下文来完整理解（如一个剧情场景、一段对话、一个角色的完整故事）
+        请同时判断回答该问题需要多少"周围上下文"，据此归入以下检索意图（依据回答所需的上下文长度，而非问题听起来的复杂程度）：
+        - variety：答案是简短、自成一体的事实（如人名/全名、定义、称号、列举项），单条片段即可作答，几乎不需要周围上下文；或证据分散在许多来源、跨越多个独立事件/角色的宽泛主题或历史
+        - context：理解答案必须依赖某个来源内部的一段连续上下文（如一个剧情场景、一段逐步展开的对话）；这里指单一来源内的连续段落，而非跨越多个事件、需要综合多处来源的宏观历史或主题
         - balanced：介于两者之间
+        判断要点：若答案只是一个简短、自成一体的事实，即使不确定需要多少来源，也优先选择 variety——窄上下文成本低，能覆盖更多来源；只有当理解答案确实依赖周围叙事时才选 context。
 
         用户问题：{question}
         """
@@ -136,10 +137,11 @@ def _get_english_prompts() -> RAGPrompts:
         Why the Raiden Shogun enforced the Vision Hunt Decree
         Why the Sangonomiya Resistance opposed the Vision Hunt Decree
 
-        Also classify the question's retrieval intent into one of the following (based on evidence distribution, not how complex/deep the question sounds):
-        - variety: evidence is scattered across many different sources (e.g. enumerations like "who are the seven Archons", or broad themes covering many independent events/characters)
-        - context: the answer is concentrated in a continuous passage within a single source and needs its surrounding context to be fully understood (e.g. a quest scene, dialogue, a character's complete story)
+        Also classify how much surrounding context the question needs to answer, into one of the following retrieval intents (based on the length of context the answer requires, not how complex/deep the question sounds):
+        - variety: the answer is a short, self-contained fact (a name/full name, a definition, a title, an enumeration item) that a single snippet satisfies with little or no surrounding context; OR evidence is scattered across many sources / a broad theme or history spanning many independent events or characters
+        - context: understanding the answer requires a continuous stretch of context within a single source (e.g. a quest scene, an unfolding dialogue) — a continuous passage inside one source, NOT a broad history or theme that must be assembled from many sources
         - balanced: something in between
+        Tie-breaker: if the answer is a short, self-contained fact, prefer variety even when you are unsure how many sources are needed — a narrow context window is cheap and casts a wider net; choose context only when understanding genuinely depends on the surrounding narrative.
 
         User question: {question}
         """

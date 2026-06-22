@@ -35,6 +35,38 @@ class _PreprocessOutput(pydantic.BaseModel):
     queries: list[str]
 
 
+@langsmith_utils.traceable(name="preprocess_question")
+def preprocess_question(
+    question: str,
+    *,
+    rag_prompts: prompt_set.RAGPrompts,
+    preprocessing_llm: language_models.BaseLanguageModel,
+) -> tuple[list[str], _budget.QueryIntent]:
+    """Rewrite a question into retrieval queries and classify its retrieval intent.
+
+    Falls back to ``[question]`` / ``BALANCED`` if the structured call fails. This
+    is the single source of truth for preprocessing — both the pipeline and the
+    intent-classification tests go through it.
+    """
+    chain = prompts.ChatPromptTemplate.from_messages(
+        [("user", rag_prompts.question_preprocess_prompt)]
+    ) | preprocessing_llm.with_structured_output(_PreprocessOutput)
+    try:
+        result = chain.invoke({"question": question})
+        if isinstance(result, _PreprocessOutput):
+            queries = result.queries[:3] if result.queries else [question]
+            return queries, _budget.QueryIntent(result.intent)
+        logger.warning(
+            "Preprocessing response was not structured output (type=%s), falling back",
+            type(result).__name__,
+        )
+    except Exception:
+        logger.warning(
+            "Preprocessing structured output failed, falling back", exc_info=True
+        )
+    return [question], _budget.QueryIntent.BALANCED
+
+
 class _PipelineState(TypedDict):
     question: str
     normalized_question: str
@@ -84,10 +116,6 @@ class RAGPipeline:
             ]
         )
 
-        self._preprocess_prompt = prompts.ChatPromptTemplate.from_messages(
-            [("user", self._prompt_set.question_preprocess_prompt)]
-        )
-
         builder = StateGraph(_PipelineState)
         builder.add_node("normalize", self._normalize_node)
         builder.add_node("preprocess", self._preprocess_node)
@@ -114,37 +142,15 @@ class RAGPipeline:
         """Load the canon proper-noun list to ground the normalizer LLM."""
         return tuple(proper_nouns.load_terms(self._text_set.text_path))
 
-    @langsmith_utils.traceable(name="preprocess_question")
-    def _preprocess_question(
-        self, question: str
-    ) -> tuple[list[str], _budget.QueryIntent]:
-        chain = (
-            self._preprocess_prompt
-            | self._preprocessing_llm.with_structured_output(_PreprocessOutput)
-        )
-        try:
-            result = chain.invoke({"question": question})
-            if isinstance(result, _PreprocessOutput):
-                queries = result.queries[:3] if result.queries else [question]
-                intent = _budget.QueryIntent(result.intent)
-            else:
-                logger.warning(
-                    "Preprocessing response was not structured output (type=%s), falling back",
-                    type(result).__name__,
-                )
-                queries, intent = [question], _budget.QueryIntent.BALANCED
-            return queries, intent
-        except Exception:
-            logger.warning(
-                "Preprocessing structured output failed, falling back", exc_info=True
-            )
-            return [question], _budget.QueryIntent.BALANCED
-
     async def _preprocess_node(self, state: _PipelineState) -> dict[str, object]:
         preprocess_start = time.perf_counter()
         with state["reporter"].step("augmenting"):
             retrieval_queries, intent = await anyio.to_thread.run_sync(
-                lambda: self._preprocess_question(state["normalized_question"])
+                lambda: preprocess_question(
+                    state["normalized_question"],
+                    rag_prompts=self._prompt_set,
+                    preprocessing_llm=self._preprocessing_llm,
+                )
             )
         metrics.rag_pipeline_stage_preprocessing_duration_seconds.observe(
             time.perf_counter() - preprocess_start
