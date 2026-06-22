@@ -13,6 +13,26 @@ from istaroth import utils
 from istaroth.agd import localization, repo
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--run-llm",
+        action="store_true",
+        default=False,
+        help="Run opt-in tests marked `llm` that call a real model (cost tokens).",
+    )
+
+
+def pytest_collection_modifyitems(
+    config: pytest.Config, items: list[pytest.Item]
+) -> None:
+    if config.getoption("--run-llm"):
+        return
+    skip_llm = pytest.mark.skip(reason="needs --run-llm (calls a real model)")
+    for item in items:
+        if "llm" in item.keywords:
+            item.add_marker(skip_llm)
+
+
 @pytest.fixture
 def agd_path() -> str:
     """Get AGD path from environment variable."""

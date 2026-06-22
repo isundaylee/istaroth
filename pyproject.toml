@@ -88,6 +88,9 @@ include = ["istaroth*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+markers = [
+    "llm: opt-in tests that call a real model (cost tokens); run with --run-llm",
+]
 
 [tool.mypy]
 python_version = "3.12"
