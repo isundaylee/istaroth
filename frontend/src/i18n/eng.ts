@@ -45,6 +45,7 @@ export const eng = {
       modelsLoadFailed: 'Failed to load available models. Please refresh the page to try again'
     },
     progress: {
+      normalizing: 'Normalizing query',
       augmenting: 'Generating queries',
       searching: 'Searching',
       generating: 'Generating response',

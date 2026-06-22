@@ -38,6 +38,7 @@ dependencies = [
     "prometheus-client",
     "psycopg2-binary",
     "pydantic",
+    "pypinyin>=0.55.0",
     "rank-bm25",
     "sqlalchemy[asyncio]",
     "tabulate",

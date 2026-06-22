@@ -438,6 +438,8 @@ pyperclip==1.11.0
     # via fastmcp
 pypika==0.51.1
     # via chromadb
+pypinyin==0.55.0
+    # via istaroth
 pyproject-hooks==1.2.0
     # via build
 python-dateutil==2.9.0.post0

@@ -18,6 +18,7 @@ from istaroth.rag import (
     output_rendering,
     progress,
     prompt_set,
+    query_normalize,
     text_set,
     types,
 )
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 class _PipelineState(TypedDict):
     question: str
+    normalized_question: str
     k: int
     chunk_context: int
     reporter: progress.ProgressReporter
@@ -60,6 +62,9 @@ class RAGPipeline:
         self._preprocessing_llm = preprocessing_llm
         self._proper_noun_llm = proper_noun_llm
         self._text_set = text_set
+        self._normalizer = query_normalize.QueryNormalizer.from_env(
+            vocabulary=self._load_proper_noun_vocabulary()
+        )
 
         self._prompt_set = prompt_set.get_rag_prompts(language)
 
@@ -75,16 +80,39 @@ class RAGPipeline:
         )
 
         builder = StateGraph(_PipelineState)
+        builder.add_node("normalize", self._normalize_node)
         builder.add_node("preprocess", self._preprocess_node)
         builder.add_node("retrieve", self._retrieve_node)
         builder.add_node("generate", self._generate_node)
         builder.add_node("extract_proper_nouns", self._extract_proper_nouns_node)
-        builder.add_edge(START, "preprocess")
+        builder.add_edge(START, "normalize")
+        builder.add_edge("normalize", "preprocess")
         builder.add_edge("preprocess", "retrieve")
         builder.add_edge("retrieve", "generate")
         builder.add_edge("generate", "extract_proper_nouns")
         builder.add_edge("extract_proper_nouns", END)
         self._graph = builder.compile()
+
+    async def _normalize_node(self, state: _PipelineState) -> dict[str, object]:
+        with state["reporter"].step("normalizing"):
+            normalized = await anyio.to_thread.run_sync(
+                lambda: self._normalizer.normalize(state["question"])
+            )
+        logger.info("Normalized question %r -> %r", state["question"], normalized)
+        return {"normalized_question": normalized}
+
+    def _load_proper_noun_vocabulary(self) -> tuple[str, ...]:
+        """Load the canon proper-noun list to ground the normalizer LLM."""
+        return tuple(
+            proper_nouns.filter_terms_from_content(
+                self._text_set.get_content(
+                    proper_nouns.PROPER_NOUNS_RELATIVE_PATH.as_posix()
+                ),
+                self._text_set.get_content(
+                    proper_nouns.PROPER_NOUNS_NEGATIVE_RELATIVE_PATH.as_posix()
+                ),
+            )
+        )
 
     @langsmith_utils.traceable(name="preprocess_question")
     def _preprocess_question(self, question: str) -> list[str]:
@@ -103,7 +131,7 @@ class RAGPipeline:
         preprocess_start = time.perf_counter()
         with state["reporter"].step("augmenting"):
             retrieval_queries = await anyio.to_thread.run_sync(
-                lambda: self._preprocess_question(state["question"])
+                lambda: self._preprocess_question(state["normalized_question"])
             )
         metrics.rag_pipeline_stage_preprocessing_duration_seconds.observe(
             time.perf_counter() - preprocess_start
@@ -270,6 +298,7 @@ class RAGPipeline:
         """Answer question using the LangGraph pipeline."""
         initial_state: _PipelineState = {
             "question": question,
+            "normalized_question": question,
             "k": k,
             "chunk_context": chunk_context,
             "reporter": reporter,

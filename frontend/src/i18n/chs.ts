@@ -45,6 +45,7 @@ export const chs = {
       modelsLoadFailed: '无法加载可用模型列表，请刷新页面重试'
     },
     progress: {
+      normalizing: '正在规范化查询',
       augmenting: '正在生成检索查询',
       searching: '正在检索',
       generating: '正在生成回答',
