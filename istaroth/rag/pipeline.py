@@ -142,20 +142,15 @@ class RAGPipeline:
         """Load the canon proper-noun list to ground the normalizer LLM."""
         return tuple(proper_nouns.load_terms(self._text_set.text_path))
 
-    def _preprocess_question(
-        self, question: str
-    ) -> tuple[list[str], _budget.QueryIntent]:
-        return preprocess_question(
-            question,
-            rag_prompts=self._prompt_set,
-            preprocessing_llm=self._preprocessing_llm,
-        )
-
     async def _preprocess_node(self, state: _PipelineState) -> dict[str, object]:
         preprocess_start = time.perf_counter()
         with state["reporter"].step("augmenting"):
             retrieval_queries, intent = await anyio.to_thread.run_sync(
-                lambda: self._preprocess_question(state["normalized_question"])
+                lambda: preprocess_question(
+                    state["normalized_question"],
+                    rag_prompts=self._prompt_set,
+                    preprocessing_llm=self._preprocessing_llm,
+                )
             )
         metrics.rag_pipeline_stage_preprocessing_duration_seconds.observe(
             time.perf_counter() - preprocess_start

@@ -38,24 +38,17 @@ def _classify(query: str, language: localization.Language) -> budget.QueryIntent
     return intent
 
 
-_LOW_CONTEXT_QUERIES = [
-    (localization.Language.CHS, "卡特的全名叫什么？"),  # name lookup
-    (localization.Language.CHS, "神之眼代表着什么？"),  # definition / multi-aspect
-    (localization.Language.CHS, "提瓦特的七位执政官分别是谁？"),  # enumeration
-    (localization.Language.CHS, "钟离的真实身份是什么？"),  # single fact
-    (localization.Language.CHS, "坎瑞亚灾变的历史"),  # broad history across sources
-    (localization.Language.ENG, "What is Carter's full name?"),
-    (localization.Language.ENG, "Who are the seven Archons of Teyvat?"),
-]
-
-_NARRATIVE_SCENE_QUERIES = [
-    (localization.Language.CHS, "在送仙典仪上，钟离与旅行者之间发生了怎样的对话？"),
-    (localization.Language.CHS, "「螭骨剑」任务里魈经历了怎样的一段剧情？"),
-]
-
-
 @pytest.mark.parametrize(
-    "language,query", _LOW_CONTEXT_QUERIES, ids=lambda v: getattr(v, "value", v)
+    "language,query",
+    [
+        (localization.Language.CHS, "卡特的全名叫什么？"),  # name lookup
+        (localization.Language.CHS, "神之眼代表着什么？"),  # definition / multi-aspect
+        (localization.Language.CHS, "提瓦特的七位执政官分别是谁？"),  # enumeration
+        (localization.Language.CHS, "钟离的真实身份是什么？"),  # single fact
+        (localization.Language.CHS, "坎瑞亚灾变的历史"),  # broad history across sources
+        (localization.Language.ENG, "What is Carter's full name?"),
+        (localization.Language.ENG, "Who are the seven Archons of Teyvat?"),
+    ],
 )
 def test_low_context_queries_route_to_variety(
     language: localization.Language, query: str
@@ -65,7 +58,11 @@ def test_low_context_queries_route_to_variety(
 
 
 @pytest.mark.parametrize(
-    "language,query", _NARRATIVE_SCENE_QUERIES, ids=lambda v: getattr(v, "value", v)
+    "language,query",
+    [
+        (localization.Language.CHS, "在送仙典仪上，钟离与旅行者之间发生了怎样的对话？"),
+        (localization.Language.CHS, "「螭骨剑」任务里魈经历了怎样的一段剧情？"),
+    ],
 )
 def test_narrative_scene_queries_keep_context_window(
     language: localization.Language, query: str
