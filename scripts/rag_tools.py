@@ -3,7 +3,6 @@
 
 import datetime
 import functools
-import hashlib
 import json
 import logging
 import os
@@ -36,7 +35,7 @@ from istaroth.rag import (
     text_set,
     types,
 )
-from istaroth.rag.eval import dataset, retrieval
+from istaroth.rag.eval import retrieval
 from istaroth.text import manifest
 
 logger = logging.getLogger(__name__)
@@ -186,33 +185,6 @@ def retrieve(
         print(formatted_output)
 
 
-@cli.command()
-@click.argument("output", type=pathlib.Path)
-@click.option("-k", "--k", default=5, help="Number of results to return")
-@click.option("-c", "--chunk-context", default=5, help="Context size for each chunk")
-def retrieve_eval(output: pathlib.Path, *, k: int, chunk_context: int) -> None:
-    """Evaluate retrieval on a fixed dataset and save into the output path."""
-
-    store, _, ts = _load_store()
-
-    for query in dataset.RETRIEVAL_QUESTIONS:
-        with ls.trace(
-            "rag_tools_retrieve_eval",
-            "chain",
-            inputs={"query": query, "k": k, "chunk_context": chunk_context},
-        ) as rt:
-            retrieve_output = store.retrieve(query, k=k, chunk_context=chunk_context)
-            rt.end(outputs=retrieve_output.to_langsmith_output(None, text_set=ts))
-
-            query_hash = hashlib.md5(query.encode()).hexdigest()
-            output.mkdir(parents=True, exist_ok=True)
-            data = retrieve_output.to_dict()
-            data["env"] = {
-                k: v for k, v in os.environ.items() if k.startswith("ISTAROTH_")
-            }
-            (output / f"{query_hash}.json").write_text(json.dumps(data))
-
-
 def _ranked_source_texts(
     store: types.Retriever,
     fixture: retrieval.RetrievalFixture,
@@ -324,9 +296,7 @@ async def _aeval_fixtures(
     async def _eval_one(idx: int, fixture: retrieval.RetrievalFixture) -> None:
         intent = intent_fn(fixture.query)
         fk, fcc = _budget.allocate(budget, intent)
-        print(
-            f"[fixture] {fixture.query} → intent={intent.value} k={fk} cc={fcc}"
-        )
+        print(f"[fixture] {fixture.query} → intent={intent.value} k={fk} cc={fcc}")
         texts_list, chunks_list = await _afetch_sources(
             store,
             fixture,
