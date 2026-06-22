@@ -33,8 +33,8 @@ export const chs = {
     },
     models: {
       'gemini-3_1-flash-lite-preview': '超快速 (gemini-3.1-flash-lite-preview)',
-      'zai-org_GLM-4_7-Flash': '快速 (GLM-4.7-Flash，经 DeepInfra)',
-      'deepseek-ai_DeepSeek-V4-Flash': '快速 (DeepSeek-V4-Flash，经 DeepInfra)',
+      'zai-org_GLM-4_7-Flash': '快速 (GLM-4.7-Flash)',
+      'deepseek-ai_DeepSeek-V4-Flash': '快速 (DeepSeek-V4-Flash)',
       'gemini-3-flash-preview:minimal': '快速 (gemini-3-flash, 极简思考)',
       'gemini-3-flash-preview:high': '快速 (gemini-3-flash, 深度思考)',
       'gpt-5-nano': '快速 (gpt-5-nano)',
