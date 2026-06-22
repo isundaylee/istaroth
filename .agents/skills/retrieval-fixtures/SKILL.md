@@ -24,6 +24,7 @@ A query plus the ground truth for grading retrieval on it:
 - `subtype` — optional, category-specific tag (breadth uses `enumeration` / `broad_theme`); omit if the category has none.
 - `expected_coverage` — the **facets** a complete answer must cover (entities, regions, sub-topics, …).
 - `relevant_passages` — for each facet, one or more **anchor passages**: short verbatim slices of corpus text identifying a source that attests the facet. A facet is covered if ANY of its passages matches a retrieved source.
+- `facet_descriptions` — optional `{facet: "natural-language meaning"}` map, used ONLY by the `--judge` rescue pass to tell the LLM what each facet means. Omit it and the judge falls back to the anchors' `label`s, which are usually descriptive enough; add an explicit entry only when the labels are too terse to judge against.
 - `rationale`, `notes`, `known_redundancy` — free text (`known_redundancy` notes near-duplicate sources, else `""`).
 
 The metric: run retrieval, match each anchor against the FULL file content of
@@ -54,7 +55,10 @@ the corpus contains is a retrieval gap.
    MISSING facet, print the retrieved source paths and `rg` those files for the
    facet's concept. If a retrieved source attests it in other words → false miss;
    add that wording as an alternate anchor. If NO retrieved source attests it →
-   genuine retrieval miss; leave it (that is a real finding).
+   genuine retrieval miss; leave it (that is a real finding). The `--judge` flag
+   (see below) automates this loop: it asks an LLM whether any retrieved source
+   attests each missing facet and persists the supporting span as a new anchor, so
+   genuine misses stay misses but false misses self-heal across runs.
 
 6. **Prefer official (in-game) sources; mark non-official ones.** `tps_shishu/` is
    the non-official 诗漱 worldbook → `"official": false`; in-game canon →
@@ -170,6 +174,31 @@ so do not anchor passages from those directories.
    Then `rg` the listed files for the facet's concept; if one attests it, add that
    wording as an alternate anchor and re-run step 7.
 
+## Automating false-miss hardening with the LLM judge
+
+`eval-retrieval --judge` adds a rescue pass after the deterministic anchor match.
+For every facet still MISSING in a fixture, it makes ONE call to a cheap model
+(DeepSeek V4 Flash on DeepInfra, OpenAI-compatible; needs `DEEPINFRA_API_KEY`)
+with the query, the union of retrieved sources, and each missing facet's
+description. The model copies a short verbatim span from the sources that attests
+the facet, or returns nothing if none does. Each span is then verified to actually
+occur in a retrieved source (hallucinated spans are dropped) and, by default,
+persisted back into the fixture JSON as a new anchor labelled `judge:<path>` with
+`official` inferred from the source path. So the judge fires once per false miss;
+on the next run the deterministic matcher catches it for free.
+
+```bash
+set -a; source .env.common; source .env.web; set +a
+uv run python scripts/rag_tools.py eval-retrieval --judge --repeat 3
+# --no-judge-write   judge but don't persist (dry run)
+# --judge-model X    override the DeepInfra model id
+```
+
+Review the persisted anchors in `git diff` before committing — the span must
+genuinely attest the facet, not merely co-occur with it. A judge that never fires
+means either coverage is already complete or anchors/descriptions are too sparse
+for it to work with.
+
 ## Fixture JSON schema
 
 File: `retrieval_fixtures/<category>.json`
@@ -191,6 +220,7 @@ File: `retrieval_fixtures/<category>.json`
       "relevant_passages": [
         {"passage": "<verbatim slice>", "label": "<who/what + source>", "official": true, "covers": ["venti_anemo"]}
       ],
+      "facet_descriptions": {"venti_anemo": "<optional: what this facet means, for the --judge pass>"},
       "known_redundancy": "",
       "notes": ""
     }
@@ -201,5 +231,5 @@ File: `retrieval_fixtures/<category>.json`
 Loader enforces (a failing test means one is violated): the file's `category`
 equals its filename stem; facet names in `expected_coverage` are unique; every
 `covers` entry names a known facet; every passage covers ≥1 facet; every expected
-facet is covered by ≥1 passage. `subtype`, `known_redundancy`, `notes` are
-optional.
+facet is covered by ≥1 passage; every `facet_descriptions` key names a known
+facet. `subtype`, `facet_descriptions`, `known_redundancy`, `notes` are optional.

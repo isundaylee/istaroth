@@ -44,6 +44,15 @@ def _normalize(text: str) -> str:
     return "".join(text.split())
 
 
+def locate_span(span: str, ranked_texts: list[str]) -> int | None:
+    """1-based rank of the first ranked text containing `span` (whitespace-ignored)."""
+    needle = _normalize(span)
+    for rank, text in enumerate(ranked_texts, start=1):
+        if needle in _normalize(text):
+            return rank
+    return None
+
+
 @attrs.frozen
 class RelevantPassage:
     """A relevant source anchored by a verbatim, distinctive substring."""
@@ -69,8 +78,22 @@ class RetrievalFixture:
     rationale: str
     expected_coverage: tuple[str, ...]
     relevant_passages: tuple[RelevantPassage, ...]
+    facet_descriptions: dict[str, str]
     known_redundancy: str
     notes: str
+
+    def facet_description(self, facet: str) -> str:
+        """Natural-language meaning of a facet for the LLM judge.
+
+        Uses the explicit ``facet_descriptions`` entry if present, else falls back
+        to the distinct labels of the anchors covering the facet.
+        """
+        if explicit := self.facet_descriptions.get(facet):
+            return explicit
+        labels = dict.fromkeys(
+            p.label for p in self.relevant_passages if facet in p.covers
+        )
+        return "；".join(labels)
 
     def facets_in(self, text: str) -> set[str]:
         """Expected facets whose passage appears in a single source's text."""
@@ -136,6 +159,12 @@ def _parse_fixture(category: str, raw: dict) -> RetrievalFixture:
             f"{raw['query']!r} expects facet(s) no passage covers: {uncovered}"
         )
 
+    facet_descriptions = dict(raw.get("facet_descriptions", {}))
+    if unknown := set(facet_descriptions) - expected_set:
+        raise ValueError(
+            f"{raw['query']!r} facet_descriptions name unknown facet(s): {unknown}"
+        )
+
     return RetrievalFixture(
         category=category,
         query=raw["query"],
@@ -144,6 +173,7 @@ def _parse_fixture(category: str, raw: dict) -> RetrievalFixture:
         rationale=raw["rationale"],
         expected_coverage=expected,
         relevant_passages=passages,
+        facet_descriptions=facet_descriptions,
         known_redundancy=raw.get("known_redundancy", ""),
         notes=raw.get("notes", ""),
     )
@@ -161,6 +191,35 @@ class RetrievalDataset:
 
     def by_category(self, category: str) -> tuple[RetrievalFixture, ...]:
         return tuple(f for f in self.fixtures if f.category == category)
+
+
+def persist_anchors(anchors: list[tuple[str, str, dict]]) -> int:
+    """Append judge-discovered anchors back into their category JSON files.
+
+    `anchors` is a list of (category, query, passage-dict). New passages are
+    appended to the matching fixture's ``relevant_passages``, skipping any whose
+    ``passage`` text already exists there. Returns the number actually written.
+    """
+    written = 0
+    by_category: dict[str, list[tuple[str, dict]]] = {}
+    for category, query, passage in anchors:
+        by_category.setdefault(category, []).append((query, passage))
+    for category, items in by_category.items():
+        path = _FIXTURE_DIR / f"{category}.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        fixtures_by_query = {f["query"]: f for f in data["fixtures"]}
+        for query, passage in items:
+            fixture = fixtures_by_query[query]
+            existing = {p["passage"] for p in fixture["relevant_passages"]}
+            if passage["passage"] in existing:
+                continue
+            fixture["relevant_passages"].append(passage)
+            written += 1
+        path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+    load_retrieval_dataset.cache_clear()
+    return written
 
 
 @functools.cache
