@@ -244,7 +244,9 @@ langchain-openai==1.1.10
 langchain-text-splitters==1.1.1
     # via langchain-classic
 langgraph==1.0.9
-    # via langchain
+    # via
+    #   istaroth
+    #   langchain
 langgraph-checkpoint==4.0.0
     # via
     #   langgraph

@@ -77,6 +77,7 @@ class AnswerResult:
 
     answer: str
     stats: GenerationStats
+    proper_nouns: list[str] = attrs.field(factory=list)
 
 
 @attrs.define
