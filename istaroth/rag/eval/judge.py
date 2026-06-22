@@ -131,11 +131,12 @@ def make_judge(
         )
         parsed = result["parsed"]
         assert isinstance(parsed, _JudgeOutput)
-        um = result["raw"].usage_metadata or {}
+        um = result["raw"].usage_metadata
+        assert um is not None, "judge response is missing usage_metadata"
         usage = JudgeUsage(
             calls=1,
-            input_tokens=um.get("input_tokens", 0),
-            output_tokens=um.get("output_tokens", 0),
+            input_tokens=um["input_tokens"],
+            output_tokens=um["output_tokens"],
         )
         spans = {
             v.facet: v.span
