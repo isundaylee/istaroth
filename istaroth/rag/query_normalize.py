@@ -1,4 +1,4 @@
-"""Query normalization for typo/homophone/pinyin/traditional-simplified correction.
+"""Query normalization for typo/homophone/traditional-simplified correction.
 
 Unlike :mod:`istaroth.rag.query_transform` (semantic multi-query *rewriting*
 inside hybrid retrieval), normalization is a strict 1:1 surface-form correction:
@@ -45,14 +45,13 @@ class QueryNormalizer(ABC):
 
         If no correction applies the original query is returned unchanged.
         """
-        raise NotImplementedError
 
     @classmethod
     def from_env(cls, *, vocabulary: tuple[str, ...] = ()) -> "QueryNormalizer":
         """Select a normalizer via the ``ISTAROTH_QUERY_NORMALIZER`` env var.
 
         - ``identity`` (default): no-op normalizer.
-        - ``llm``: LLM-driven typo/homophone/pinyin/trad-simp correction, grounded
+        - ``llm``: LLM-driven typo/homophone/trad-simp correction, grounded
           in ``vocabulary`` (the canon proper-noun list) so corrections target
           real Genshin names.
 
@@ -79,7 +78,7 @@ class IdentityNormalizer(QueryNormalizer):
 
 @attrs.define
 class LLMQueryNormalizer(QueryNormalizer):
-    """LLM-driven normalizer for typo/homophone/pinyin/trad-simp correction."""
+    """LLM-driven normalizer for typo/homophone/trad-simp correction."""
 
     _PROMPT_TEMPLATE: typing.ClassVar[
         str
@@ -88,7 +87,6 @@ class LLMQueryNormalizer(QueryNormalizer):
 {vocabulary_section}\
 需要纠正的错误类型：
 - 中文错别字或同音字误用（如"钟梨"→"钟离"，"温迪尔"→"温迪"）
-- 拼音/罗马音转写（如"zhongli"→"钟离"）
 - 繁体字转简体（如"鍾離"→"钟离"）
 - 英文拼写错误（如"Zhongil"→"Zhongli"，"Raidnen"→"Raiden"）
 - 全角/半角混用、多余空格、标点规范化

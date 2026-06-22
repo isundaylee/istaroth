@@ -103,16 +103,7 @@ class RAGPipeline:
 
     def _load_proper_noun_vocabulary(self) -> tuple[str, ...]:
         """Load the canon proper-noun list to ground the normalizer LLM."""
-        return tuple(
-            proper_nouns.filter_terms_from_content(
-                self._text_set.get_content(
-                    proper_nouns.PROPER_NOUNS_RELATIVE_PATH.as_posix()
-                ),
-                self._text_set.get_content(
-                    proper_nouns.PROPER_NOUNS_NEGATIVE_RELATIVE_PATH.as_posix()
-                ),
-            )
-        )
+        return tuple(proper_nouns.load_terms(self._text_set.text_path))
 
     @langsmith_utils.traceable(name="preprocess_question")
     def _preprocess_question(self, question: str) -> list[str]:
