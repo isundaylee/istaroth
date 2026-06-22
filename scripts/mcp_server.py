@@ -435,7 +435,7 @@ def list_categories() -> str:
 def get_category_hierarchy(category: str) -> str:
     """获取指定分类的层级结构
 
-    对于有预建层级结构的分类（如任务 agd_quest、邀约 agd_coop），返回多级树形结构，
+    对于有预建层级结构的分类（如任务 agd_quest、邀约 agd_hangout），返回多级树形结构，
     便于浏览内容组织方式。
     对于扁平分类（如阅读物 agd_readable、角色故事 agd_character_story 等），返回按ID
     排序的文件列表，每行包含标题和 file_id。

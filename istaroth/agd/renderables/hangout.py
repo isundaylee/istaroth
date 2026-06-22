@@ -333,10 +333,10 @@ def render_hangout(
 
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
-            category=text_types.TextCategory.AGD_COOP,
+            category=text_types.TextCategory.AGD_HANGOUT,
             title=title,
             id=hangout.quest_id,
-            relative_path=f"{text_types.TextCategory.AGD_COOP.value}/{filename}",
+            relative_path=f"{text_types.TextCategory.AGD_HANGOUT.value}/{filename}",
         ),
         content="\n".join(content_lines).rstrip(),
     )
