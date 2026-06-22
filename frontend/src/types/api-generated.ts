@@ -428,6 +428,8 @@ export interface components {
             model: string;
             /** K */
             k: number;
+            /** Budget */
+            budget?: number | null;
             /** Created At */
             created_at: number;
             /** Generation Time Seconds */
@@ -618,10 +620,8 @@ export interface components {
             question: string;
             /** Model */
             model: string;
-            /** K */
-            k: number;
-            /** Chunk Context */
-            chunk_context: number;
+            /** Budget */
+            budget: number;
             /** Client Id */
             client_id?: string | null;
             /** Cache Key */

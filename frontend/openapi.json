@@ -952,6 +952,17 @@
             "type": "integer",
             "title": "K"
           },
+          "budget": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget"
+          },
           "created_at": {
             "type": "number",
             "title": "Created At"
@@ -1362,13 +1373,9 @@
             "type": "string",
             "title": "Model"
           },
-          "k": {
+          "budget": {
             "type": "integer",
-            "title": "K"
-          },
-          "chunk_context": {
-            "type": "integer",
-            "title": "Chunk Context"
+            "title": "Budget"
           },
           "client_id": {
             "anyOf": [
@@ -1398,8 +1405,7 @@
           "language",
           "question",
           "model",
-          "k",
-          "chunk_context"
+          "budget"
         ],
         "title": "QueryRequest",
         "description": "Request model for query endpoint."

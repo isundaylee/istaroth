@@ -16,6 +16,7 @@ import type {
 
 const MAX_SELECTION_LENGTH = 80
 const MAX_SELECTION_TERMS = 8
+const _BUDGET_BALANCED = 35
 
 interface AnswerHandlers {
   onMouseUp: () => void
@@ -256,8 +257,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
         language: language.toUpperCase(),
         question,
         model: await fetchDefaultModel(),
-        k: 7,
-        chunk_context: 2,
+        budget: _BUDGET_BALANCED,
         client_id: getClientId(),
         cache_key: query
       }

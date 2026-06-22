@@ -46,17 +46,20 @@ def _get_chinese_prompts() -> RAGPrompts:
 
         示例：
         问题：钟离的真实身份是什么？
-        输出：
+        查询：
         钟离的真实身份
 
         问题：雷电将军为什么实行眼狩令，珊瑚宫反抗军为什么反抗？
-        输出：
+        查询：
         雷电将军实行眼狩令的原因
         珊瑚宫反抗军反抗眼狩令的原因
 
-        用户问题：{question}
+        请同时判断该问题属于以下哪种检索意图类型（基于证据分布，而非问题复杂程度）：
+        - variety：证据分散在大量不同的来源中（如列举型问题"七位执政官分别是谁"，或覆盖多个独立事件/角色的宽泛主题）
+        - context：答案集中在同一个来源的连续段落中，需要获取其上下文来完整理解（如一个剧情场景、一段对话、一个角色的完整故事）
+        - balanced：介于两者之间
 
-        每行输出一个查询，不要编号或解释：
+        用户问题：{question}
         """
     )
 
@@ -125,17 +128,20 @@ def _get_english_prompts() -> RAGPrompts:
 
         Examples:
         Question: What is Zhongli's true identity?
-        Output:
+        Queries:
         Zhongli's true identity
 
         Question: Why did the Raiden Shogun enforce the Vision Hunt Decree, and why did the Sangonomiya Resistance oppose it?
-        Output:
+        Queries:
         Why the Raiden Shogun enforced the Vision Hunt Decree
         Why the Sangonomiya Resistance opposed the Vision Hunt Decree
 
-        User question: {question}
+        Also classify the question's retrieval intent into one of the following (based on evidence distribution, not how complex/deep the question sounds):
+        - variety: evidence is scattered across many different sources (e.g. enumerations like "who are the seven Archons", or broad themes covering many independent events/characters)
+        - context: the answer is concentrated in a continuous passage within a single source and needs its surrounding context to be fully understood (e.g. a quest scene, dialogue, a character's complete story)
+        - balanced: something in between
 
-        Output one query per line, without numbering or explanation:
+        User question: {question}
         """
     )
 

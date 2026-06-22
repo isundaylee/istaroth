@@ -42,6 +42,7 @@ class Conversation(Base):
 
     model: Mapped[str] = mapped_column(String(100), nullable=False)
     k: Mapped[int] = mapped_column(Integer, nullable=False)
+    budget: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     language: Mapped[str] = mapped_column(String(10), nullable=False)
 
     client_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)

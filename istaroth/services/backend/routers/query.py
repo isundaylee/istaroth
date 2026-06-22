@@ -52,7 +52,8 @@ async def _save_conversation(
         question=request.question,
         answer=result.answer,
         model=request.model,
-        k=request.k,
+        k=0,
+        budget=request.budget,
         language=request.language,
         client_id=request.client_id,
         generation_time_seconds=generation_time,
@@ -258,9 +259,9 @@ async def query_stream(
     )
 
     logger.info(
-        "Processing streaming query: %s with k=%d using model: %s, language: %s",
+        "Processing streaming query: %s with budget=%d using model: %s, language: %s",
         request.question,
-        request.k,
+        request.budget,
         request.model,
         language_name,
     )
@@ -277,8 +278,7 @@ async def query_stream(
                 start_time = time.perf_counter()
                 result = await rag_pipeline.answer(
                     request.question,
-                    k=request.k,
-                    chunk_context=request.chunk_context,
+                    budget=request.budget,
                     reporter=reporter,
                 )
                 generation_time = time.perf_counter() - start_time
