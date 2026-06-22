@@ -78,6 +78,12 @@ istaroth/
 - ALWAYS avoid intermediate variables that is only used once
 - ALWAYS avoid writing obvious comments
 
+## Testing Philosophy
+
+- Only test genuinely non-trivial code paths. Parametrize tests that exercise the same core functionality across different inputs — a single `@pytest.mark.parametrize` block is preferred over a class of near-identical test methods.
+- Prefer top-level pytest functions over test classes unless shared setup justifies a class.
+- Integration/end-to-end tests that depend on external data (AGD, text corpus) should be `SKIP`-annotated without that data, not fail.
+
 ## Import Conventions
 - The former `istaroth/agd/types.py` is split into three focused modules, all imported plainly as `from istaroth.agd import <module>`: `id_types` (id `TypeAlias`es), `agd_types` (raw AGD wire/excel `TypedDict`s + `TextMap`), and `processed_types` (the processed/rendered `attrs` domain types).
 - ALWAYS use from package.subpackage import module import syntax; e.g. from istaroth.agd import processing

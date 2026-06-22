@@ -15,9 +15,9 @@ interface QueryFormProps {
 }
 
 const retrievalPresets = {
-  fast: { k: 4, chunk_context: 1 },
-  balanced: { k: 7, chunk_context: 2 },
-  thorough: { k: 10, chunk_context: 5 },
+  fast: 12,
+  balanced: 35,
+  thorough: 110,
 } as const
 
 type RetrievalPreset = keyof typeof retrievalPresets
@@ -144,13 +144,11 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
     onSubmitStart?.()
 
     try {
-      const retrievalParams = retrievalPresets[retrievalPreset]
       const req_body: QueryRequest = {
         language: language.toUpperCase(),
         question: questionToSubmit,
         model: selectedModel,
-        k: retrievalParams.k,
-        chunk_context: retrievalParams.chunk_context,
+        budget: retrievalPresets[retrievalPreset],
         client_id: getClientId(),
       }
       const res = await fetch('/api/query/stream', {

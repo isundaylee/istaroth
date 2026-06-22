@@ -19,25 +19,17 @@ class QueryRequest(BaseModel):
     language: str
     question: str
     model: str
-    k: int
-    chunk_context: int
+    budget: int
     client_id: str | None = None
     # When set, the result is cached under this key (composed with the language
     # by the backend) so repeat lookups replay the stored conversation directly.
     cache_key: str | None = None
 
-    @field_validator("k")
+    @field_validator("budget")
     @classmethod
-    def _validate_k(cls, value: int) -> int:
-        if not (0 < value <= 15):
-            raise ValueError("Invalid k value: must be between 1 and 15")
-        return value
-
-    @field_validator("chunk_context")
-    @classmethod
-    def _validate_chunk_context(cls, value: int) -> int:
-        if not (0 < value <= 10):
-            raise ValueError("Invalid chunk_context value: must be between 1 and 10")
+    def _validate_budget(cls, value: int) -> int:
+        if not (3 <= value <= 400):
+            raise ValueError("Invalid budget value: must be between 3 and 400")
         return value
 
 
@@ -102,6 +94,7 @@ class ConversationResponse(BaseModel):
     answer: str
     model: str
     k: int
+    budget: int | None = None
     created_at: float  # Unix timestamp as float
     generation_time_seconds: float
     final_generation_input_text_length: int

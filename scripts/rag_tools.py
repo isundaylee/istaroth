@@ -11,6 +11,7 @@ import pathlib
 import shutil
 import statistics
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import anyio
@@ -24,11 +25,13 @@ import langsmith as ls
 
 from istaroth import llm_manager, logging_utils, utils
 from istaroth.agd import localization
+from istaroth.rag import budget as _budget
 from istaroth.rag import (
     document_store,
     document_store_set,
     output_rendering,
     pipeline,
+    prompt_set,
     retrieval_diff,
     text_set,
     types,
@@ -218,10 +221,6 @@ def _ranked_source_texts(
     chunk_context: int,
     bm25: bool,
 ) -> tuple[list[str], int]:
-    """Chunk content (with context window) of each retrieved source, in rank order.
-
-    Returns (texts, total_chunks).
-    """
     retrieve_output = (
         store.retrieve_bm25(fixture.query, k=k, chunk_context=chunk_context)
         if bm25
@@ -314,20 +313,25 @@ async def _aeval_fixtures(
     store: types.Retriever,
     fixtures: list[retrieval.RetrievalFixture],
     *,
-    k: int,
-    chunk_context: int,
-    repeat: int,
-    bm25: bool,
+    budget: int,
+    intent_fn: Callable[[str], _budget.QueryIntent],
+    repeat: int = 1,
+    bm25: bool = False,
 ) -> list[_FixtureEval]:
     sem = anyio.Semaphore(5)
     results: list[_FixtureEval | None] = [None] * len(fixtures)
 
     async def _eval_one(idx: int, fixture: retrieval.RetrievalFixture) -> None:
+        intent = intent_fn(fixture.query)
+        fk, fcc = _budget.allocate(budget, intent)
+        print(
+            f"[fixture] {fixture.query} → intent={intent.value} k={fk} cc={fcc}"
+        )
         texts_list, chunks_list = await _afetch_sources(
             store,
             fixture,
-            k=k,
-            chunk_context=chunk_context,
+            k=fk,
+            chunk_context=fcc,
             repeat=repeat,
             bm25=bm25,
             sem=sem,
@@ -436,16 +440,16 @@ def _print_summary(
 
 @cli.command("eval-retrieval")
 @click.option(
-    "-k",
-    "--k",
-    default=10,
-    help="Sources retrieved per query (default 10 = the 'thorough' frontend preset, the most generous production setting)",
+    "--budget",
+    default=110,
+    type=int,
+    help="Context budget B: allocate k/chunk_context per fixture from budget+intent (default: 110 = 'thorough' preset)",
 )
 @click.option(
-    "-c",
-    "--chunk-context",
-    default=5,
-    help="Chunk context used during retrieval (default 5 = 'thorough' frontend preset)",
+    "--intent",
+    default="auto",
+    type=click.Choice(["auto", "variety", "balanced", "context"]),
+    help="Retrieval intent for budget-based allocation (default: auto = classify per fixture via LLM)",
 )
 @click.option(
     "--category",
@@ -460,8 +464,8 @@ def _print_summary(
 @click.option("--bm25", is_flag=True, help="Use BM25-only retrieval instead of hybrid")
 def eval_retrieval(
     *,
-    k: int,
-    chunk_context: int,
+    budget: int,
+    intent: str,
     category: str | None,
     repeat: int,
     bm25: bool,
@@ -475,6 +479,7 @@ def eval_retrieval(
     non-determinism of the rewrite query transformer. Fixture retrieval is
     parallelized with anyio (trio-style structured concurrency).
     """
+    _budget_val = budget  # avoid shadowing the budget module
     store, language, _ = _load_store()
     if store.num_documents == 0:
         logger.error("No documents in store.")
@@ -493,11 +498,18 @@ def eval_retrieval(
         )
         sys.exit(1)
 
+    if intent == "auto":
+        intent_fn = _make_auto_intent_fn(language)
+    else:
+        parsed = _budget.parse_intent(intent)
+        assert parsed is not None
+        intent_fn = lambda _query: parsed
+
     fevals = anyio.run(
         functools.partial(
             _aeval_fixtures,
-            k=k,
-            chunk_context=chunk_context,
+            budget=_budget_val,
+            intent_fn=intent_fn,
             repeat=repeat,
             bm25=bm25,
         ),
@@ -516,11 +528,41 @@ def eval_retrieval(
     _print_summary(fevals)
 
 
+def _make_auto_intent_fn(
+    language: localization.Language,
+) -> Callable[[str], _budget.QueryIntent]:
+    """Build a function that classifies a query's intent via the preprocessing LLM."""
+    import pydantic as _pydantic
+    from langchain_core import prompts as _prompts
+
+    class _EvalPreprocessOutput(_pydantic.BaseModel):
+        intent: str
+
+    lm = llm_manager.LLMManager()
+    llm = lm.get_llm("gemini-3.1-flash-lite-preview")
+    prompt = _prompts.ChatPromptTemplate.from_messages(
+        [
+            ("user", prompt_set.get_rag_prompts(language).question_preprocess_prompt),
+        ]
+    )
+    chain = prompt | llm.with_structured_output(_EvalPreprocessOutput)
+
+    def _classify(query: str) -> _budget.QueryIntent:
+        try:
+            result = chain.invoke({"question": query})
+            if isinstance(result, _EvalPreprocessOutput):
+                return _budget.QueryIntent(result.intent)
+            return _budget.QueryIntent.BALANCED
+        except Exception:
+            return _budget.QueryIntent.BALANCED
+
+    return _classify
+
+
 @cli.command()
 @click.argument("question", type=str)
-@click.option("--k", default=10)
-@click.option("--chunk-context", default=10)
-def query(question: str, *, k: int, chunk_context: int) -> None:
+@click.option("--budget", default=110)
+def query(question: str, *, budget: int) -> None:
     """Answer a question using RAG pipeline."""
     store, language, ts = _load_store()
 
@@ -547,7 +589,7 @@ def query(question: str, *, k: int, chunk_context: int) -> None:
         text_set=ts,
     )
 
-    answer = rag.answer(question, k=k, chunk_context=chunk_context)
+    answer = rag.answer(question, budget=budget)
     print(f"回答: {answer}")
 
 
