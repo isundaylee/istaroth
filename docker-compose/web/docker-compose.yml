@@ -11,7 +11,7 @@ x-backend-common: &backend-common
   working_dir: /app
   volumes:
     - ./checkpoints:/data/checkpoints
-    - ./data:/data/state
+    - dev-data:/data/state
     - ../../istaroth:/app/istaroth:ro
     - ../../scripts:/app/scripts:ro
     - ../../migrations:/app/migrations:ro
@@ -126,6 +126,7 @@ services:
 volumes:
   backend-venv:
   frontend-node-modules:
+  dev-data:
   uv-cache:
     external: true
     name: uv-cache
