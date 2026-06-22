@@ -9,50 +9,78 @@ Best Practices" in the root `AGENTS.md`).
 
 ## Workflow
 
-Time each step so the final report can show where the pre-PR work went. Wrap
-each significant command (or group) so its wall-clock duration is captured, e.g.:
-```bash
-s=$(date +%s); pre-commit run; echo "[timing] pre-commit: $(( $(date +%s) - s ))s"
-```
-Keep a running tally of the per-step seconds (pre-commit, type/other checks,
-squash/commit, push, PR create/edit) and surface it in step 6. Don't let timing
-get in the way of the actual work — if a step wasn't run, just omit it from the
-summary rather than reporting a fabricated number.
+Optimize for wall-clock: the happy path is **three round-trips, not seven**.
+Each separate tool call costs a model round-trip, so batch aggressively:
 
-### 1. Confirm the branch
-- Never open a PR from the default branch (`main`). If `git rev-parse --abbrev-ref HEAD` is `main`, create a feature branch first (`git switch -c <descriptive-name>`) carrying the working-tree changes.
-- `git fetch origin` and note how the branch relates to `origin/main` so the PR diff is what you expect.
+- **Parallelize independent commands.** Issue them as multiple tool calls in one
+  message so network and CPU overlap. The kickoff checks (branch/fetch
+  inspection, `pre-commit`, frontend `tsc`) depend on nothing but the working
+  tree — fire them together.
+- **Chain the finalize sequence into ONE call.** Once the tree is green, squash →
+  commit → push → `gh pr create` is a strict `&&` chain; running it as one
+  command saves three round-trips and the steps short-circuit on first failure.
 
-### 2. Get the tree clean and reviewed
-- Run pre-commit on the changes and stage whatever it rewrites BEFORE committing:
+Happy path at a glance (one-commit-or-clean branch, checks pass):
+1. Kickoff — parallel: `(a)` branch + fetch + merge-base inspection, `(b)`
+   `pre-commit run` (+ frontend `tsc` if `frontend/` changed).
+2. Write `/tmp/commit-msg.txt` and `/tmp/pr-body.md` (two `Write` calls, parallel).
+3. Finalize — one `&&` chain: squash, commit, push, create PR.
+
+Keep a rough **per-phase** timing (kickoff, finalize) and surface it in step 6 —
+do NOT wrap every command separately, since that forces the serial round-trips
+this skill is trying to avoid. One `s=$(date +%s); …; echo "[timing] $(( $(date
++%s) - s ))s"` around each grouped call is enough. Omit any phase that didn't run.
+
+### 1. Kickoff — branch check + checks, in parallel
+
+These are independent; issue them as parallel tool calls in ONE message.
+
+- **(a) Branch + diff inspection** — one call:
   ```bash
-  pre-commit run
+  git fetch origin --quiet
+  echo "branch: $(git rev-parse --abbrev-ref HEAD)"
+  echo "merge-base: $(git merge-base HEAD origin/main)"
+  git log --oneline "$(git merge-base HEAD origin/main)"..HEAD
+  ```
+  Never open a PR from the default branch (`main`). If the branch is `main`,
+  create a feature branch first (`git switch -c <descriptive-name>`) carrying the
+  working-tree changes. Note how the branch relates to `origin/main` so the PR
+  diff is what you expect.
+- **(b) pre-commit** (+ frontend type-check) — run pre-commit on the changes and
+  stage whatever it rewrites BEFORE committing (it's managed by uv, so invoke it
+  through `uv run`):
+  ```bash
+  uv run pre-commit run
   ```
   Re-run until it passes, staging its edits each time. (Per project rule: always
   run pre-commit separately and add the resulting changes before committing.)
-- Run only the checks that pre-commit does NOT already cover. pre-commit runs
-  eslint (whole `frontend/src/`) and mypy (changed files), so don't re-run those.
-  The notable gap is frontend type-checking — eslint does not type-check — so for
-  frontend changes run `cd frontend && node_modules/.bin/tsc --noEmit`. Fix
-  failures before opening the PR — don't put up a red branch.
+  Run only the checks pre-commit does NOT cover: it runs eslint (whole
+  `frontend/src/`) and mypy (changed files), so don't re-run those. The gap is
+  frontend type-checking — eslint does not type-check — so when `frontend/`
+  changed, add `cd frontend && node_modules/.bin/tsc --noEmit` (same parallel
+  batch). Fix failures before opening the PR — don't put up a red branch.
+
+While these run, draft the commit message and PR body (steps 3/4) so the files are
+ready the moment the tree is green.
 
 ### 3. Squash the initial work into ONE clean commit
 When first opening the PR, collapse the branch's incremental work into one
-commit (subsequent review rounds will add commits on top — see Notes):
-- If there is exactly one commit already, amend into it: `git add -A && git commit --amend`.
-- If there are several, squash them: `git reset --soft $(git merge-base HEAD origin/main) && git add -A && git commit`.
-- Fold the `text/` submodule pointer (when it moved) INTO this commit rather than
-  a separate "Update text" commit: `git add text && git commit --amend --no-edit`.
+commit (subsequent review rounds will add commits on top — see Notes). Because
+`git add -A` stages everything including the moved `text/` submodule pointer,
+the squash is a single commit with no separate "Update text" amend:
+- Several commits (usual): `git reset --soft $(git merge-base HEAD origin/main) && git add -A && git commit -F /tmp/commit-msg.txt`.
+- Exactly one commit already: amend into it: `git add -A && git commit --amend -F /tmp/commit-msg.txt`.
+- Only if you committed the code BEFORE the submodule pointer moved do you need a
+  follow-up `git add text && git commit --amend --no-edit`; the `git add -A`
+  above already covers the common case.
 
 The branch is squash-merged on GitHub, so the final commit message comes from the
-PR title + description (step 5), NOT these per-commit messages — keep the PR
+PR title + description (step 4), NOT these per-commit messages — keep the PR
 description complete and accurate.
 
-Write the commit message via a file, not inline `-m`/`--body` (bodies routinely
-contain backticks/apostrophes the shell mangles):
-```bash
-git commit -F /tmp/commit-msg.txt        # or: git commit --amend -F /tmp/commit-msg.txt
-```
+Write the commit message to `/tmp/commit-msg.txt` (a `Write` call, done during
+the step-1 kickoff) and pass it with `-F`, never inline `-m`/`--body` — bodies
+routinely contain backticks/apostrophes the shell mangles.
 - Subject: concise, imperative.
 - Body: brief; bullets only when they help.
 - If the work closes a tracked issue, add a closing keyword in the body (e.g.
@@ -62,21 +90,33 @@ git commit -F /tmp/commit-msg.txt        # or: git commit --amend -F /tmp/commit
   Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
   ```
 
-### 4. Push
-```bash
-git push -u origin HEAD        # add --force-with-lease only when updating an already-pushed branch you own
-```
-Force-pushing your own PR branch is fine. NEVER force-push or rebase shared
-history such as the `istaroth-text` submodule `main`.
+### 4. Finalize — commit + push + PR in ONE chain
 
-### 5. Open (or update) the PR
-- Check for an existing PR first: `gh pr view --json number,url,state 2>/dev/null`.
-- If none, create it with the body passed via a file:
-  ```bash
-  gh pr create --title "<concise title>" --body-file /tmp/pr-body.md
-  ```
-- If one exists, the push already updated the diff; refresh the description when
-  the scope changed: `gh pr edit --body-file /tmp/pr-body.md`.
+For a brand-new PR (the happy path), squash, push, and create are a strict
+dependency chain — run them as a single `&&` call so each round-trip is paid
+once. With the squash already done in step 3, the rest is:
+```bash
+git push -u origin HEAD \
+  && gh pr create --title "<concise title>" --body-file /tmp/pr-body.md
+```
+Or fold step 3's squash in too, for the full happy-path one-liner:
+```bash
+git reset --soft "$(git merge-base HEAD origin/main)" \
+  && git add -A \
+  && git commit -F /tmp/commit-msg.txt \
+  && git push -u origin HEAD \
+  && gh pr create --title "<concise title>" --body-file /tmp/pr-body.md
+```
+Force-pushing your own PR branch is fine (`--force-with-lease` when updating an
+already-pushed branch you own). NEVER force-push or rebase shared history such as
+the `istaroth-text` submodule `main`.
+
+**Updating an existing PR** (review rounds): the push already refreshes the diff,
+so don't blindly create. Check once and branch:
+```bash
+git push && { gh pr view --json url -q .url || gh pr create --title "<title>" --body-file /tmp/pr-body.md; }
+```
+Refresh the description only when the scope changed: `gh pr edit --body-file /tmp/pr-body.md`.
 
 PR description should cover, briefly (it becomes the squash-merge commit message,
 so make it self-contained):
@@ -91,12 +131,12 @@ When the scope grows over review rounds, refresh the description (`gh pr edit
 ### 6. Report back
 Print the PR URL (from `gh pr create`/`gh pr view`) so the user can open it.
 
-Also print a short timing summary of the pre-PR steps, using the per-step
-seconds tracked above — one line per step plus a total, e.g.:
+Also print a short per-phase timing summary, using the seconds tracked around
+the grouped calls — one line plus a total, e.g.:
 ```
-Timing — pre-commit 12s · checks 34s · commit 2s · push 3s · PR create 4s · total 55s
+Timing — kickoff (pre-commit+checks) 34s · finalize (commit+push+PR) 9s · total 43s
 ```
-Only include the steps that actually ran this invocation.
+Only include the phases that actually ran this invocation.
 
 ## Notes
 - Do NOT push or open the PR until the user has had a chance to review when the
