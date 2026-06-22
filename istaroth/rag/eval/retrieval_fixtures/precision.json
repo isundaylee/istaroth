@@ -9,12 +9,26 @@
       "query": "卡特的全名叫什么？",
       "language": "CHS",
       "rationale": "A narrow query for a character's full name. The corpus contains multiple '卡特' references (研究员卡特、卡特哥哥、卡特皮拉、沙法卡特) but only a few sources give his full surname 谢尔比乌斯. A fuzzy/co-occurrence-based retriever might conflate any 卡特 mention; good precision surfaces the name-bearing sources early.",
-      "expected_coverage": [
-        "full_name_shelfius"
-      ],
+      "expected_coverage": {
+        "full_name_shelfius": "卡特的全名是「卡特·谢尔比乌斯」。"
+      },
       "relevant_passages": [
-        {"passage": "古老的日志（卡特·谢尔比乌斯）", "label": "书标题·卡特·谢尔比乌斯全名", "official": true, "covers": ["full_name_shelfius"]},
-        {"passage": "卡特·谢尔比乌斯  |  水仙十字院孤儿，阿兰四人的前辈 毕业后来到自然哲学学院担任实验助手", "label": "诗漱世界观手册·卡特简介（替代非官方来源）", "official": false, "covers": ["full_name_shelfius"]}
+        {
+          "passage": "古老的日志（卡特·谢尔比乌斯）",
+          "label": "书标题·卡特·谢尔比乌斯全名",
+          "official": true,
+          "covers": [
+            "full_name_shelfius"
+          ]
+        },
+        {
+          "passage": "卡特·谢尔比乌斯  |  水仙十字院孤儿，阿兰四人的前辈 毕业后来到自然哲学学院担任实验助手",
+          "label": "诗漱世界观手册·卡特简介（替代非官方来源）",
+          "official": false,
+          "covers": [
+            "full_name_shelfius"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "The tps_shishu passage is non-official but provides a rich alternate combining full name + role. Note: misc/proper_nouns.txt is excluded from the indexed corpus (it is a jieba dictionary only, not a document), so the full_name_shelfius facet must rely on book files and quest dialogue for evidence."

@@ -44,6 +44,15 @@ def _normalize(text: str) -> str:
     return "".join(text.split())
 
 
+def locate_span(span: str, ranked_texts: list[str]) -> int | None:
+    """1-based rank of the first ranked text containing `span` (whitespace-ignored)."""
+    needle = _normalize(span)
+    for rank, text in enumerate(ranked_texts, start=1):
+        if needle in _normalize(text):
+            return rank
+    return None
+
+
 @attrs.frozen
 class RelevantPassage:
     """A relevant source anchored by a verbatim, distinctive substring."""
@@ -67,7 +76,7 @@ class RetrievalFixture:
     language: str
     subtype: str | None
     rationale: str
-    expected_coverage: tuple[str, ...]
+    expected_coverage: dict[str, str]  # facet -> judge description ("" = not judged)
     relevant_passages: tuple[RelevantPassage, ...]
     known_redundancy: str
     notes: str
@@ -108,9 +117,8 @@ class RetrievalFixture:
 
 
 def _parse_fixture(category: str, raw: dict) -> RetrievalFixture:
-    expected = tuple(raw["expected_coverage"])
+    expected = dict(raw["expected_coverage"])
     expected_set = set(expected)
-    assert len(expected) == len(expected_set), f"Duplicate facet in {raw['query']!r}"
 
     passages = tuple(
         RelevantPassage(
@@ -161,6 +169,39 @@ class RetrievalDataset:
 
     def by_category(self, category: str) -> tuple[RetrievalFixture, ...]:
         return tuple(f for f in self.fixtures if f.category == category)
+
+
+def persist_anchors(anchors: list[tuple[str, str, dict]]) -> int:
+    """Append judge-discovered anchors back into their category JSON files.
+
+    `anchors` is a list of (category, query, passage-dict). New passages are
+    appended to the matching fixture's ``relevant_passages``, skipping any whose
+    ``passage`` text already exists there. Returns the number actually written.
+    """
+    written = 0
+    by_category: dict[str, list[tuple[str, dict]]] = {}
+    for category, query, passage in anchors:
+        by_category.setdefault(category, []).append((query, passage))
+    for category, items in by_category.items():
+        path = _FIXTURE_DIR / f"{category}.json"
+        data = json.loads(path.read_text(encoding="utf-8"))
+        fixtures_by_query = {f["query"]: f for f in data["fixtures"]}
+        # Sort appended anchors so output is independent of (concurrent) discovery
+        # order; each anchor dict is already built with a fixed key order.
+        for query, passage in sorted(
+            items, key=lambda qp: (qp[0], qp[1]["covers"], qp[1]["passage"])
+        ):
+            fixture = fixtures_by_query[query]
+            existing = {p["passage"] for p in fixture["relevant_passages"]}
+            if passage["passage"] in existing:
+                continue
+            fixture["relevant_passages"].append(passage)
+            written += 1
+        path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+    load_retrieval_dataset.cache_clear()
+    return written
 
 
 @functools.cache

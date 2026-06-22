@@ -14,6 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 import anyio
+import attrs
 import click
 import tabulate
 
@@ -35,7 +36,7 @@ from istaroth.rag import (
     text_set,
     types,
 )
-from istaroth.rag.eval import retrieval
+from istaroth.rag.eval import judge, retrieval
 from istaroth.text import manifest
 
 logger = logging.getLogger(__name__)
@@ -192,18 +193,20 @@ def _ranked_source_texts(
     k: int,
     chunk_context: int,
     bm25: bool,
-) -> tuple[list[str], int]:
+) -> tuple[list[str], list[str], int]:
     retrieve_output = (
         store.retrieve_bm25(fixture.query, k=k, chunk_context=chunk_context)
         if bm25
         else store.retrieve(fixture.query, k=k, chunk_context=chunk_context)
     )
     texts: list[str] = []
+    paths: list[str] = []
     total_chunks = 0
     for _, docs in retrieve_output.results:
         texts.append("\n".join(doc.page_content for doc in docs))
+        paths.append(docs[0].metadata["path"])
         total_chunks += len(docs)
-    return texts, total_chunks
+    return texts, paths, total_chunks
 
 
 @dataclass
@@ -252,13 +255,14 @@ async def _afetch_sources(
     repeat: int,
     bm25: bool,
     sem: anyio.Semaphore,
-) -> tuple[list[list[str]], list[int]]:
+) -> tuple[list[list[str]], list[list[str]], list[int]]:
     texts_list: list[list[str] | None] = [None] * repeat
+    paths_list: list[list[str] | None] = [None] * repeat
     chunks_list: list[int | None] = [None] * repeat
 
     async def _run_once(idx: int) -> None:
         async with sem:
-            texts, n_chunks = await anyio.to_thread.run_sync(
+            texts, paths, n_chunks = await anyio.to_thread.run_sync(
                 functools.partial(
                     _ranked_source_texts,
                     store,
@@ -269,6 +273,7 @@ async def _afetch_sources(
                 ),
             )
             texts_list[idx] = texts
+            paths_list[idx] = paths
             chunks_list[idx] = n_chunks
 
     async with anyio.create_task_group() as tg:
@@ -277,8 +282,64 @@ async def _afetch_sources(
 
     return (
         [t for t in texts_list if t is not None],
+        [p for p in paths_list if p is not None],
         [c for c in chunks_list if c is not None],
     )
+
+
+_MIN_JUDGE_SPAN = 6  # chars; reject over-broad spans that would over-match as anchors
+
+_JudgeFn = Callable[
+    [str, list[str], dict[str, str]], tuple[dict[str, str], judge.JudgeUsage]
+]
+
+
+async def _judge_rescue(
+    fixture: retrieval.RetrievalFixture,
+    texts_list: list[list[str]],
+    paths_list: list[list[str]],
+    missed: list[str],
+    *,
+    judge_fn: _JudgeFn,
+) -> tuple[list[retrieval.RelevantPassage], judge.JudgeUsage]:
+    """Judge missing facets over the union of retrieved sources; return new anchors.
+
+    One judge call per fixture across all runs' sources. Each returned span is
+    verified to actually occur in a retrieved source (else it is a hallucination
+    and dropped) and turned into an anchor whose ``official`` flag follows the
+    source path it was found in.
+    """
+    # Only facets with a non-empty description are judged; without one there is no
+    # reliable statement of what the facet means for the judge to grade against.
+    facets = {
+        facet: desc for facet in missed if (desc := fixture.expected_coverage[facet])
+    }
+    if not facets:
+        return [], judge.JudgeUsage.zero()
+    text_to_path: dict[str, str] = {}
+    for texts, paths in zip(texts_list, paths_list):
+        for text, path in zip(texts, paths):
+            text_to_path.setdefault(text, path)
+    union_texts = list(text_to_path)
+    spans, usage = await anyio.to_thread.run_sync(
+        functools.partial(judge_fn, fixture.query, union_texts, facets)
+    )
+    new_passages: list[retrieval.RelevantPassage] = []
+    for facet, span in spans.items():
+        if len("".join(span.split())) < _MIN_JUDGE_SPAN:
+            continue
+        if (rank := retrieval.locate_span(span, union_texts)) is None:
+            continue  # span not actually present → hallucinated, reject
+        path = text_to_path[union_texts[rank - 1]]
+        new_passages.append(
+            retrieval.RelevantPassage(
+                passage=span,
+                label=f"judge:{path}",
+                official=not path.startswith("tps_shishu/"),
+                covers=(facet,),
+            )
+        )
+    return new_passages, usage
 
 
 async def _aeval_fixtures(
@@ -289,15 +350,18 @@ async def _aeval_fixtures(
     intent_fn: Callable[[str], _budget.QueryIntent],
     repeat: int = 1,
     bm25: bool = False,
-) -> list[_FixtureEval]:
+    judge_fn: _JudgeFn | None = None,
+) -> tuple[list[_FixtureEval], list[tuple[str, str, dict]], judge.JudgeUsage]:
     sem = anyio.Semaphore(5)
     results: list[_FixtureEval | None] = [None] * len(fixtures)
+    pending_writes: list[tuple[str, str, dict]] = []
+    usages: list[judge.JudgeUsage] = []
 
     async def _eval_one(idx: int, fixture: retrieval.RetrievalFixture) -> None:
         intent = intent_fn(fixture.query)
         fk, fcc = _budget.allocate(budget, intent)
         print(f"[fixture] {fixture.query} → intent={intent.value} k={fk} cc={fcc}")
-        texts_list, chunks_list = await _afetch_sources(
+        texts_list, paths_list, chunks_list = await _afetch_sources(
             store,
             fixture,
             k=fk,
@@ -306,13 +370,50 @@ async def _aeval_fixtures(
             bm25=bm25,
             sem=sem,
         )
-        results[idx] = _analyze_fixture(fixture, texts_list, n_chunks=chunks_list)
+        fe = _analyze_fixture(fixture, texts_list, n_chunks=chunks_list)
+        if judge_fn is not None and fe.missed:
+            try:
+                async with sem:
+                    new_passages, usage = await _judge_rescue(
+                        fixture, texts_list, paths_list, fe.missed, judge_fn=judge_fn
+                    )
+                usages.append(usage)
+            except Exception as exc:  # judge unavailable → misses stand (conservative)
+                print(
+                    f"[judge] {fixture.query}: judging failed ({exc!r}); misses stand"
+                )
+                new_passages = []
+            if new_passages:
+                augmented = attrs.evolve(
+                    fixture,
+                    relevant_passages=fixture.relevant_passages + tuple(new_passages),
+                )
+                fe = _analyze_fixture(augmented, texts_list, n_chunks=chunks_list)
+                for passage in new_passages:
+                    pending_writes.append(
+                        (
+                            fixture.category,
+                            fixture.query,
+                            {
+                                "passage": passage.passage,
+                                "label": passage.label,
+                                "official": passage.official,
+                                "covers": list(passage.covers),
+                            },
+                        )
+                    )
+                print(
+                    f"[judge] {fixture.query}: rescued "
+                    f"{sorted(p.covers[0] for p in new_passages)}"
+                )
+        results[idx] = fe
 
     async with anyio.create_task_group() as tg:
         for idx, fixture in enumerate(fixtures):
             tg.start_soon(_eval_one, idx, fixture)
 
-    return [r for r in results if r is not None]
+    total_usage = sum(usages, judge.JudgeUsage.zero())
+    return [r for r in results if r is not None], pending_writes, total_usage
 
 
 def _print_detail(
@@ -432,6 +533,22 @@ def _print_summary(
     help="Run each query N times and average (the rewrite transformer is non-deterministic)",
 )
 @click.option("--bm25", is_flag=True, help="Use BM25-only retrieval instead of hybrid")
+@click.option(
+    "--judge",
+    "use_judge",
+    is_flag=True,
+    help="Rescue false-miss facets with an LLM judge (DeepSeek V4 Flash on DeepInfra)",
+)
+@click.option(
+    "--judge-model",
+    default=judge.DEFAULT_JUDGE_MODEL,
+    help="DeepInfra model id for the judge",
+)
+@click.option(
+    "--judge-write/--no-judge-write",
+    default=True,
+    help="Persist judge-discovered spans back into fixtures as anchors (self-hardening)",
+)
 def eval_retrieval(
     *,
     budget: int,
@@ -439,6 +556,9 @@ def eval_retrieval(
     category: str | None,
     repeat: int,
     bm25: bool,
+    use_judge: bool,
+    judge_model: str,
+    judge_write: bool,
 ) -> None:
     """Measure facet coverage of the retrieval-eval fixtures against retrieval.
 
@@ -475,13 +595,14 @@ def eval_retrieval(
         assert parsed is not None
         intent_fn = lambda _query: parsed
 
-    fevals = anyio.run(
+    fevals, pending_writes, judge_usage = anyio.run(
         functools.partial(
             _aeval_fixtures,
             budget=_budget_val,
             intent_fn=intent_fn,
             repeat=repeat,
             bm25=bm25,
+            judge_fn=judge.make_judge(judge_model) if use_judge else None,
         ),
         store,
         fixtures,
@@ -496,6 +617,25 @@ def eval_retrieval(
         _print_detail(fe, repeat=repeat)
 
     _print_summary(fevals)
+
+    if pending_writes:
+        if judge_write:
+            print(
+                f"[judge] persisted {retrieval.persist_anchors(pending_writes)} "
+                "new anchor(s) into fixtures"
+            )
+        else:
+            print(
+                f"[judge] {len(pending_writes)} anchor(s) discovered "
+                "(not persisted; --no-judge-write)"
+            )
+
+    if use_judge:
+        print(
+            f"[judge] tokens: {judge_usage.total_tokens} total "
+            f"({judge_usage.input_tokens} in + {judge_usage.output_tokens} out) "
+            f"over {judge_usage.calls} call(s)"
+        )
 
 
 def _make_auto_intent_fn(
