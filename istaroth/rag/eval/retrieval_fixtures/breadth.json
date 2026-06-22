@@ -30,25 +30,170 @@
         "dragonspine_nail"
       ],
       "relevant_passages": [
-        {"passage": "一群不再信仰神的人们在须弥地底建立无神的国度坎瑞亚。", "label": "诗漱世界观手册·坎瑞亚的建立", "official": false, "covers": ["khaenriah_origin"]},
-        {"passage": "五百年前，是众神一同降临，覆灭了坎瑞亚。", "label": "戴因斯雷布·众神覆灭坎瑞亚", "official": true, "covers": ["cataclysm_overview"]},
-        {"passage": "关于坎瑞亚的事，我知道的应该比你们多。", "label": "戴因斯雷布的视角", "official": true, "covers": ["dainsleif_account"]},
-        {"passage": "「贤者」海洛塔帝，「预言家」维瑟弗尼尔，「黄金」莱茵多特，「极恶骑」苏尔特洛奇，以及「猎月人」雷利尔。", "label": "戴因列出五大罪人姓名", "official": true, "covers": ["five_sinners"]},
-        {"passage": "师父——他的真名叫做苏尔特洛奇——", "label": "丝柯克角色故事·其师苏尔特洛奇为五罪人之一（rg 找到的替代来源）", "official": true, "covers": ["five_sinners"]},
-        {"passage": "其余六神（温迪、钟离、雷电真、厄歌莉娅、玛薇卡、白沙皇）均被召集前往坎瑞亚抗击深渊。", "label": "诗漱世界观手册·七神出征坎瑞亚", "official": false, "covers": ["seven_archons_battle"]},
-        {"passage": "灾难的降临是伴随着禁忌知识的污染而出现的", "label": "大慈树王·禁忌知识与世界树", "official": true, "covers": ["forbidden_knowledge"]},
-        {"passage": "在侵袭而来的深渊面前，无论是人类还是妖精还是神明，都无比渺小。", "label": "菲林斯·深渊的本质", "official": true, "covers": ["abyss_nature"]},
-        {"passage": "坎瑞亚是被神覆灭的国度，而这就是…深渊教团想要覆灭七神国度的原因。", "label": "戴因·深渊教团的动机", "official": true, "covers": ["abyss_order_motive"]},
-        {"passage": "漆黑的大蛇——恶龙，「杜林」从海上升起，阴影迫近了蒙德。", "label": "蒙德传说·恶龙杜林", "official": true, "covers": ["mondstadt_impact"]},
-        {"passage": "千岩的干城与漆黑的军势相撞", "label": "诗漱世界观手册·璃月受灾", "official": false, "covers": ["liyue_impact"]},
-        {"passage": "原本纳塔的地脉就相较之下更为特殊和脆弱", "label": "蒂图·纳塔地脉受灾", "official": true, "covers": ["natlan_impact"]},
-        {"passage": "抵达那里时，最惨烈的战斗已经结束了。", "label": "雷电将军（影）目睹坎瑞亚战场", "official": true, "covers": ["inazuma_archon_witness"]},
-        {"passage": "当初除我以外的七神都被召集前往名为坎瑞亚的国度，而我却有另一项更加重要的任务。", "label": "大慈树王·须弥与世界树之责", "official": true, "covers": ["sumeru_impact"]},
-        {"passage": "他是坎瑞亚安插在蒙德的棋子，理应为坎瑞亚效力。", "label": "凯亚·坎瑞亚间谍身世", "official": true, "covers": ["kaeya_spy"]},
-        {"passage": "那是古坎瑞亚语的「快逃」。", "label": "戴因·坎瑞亚遗迹的黑蛇骑士", "official": true, "covers": ["black_serpent_knights"]},
-        {"passage": "「救世主」的名号便是那个时期，相信这种论调的人对公主殿下的爱称。", "label": "戴因·灾变前对旅行者血亲的「救世主」称呼", "official": true, "covers": ["traveler_sibling"]},
-        {"passage": "于是坎瑞亚人就向龙脊雪山派出了一队机器人，想要夺取寒天之钉", "label": "诗漱世界观手册·坎瑞亚夺钉计划", "official": false, "covers": ["dragonspine_nail"]}
+        {
+          "passage": "一群不再信仰神的人们在须弥地底建立无神的国度坎瑞亚。",
+          "label": "诗漱世界观手册·坎瑞亚的建立",
+          "official": false,
+          "covers": [
+            "khaenriah_origin"
+          ]
+        },
+        {
+          "passage": "五百年前，是众神一同降临，覆灭了坎瑞亚。",
+          "label": "戴因斯雷布·众神覆灭坎瑞亚",
+          "official": true,
+          "covers": [
+            "cataclysm_overview"
+          ]
+        },
+        {
+          "passage": "关于坎瑞亚的事，我知道的应该比你们多。",
+          "label": "戴因斯雷布的视角",
+          "official": true,
+          "covers": [
+            "dainsleif_account"
+          ]
+        },
+        {
+          "passage": "「贤者」海洛塔帝，「预言家」维瑟弗尼尔，「黄金」莱茵多特，「极恶骑」苏尔特洛奇，以及「猎月人」雷利尔。",
+          "label": "戴因列出五大罪人姓名",
+          "official": true,
+          "covers": [
+            "five_sinners"
+          ]
+        },
+        {
+          "passage": "师父——他的真名叫做苏尔特洛奇——",
+          "label": "丝柯克角色故事·其师苏尔特洛奇为五罪人之一（rg 找到的替代来源）",
+          "official": true,
+          "covers": [
+            "five_sinners"
+          ]
+        },
+        {
+          "passage": "其余六神（温迪、钟离、雷电真、厄歌莉娅、玛薇卡、白沙皇）均被召集前往坎瑞亚抗击深渊。",
+          "label": "诗漱世界观手册·七神出征坎瑞亚",
+          "official": false,
+          "covers": [
+            "seven_archons_battle"
+          ]
+        },
+        {
+          "passage": "灾难的降临是伴随着禁忌知识的污染而出现的",
+          "label": "大慈树王·禁忌知识与世界树",
+          "official": true,
+          "covers": [
+            "forbidden_knowledge"
+          ]
+        },
+        {
+          "passage": "在侵袭而来的深渊面前，无论是人类还是妖精还是神明，都无比渺小。",
+          "label": "菲林斯·深渊的本质",
+          "official": true,
+          "covers": [
+            "abyss_nature"
+          ]
+        },
+        {
+          "passage": "坎瑞亚是被神覆灭的国度，而这就是…深渊教团想要覆灭七神国度的原因。",
+          "label": "戴因·深渊教团的动机",
+          "official": true,
+          "covers": [
+            "abyss_order_motive"
+          ]
+        },
+        {
+          "passage": "漆黑的大蛇——恶龙，「杜林」从海上升起，阴影迫近了蒙德。",
+          "label": "蒙德传说·恶龙杜林",
+          "official": true,
+          "covers": [
+            "mondstadt_impact"
+          ]
+        },
+        {
+          "passage": "千岩的干城与漆黑的军势相撞",
+          "label": "诗漱世界观手册·璃月受灾",
+          "official": false,
+          "covers": [
+            "liyue_impact"
+          ]
+        },
+        {
+          "passage": "原本纳塔的地脉就相较之下更为特殊和脆弱",
+          "label": "蒂图·纳塔地脉受灾",
+          "official": true,
+          "covers": [
+            "natlan_impact"
+          ]
+        },
+        {
+          "passage": "抵达那里时，最惨烈的战斗已经结束了。",
+          "label": "雷电将军（影）目睹坎瑞亚战场",
+          "official": true,
+          "covers": [
+            "inazuma_archon_witness"
+          ]
+        },
+        {
+          "passage": "当初除我以外的七神都被召集前往名为坎瑞亚的国度，而我却有另一项更加重要的任务。",
+          "label": "大慈树王·须弥与世界树之责",
+          "official": true,
+          "covers": [
+            "sumeru_impact"
+          ]
+        },
+        {
+          "passage": "他是坎瑞亚安插在蒙德的棋子，理应为坎瑞亚效力。",
+          "label": "凯亚·坎瑞亚间谍身世",
+          "official": true,
+          "covers": [
+            "kaeya_spy"
+          ]
+        },
+        {
+          "passage": "那是古坎瑞亚语的「快逃」。",
+          "label": "戴因·坎瑞亚遗迹的黑蛇骑士",
+          "official": true,
+          "covers": [
+            "black_serpent_knights"
+          ]
+        },
+        {
+          "passage": "「救世主」的名号便是那个时期，相信这种论调的人对公主殿下的爱称。",
+          "label": "戴因·灾变前对旅行者血亲的「救世主」称呼",
+          "official": true,
+          "covers": [
+            "traveler_sibling"
+          ]
+        },
+        {
+          "passage": "于是坎瑞亚人就向龙脊雪山派出了一队机器人，想要夺取寒天之钉",
+          "label": "诗漱世界观手册·坎瑞亚夺钉计划",
+          "official": false,
+          "covers": [
+            "dragonspine_nail"
+          ]
+        }
       ],
+      "facet_descriptions": {
+        "khaenriah_origin": "坎瑞亚的起源：一群不再信仰神明的人在须弥地底建立的无神国度。",
+        "cataclysm_overview": "大灾难本身：约五百年前众神一同降临、覆灭了坎瑞亚。",
+        "five_sinners": "坎瑞亚的「五位罪人／五大罪人」的身份或姓名（如苏尔特洛奇、海洛塔帝、维瑟弗尼尔、莱茵多特、雷利尔）。",
+        "seven_archons_battle": "七神中的其余六神被召集出征坎瑞亚、抗击深渊。",
+        "forbidden_knowledge": "灾难与「禁忌知识」的污染相关，禁忌知识引发或伴随了灾变。",
+        "abyss_nature": "深渊的本质：在深渊面前，人类、妖精乃至神明都极其渺小的强大威胁。",
+        "abyss_order_motive": "深渊教团的动机：因坎瑞亚被七神覆灭，故欲覆灭七神的国度（复仇）。",
+        "mondstadt_impact": "灾变对蒙德的影响，如恶龙「杜林」从海上升起、阴影迫近蒙德。",
+        "liyue_impact": "灾变对璃月的影响，如千岩军／璃月与黑暗军势交战受灾。",
+        "natlan_impact": "灾变对纳塔的影响，如纳塔脆弱的地脉受灾。",
+        "inazuma_archon_witness": "稻妻的雷电将军（影）曾亲赴并目睹坎瑞亚的战场。",
+        "sumeru_impact": "灾变中须弥／大慈树王的角色：未出征坎瑞亚，而另有守护世界树之责。",
+        "kaeya_spy": "凯亚的身世：坎瑞亚安插在蒙德的间谍／棋子。",
+        "dainsleif_account": "戴因斯雷布作为坎瑞亚幸存者，对坎瑞亚与灾变的亲历讲述／视角。",
+        "black_serpent_knights": "坎瑞亚的黑蛇骑士（及古坎瑞亚语等相关细节）。",
+        "traveler_sibling": "灾变前旅行者的血亲（公主殿下）曾被称为「救世主」。",
+        "dragonspine_nail": "坎瑞亚曾派遣机器人前往龙脊雪山、夺取「寒天之钉」的计划。"
+      },
       "known_redundancy": "",
       "notes": "abyss_order_motive, black_serpent_knights, traveler_sibling, and kaeya_spy are the facets most often lost to a small top-K."
     },
@@ -64,10 +209,38 @@
         "sleeping"
       ],
       "relevant_passages": [
-        {"passage": "天理之下存在着四大执政，分别司掌生、死、时、空。", "label": "天理之下的四大执政（生死时空）", "official": true, "covers": ["heavenly_principles", "four_executors"]},
-        {"passage": "天理创造了提瓦特如今的绝大部分事物", "label": "通天塔·天理创造提瓦特", "official": true, "covers": ["created_teyvat"]},
-        {"passage": "天理便陷入了沉睡，没有了声息", "label": "以世界之格的诉说·天理沉睡", "official": true, "covers": ["sleeping"]}
+        {
+          "passage": "天理之下存在着四大执政，分别司掌生、死、时、空。",
+          "label": "天理之下的四大执政（生死时空）",
+          "official": true,
+          "covers": [
+            "heavenly_principles",
+            "four_executors"
+          ]
+        },
+        {
+          "passage": "天理创造了提瓦特如今的绝大部分事物",
+          "label": "通天塔·天理创造提瓦特",
+          "official": true,
+          "covers": [
+            "created_teyvat"
+          ]
+        },
+        {
+          "passage": "天理便陷入了沉睡，没有了声息",
+          "label": "以世界之格的诉说·天理沉睡",
+          "official": true,
+          "covers": [
+            "sleeping"
+          ]
+        }
       ],
+      "facet_descriptions": {
+        "heavenly_principles": "天理是提瓦特之上的最高法则／秩序，其存在与权能体系（如天理之下设有执政）。",
+        "four_executors": "天理之下的「四大执政」，分别司掌生、死、时、空。",
+        "created_teyvat": "天理创造了如今提瓦特的绝大部分事物。",
+        "sleeping": "天理已陷入沉睡，不再发声／行使权能。"
+      },
       "known_redundancy": "",
       "notes": "Scoped to 天理 itself; the related-but-separate intents (天空岛/Celestia, 降临者/descenders, 飞升, 虚假之天) would be their own queries — pulling them in here would conflate distinct retrieval intents the decomposition layer separates upstream."
     },
@@ -86,13 +259,62 @@
         "tsaritsa_cryo"
       ],
       "relevant_passages": [
-        {"passage": "温迪", "label": "风神温迪", "official": true, "covers": ["venti_anemo"]},
-        {"passage": "钟离", "label": "岩神钟离", "official": true, "covers": ["zhongli_geo"]},
-        {"passage": "雷电将军", "label": "雷神雷电将军", "official": true, "covers": ["raiden_electro"]},
-        {"passage": "纳西妲", "label": "草神纳西妲", "official": true, "covers": ["nahida_dendro"]},
-        {"passage": "芙宁娜", "label": "水神芙宁娜", "official": true, "covers": ["furina_hydro"]},
-        {"passage": "玛薇卡", "label": "火神玛薇卡", "official": true, "covers": ["mavuika_pyro"]},
-        {"passage": "冰之女皇", "label": "冰神冰之女皇", "official": true, "covers": ["tsaritsa_cryo"]}
+        {
+          "passage": "温迪",
+          "label": "风神温迪",
+          "official": true,
+          "covers": [
+            "venti_anemo"
+          ]
+        },
+        {
+          "passage": "钟离",
+          "label": "岩神钟离",
+          "official": true,
+          "covers": [
+            "zhongli_geo"
+          ]
+        },
+        {
+          "passage": "雷电将军",
+          "label": "雷神雷电将军",
+          "official": true,
+          "covers": [
+            "raiden_electro"
+          ]
+        },
+        {
+          "passage": "纳西妲",
+          "label": "草神纳西妲",
+          "official": true,
+          "covers": [
+            "nahida_dendro"
+          ]
+        },
+        {
+          "passage": "芙宁娜",
+          "label": "水神芙宁娜",
+          "official": true,
+          "covers": [
+            "furina_hydro"
+          ]
+        },
+        {
+          "passage": "玛薇卡",
+          "label": "火神玛薇卡",
+          "official": true,
+          "covers": [
+            "mavuika_pyro"
+          ]
+        },
+        {
+          "passage": "冰之女皇",
+          "label": "冰神冰之女皇",
+          "official": true,
+          "covers": [
+            "tsaritsa_cryo"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "Each archon is identified by their Chinese character name. Coverage requires retrieving a source that mentions the archon's name."
@@ -116,18 +338,102 @@
         "pantalone"
       ],
       "relevant_passages": [
-        {"passage": "他是愚人众最初的执行官，也是今日执行官们的领袖", "label": "公子语音·关于丑角皮耶罗", "official": true, "covers": ["pierro"]},
-        {"passage": "我曾见过他在战场上的模样，实在是过于强悍了。", "label": "公子语音·关于队长卡皮塔诺", "official": true, "covers": ["capitano"]},
-        {"passage": "愚人众执行官「博士」在蒙德也有过多次犯罪行为。", "label": "法尔伽·博士多托雷", "official": true, "covers": ["dottore"]},
-        {"passage": "我不明白那个女孩为什么是「第三席」。", "label": "公子语音·关于少女哥伦比娅", "official": true, "covers": ["columbina"]},
-        {"passage": "正是如今的愚人众执行官第四席，「仆人」阿蕾奇诺。", "label": "阿蕾奇诺角色故事·第四席仆人", "official": true, "covers": ["servant"]},
-        {"passage": "愚人众执行官第六席，「散兵」。", "label": "散兵自我介绍·第六席", "official": true, "covers": ["scaramouche"]},
-        {"passage": "愚人众执行官第十一位，「公子」，其战绩威名远扬。", "label": "角色档案·达达利亚第十一席", "official": true, "covers": ["tartaglia"]},
-        {"passage": "就是现在身处挪德卡莱的…「木偶」。", "label": "卓新·木偶桑多涅", "official": true, "covers": ["sandrone"]},
-        {"passage": "他看我的眼神，就像看待家人一样。", "label": "公子语音·关于公鸡普尔奇内拉", "official": true, "covers": ["pulcinella"]},
-        {"passage": "刚才的愚人众执行官，抢走「神之心」以后，马上就离开了呢。", "label": "温迪·女士抢走神之心", "official": true, "covers": ["signora"]},
-        {"passage": "潘塔罗涅卡财务审批卡得非常紧", "label": "木偶的笔记本·潘塔罗涅掌管财务（官方）", "official": true, "covers": ["pantalone"]},
-        {"passage": "以金钱的名义，我会遵守我们之间的『契约』", "label": "诗漱世界观手册·潘塔罗涅（非官方替代来源）", "official": false, "covers": ["pantalone"]}
+        {
+          "passage": "他是愚人众最初的执行官，也是今日执行官们的领袖",
+          "label": "公子语音·关于丑角皮耶罗",
+          "official": true,
+          "covers": [
+            "pierro"
+          ]
+        },
+        {
+          "passage": "我曾见过他在战场上的模样，实在是过于强悍了。",
+          "label": "公子语音·关于队长卡皮塔诺",
+          "official": true,
+          "covers": [
+            "capitano"
+          ]
+        },
+        {
+          "passage": "愚人众执行官「博士」在蒙德也有过多次犯罪行为。",
+          "label": "法尔伽·博士多托雷",
+          "official": true,
+          "covers": [
+            "dottore"
+          ]
+        },
+        {
+          "passage": "我不明白那个女孩为什么是「第三席」。",
+          "label": "公子语音·关于少女哥伦比娅",
+          "official": true,
+          "covers": [
+            "columbina"
+          ]
+        },
+        {
+          "passage": "正是如今的愚人众执行官第四席，「仆人」阿蕾奇诺。",
+          "label": "阿蕾奇诺角色故事·第四席仆人",
+          "official": true,
+          "covers": [
+            "servant"
+          ]
+        },
+        {
+          "passage": "愚人众执行官第六席，「散兵」。",
+          "label": "散兵自我介绍·第六席",
+          "official": true,
+          "covers": [
+            "scaramouche"
+          ]
+        },
+        {
+          "passage": "愚人众执行官第十一位，「公子」，其战绩威名远扬。",
+          "label": "角色档案·达达利亚第十一席",
+          "official": true,
+          "covers": [
+            "tartaglia"
+          ]
+        },
+        {
+          "passage": "就是现在身处挪德卡莱的…「木偶」。",
+          "label": "卓新·木偶桑多涅",
+          "official": true,
+          "covers": [
+            "sandrone"
+          ]
+        },
+        {
+          "passage": "他看我的眼神，就像看待家人一样。",
+          "label": "公子语音·关于公鸡普尔奇内拉",
+          "official": true,
+          "covers": [
+            "pulcinella"
+          ]
+        },
+        {
+          "passage": "刚才的愚人众执行官，抢走「神之心」以后，马上就离开了呢。",
+          "label": "温迪·女士抢走神之心",
+          "official": true,
+          "covers": [
+            "signora"
+          ]
+        },
+        {
+          "passage": "潘塔罗涅卡财务审批卡得非常紧",
+          "label": "木偶的笔记本·潘塔罗涅掌管财务（官方）",
+          "official": true,
+          "covers": [
+            "pantalone"
+          ]
+        },
+        {
+          "passage": "以金钱的名义，我会遵守我们之间的『契约』",
+          "label": "诗漱世界观手册·潘塔罗涅（非官方替代来源）",
+          "official": false,
+          "covers": [
+            "pantalone"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "Filter passages by `official` to measure official-only coverage; the dedicated profiles for the lower-ranked seats (servant/Arlecchino, scaramouche) sit deep in the ranking."
@@ -145,17 +451,96 @@
         "restore_khaenriah_via_loom"
       ],
       "relevant_passages": [
-        {"passage": "坎瑞亚是被神覆灭的国度，而这就是…深渊教团想要覆灭七神国度的原因。", "label": "戴因·覆灭七神国度的原因（不荣誉的试炼）", "official": true, "covers": ["overthrow_archons"]},
-        {"passage": "目标是「淹没神座、与天理作战」", "label": "派蒙·描述旅行者血亲的目标（有隔阂的魂灵）", "official": true, "covers": ["overthrow_archons", "battle_heavenly_principles"]},
-        {"passage": "在「深渊」淹没神座之前，我与「天理」，有一场尚未完结的战争…", "label": "旅行者血亲·与天理未完之战（有隔阂的魂灵）", "official": true, "covers": ["battle_heavenly_principles"]},
-        {"passage": "深渊教团的怪物，就是坎瑞亚灭国时的人民…扭曲成的怪物。", "label": "派蒙·深渊怪物的本质（有隔阂的魂灵）", "official": true, "covers": ["khaenriah_remnants_cursed"]},
-        {"passage": "深渊教团和遗迹守卫，居然是坎瑞亚灭国之后的残余吗？！", "label": "派蒙·深渊教团是坎瑞亚残余（无信者的使徒）", "official": true, "covers": ["khaenriah_remnants_cursed"]},
-        {"passage": "深渊教团一直在追寻坎瑞亚遗落的文明——虽然他们已经连人类都不是了，但执念仍存。", "label": "戴因·深渊教团的执念（无信者的使徒）", "official": true, "covers": ["khaenriah_remnants_cursed"]},
-        {"passage": "反而是…很明显她认为你的血亲…也就是深渊教团现在的领导者，是「救世主」。", "label": "伊安珊·旅行者血亲是领导者（救世主）", "official": true, "covers": ["traveler_sibling_leader"]},
-        {"passage": "于是我带领深渊教团佯攻纳塔，借机进入了夜神之国", "label": "旅行者血亲·亲口承认领导深渊教团（你所不在的时空）", "official": true, "covers": ["traveler_sibling_leader", "restore_khaenriah_via_loom"]},
-        {"passage": "使用「命运的织机」重新编织了坎瑞亚的地脉", "label": "哈登（深渊浸礼者）·织机用于重建坎瑞亚地脉（你所不在的时空）", "official": true, "covers": ["restore_khaenriah_via_loom"]},
-        {"passage": "它们…「深渊」，似乎正在执行一个计划。计划的关键词是…「命运的织机」。", "label": "戴因·命运的织机是深渊教团的核心计划（无信者的使徒）", "official": true, "covers": ["restore_khaenriah_via_loom"]},
-        {"passage": "我猜测命运的织机…应该和「地脉」有关。", "label": "戴因·推断织机与地脉有关（不应存在的记忆）", "official": true, "covers": ["restore_khaenriah_via_loom"]}
+        {
+          "passage": "坎瑞亚是被神覆灭的国度，而这就是…深渊教团想要覆灭七神国度的原因。",
+          "label": "戴因·覆灭七神国度的原因（不荣誉的试炼）",
+          "official": true,
+          "covers": [
+            "overthrow_archons"
+          ]
+        },
+        {
+          "passage": "目标是「淹没神座、与天理作战」",
+          "label": "派蒙·描述旅行者血亲的目标（有隔阂的魂灵）",
+          "official": true,
+          "covers": [
+            "overthrow_archons",
+            "battle_heavenly_principles"
+          ]
+        },
+        {
+          "passage": "在「深渊」淹没神座之前，我与「天理」，有一场尚未完结的战争…",
+          "label": "旅行者血亲·与天理未完之战（有隔阂的魂灵）",
+          "official": true,
+          "covers": [
+            "battle_heavenly_principles"
+          ]
+        },
+        {
+          "passage": "深渊教团的怪物，就是坎瑞亚灭国时的人民…扭曲成的怪物。",
+          "label": "派蒙·深渊怪物的本质（有隔阂的魂灵）",
+          "official": true,
+          "covers": [
+            "khaenriah_remnants_cursed"
+          ]
+        },
+        {
+          "passage": "深渊教团和遗迹守卫，居然是坎瑞亚灭国之后的残余吗？！",
+          "label": "派蒙·深渊教团是坎瑞亚残余（无信者的使徒）",
+          "official": true,
+          "covers": [
+            "khaenriah_remnants_cursed"
+          ]
+        },
+        {
+          "passage": "深渊教团一直在追寻坎瑞亚遗落的文明——虽然他们已经连人类都不是了，但执念仍存。",
+          "label": "戴因·深渊教团的执念（无信者的使徒）",
+          "official": true,
+          "covers": [
+            "khaenriah_remnants_cursed"
+          ]
+        },
+        {
+          "passage": "反而是…很明显她认为你的血亲…也就是深渊教团现在的领导者，是「救世主」。",
+          "label": "伊安珊·旅行者血亲是领导者（救世主）",
+          "official": true,
+          "covers": [
+            "traveler_sibling_leader"
+          ]
+        },
+        {
+          "passage": "于是我带领深渊教团佯攻纳塔，借机进入了夜神之国",
+          "label": "旅行者血亲·亲口承认领导深渊教团（你所不在的时空）",
+          "official": true,
+          "covers": [
+            "traveler_sibling_leader",
+            "restore_khaenriah_via_loom"
+          ]
+        },
+        {
+          "passage": "使用「命运的织机」重新编织了坎瑞亚的地脉",
+          "label": "哈登（深渊浸礼者）·织机用于重建坎瑞亚地脉（你所不在的时空）",
+          "official": true,
+          "covers": [
+            "restore_khaenriah_via_loom"
+          ]
+        },
+        {
+          "passage": "它们…「深渊」，似乎正在执行一个计划。计划的关键词是…「命运的织机」。",
+          "label": "戴因·命运的织机是深渊教团的核心计划（无信者的使徒）",
+          "official": true,
+          "covers": [
+            "restore_khaenriah_via_loom"
+          ]
+        },
+        {
+          "passage": "我猜测命运的织机…应该和「地脉」有关。",
+          "label": "戴因·推断织机与地脉有关（不应存在的记忆）",
+          "official": true,
+          "covers": [
+            "restore_khaenriah_via_loom"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "khaenriah_remnants_cursed is attested in both the early (8001/8003) and later quest files. The traveler_sibling_leader facet requires reaching 8017–8018 content (late Natlan arc), so a retrieval gap here may indicate missing coverage of late-game quests. battle_heavenly_principles and overthrow_archons are semantically adjacent but attested in different source lines — both passages from 8003 cover both concepts."
@@ -172,14 +557,72 @@
         "personal_closure"
       ],
       "relevant_passages": [
-        {"passage": "希望自己有一天能在「永恒绿洲」和她再会…他明明说过，那日子还在很远很远的前方…骗子，骗了我，也骗了母亲…", "label": "婕德·父亲哲伯莱勒说要去永恒绿洲与母亲团聚（热砂之梦）", "official": true, "covers": ["fathers_dream"]},
-        {"passage": "只有我来替他实现了，把他…留下的斧子，还有被他和行李一道保管的母亲留下的研究笔记…一起带去「永恒绿洲」，希望他们在那里获得真正的安宁。", "label": "婕德·决定替父亲实现遗愿（热砂之梦）", "official": true, "covers": ["fathers_dream", "lay_rest_belongings"]},
-        {"passage": "老爹总和我说，他总有一天会进入「永恒绿洲」和母亲团聚…没想到，他的梦想这么快就要由我来实现了。", "label": "婕德·父亲的梦想由她来完成（埋葬丰饶的沙丘·上）", "official": true, "covers": ["fathers_dream"]},
-        {"passage": "婕德没有说话，默默上前放下母亲的笔记，又将哲伯莱勒的大斧斜倚在一旁…就仿佛他们从未走远一样。", "label": "婕德·在永恒绿洲安放父母遗物（永恒的葱茏之梦）", "official": true, "covers": ["lay_rest_belongings"]},
-        {"passage": "终于能完成父母的夙愿…我还是很期待的。", "label": "婕德·完成父母毕生心愿（埋葬丰饶的沙丘·下）", "official": true, "covers": ["parents_fulfillment"]},
-        {"passage": "以往我还能说，「只要老爹在的地方就能称为家」。但现在，我已经是孤身一人了…", "label": "婕德·失去父亲后无家可归（埋葬丰饶的沙丘·下）", "official": true, "covers": ["personal_closure"]},
-        {"passage": "或许终有一天，我也会回到这里吧…等到我厌倦了所有冒险，离开了所有能称之为「家」的地方之后。到那时候，再从容地说一句「我回来咯！」然后，躺在父母中间沉沉睡去。", "label": "婕德·将永恒绿洲视为与父母团聚的最终归宿（永恒的葱茏之梦）", "official": true, "covers": ["personal_closure"]},
-        {"passage": "老爹来自「塔尼特」这个部落…我想去找到塔尼特…或许那里的人能够告诉我一些关于老爹的事吧…", "label": "婕德·加入塔尼特探寻父亲的过去（热砂之梦）", "official": true, "covers": ["personal_closure", "fathers_dream"]}
+        {
+          "passage": "希望自己有一天能在「永恒绿洲」和她再会…他明明说过，那日子还在很远很远的前方…骗子，骗了我，也骗了母亲…",
+          "label": "婕德·父亲哲伯莱勒说要去永恒绿洲与母亲团聚（热砂之梦）",
+          "official": true,
+          "covers": [
+            "fathers_dream"
+          ]
+        },
+        {
+          "passage": "只有我来替他实现了，把他…留下的斧子，还有被他和行李一道保管的母亲留下的研究笔记…一起带去「永恒绿洲」，希望他们在那里获得真正的安宁。",
+          "label": "婕德·决定替父亲实现遗愿（热砂之梦）",
+          "official": true,
+          "covers": [
+            "fathers_dream",
+            "lay_rest_belongings"
+          ]
+        },
+        {
+          "passage": "老爹总和我说，他总有一天会进入「永恒绿洲」和母亲团聚…没想到，他的梦想这么快就要由我来实现了。",
+          "label": "婕德·父亲的梦想由她来完成（埋葬丰饶的沙丘·上）",
+          "official": true,
+          "covers": [
+            "fathers_dream"
+          ]
+        },
+        {
+          "passage": "婕德没有说话，默默上前放下母亲的笔记，又将哲伯莱勒的大斧斜倚在一旁…就仿佛他们从未走远一样。",
+          "label": "婕德·在永恒绿洲安放父母遗物（永恒的葱茏之梦）",
+          "official": true,
+          "covers": [
+            "lay_rest_belongings"
+          ]
+        },
+        {
+          "passage": "终于能完成父母的夙愿…我还是很期待的。",
+          "label": "婕德·完成父母毕生心愿（埋葬丰饶的沙丘·下）",
+          "official": true,
+          "covers": [
+            "parents_fulfillment"
+          ]
+        },
+        {
+          "passage": "以往我还能说，「只要老爹在的地方就能称为家」。但现在，我已经是孤身一人了…",
+          "label": "婕德·失去父亲后无家可归（埋葬丰饶的沙丘·下）",
+          "official": true,
+          "covers": [
+            "personal_closure"
+          ]
+        },
+        {
+          "passage": "或许终有一天，我也会回到这里吧…等到我厌倦了所有冒险，离开了所有能称之为「家」的地方之后。到那时候，再从容地说一句「我回来咯！」然后，躺在父母中间沉沉睡去。",
+          "label": "婕德·将永恒绿洲视为与父母团聚的最终归宿（永恒的葱茏之梦）",
+          "official": true,
+          "covers": [
+            "personal_closure"
+          ]
+        },
+        {
+          "passage": "老爹来自「塔尼特」这个部落…我想去找到塔尼特…或许那里的人能够告诉我一些关于老爹的事吧…",
+          "label": "婕德·加入塔尼特探寻父亲的过去（热砂之梦）",
+          "official": true,
+          "covers": [
+            "personal_closure",
+            "fathers_dream"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "personal_closure is the most textually diffuse facet — Jeht expresses her grief and search for belonging across multiple quest files in both Golden Slumber and Dirge of Bilqis chains."
@@ -198,14 +641,70 @@
         "outsider_cannot"
       ],
       "relevant_passages": [
-        {"passage": "帝君曾言，「神之眼」代表的是一份责任", "label": "闲云·神之眼代表责任", "official": true, "covers": ["responsibility"]},
-        {"passage": "神之眼便代表着那个人的愿望", "label": "托马·神之眼代表愿望", "official": true, "covers": ["wish"]},
-        {"passage": "在我眼中，「神之眼」便是愿望的象征", "label": "心海·愿望的象征（替代来源）", "official": true, "covers": ["wish"]},
-        {"passage": "神之眼代表着神明的认可", "label": "瑶瑶·神明的认可", "official": true, "covers": ["divine_recognition"]},
-        {"passage": "神之眼是旗帜，代表了神的认可", "label": "北斗·神的认可（替代来源）", "official": true, "covers": ["divine_recognition"]},
-        {"passage": "神之眼是力量的「证明」，而不是力量的「来源」", "label": "万叶·力量的证明而非来源", "official": true, "covers": ["proof_not_source"]},
-        {"passage": "受神认可者所获的外置魔力器官，用以引导元素之力。", "label": "钟离·神之眼的权威定义", "official": true, "covers": ["canonical_definition"]},
-        {"passage": "你自己是得不到「神之眼」的。外界生物不属于世间众生", "label": "旅行者角色故事·外界生物无法获得", "official": true, "covers": ["outsider_cannot"]}
+        {
+          "passage": "帝君曾言，「神之眼」代表的是一份责任",
+          "label": "闲云·神之眼代表责任",
+          "official": true,
+          "covers": [
+            "responsibility"
+          ]
+        },
+        {
+          "passage": "神之眼便代表着那个人的愿望",
+          "label": "托马·神之眼代表愿望",
+          "official": true,
+          "covers": [
+            "wish"
+          ]
+        },
+        {
+          "passage": "在我眼中，「神之眼」便是愿望的象征",
+          "label": "心海·愿望的象征（替代来源）",
+          "official": true,
+          "covers": [
+            "wish"
+          ]
+        },
+        {
+          "passage": "神之眼代表着神明的认可",
+          "label": "瑶瑶·神明的认可",
+          "official": true,
+          "covers": [
+            "divine_recognition"
+          ]
+        },
+        {
+          "passage": "神之眼是旗帜，代表了神的认可",
+          "label": "北斗·神的认可（替代来源）",
+          "official": true,
+          "covers": [
+            "divine_recognition"
+          ]
+        },
+        {
+          "passage": "神之眼是力量的「证明」，而不是力量的「来源」",
+          "label": "万叶·力量的证明而非来源",
+          "official": true,
+          "covers": [
+            "proof_not_source"
+          ]
+        },
+        {
+          "passage": "受神认可者所获的外置魔力器官，用以引导元素之力。",
+          "label": "钟离·神之眼的权威定义",
+          "official": true,
+          "covers": [
+            "canonical_definition"
+          ]
+        },
+        {
+          "passage": "你自己是得不到「神之眼」的。外界生物不属于世间众生",
+          "label": "旅行者角色故事·外界生物无法获得",
+          "official": true,
+          "covers": [
+            "outsider_cannot"
+          ]
+        }
       ],
       "known_redundancy": "The canonical_definition and outsider_cannot passages appear verbatim in two near-identical Traveler character-story files (male/female protagonist variants), so a naive top-K commonly returns both as adjacent results — a wasted slot a dedup/MMR pass should reclaim.",
       "notes": "Facets are distinct interpretations, not regions, so this stays a single retrieval intent rather than a per-region survey (which the decomposition layer would split)."
@@ -224,15 +723,78 @@
         "second_throne"
       ],
       "relevant_passages": [
-        {"passage": "你的身上，现在带着「第三降临者的遗骨」吧", "label": "丝柯克·第三降临者的遗骨即神之心（终幕礼）", "official": true, "covers": ["remains_gnoses"]},
-        {"passage": "对元素有着极强的兼容性，以至于可以增幅元素力的「神之心」，源于第三降临者。", "label": "那维莱特·神之心源于第三降临者（终幕礼）", "official": true, "covers": ["remains_gnoses"]},
-        {"passage": "曾有四名降临者来到提瓦特，其中的第三位，因触犯无上规则而被抹去，方法尚不可知。", "label": "异质的树髓·第三位因触犯规则被抹去", "official": true, "covers": ["erased"]},
-        {"passage": "王子破碎的灵魂使出最后的力量，向六侏儒施下诅咒", "label": "白之公主与六侏儒·王子（第三降临者）被杀", "official": true, "covers": ["allegory_prince"]},
-        {"passage": "王子的朽尸从坟茔中破土而出", "label": "白之公主与六侏儒·王子遗骸", "official": true, "covers": ["allegory_prince"]},
-        {"passage": "旅行者，你是提瓦特的「第四降临者」", "label": "纳西妲·旅行者是第四降临者（祝胜之酒）", "official": true, "covers": ["four_descenders"]},
-        {"passage": "「第一降临者」应该就是如今的「天理」", "label": "纳西妲·第一降临者是天理（祝胜之酒）", "official": true, "covers": ["first_descender"]},
-        {"passage": "天上永恒的王座到来，世界为之焕然一新。然后真王，原初的那一位", "label": "白夜国馆藏·第一王座原初之人", "official": true, "covers": ["first_descender"]},
-        {"passage": "天上的第二个王座到来", "label": "白夜国馆藏·第二个王座（第二降临者）", "official": true, "covers": ["second_throne"]}
+        {
+          "passage": "你的身上，现在带着「第三降临者的遗骨」吧",
+          "label": "丝柯克·第三降临者的遗骨即神之心（终幕礼）",
+          "official": true,
+          "covers": [
+            "remains_gnoses"
+          ]
+        },
+        {
+          "passage": "对元素有着极强的兼容性，以至于可以增幅元素力的「神之心」，源于第三降临者。",
+          "label": "那维莱特·神之心源于第三降临者（终幕礼）",
+          "official": true,
+          "covers": [
+            "remains_gnoses"
+          ]
+        },
+        {
+          "passage": "曾有四名降临者来到提瓦特，其中的第三位，因触犯无上规则而被抹去，方法尚不可知。",
+          "label": "异质的树髓·第三位因触犯规则被抹去",
+          "official": true,
+          "covers": [
+            "erased"
+          ]
+        },
+        {
+          "passage": "王子破碎的灵魂使出最后的力量，向六侏儒施下诅咒",
+          "label": "白之公主与六侏儒·王子（第三降临者）被杀",
+          "official": true,
+          "covers": [
+            "allegory_prince"
+          ]
+        },
+        {
+          "passage": "王子的朽尸从坟茔中破土而出",
+          "label": "白之公主与六侏儒·王子遗骸",
+          "official": true,
+          "covers": [
+            "allegory_prince"
+          ]
+        },
+        {
+          "passage": "旅行者，你是提瓦特的「第四降临者」",
+          "label": "纳西妲·旅行者是第四降临者（祝胜之酒）",
+          "official": true,
+          "covers": [
+            "four_descenders"
+          ]
+        },
+        {
+          "passage": "「第一降临者」应该就是如今的「天理」",
+          "label": "纳西妲·第一降临者是天理（祝胜之酒）",
+          "official": true,
+          "covers": [
+            "first_descender"
+          ]
+        },
+        {
+          "passage": "天上永恒的王座到来，世界为之焕然一新。然后真王，原初的那一位",
+          "label": "白夜国馆藏·第一王座原初之人",
+          "official": true,
+          "covers": [
+            "first_descender"
+          ]
+        },
+        {
+          "passage": "天上的第二个王座到来",
+          "label": "白夜国馆藏·第二个王座（第二降临者）",
+          "official": true,
+          "covers": [
+            "second_throne"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "remains_gnoses is attested in the late-game quest 4025 (终幕礼, Snezhnaya arc Act 6); erased is from Dottore's notes in 异质的树髓三 (also late-game). The 白之公主 book is the allegorical telling. first_descender and second_throne provide numbering context, attested in both the Sumeru AQ finale (3026) and 白夜国馆藏."
@@ -247,10 +809,38 @@
         "marian_inspiration"
       ],
       "relevant_passages": [
-        {"passage": "第一，阿兰创造了我", "label": "木偶的笔记本·桑多涅第一人称记录阿兰创造了她", "official": true, "covers": ["sandrone_created_by_alan"]},
-        {"passage": "是阿兰·吉约丹的创造物啊", "label": "溪舟的尾波·第三者确认桑多涅为阿兰·吉约丹的创造物", "official": true, "covers": ["sandrone_created_by_alan"]},
-        {"passage": "他回忆着故去的妹妹创造出我，现在他感到愧疚", "label": "木偶的笔记本·阿兰回忆妹妹玛丽安而创造桑多涅", "official": true, "covers": ["marian_inspiration"]},
-        {"passage": "由阿兰参照玛丽安的形象制造而出", "label": "诗漱世界观手册·阿兰参照玛丽安形象制造桑多涅（非官方）", "official": false, "covers": ["marian_inspiration"]}
+        {
+          "passage": "第一，阿兰创造了我",
+          "label": "木偶的笔记本·桑多涅第一人称记录阿兰创造了她",
+          "official": true,
+          "covers": [
+            "sandrone_created_by_alan"
+          ]
+        },
+        {
+          "passage": "是阿兰·吉约丹的创造物啊",
+          "label": "溪舟的尾波·第三者确认桑多涅为阿兰·吉约丹的创造物",
+          "official": true,
+          "covers": [
+            "sandrone_created_by_alan"
+          ]
+        },
+        {
+          "passage": "他回忆着故去的妹妹创造出我，现在他感到愧疚",
+          "label": "木偶的笔记本·阿兰回忆妹妹玛丽安而创造桑多涅",
+          "official": true,
+          "covers": [
+            "marian_inspiration"
+          ]
+        },
+        {
+          "passage": "由阿兰参照玛丽安的形象制造而出",
+          "label": "诗漱世界观手册·阿兰参照玛丽安形象制造桑多涅（非官方）",
+          "official": false,
+          "covers": [
+            "marian_inspiration"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "The canonical in-universe source is agd_book/201149_木偶的笔记本.txt (covers both facets); agd_quest/74078 provides a second official confirmation of sandrone_created_by_alan from a different file. marian_inspiration has only one official anchor (same book), so it depends on the book being retrieved."
@@ -268,12 +858,56 @@
         "name_evolved_amerlotte"
       ],
       "relevant_passages": [
-        {"passage": "原本松散的诸部族团结于埃雷莫利卡年轻的继承人麾下，在帝国脆弱的边疆掀起反叛的狼烟", "label": "昔时之歌·埃雷莫利卡继承者反叛雷穆利亚", "official": true, "covers": ["northern_barbarian_kingdom", "revolt_vs_remuria"]},
-        {"passage": "这便是被后世传颂为「纯水骑士」之人", "label": "昔时之歌·纯水骑士起源", "official": true, "covers": ["pure_water_knights"]},
-        {"passage": "其前任统治者名为库诺里库斯…其现任统治者——也就是恶名昭彰的伊黎耶", "label": "北境蛮族考察·伊黎耶是埃雷莫利卡统治者", "official": true, "covers": ["leader_egeria"]},
-        {"passage": "这个名字的正确读音应为「埃雷莫利卡的爱芮格温德」", "label": "北境蛮族考察·埃雷莫利卡的爱芮格温德头衔", "official": true, "covers": ["leader_egeria"]},
-        {"passage": "为埃雷莫利卡岛的王爵所收养抚育", "label": "静水流涌之辉·伊黎耶被埃雷莫利卡岛王收养", "official": true, "covers": ["leader_egeria", "northern_barbarian_kingdom"]},
-        {"passage": "在爱美乐一连举办了八天的盛宴", "label": "伊黎耶之歌·爱美乐为埃雷莫利卡后世之名", "official": true, "covers": ["name_evolved_amerlotte"]}
+        {
+          "passage": "原本松散的诸部族团结于埃雷莫利卡年轻的继承人麾下，在帝国脆弱的边疆掀起反叛的狼烟",
+          "label": "昔时之歌·埃雷莫利卡继承者反叛雷穆利亚",
+          "official": true,
+          "covers": [
+            "northern_barbarian_kingdom",
+            "revolt_vs_remuria"
+          ]
+        },
+        {
+          "passage": "这便是被后世传颂为「纯水骑士」之人",
+          "label": "昔时之歌·纯水骑士起源",
+          "official": true,
+          "covers": [
+            "pure_water_knights"
+          ]
+        },
+        {
+          "passage": "其前任统治者名为库诺里库斯…其现任统治者——也就是恶名昭彰的伊黎耶",
+          "label": "北境蛮族考察·伊黎耶是埃雷莫利卡统治者",
+          "official": true,
+          "covers": [
+            "leader_egeria"
+          ]
+        },
+        {
+          "passage": "这个名字的正确读音应为「埃雷莫利卡的爱芮格温德」",
+          "label": "北境蛮族考察·埃雷莫利卡的爱芮格温德头衔",
+          "official": true,
+          "covers": [
+            "leader_egeria"
+          ]
+        },
+        {
+          "passage": "为埃雷莫利卡岛的王爵所收养抚育",
+          "label": "静水流涌之辉·伊黎耶被埃雷莫利卡岛王收养",
+          "official": true,
+          "covers": [
+            "leader_egeria",
+            "northern_barbarian_kingdom"
+          ]
+        },
+        {
+          "passage": "在爱美乐一连举办了八天的盛宴",
+          "label": "伊黎耶之歌·爱美乐为埃雷莫利卡后世之名",
+          "official": true,
+          "covers": [
+            "name_evolved_amerlotte"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "埃雷莫利卡 lore is concentrated in the Fontaine Remuria-era artifact set (昔时之歌), the Remurian intelligence dossier (关于北境蛮族的考察), the weapon lore (静水流涌之辉), and the chivalric romance (伊黎耶之歌). The name 爱美乐 (Amerlotte) replaces 埃雷莫利卡 in later history; the explicit equation appears in non-official material (tps_shishu), but the official 伊黎耶之歌 uses 爱美乐 as the locale for Egeria's feast. leader_egeria is the most richly attested facet."
@@ -290,12 +924,60 @@
         "wolf_north"
       ],
       "relevant_passages": [
-        {"passage": "北风骑士的「狼」、蒲公英（狮牙）骑士的「狮子」、西风骑士团的「鹰」，以及特瓦林——「风龙」，一直被视作是蒙德的「四风守护」", "label": "林间风·四风守护定义全列举", "official": true, "covers": ["dragon_east", "lion_south", "falcon_west", "wolf_north"]},
-        {"passage": "东风之龙，南风之狮，北风之狼，西风之鹰", "label": "丽莎·四方之风名号列举（书页里的电火花）", "official": true, "covers": ["dragon_east", "lion_south", "falcon_west", "wolf_north"]},
-        {"passage": "蒙德的「四风守护」之一，东风之龙特瓦林", "label": "首领图鉴·东风之龙特瓦林", "official": true, "covers": ["dragon_east"]},
-        {"passage": "「西风之鹰」…虽能凭风翱翔，但始终也只是徘徊在神明的光芒之下", "label": "戴因斯雷布·西风之鹰庙宇（拾枝者）", "official": true, "covers": ["falcon_west"]},
-        {"passage": "北风的王狼，奔狼的领主", "label": "首领图鉴·北风王狼", "official": true, "covers": ["wolf_north"]},
-        {"passage": "昭告「北风」将重归最强四风守护之位", "label": "法尔伽角色故事·北风重归四风守护", "official": true, "covers": ["wolf_north"]}
+        {
+          "passage": "北风骑士的「狼」、蒲公英（狮牙）骑士的「狮子」、西风骑士团的「鹰」，以及特瓦林——「风龙」，一直被视作是蒙德的「四风守护」",
+          "label": "林间风·四风守护定义全列举",
+          "official": true,
+          "covers": [
+            "dragon_east",
+            "lion_south",
+            "falcon_west",
+            "wolf_north"
+          ]
+        },
+        {
+          "passage": "东风之龙，南风之狮，北风之狼，西风之鹰",
+          "label": "丽莎·四方之风名号列举（书页里的电火花）",
+          "official": true,
+          "covers": [
+            "dragon_east",
+            "lion_south",
+            "falcon_west",
+            "wolf_north"
+          ]
+        },
+        {
+          "passage": "蒙德的「四风守护」之一，东风之龙特瓦林",
+          "label": "首领图鉴·东风之龙特瓦林",
+          "official": true,
+          "covers": [
+            "dragon_east"
+          ]
+        },
+        {
+          "passage": "「西风之鹰」…虽能凭风翱翔，但始终也只是徘徊在神明的光芒之下",
+          "label": "戴因斯雷布·西风之鹰庙宇（拾枝者）",
+          "official": true,
+          "covers": [
+            "falcon_west"
+          ]
+        },
+        {
+          "passage": "北风的王狼，奔狼的领主",
+          "label": "首领图鉴·北风王狼",
+          "official": true,
+          "covers": [
+            "wolf_north"
+          ]
+        },
+        {
+          "passage": "昭告「北风」将重归最强四风守护之位",
+          "label": "法尔伽角色故事·北风重归四风守护",
+          "official": true,
+          "covers": [
+            "wolf_north"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "The 林间风 book passage covers all four winds in one span; Lisa's quest passage covers all four by title. Individual anchors for dragon, falcon, and wolf provide fallbacks. The South Lion (南风之狮/狮牙骑士) has no dedicated anchor — attested only in the two combined passages (林间风 and Lisa). 东风之龙 has a redundant dedicated anchor in the creature boss file."
@@ -310,9 +992,30 @@
         "brekhov_smitten_joins"
       ],
       "relevant_passages": [
-        {"passage": "爱莉厄曾洗劫总督府", "label": "诗漱世界观手册·爱莉厄洗劫总督府（非官方）", "official": false, "covers": ["raid_event"]},
-        {"passage": "布莱赫对其一见倾心。布莱赫抛下贵族身份追随她加入了盗宝团", "label": "诗漱世界观手册·布莱赫倾心爱莉厄并加入盗宝团（非官方）", "official": false, "covers": ["brekhov_smitten_joins"]},
-        {"passage": "更不是让我心醉的爱莉厄小姐", "label": "布莱赫的笔记其一·布莱赫自述被爱莉厄倾倒（官方）", "official": true, "covers": ["brekhov_smitten_joins"]}
+        {
+          "passage": "爱莉厄曾洗劫总督府",
+          "label": "诗漱世界观手册·爱莉厄洗劫总督府（非官方）",
+          "official": false,
+          "covers": [
+            "raid_event"
+          ]
+        },
+        {
+          "passage": "布莱赫对其一见倾心。布莱赫抛下贵族身份追随她加入了盗宝团",
+          "label": "诗漱世界观手册·布莱赫倾心爱莉厄并加入盗宝团（非官方）",
+          "official": false,
+          "covers": [
+            "brekhov_smitten_joins"
+          ]
+        },
+        {
+          "passage": "更不是让我心醉的爱莉厄小姐",
+          "label": "布莱赫的笔记其一·布莱赫自述被爱莉厄倾倒（官方）",
+          "official": true,
+          "covers": [
+            "brekhov_smitten_joins"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "raid_event has no official source — the specific '洗劫总督府' fact exists only in tps_shishu. brekhov_smitten_joins has one official anchor (布莱赫的笔记其一) and one non-official; both are needed for full coverage. If only official sources are retrieved, raid_event will always be a miss."
@@ -329,14 +1032,70 @@
         "time_power_deeds"
       ],
       "relevant_passages": [
-        {"passage": "时之执政", "label": "虚空劫灰往世书·时之执政作为四影之一登场", "official": true, "covers": ["time_governor_shade"]},
-        {"passage": "是时之化身", "label": "钟离·确认伊斯塔露是时之化身（在云间）", "official": true, "covers": ["time_governor_shade"]},
-        {"passage": "唯一没有抛弃我们的那一位，她乃是「时间之执政」…我们称呼她「卡伊洛斯」，或者「不变世界的统领与执政」。真正秘密的名字，我们不敢直言，所以在这里倒写。「露塔斯伊」", "label": "白夜国馆藏·卡伊洛斯即时间之执政,倒写为伊斯塔露", "official": true, "covers": ["kairos_enkanomiya"]},
-        {"passage": "「不灭风」，人格化称之「常世大神」，或者诗体修辞为「千风」、「时之千风」", "label": "白夜国馆藏·常世大神即千风时之千风", "official": true, "covers": ["kairos_enkanomiya"]},
-        {"passage": "唯有那小小的风之精灵，在时与风的母亲让渡出权能的那一日", "label": "风起之日·时与风的母亲（伊斯塔露）让渡权能", "official": true, "covers": ["mother_time_wind"]},
-        {"passage": "在千风神殿与「时间」偶遇", "label": "温迪·在千风神殿遇见时间（伊斯塔露）", "official": true, "covers": ["mother_time_wind"]},
-        {"passage": "唯有时之伟力，才能将兹白的残魂凝固在寂灭前的刹那", "label": "钟离·时之执政冻结兹白残魂（在云间）", "official": true, "covers": ["time_power_deeds"]},
-        {"passage": "这其中一定有「时之执政」伊斯塔露的影响吧", "label": "旅行者血亲·时之执政影响跨时空相遇（你所不在的时空）", "official": true, "covers": ["time_power_deeds"]}
+        {
+          "passage": "时之执政",
+          "label": "虚空劫灰往世书·时之执政作为四影之一登场",
+          "official": true,
+          "covers": [
+            "time_governor_shade"
+          ]
+        },
+        {
+          "passage": "是时之化身",
+          "label": "钟离·确认伊斯塔露是时之化身（在云间）",
+          "official": true,
+          "covers": [
+            "time_governor_shade"
+          ]
+        },
+        {
+          "passage": "唯一没有抛弃我们的那一位，她乃是「时间之执政」…我们称呼她「卡伊洛斯」，或者「不变世界的统领与执政」。真正秘密的名字，我们不敢直言，所以在这里倒写。「露塔斯伊」",
+          "label": "白夜国馆藏·卡伊洛斯即时间之执政,倒写为伊斯塔露",
+          "official": true,
+          "covers": [
+            "kairos_enkanomiya"
+          ]
+        },
+        {
+          "passage": "「不灭风」，人格化称之「常世大神」，或者诗体修辞为「千风」、「时之千风」",
+          "label": "白夜国馆藏·常世大神即千风时之千风",
+          "official": true,
+          "covers": [
+            "kairos_enkanomiya"
+          ]
+        },
+        {
+          "passage": "唯有那小小的风之精灵，在时与风的母亲让渡出权能的那一日",
+          "label": "风起之日·时与风的母亲（伊斯塔露）让渡权能",
+          "official": true,
+          "covers": [
+            "mother_time_wind"
+          ]
+        },
+        {
+          "passage": "在千风神殿与「时间」偶遇",
+          "label": "温迪·在千风神殿遇见时间（伊斯塔露）",
+          "official": true,
+          "covers": [
+            "mother_time_wind"
+          ]
+        },
+        {
+          "passage": "唯有时之伟力，才能将兹白的残魂凝固在寂灭前的刹那",
+          "label": "钟离·时之执政冻结兹白残魂（在云间）",
+          "official": true,
+          "covers": [
+            "time_power_deeds"
+          ]
+        },
+        {
+          "passage": "这其中一定有「时之执政」伊斯塔露的影响吧",
+          "label": "旅行者血亲·时之执政影响跨时空相遇（你所不在的时空）",
+          "official": true,
+          "covers": [
+            "time_power_deeds"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "time_governor_shade is attested in the late-game quests 6036 (虚空劫灰往世书, where 时之执政 appears as a speaking character) and 40222 (在云间, Zhongli's confirmation). kairos_enkanomiya is from the foundational 白夜国馆藏 book. mother_time_wind spans the Mondstadt artifact set 风起之日 and Venti's quest 15045. time_power_deeds covers Istaroth's signature time manipulation — freezing Zibai (Liyue quests) and enabling paradoxical meetings (Inazuma/Natlan arc quest 8018). No dedicated voiceline or character story references exist for Istaroth."
@@ -353,13 +1112,61 @@
         "telepathic_guide"
       ],
       "relevant_passages": [
-        {"passage": "对，我的名字是尼可，是极少数保留了理想形态与力量的天使之一", "label": "尼可自述·保留理想形态的天使（无法传达的涟漪）", "official": true, "covers": ["angel_identity"]},
-        {"passage": "我和仙灵们之前都曾经是天使", "label": "尼可·与仙灵同为天使（魔女的课业）", "official": true, "covers": ["angel_identity"]},
-        {"passage": "绝不迷失的指路者，则是来自代号N的尼可的寄语", "label": "艾莉丝·尼可是代号N的绝不离失指路者（存于云天）", "official": true, "covers": ["hexenzirkel_n"]},
-        {"passage": "在纳塔也有一位与我类似的同族，被他们称为「夜神」", "label": "尼可·纳塔夜神为其同族（无法传达的涟漪）", "official": true, "covers": ["night_god_kin"]},
-        {"passage": "因为某些原因我没办法说话，只能通过这种方式和大家交流", "label": "尼可·以心声而非言语沟通（无法传达的涟漪）", "official": true, "covers": ["telepathic_guide"]},
-        {"passage": "她喜欢凭空在一个人脑海中说话", "label": "艾莉丝·尼可习惯在他人脑海中说话（存于云天）", "official": true, "covers": ["telepathic_guide"]}
+        {
+          "passage": "对，我的名字是尼可，是极少数保留了理想形态与力量的天使之一",
+          "label": "尼可自述·保留理想形态的天使（无法传达的涟漪）",
+          "official": true,
+          "covers": [
+            "angel_identity"
+          ]
+        },
+        {
+          "passage": "我和仙灵们之前都曾经是天使",
+          "label": "尼可·与仙灵同为天使（魔女的课业）",
+          "official": true,
+          "covers": [
+            "angel_identity"
+          ]
+        },
+        {
+          "passage": "绝不迷失的指路者，则是来自代号N的尼可的寄语",
+          "label": "艾莉丝·尼可是代号N的绝不离失指路者（存于云天）",
+          "official": true,
+          "covers": [
+            "hexenzirkel_n"
+          ]
+        },
+        {
+          "passage": "在纳塔也有一位与我类似的同族，被他们称为「夜神」",
+          "label": "尼可·纳塔夜神为其同族（无法传达的涟漪）",
+          "official": true,
+          "covers": [
+            "night_god_kin"
+          ]
+        },
+        {
+          "passage": "因为某些原因我没办法说话，只能通过这种方式和大家交流",
+          "label": "尼可·以心声而非言语沟通（无法传达的涟漪）",
+          "official": true,
+          "covers": [
+            "telepathic_guide"
+          ]
+        },
+        {
+          "passage": "她喜欢凭空在一个人脑海中说话",
+          "label": "艾莉丝·尼可习惯在他人脑海中说话（存于云天）",
+          "official": true,
+          "covers": [
+            "telepathic_guide"
+          ]
+        }
       ],
+      "facet_descriptions": {
+        "angel_identity": "尼可的身份：极少数保留了理想形态与力量的「天使」之一（仙灵过去也曾是天使）。",
+        "hexenzirkel_n": "尼可是魔女会成员，代号「N」，被称为「绝不迷失的指路者」。",
+        "night_god_kin": "尼可与纳塔的「夜神」是同族。",
+        "telepathic_guide": "尼可无法以言语说话，而是通过心声／在他人脑海中直接沟通。"
+      },
       "known_redundancy": "",
       "notes": "angel_identity and telepathic_guide are both attested primarily in the Nod-Karel arc (6026, 无法传达的涟漪), which is the canonical introduction for Nicole. hexenzirkel_n is attested in the Windblume quest (40099, 存于云天的至福之解). night_god_kin is a single anchor from 6026 — no other official source explicitly confirms the relation. No dedicated voiceline or character story is needed as Nicole's self-introduction is comprehensive."
     },
@@ -376,18 +1183,102 @@
         "obtained_gnoses"
       ],
       "relevant_passages": [
-        {"passage": "「博士」以前是被须弥教令院驱逐出去的人，贤者们原本很看不起他…可当他说出那句话的时候，所有人表情都变了。", "label": "朱达尔·博士曾被须弥教令院驱逐（热沙中的秘密）", "official": true, "covers": ["zandik_expelled"]},
-        {"passage": "有位曾经被放逐的学者，如今回到了教令院", "label": "派蒙·曾被放逐的学者即博士（如凯旋的英雄一般）", "official": true, "covers": ["zandik_expelled"]},
-        {"passage": "解剖赞迪克本体得到的临床数据已经物尽其用", "label": "异质的树髓一·赞迪克签名的人体实验记录", "official": true, "covers": ["zandik_expelled"]},
-        {"passage": "即使被贬为「邪魔外道」，被永远逐出求知者的灵囿", "label": "诗漱世界观手册须弥章·赞迪克被逐出教令院（非官方）", "official": false, "covers": ["zandik_expelled"]},
-        {"passage": "小吉祥草王自从意识在虚空中被博士捕捉以后，便将自己的意识封闭了起来", "label": "艾尔海森·博士在虚空中封锁纳西妲意识（识藏日）", "official": true, "covers": ["trapped_nahida"]},
-        {"passage": "他既然有能力对虚空终端进行改造，或许「捕获」我的意识也只是时间问题", "label": "纳西妲·博士可改造虚空终端以捕获神明意识（来自某位神明的凝视）", "official": true, "covers": ["trapped_nahida"]},
-        {"passage": "有「博士」的技术撑腰，他们开始有恃无恐了", "label": "艾尔海森·博士为贤者们提供技术支持（识藏日）", "official": true, "covers": ["aided_sages"]},
-        {"passage": "在「博士」的帮助下，最高输出态的虚空成功地导出了「神之心」所蕴含的力量，使之成为「神明的核心」", "label": "朱达尔·博士助力以神之心打造神明核心（热沙中的秘密）", "official": true, "covers": ["god_ascension_plan"]},
-        {"passage": "尽管形势恶劣，我也做到了跟「博士」对等交易", "label": "纳西妲·与博士达成对等交易换出神之心（请饮下祝胜之酒）", "official": true, "covers": ["obtained_gnoses"]},
-        {"passage": "带回的两颗神之心想必也能令女皇陛下欣慰", "label": "博士日记·从须弥带回两颗神之心（异质的树髓三）", "official": true, "covers": ["obtained_gnoses"]},
-        {"passage": "我将一些秘密作为交换赠予了草之王", "label": "博士日记·以秘密换取草之王神之心（异质的树髓三）", "official": true, "covers": ["obtained_gnoses"]}
+        {
+          "passage": "「博士」以前是被须弥教令院驱逐出去的人，贤者们原本很看不起他…可当他说出那句话的时候，所有人表情都变了。",
+          "label": "朱达尔·博士曾被须弥教令院驱逐（热沙中的秘密）",
+          "official": true,
+          "covers": [
+            "zandik_expelled"
+          ]
+        },
+        {
+          "passage": "有位曾经被放逐的学者，如今回到了教令院",
+          "label": "派蒙·曾被放逐的学者即博士（如凯旋的英雄一般）",
+          "official": true,
+          "covers": [
+            "zandik_expelled"
+          ]
+        },
+        {
+          "passage": "解剖赞迪克本体得到的临床数据已经物尽其用",
+          "label": "异质的树髓一·赞迪克签名的人体实验记录",
+          "official": true,
+          "covers": [
+            "zandik_expelled"
+          ]
+        },
+        {
+          "passage": "即使被贬为「邪魔外道」，被永远逐出求知者的灵囿",
+          "label": "诗漱世界观手册须弥章·赞迪克被逐出教令院（非官方）",
+          "official": false,
+          "covers": [
+            "zandik_expelled"
+          ]
+        },
+        {
+          "passage": "小吉祥草王自从意识在虚空中被博士捕捉以后，便将自己的意识封闭了起来",
+          "label": "艾尔海森·博士在虚空中封锁纳西妲意识（识藏日）",
+          "official": true,
+          "covers": [
+            "trapped_nahida"
+          ]
+        },
+        {
+          "passage": "他既然有能力对虚空终端进行改造，或许「捕获」我的意识也只是时间问题",
+          "label": "纳西妲·博士可改造虚空终端以捕获神明意识（来自某位神明的凝视）",
+          "official": true,
+          "covers": [
+            "trapped_nahida"
+          ]
+        },
+        {
+          "passage": "有「博士」的技术撑腰，他们开始有恃无恐了",
+          "label": "艾尔海森·博士为贤者们提供技术支持（识藏日）",
+          "official": true,
+          "covers": [
+            "aided_sages"
+          ]
+        },
+        {
+          "passage": "在「博士」的帮助下，最高输出态的虚空成功地导出了「神之心」所蕴含的力量，使之成为「神明的核心」",
+          "label": "朱达尔·博士助力以神之心打造神明核心（热沙中的秘密）",
+          "official": true,
+          "covers": [
+            "god_ascension_plan"
+          ]
+        },
+        {
+          "passage": "尽管形势恶劣，我也做到了跟「博士」对等交易",
+          "label": "纳西妲·与博士达成对等交易换出神之心（请饮下祝胜之酒）",
+          "official": true,
+          "covers": [
+            "obtained_gnoses"
+          ]
+        },
+        {
+          "passage": "带回的两颗神之心想必也能令女皇陛下欣慰",
+          "label": "博士日记·从须弥带回两颗神之心（异质的树髓三）",
+          "official": true,
+          "covers": [
+            "obtained_gnoses"
+          ]
+        },
+        {
+          "passage": "我将一些秘密作为交换赠予了草之王",
+          "label": "博士日记·以秘密换取草之王神之心（异质的树髓三）",
+          "official": true,
+          "covers": [
+            "obtained_gnoses"
+          ]
+        }
       ],
+      "facet_descriptions": {
+        "zandik_expelled": "博士的过去：学生时代名为「赞迪克」，因人体实验等被须弥教令院驱逐／放逐。",
+        "trapped_nahida": "博士在虚空中捕获并封锁了纳西妲（小吉祥草王）的意识。",
+        "aided_sages": "博士为须弥的贤者们提供技术支持。",
+        "god_ascension_plan": "博士协助以「神之心」打造「神明的核心」（助力散兵成神计划）。",
+        "obtained_gnoses": "博士通过与纳西妲的对等交易／以秘密换取，从须弥带回了两颗「神之心」。"
+      },
       "known_redundancy": "",
       "notes": "zandik_expelled is the most richly attested facet (four anchors across three files). aided_sages is attested only in 3022; it is closely related to trapped_nahida (same file) but covers the broader sages-plus-Dottore scheme rather than the specific consciousness capture. god_ascension_plan refers to using the Electro Gnosis (brought by Dottore) in Sumeru's Akasha to attempt Scaramouche's apotheosis; the Scaramouche segment-experiment backstory happened in 至冬, not Sumeru. The two obtained_gnoses passages from 异质的树髓三 are from the same file; they cover distinct sentences."
     },
@@ -404,16 +1295,87 @@
         "jean_is_gunhildr"
       ],
       "relevant_passages": [
-        {"passage": "古恩希尔德是流民中最强大的部族首领。", "label": "古恩希尔德小传·古恩希尔德为流民中最强大的部族首领", "official": true, "covers": ["ancient_tribal_leader"]},
-        {"passage": "以古恩希尔德的族长之名，如是向新生之神宣誓忠诚", "label": "风起之日·以古恩希尔德族长之名向新生风神宣誓（圣遗物）", "official": true, "covers": ["ancient_tribal_leader", "crowned_barbatos"]},
-        {"passage": "古恩希尔德成为了这支无名部族的族长与首位女祭司，自此至终守护着族人", "label": "古恩希尔德小传·成为族长与首位女祭司", "official": true, "covers": ["crowned_barbatos"]},
-        {"passage": "也是她为初生的风神戴上了桂冠", "label": "古恩希尔德小传·为初生风神巴巴托斯加冕", "official": true, "covers": ["crowned_barbatos"]},
-        {"passage": "古恩希尔德家族是古老的骑士家族。据说自第一篇史诗写成之日，就已开始守护蒙德。", "label": "琴角色故事·古恩希尔德为古老骑士家族", "official": true, "covers": ["noble_family_motto"]},
-        {"passage": "古恩希尔德的家训：「永护蒙德」", "label": "琴角色故事·家训永护蒙德", "official": true, "covers": ["noble_family_motto"]},
-        {"passage": "古恩希尔德家族始终秉持着「永护蒙德」的祖训", "label": "古恩希尔德小传·始终秉持永护蒙德祖训（替代来源）", "official": true, "covers": ["noble_family_motto"]},
-        {"passage": "他们站在了蒙德民众的一边，也正因如此，避免了被驱逐的命运", "label": "古恩希尔德小传·贵族革命中站在民众一边避免被驱逐", "official": true, "covers": ["sided_with_people"]},
-        {"passage": "古恩希尔德家族是古老的骑士家族。这一骄傲的血脉来自琴的母亲芙蕾德莉卡。", "label": "琴角色故事·古恩希尔德血脉经琴的母亲芙蕾德莉卡传承", "official": true, "covers": ["jean_is_gunhildr"]},
-        {"passage": "由我，琴·古恩希尔德代为进行", "label": "第一及第二罪行·琴自报全名琴·古恩希尔德", "official": true, "covers": ["jean_is_gunhildr"]}
+        {
+          "passage": "古恩希尔德是流民中最强大的部族首领。",
+          "label": "古恩希尔德小传·古恩希尔德为流民中最强大的部族首领",
+          "official": true,
+          "covers": [
+            "ancient_tribal_leader"
+          ]
+        },
+        {
+          "passage": "以古恩希尔德的族长之名，如是向新生之神宣誓忠诚",
+          "label": "风起之日·以古恩希尔德族长之名向新生风神宣誓（圣遗物）",
+          "official": true,
+          "covers": [
+            "ancient_tribal_leader",
+            "crowned_barbatos"
+          ]
+        },
+        {
+          "passage": "古恩希尔德成为了这支无名部族的族长与首位女祭司，自此至终守护着族人",
+          "label": "古恩希尔德小传·成为族长与首位女祭司",
+          "official": true,
+          "covers": [
+            "crowned_barbatos"
+          ]
+        },
+        {
+          "passage": "也是她为初生的风神戴上了桂冠",
+          "label": "古恩希尔德小传·为初生风神巴巴托斯加冕",
+          "official": true,
+          "covers": [
+            "crowned_barbatos"
+          ]
+        },
+        {
+          "passage": "古恩希尔德家族是古老的骑士家族。据说自第一篇史诗写成之日，就已开始守护蒙德。",
+          "label": "琴角色故事·古恩希尔德为古老骑士家族",
+          "official": true,
+          "covers": [
+            "noble_family_motto"
+          ]
+        },
+        {
+          "passage": "古恩希尔德的家训：「永护蒙德」",
+          "label": "琴角色故事·家训永护蒙德",
+          "official": true,
+          "covers": [
+            "noble_family_motto"
+          ]
+        },
+        {
+          "passage": "古恩希尔德家族始终秉持着「永护蒙德」的祖训",
+          "label": "古恩希尔德小传·始终秉持永护蒙德祖训（替代来源）",
+          "official": true,
+          "covers": [
+            "noble_family_motto"
+          ]
+        },
+        {
+          "passage": "他们站在了蒙德民众的一边，也正因如此，避免了被驱逐的命运",
+          "label": "古恩希尔德小传·贵族革命中站在民众一边避免被驱逐",
+          "official": true,
+          "covers": [
+            "sided_with_people"
+          ]
+        },
+        {
+          "passage": "古恩希尔德家族是古老的骑士家族。这一骄傲的血脉来自琴的母亲芙蕾德莉卡。",
+          "label": "琴角色故事·古恩希尔德血脉经琴的母亲芙蕾德莉卡传承",
+          "official": true,
+          "covers": [
+            "jean_is_gunhildr"
+          ]
+        },
+        {
+          "passage": "由我，琴·古恩希尔德代为进行",
+          "label": "第一及第二罪行·琴自报全名琴·古恩希尔德",
+          "official": true,
+          "covers": [
+            "jean_is_gunhildr"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "noble_family_motto has anchors in both 古恩希尔德小传 and Jean's character story. crowned_barbatos and ancient_tribal_leader are primarily concentrated in 古恩希尔德小传 and the 风起之日 artifact set poem. sided_with_people is only in 古恩希尔德小传; a miss here means that file was not retrieved. jean_is_gunhildr has anchors in both Jean's character story and the Albedo trial quest."
@@ -430,12 +1392,57 @@
         "fourth_descender"
       ],
       "relevant_passages": [
-        {"passage": "曾有四名降临者来到提瓦特，其中的第三位，因触犯无上规则而被抹去", "label": "异质的树髓三·四名降临者总计", "official": true, "covers": ["first_descender", "second_descender", "third_descender", "fourth_descender"]},
-        {"passage": "「第一降临者」应该就是如今的「天理」", "label": "纳西妲·第一降临者是天理（祝胜之酒）", "official": true, "covers": ["first_descender"]},
-        {"passage": "原初的那一位，第一个王座", "label": "白夜国馆藏·原初之人即第一王座", "official": true, "covers": ["first_descender"]},
-        {"passage": "天上的第二个王座到来", "label": "白夜国馆藏·第二个王座战原初", "official": true, "covers": ["second_descender"]},
-        {"passage": "旅行者，你是提瓦特的「第四降临者」", "label": "纳西妲·旅行者是第四降临者（祝胜之酒）", "official": true, "covers": ["fourth_descender"]},
-        {"passage": "我是第四降临者", "label": "旅行者自述·第四降临者（终幕礼）", "official": true, "covers": ["fourth_descender"]}
+        {
+          "passage": "曾有四名降临者来到提瓦特，其中的第三位，因触犯无上规则而被抹去",
+          "label": "异质的树髓三·四名降临者总计",
+          "official": true,
+          "covers": [
+            "first_descender",
+            "second_descender",
+            "third_descender",
+            "fourth_descender"
+          ]
+        },
+        {
+          "passage": "「第一降临者」应该就是如今的「天理」",
+          "label": "纳西妲·第一降临者是天理（祝胜之酒）",
+          "official": true,
+          "covers": [
+            "first_descender"
+          ]
+        },
+        {
+          "passage": "原初的那一位，第一个王座",
+          "label": "白夜国馆藏·原初之人即第一王座",
+          "official": true,
+          "covers": [
+            "first_descender"
+          ]
+        },
+        {
+          "passage": "天上的第二个王座到来",
+          "label": "白夜国馆藏·第二个王座战原初",
+          "official": true,
+          "covers": [
+            "second_descender"
+          ]
+        },
+        {
+          "passage": "旅行者，你是提瓦特的「第四降临者」",
+          "label": "纳西妲·旅行者是第四降临者（祝胜之酒）",
+          "official": true,
+          "covers": [
+            "fourth_descender"
+          ]
+        },
+        {
+          "passage": "我是第四降临者",
+          "label": "旅行者自述·第四降临者（终幕礼）",
+          "official": true,
+          "covers": [
+            "fourth_descender"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "The 异质的树髓三 passage rolls all four descenders into one sentence and is the single strongest anchor for the full enumeration. first_descender is redundantly attested in both the Sumeru AQ (3026) and Enkanomiya lore (1036). second_descender has only one anchor from 1036 (the Second Throne's arrival) — no passage explicitly labels it '第二降临者.' third_descender has no dedicated anchor beyond the compound passage in 异质的树髓三 — Dottore's notes are the sole source confirming the Third's erasure. fourth_descender is redundantly anchored from both 3026 and 4025."
@@ -455,13 +1462,62 @@
         "o_okotavia"
       ],
       "relevant_passages": [
-        {"passage": "艾莉丝", "label": "魔女会会长艾莉丝", "official": true, "covers": ["a_alice"]},
-        {"passage": "莱茵多特", "label": "魔女R黄金莱茵多特", "official": true, "covers": ["r_rhinedottir"]},
-        {"passage": "尼可", "label": "魔女N尼可", "official": true, "covers": ["n_nicole"]},
-        {"passage": "芭比洛斯", "label": "魔女B芭比洛斯", "official": true, "covers": ["b_barbeloth"]},
-        {"passage": "安德斯多特", "label": "魔女安德斯多特", "official": true, "covers": ["m_lady"]},
-        {"passage": "伊万诺夫娜", "label": "魔女伊万诺夫娜", "official": true, "covers": ["j_scarlet"]},
-        {"passage": "欧科塔维亚", "label": "魔女O欧科塔维亚", "official": true, "covers": ["o_okotavia"]}
+        {
+          "passage": "艾莉丝",
+          "label": "魔女会会长艾莉丝",
+          "official": true,
+          "covers": [
+            "a_alice"
+          ]
+        },
+        {
+          "passage": "莱茵多特",
+          "label": "魔女R黄金莱茵多特",
+          "official": true,
+          "covers": [
+            "r_rhinedottir"
+          ]
+        },
+        {
+          "passage": "尼可",
+          "label": "魔女N尼可",
+          "official": true,
+          "covers": [
+            "n_nicole"
+          ]
+        },
+        {
+          "passage": "芭比洛斯",
+          "label": "魔女B芭比洛斯",
+          "official": true,
+          "covers": [
+            "b_barbeloth"
+          ]
+        },
+        {
+          "passage": "安德斯多特",
+          "label": "魔女安德斯多特",
+          "official": true,
+          "covers": [
+            "m_lady"
+          ]
+        },
+        {
+          "passage": "伊万诺夫娜",
+          "label": "魔女伊万诺夫娜",
+          "official": true,
+          "covers": [
+            "j_scarlet"
+          ]
+        },
+        {
+          "passage": "欧科塔维亚",
+          "label": "魔女O欧科塔维亚",
+          "official": true,
+          "covers": [
+            "o_okotavia"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "The core A/R/N/M codename-to-witch mapping is from 40099 (存于云天的至福之解), where Alice explains the four-sign prophecy. B is attested in 6027 (月亮回家的夜晚) via Barbeloth's explicit self-introduction. J is referenced in 40099 via Scarlet, the inheritor. O is from Nicole's character story (10000131). No single passage lists all seven together — the full roster must be assembled across multiple files."
@@ -471,18 +1527,96 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "A single 'who is Red Miller' intent whose complete answer requires knowing the name is a pseudonym for a famous Snezhnayan bandit with a popular fiction series, that it is a generational title passed through three bearers (艾维雷勒安→爱莉厄→布莱赫), that the second bearer confronted and sacrificed herself to defeat the demon monk 霍德望, and that the third bearer Brekhov (布莱赫·雷德·米勒) worked to preserve the legend via witness items. Sources span an artifact set, two Brekhov notebooks, a terminal log, and the tps_shishu至冬 chapter.",
-      "expected_coverage": ["legendary_bandit_alias", "band_founder_relics", "confronted_demon_monk", "three_generations_lineage", "brekhov_inheritor"],
+      "expected_coverage": [
+        "legendary_bandit_alias",
+        "band_founder_relics",
+        "confronted_demon_monk",
+        "three_generations_lineage",
+        "brekhov_inheritor"
+      ],
       "relevant_passages": [
-        {"passage": "流行于挪德卡莱的娱乐读物，并非出自同一套书籍，而是由不同作者写成的、诸多关于雷德·米勒的廉价小说，内容的真实程度和纸张印刷的质量相仿。", "label": "识者之证材料描述·大盗雷德·米勒系列为挪德卡莱流行廉价小说", "official": true, "covers": ["legendary_bandit_alias"]},
-        {"passage": "只是个假名的「大盗雷德·米勒」当然更不可能保证", "label": "布莱赫的笔记其一·雷德·米勒为假名", "official": true, "covers": ["legendary_bandit_alias"]},
-        {"passage": "大盗雷德·米勒被围困之时，正是靠着霜月的圣女送给他作为定情信物的符石隐去身形，逃脱了追捕", "label": "好奇的装备·大盗雷德·米勒被围时靠符石逃脱（民间流传故事）", "official": true, "covers": ["legendary_bandit_alias"]},
-        {"passage": "盗宝团的创立者雷德·米勒留下的信物", "label": "识者之证材料描述·盗宝团创立者雷德·米勒留下信物", "official": true, "covers": ["band_founder_relics"]},
-        {"passage": "将「大盗雷德·米勒」的故事制成「识者之证」", "label": "布莱赫的笔记其二·布莱赫将传说制成识者之证", "official": true, "covers": ["band_founder_relics", "brekhov_inheritor"]},
-        {"passage": "雷德·米勒，快抛下那些渺小的感伤，你我都是被命运选中之人", "label": "穹境示现之夜·妖僧霍德望对雷德·米勒的召唤", "official": true, "covers": ["confronted_demon_monk"]},
-        {"passage": "爱莉厄投身三宝磨，用血肉引燃了它，挫败了妖僧的诡计。爱莉厄驻留在时间与空间的夹缝之间，其化名为「雷德·米勒」。", "label": "诗漱世界观手册至冬章·爱莉厄/二代雷德·米勒以身挫败妖僧并驻留时空夹缝（非官方）", "official": false, "covers": ["confronted_demon_monk", "three_generations_lineage"]},
-        {"passage": "历代雷德·米勒的事迹", "label": "诗漱世界观手册至冬章·记载历代雷德·米勒事迹（非官方）", "official": false, "covers": ["three_generations_lineage"]},
-        {"passage": "布莱赫·雷德·米勒", "label": "终端日志·布莱赫全名含雷德·米勒", "official": true, "covers": ["brekhov_inheritor"]},
-        {"passage": "我不想让大盗雷德·米勒的名字就这样消散在历史中", "label": "布莱赫的笔记其一·布莱赫不想让名字消散", "official": true, "covers": ["brekhov_inheritor"]}
+        {
+          "passage": "流行于挪德卡莱的娱乐读物，并非出自同一套书籍，而是由不同作者写成的、诸多关于雷德·米勒的廉价小说，内容的真实程度和纸张印刷的质量相仿。",
+          "label": "识者之证材料描述·大盗雷德·米勒系列为挪德卡莱流行廉价小说",
+          "official": true,
+          "covers": [
+            "legendary_bandit_alias"
+          ]
+        },
+        {
+          "passage": "只是个假名的「大盗雷德·米勒」当然更不可能保证",
+          "label": "布莱赫的笔记其一·雷德·米勒为假名",
+          "official": true,
+          "covers": [
+            "legendary_bandit_alias"
+          ]
+        },
+        {
+          "passage": "大盗雷德·米勒被围困之时，正是靠着霜月的圣女送给他作为定情信物的符石隐去身形，逃脱了追捕",
+          "label": "好奇的装备·大盗雷德·米勒被围时靠符石逃脱（民间流传故事）",
+          "official": true,
+          "covers": [
+            "legendary_bandit_alias"
+          ]
+        },
+        {
+          "passage": "盗宝团的创立者雷德·米勒留下的信物",
+          "label": "识者之证材料描述·盗宝团创立者雷德·米勒留下信物",
+          "official": true,
+          "covers": [
+            "band_founder_relics"
+          ]
+        },
+        {
+          "passage": "将「大盗雷德·米勒」的故事制成「识者之证」",
+          "label": "布莱赫的笔记其二·布莱赫将传说制成识者之证",
+          "official": true,
+          "covers": [
+            "band_founder_relics",
+            "brekhov_inheritor"
+          ]
+        },
+        {
+          "passage": "雷德·米勒，快抛下那些渺小的感伤，你我都是被命运选中之人",
+          "label": "穹境示现之夜·妖僧霍德望对雷德·米勒的召唤",
+          "official": true,
+          "covers": [
+            "confronted_demon_monk"
+          ]
+        },
+        {
+          "passage": "爱莉厄投身三宝磨，用血肉引燃了它，挫败了妖僧的诡计。爱莉厄驻留在时间与空间的夹缝之间，其化名为「雷德·米勒」。",
+          "label": "诗漱世界观手册至冬章·爱莉厄/二代雷德·米勒以身挫败妖僧并驻留时空夹缝（非官方）",
+          "official": false,
+          "covers": [
+            "confronted_demon_monk",
+            "three_generations_lineage"
+          ]
+        },
+        {
+          "passage": "历代雷德·米勒的事迹",
+          "label": "诗漱世界观手册至冬章·记载历代雷德·米勒事迹（非官方）",
+          "official": false,
+          "covers": [
+            "three_generations_lineage"
+          ]
+        },
+        {
+          "passage": "布莱赫·雷德·米勒",
+          "label": "终端日志·布莱赫全名含雷德·米勒",
+          "official": true,
+          "covers": [
+            "brekhov_inheritor"
+          ]
+        },
+        {
+          "passage": "我不想让大盗雷德·米勒的名字就这样消散在历史中",
+          "label": "布莱赫的笔记其一·布莱赫不想让名字消散",
+          "official": true,
+          "covers": [
+            "brekhov_inheritor"
+          ]
+        }
       ],
       "known_redundancy": "",
       "notes": "three_generations_lineage has no official anchor explicitly enumerating the three generations; both anchors are from the same tps_shishu file. Official sources (终端日志, 布莱赫的笔记, 识者之证材料) confirm Brekhov as the current bearer and the title as a pseudonym, but do not name the predecessors. The artifact set 穹境示现之夜 Piece 5 shows the demon monk addressing someone called '雷德·米勒' — that person is the second bearer 爱莉厄, but the artifact text does not name her as such. confronted_demon_monk therefore has exactly one official source (穹境示现之夜) and one non-official source (tps_shishu)."

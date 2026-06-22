@@ -13,9 +13,26 @@
         "full_name_shelfius"
       ],
       "relevant_passages": [
-        {"passage": "古老的日志（卡特·谢尔比乌斯）", "label": "书标题·卡特·谢尔比乌斯全名", "official": true, "covers": ["full_name_shelfius"]},
-        {"passage": "卡特·谢尔比乌斯  |  水仙十字院孤儿，阿兰四人的前辈 毕业后来到自然哲学学院担任实验助手", "label": "诗漱世界观手册·卡特简介（替代非官方来源）", "official": false, "covers": ["full_name_shelfius"]}
+        {
+          "passage": "古老的日志（卡特·谢尔比乌斯）",
+          "label": "书标题·卡特·谢尔比乌斯全名",
+          "official": true,
+          "covers": [
+            "full_name_shelfius"
+          ]
+        },
+        {
+          "passage": "卡特·谢尔比乌斯  |  水仙十字院孤儿，阿兰四人的前辈 毕业后来到自然哲学学院担任实验助手",
+          "label": "诗漱世界观手册·卡特简介（替代非官方来源）",
+          "official": false,
+          "covers": [
+            "full_name_shelfius"
+          ]
+        }
       ],
+      "facet_descriptions": {
+        "full_name_shelfius": "卡特的全名是「卡特·谢尔比乌斯」。"
+      },
       "known_redundancy": "",
       "notes": "The tps_shishu passage is non-official but provides a rich alternate combining full name + role. Note: misc/proper_nouns.txt is excluded from the indexed corpus (it is a jieba dictionary only, not a document), so the full_name_shelfius facet must rely on book files and quest dialogue for evidence."
     }
