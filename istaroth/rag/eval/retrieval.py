@@ -76,9 +76,8 @@ class RetrievalFixture:
     language: str
     subtype: str | None
     rationale: str
-    expected_coverage: tuple[str, ...]
+    expected_coverage: dict[str, str]  # facet -> judge description ("" = not judged)
     relevant_passages: tuple[RelevantPassage, ...]
-    facet_descriptions: dict[str, str]
     known_redundancy: str
     notes: str
 
@@ -118,9 +117,8 @@ class RetrievalFixture:
 
 
 def _parse_fixture(category: str, raw: dict) -> RetrievalFixture:
-    expected = tuple(raw["expected_coverage"])
+    expected = dict(raw["expected_coverage"])
     expected_set = set(expected)
-    assert len(expected) == len(expected_set), f"Duplicate facet in {raw['query']!r}"
 
     passages = tuple(
         RelevantPassage(
@@ -146,12 +144,6 @@ def _parse_fixture(category: str, raw: dict) -> RetrievalFixture:
             f"{raw['query']!r} expects facet(s) no passage covers: {uncovered}"
         )
 
-    facet_descriptions = dict(raw.get("facet_descriptions", {}))
-    if unknown := set(facet_descriptions) - expected_set:
-        raise ValueError(
-            f"{raw['query']!r} facet_descriptions name unknown facet(s): {unknown}"
-        )
-
     return RetrievalFixture(
         category=category,
         query=raw["query"],
@@ -160,7 +152,6 @@ def _parse_fixture(category: str, raw: dict) -> RetrievalFixture:
         rationale=raw["rationale"],
         expected_coverage=expected,
         relevant_passages=passages,
-        facet_descriptions=facet_descriptions,
         known_redundancy=raw.get("known_redundancy", ""),
         notes=raw.get("notes", ""),
     )

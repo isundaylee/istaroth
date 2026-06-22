@@ -22,9 +22,8 @@ A query plus the ground truth for grading retrieval on it:
 
 - `query` — the user question (Chinese, for the CHS corpus).
 - `subtype` — optional, category-specific tag (breadth uses `enumeration` / `broad_theme`); omit if the category has none.
-- `expected_coverage` — the **facets** a complete answer must cover (entities, regions, sub-topics, …).
+- `expected_coverage` — a `{facet: description}` dict naming the **facets** a complete answer must cover (entities, regions, sub-topics, …). The description is a natural-language statement of what the facet means, used ONLY by the `--judge` rescue pass; leave it `""` for facets you don't want judged (a facet is judged only if its description is non-empty). Add a description for any facet you want the judge able to rescue.
 - `relevant_passages` — for each facet, one or more **anchor passages**: short verbatim slices of corpus text identifying a source that attests the facet. A facet is covered if ANY of its passages matches a retrieved source.
-- `facet_descriptions` — optional `{facet: "natural-language meaning"}` map, used ONLY by the `--judge` rescue pass to tell the LLM what each facet means. A facet is judged only if it has an explicit description here; without one the judge skips it. Add a description for any facet you want the judge able to rescue.
 - `rationale`, `notes`, `known_redundancy` — free text (`known_redundancy` notes near-duplicate sources, else `""`).
 
 The metric: run retrieval, match each anchor against the FULL file content of
@@ -177,22 +176,22 @@ so do not anchor passages from those directories.
 ## The LLM judge (context — do NOT run it yourself)
 
 `eval-retrieval --judge` adds a rescue pass after the deterministic anchor match,
-described here so you understand how `facet_descriptions` are consumed. **Do not
-run the judge as part of authoring fixtures** — it spends API budget and writes
-anchors back into the committed fixtures, so a maintainer runs it deliberately,
-not the fixture-editing workflow.
+described here so you understand how the `expected_coverage` descriptions are
+consumed. **Do not run the judge as part of authoring fixtures** — it spends API
+budget and writes anchors back into the committed fixtures, so a maintainer runs
+it deliberately, not the fixture-editing workflow.
 
-How it works: for every facet still MISSING in a fixture that has an explicit
-`facet_descriptions` entry, the runner makes ONE call to a cheap model (DeepSeek
-V4 Flash on DeepInfra, OpenAI-compatible; needs `DEEPINFRA_API_KEY`) with the
-query, the retrieved sources, and each missing facet's description. The model
-copies a short verbatim span from the sources that attests the facet, or returns
-nothing. Each span is verified to actually occur in a retrieved source
+How it works: for every facet still MISSING in a fixture whose `expected_coverage`
+entry has a non-empty description, the runner makes ONE call to a cheap model
+(DeepSeek V4 Flash on DeepInfra, OpenAI-compatible; needs `DEEPINFRA_API_KEY`)
+with the query, the retrieved sources, and each missing facet's description. The
+model copies a short verbatim span from the sources that attests the facet, or
+returns nothing. Each span is verified to actually occur in a retrieved source
 (hallucinated spans are dropped) and, by default, persisted back into the fixture
 JSON as a new anchor labelled `judge:<path>` with `official` inferred from the
 source path — so the judge fires once per false miss and the deterministic matcher
 catches it for free thereafter. Your job when authoring fixtures is to supply good
-`facet_descriptions`, not to invoke the judge.
+`expected_coverage` descriptions, not to invoke the judge.
 
 ## Fixture JSON schema
 
@@ -211,11 +210,10 @@ File: `retrieval_fixtures/<category>.json`
       "language": "CHS",
       "subtype": "enumeration",
       "rationale": "Why this atomic query stresses the property (1-3 sentences).",
-      "expected_coverage": ["venti_anemo", "zhongli_geo", "..."],
+      "expected_coverage": {"venti_anemo": "<judge description, or \"\" if not judged>", "zhongli_geo": ""},
       "relevant_passages": [
         {"passage": "<verbatim slice>", "label": "<who/what + source>", "official": true, "covers": ["venti_anemo"]}
       ],
-      "facet_descriptions": {"venti_anemo": "<optional: what this facet means, for the --judge pass>"},
       "known_redundancy": "",
       "notes": ""
     }
@@ -224,7 +222,7 @@ File: `retrieval_fixtures/<category>.json`
 ```
 
 Loader enforces (a failing test means one is violated): the file's `category`
-equals its filename stem; facet names in `expected_coverage` are unique; every
-`covers` entry names a known facet; every passage covers ≥1 facet; every expected
-facet is covered by ≥1 passage; every `facet_descriptions` key names a known
-facet. `subtype`, `facet_descriptions`, `known_redundancy`, `notes` are optional.
+equals its filename stem; every `covers` entry names a facet present in
+`expected_coverage`; every passage covers ≥1 facet; every expected facet is
+covered by ≥1 passage. `subtype`, `known_redundancy`, `notes` are optional, and
+each `expected_coverage` description may be `""`.

@@ -305,12 +305,10 @@ async def _judge_rescue(
     and dropped) and turned into an anchor whose ``official`` flag follows the
     source path it was found in.
     """
-    # Only facets with an explicit description are judged; without one there is no
+    # Only facets with a non-empty description are judged; without one there is no
     # reliable statement of what the facet means for the judge to grade against.
     facets = {
-        facet: fixture.facet_descriptions[facet]
-        for facet in missed
-        if facet in fixture.facet_descriptions
+        facet: desc for facet in missed if (desc := fixture.expected_coverage[facet])
     }
     if not facets:
         return []

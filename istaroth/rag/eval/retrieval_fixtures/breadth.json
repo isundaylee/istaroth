@@ -10,25 +10,25 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "A single topic (the Cataclysm) whose evidence is genuinely scattered across every nation plus books and character stories. One focused query, but a complete answer needs ~17 distinct sources with a smoothly decaying relevance curve, so a fixed top-K truncates it.",
-      "expected_coverage": [
-        "khaenriah_origin",
-        "cataclysm_overview",
-        "five_sinners",
-        "seven_archons_battle",
-        "forbidden_knowledge",
-        "abyss_nature",
-        "abyss_order_motive",
-        "mondstadt_impact",
-        "liyue_impact",
-        "natlan_impact",
-        "inazuma_archon_witness",
-        "sumeru_impact",
-        "kaeya_spy",
-        "dainsleif_account",
-        "black_serpent_knights",
-        "traveler_sibling",
-        "dragonspine_nail"
-      ],
+      "expected_coverage": {
+        "khaenriah_origin": "坎瑞亚的起源：一群不再信仰神明的人在须弥地底建立的无神国度。",
+        "cataclysm_overview": "大灾难本身：约五百年前众神一同降临、覆灭了坎瑞亚。",
+        "five_sinners": "坎瑞亚的「五位罪人／五大罪人」的身份或姓名（如苏尔特洛奇、海洛塔帝、维瑟弗尼尔、莱茵多特、雷利尔）。",
+        "seven_archons_battle": "七神中的其余六神被召集出征坎瑞亚、抗击深渊。",
+        "forbidden_knowledge": "灾难与「禁忌知识」的污染相关，禁忌知识引发或伴随了灾变。",
+        "abyss_nature": "深渊的本质：在深渊面前，人类、妖精乃至神明都极其渺小的强大威胁。",
+        "abyss_order_motive": "深渊教团的动机：因坎瑞亚被七神覆灭，故欲覆灭七神的国度（复仇）。",
+        "mondstadt_impact": "灾变对蒙德的影响，如恶龙「杜林」从海上升起、阴影迫近蒙德。",
+        "liyue_impact": "灾变对璃月的影响，如千岩军／璃月与黑暗军势交战受灾。",
+        "natlan_impact": "灾变对纳塔的影响，如纳塔脆弱的地脉受灾。",
+        "inazuma_archon_witness": "稻妻的雷电将军（影）曾亲赴并目睹坎瑞亚的战场。",
+        "sumeru_impact": "灾变中须弥／大慈树王的角色：未出征坎瑞亚，而另有守护世界树之责。",
+        "kaeya_spy": "凯亚的身世：坎瑞亚安插在蒙德的间谍／棋子。",
+        "dainsleif_account": "戴因斯雷布作为坎瑞亚幸存者，对坎瑞亚与灾变的亲历讲述／视角。",
+        "black_serpent_knights": "坎瑞亚的黑蛇骑士（及古坎瑞亚语等相关细节）。",
+        "traveler_sibling": "灾变前旅行者的血亲（公主殿下）曾被称为「救世主」。",
+        "dragonspine_nail": "坎瑞亚曾派遣机器人前往龙脊雪山、夺取「寒天之钉」的计划。"
+      },
       "relevant_passages": [
         {
           "passage": "一群不再信仰神的人们在须弥地底建立无神的国度坎瑞亚。",
@@ -175,25 +175,6 @@
           ]
         }
       ],
-      "facet_descriptions": {
-        "khaenriah_origin": "坎瑞亚的起源：一群不再信仰神明的人在须弥地底建立的无神国度。",
-        "cataclysm_overview": "大灾难本身：约五百年前众神一同降临、覆灭了坎瑞亚。",
-        "five_sinners": "坎瑞亚的「五位罪人／五大罪人」的身份或姓名（如苏尔特洛奇、海洛塔帝、维瑟弗尼尔、莱茵多特、雷利尔）。",
-        "seven_archons_battle": "七神中的其余六神被召集出征坎瑞亚、抗击深渊。",
-        "forbidden_knowledge": "灾难与「禁忌知识」的污染相关，禁忌知识引发或伴随了灾变。",
-        "abyss_nature": "深渊的本质：在深渊面前，人类、妖精乃至神明都极其渺小的强大威胁。",
-        "abyss_order_motive": "深渊教团的动机：因坎瑞亚被七神覆灭，故欲覆灭七神的国度（复仇）。",
-        "mondstadt_impact": "灾变对蒙德的影响，如恶龙「杜林」从海上升起、阴影迫近蒙德。",
-        "liyue_impact": "灾变对璃月的影响，如千岩军／璃月与黑暗军势交战受灾。",
-        "natlan_impact": "灾变对纳塔的影响，如纳塔脆弱的地脉受灾。",
-        "inazuma_archon_witness": "稻妻的雷电将军（影）曾亲赴并目睹坎瑞亚的战场。",
-        "sumeru_impact": "灾变中须弥／大慈树王的角色：未出征坎瑞亚，而另有守护世界树之责。",
-        "kaeya_spy": "凯亚的身世：坎瑞亚安插在蒙德的间谍／棋子。",
-        "dainsleif_account": "戴因斯雷布作为坎瑞亚幸存者，对坎瑞亚与灾变的亲历讲述／视角。",
-        "black_serpent_knights": "坎瑞亚的黑蛇骑士（及古坎瑞亚语等相关细节）。",
-        "traveler_sibling": "灾变前旅行者的血亲（公主殿下）曾被称为「救世主」。",
-        "dragonspine_nail": "坎瑞亚曾派遣机器人前往龙脊雪山、夺取「寒天之钉」的计划。"
-      },
       "known_redundancy": "",
       "notes": "abyss_order_motive, black_serpent_knights, traveler_sibling, and kaeya_spy are the facets most often lost to a small top-K."
     },
@@ -202,12 +183,12 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "A single concept whose attestations are scattered across late-game quests and readables with deliberately varied wording, so a focused query needs several sources to assemble what 天理 is.",
-      "expected_coverage": [
-        "heavenly_principles",
-        "four_executors",
-        "created_teyvat",
-        "sleeping"
-      ],
+      "expected_coverage": {
+        "heavenly_principles": "天理是提瓦特之上的最高法则／秩序，其存在与权能体系（如天理之下设有执政）。",
+        "four_executors": "天理之下的「四大执政」，分别司掌生、死、时、空。",
+        "created_teyvat": "天理创造了如今提瓦特的绝大部分事物。",
+        "sleeping": "天理已陷入沉睡，不再发声／行使权能。"
+      },
       "relevant_passages": [
         {
           "passage": "天理之下存在着四大执政，分别司掌生、死、时、空。",
@@ -235,12 +216,6 @@
           ]
         }
       ],
-      "facet_descriptions": {
-        "heavenly_principles": "天理是提瓦特之上的最高法则／秩序，其存在与权能体系（如天理之下设有执政）。",
-        "four_executors": "天理之下的「四大执政」，分别司掌生、死、时、空。",
-        "created_teyvat": "天理创造了如今提瓦特的绝大部分事物。",
-        "sleeping": "天理已陷入沉睡，不再发声／行使权能。"
-      },
       "known_redundancy": "",
       "notes": "Scoped to 天理 itself; the related-but-separate intents (天空岛/Celestia, 降临者/descenders, 飞升, 虚假之天) would be their own queries — pulling them in here would conflate distinct retrieval intents the decomposition layer separates upstream."
     },
@@ -249,15 +224,15 @@
       "language": "CHS",
       "subtype": "enumeration",
       "rationale": "A single 'who are the seven Archons' intent, but each Archon is elaborated in its own nation's sources, so the answer needs ~7 distinct sources. One Zhongli line names three at once; the rest — especially the sparsely-documented cryo Tsaritsa — are scattered.",
-      "expected_coverage": [
-        "venti_anemo",
-        "zhongli_geo",
-        "raiden_electro",
-        "nahida_dendro",
-        "furina_hydro",
-        "mavuika_pyro",
-        "tsaritsa_cryo"
-      ],
+      "expected_coverage": {
+        "venti_anemo": "",
+        "zhongli_geo": "",
+        "raiden_electro": "",
+        "nahida_dendro": "",
+        "furina_hydro": "",
+        "mavuika_pyro": "",
+        "tsaritsa_cryo": ""
+      },
       "relevant_passages": [
         {
           "passage": "温迪",
@@ -324,19 +299,19 @@
       "language": "CHS",
       "subtype": "enumeration",
       "rationale": "A single 'who are the eleven Harbingers' intent with a built-in breadth floor of 11: each seat is attested in its own quests/character stories, so a small top-K yields only a partial roster.",
-      "expected_coverage": [
-        "pierro",
-        "capitano",
-        "dottore",
-        "columbina",
-        "servant",
-        "scaramouche",
-        "tartaglia",
-        "sandrone",
-        "pulcinella",
-        "signora",
-        "pantalone"
-      ],
+      "expected_coverage": {
+        "pierro": "",
+        "capitano": "",
+        "dottore": "",
+        "columbina": "",
+        "servant": "",
+        "scaramouche": "",
+        "tartaglia": "",
+        "sandrone": "",
+        "pulcinella": "",
+        "signora": "",
+        "pantalone": ""
+      },
       "relevant_passages": [
         {
           "passage": "他是愚人众最初的执行官，也是今日执行官们的领袖",
@@ -443,13 +418,13 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "A single 'what is the Abyss Order's goal' query whose answer spans three distinct layers — the stated grievance (Khaenri'ah destroyed by gods → overthrow Archons), the operational plan (Loom of Fate → restore Khaenri'ah's ley lines), and the leadership (Traveler's sibling) — each layer attested in different quest files across early Mondstadt quests, mid-game Dainsleif interludes, and late-game Natlan missions.",
-      "expected_coverage": [
-        "overthrow_archons",
-        "battle_heavenly_principles",
-        "khaenriah_remnants_cursed",
-        "traveler_sibling_leader",
-        "restore_khaenriah_via_loom"
-      ],
+      "expected_coverage": {
+        "overthrow_archons": "",
+        "battle_heavenly_principles": "",
+        "khaenriah_remnants_cursed": "",
+        "traveler_sibling_leader": "",
+        "restore_khaenriah_via_loom": ""
+      },
       "relevant_passages": [
         {
           "passage": "坎瑞亚是被神覆灭的国度，而这就是…深渊教团想要覆灭七神国度的原因。",
@@ -550,12 +525,12 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "Jeht's motivation to reach the Eternal Oasis is a single focused intent, but the answer spans her father's dying wish, her mother's research, her personal grief, and the Tanit tribe's expedition — attested across the Golden Slumber and Dirge of Bilqis quest chains. Retrieval must surface sources from both quest chains to reconstruct the full picture.",
-      "expected_coverage": [
-        "fathers_dream",
-        "lay_rest_belongings",
-        "parents_fulfillment",
-        "personal_closure"
-      ],
+      "expected_coverage": {
+        "fathers_dream": "",
+        "lay_rest_belongings": "",
+        "parents_fulfillment": "",
+        "personal_closure": ""
+      },
       "relevant_passages": [
         {
           "passage": "希望自己有一天能在「永恒绿洲」和她再会…他明明说过，那日子还在很远很远的前方…骗子，骗了我，也骗了母亲…",
@@ -632,14 +607,14 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "A single 'what does a Vision mean' intent whose answer is a spread of distinct in-world interpretations across many character stories. Retrieval tends to cluster on a few similar takes and miss the rest, and near-duplicate Traveler files waste slots.",
-      "expected_coverage": [
-        "responsibility",
-        "wish",
-        "divine_recognition",
-        "proof_not_source",
-        "canonical_definition",
-        "outsider_cannot"
-      ],
+      "expected_coverage": {
+        "responsibility": "",
+        "wish": "",
+        "divine_recognition": "",
+        "proof_not_source": "",
+        "canonical_definition": "",
+        "outsider_cannot": ""
+      },
       "relevant_passages": [
         {
           "passage": "帝君曾言，「神之眼」代表的是一份责任",
@@ -714,14 +689,14 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "A single 'who is the Third Descender' intent. The core answer — the Gnoses are the Third's remains — is attested in the Snezhnaya AQ finale; the reason for their erasure is in Dottore's notes; the allegorical layer (白之公主's Prince as the Third) is in an in-game book; the numbering context (First = Heavenly Principle, Second = Second Throne, Traveler = Fourth) comes from the Sumeru AQ finale and Enkanomiya lore. Retrieval must surface sources from all these arcs to construct the full identity.",
-      "expected_coverage": [
-        "remains_gnoses",
-        "erased",
-        "allegory_prince",
-        "four_descenders",
-        "first_descender",
-        "second_throne"
-      ],
+      "expected_coverage": {
+        "remains_gnoses": "",
+        "erased": "",
+        "allegory_prince": "",
+        "four_descenders": "",
+        "first_descender": "",
+        "second_throne": ""
+      },
       "relevant_passages": [
         {
           "passage": "你的身上，现在带着「第三降临者的遗骨」吧",
@@ -804,10 +779,10 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "A targeted attribution question ('was Sandrone made by Alan?') whose answer requires two distinct source types: the in-universe primary source (Sandrone's own diary, an in-game book) and a third-party in-quest confirmation from a different file.",
-      "expected_coverage": [
-        "sandrone_created_by_alan",
-        "marian_inspiration"
-      ],
+      "expected_coverage": {
+        "sandrone_created_by_alan": "",
+        "marian_inspiration": ""
+      },
       "relevant_passages": [
         {
           "passage": "第一，阿兰创造了我",
@@ -850,13 +825,13 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "A single query about the ancient northern barbarian kingdom of Eremorica. Coverage spans its identity as a tribal confederation during the Remurian Empire era, its young heir 伊黎耶 (高爱芮格温德), its revolt that birthed the Pure Water Knights, and the name evolution to 爱美乐 — attested across artifact sets, books, a weapon, and NPC dialogue.",
-      "expected_coverage": [
-        "northern_barbarian_kingdom",
-        "leader_egeria",
-        "revolt_vs_remuria",
-        "pure_water_knights",
-        "name_evolved_amerlotte"
-      ],
+      "expected_coverage": {
+        "northern_barbarian_kingdom": "",
+        "leader_egeria": "",
+        "revolt_vs_remuria": "",
+        "pure_water_knights": "",
+        "name_evolved_amerlotte": ""
+      },
       "relevant_passages": [
         {
           "passage": "原本松散的诸部族团结于埃雷莫利卡年轻的继承人麾下，在帝国脆弱的边疆掀起反叛的狼烟",
@@ -917,12 +892,12 @@
       "language": "CHS",
       "subtype": "enumeration",
       "rationale": "A single 'what are the Four Winds of Mondstadt' enumeration. The four are attested together in the 林间风 book and Lisa's quest dialogue, and individually across creature entries, character stories, and a Dainsleif quest — retrieval must surface sources from multiple Mondstadt-era files to return the full roster.",
-      "expected_coverage": [
-        "dragon_east",
-        "lion_south",
-        "falcon_west",
-        "wolf_north"
-      ],
+      "expected_coverage": {
+        "dragon_east": "",
+        "lion_south": "",
+        "falcon_west": "",
+        "wolf_north": ""
+      },
       "relevant_passages": [
         {
           "passage": "北风骑士的「狼」、蒲公英（狮牙）骑士的「狮子」、西风骑士团的「鹰」，以及特瓦林——「风龙」，一直被视作是蒙德的「四风守护」",
@@ -987,10 +962,10 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "A targeted event-recall query about 爱莉厄 (legendary Snezhnayan bandit, alias 雷德·米勒) raiding the governor's mansion (总督府), which drew the governor's adopted son 布莱赫 to join the treasure-hunting band. The core raid fact is attested ONLY in the non-official tps_shishu worldbook; the official in-game books (布莱赫的笔记) provide Brekhov's first-person emotional context but do not describe the raid itself. A correct retrieval must therefore surface the non-official worldbook entry.",
-      "expected_coverage": [
-        "raid_event",
-        "brekhov_smitten_joins"
-      ],
+      "expected_coverage": {
+        "raid_event": "",
+        "brekhov_smitten_joins": ""
+      },
       "relevant_passages": [
         {
           "passage": "爱莉厄曾洗劫总督府",
@@ -1025,12 +1000,12 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "A single 'who is Istaroth' intent. Her identity as the Time Governor (one of the Primordial One's Four Shades) is attested in the late-game world-crossing quests; her Enkanomiya persona as Kairos/Tokoyo Ookami is in 白夜国馆藏; her ancient Mondstadt link as Mother of Time and Wind is in an artifact set and Venti's backstory; her time-manipulation feats (freezing Zibai, enabling the Sacred Sakura's paradoxical planting) are confirmed by Zhongli and the Abyss Sibling. Retrieval must surface sources from Enkanomiya, Mondstadt, Liyue, and Inazuma arcs.",
-      "expected_coverage": [
-        "time_governor_shade",
-        "kairos_enkanomiya",
-        "mother_time_wind",
-        "time_power_deeds"
-      ],
+      "expected_coverage": {
+        "time_governor_shade": "",
+        "kairos_enkanomiya": "",
+        "mother_time_wind": "",
+        "time_power_deeds": ""
+      },
       "relevant_passages": [
         {
           "passage": "时之执政",
@@ -1105,12 +1080,12 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "A single 'who is Nicole' intent. Her core identity — an angel who retained ideal form and power, a Hexenzirkel member (code N, the 'guide who never loses her way'), and kin to the Natlan Night God — is attested across the Nod-Karel moon quests, the Windblume bubble quest, and the Hexenzirkel assignment chain. Retrieval must surface sources from multiple late-game quest arcs.",
-      "expected_coverage": [
-        "angel_identity",
-        "hexenzirkel_n",
-        "night_god_kin",
-        "telepathic_guide"
-      ],
+      "expected_coverage": {
+        "angel_identity": "尼可的身份：极少数保留了理想形态与力量的「天使」之一（仙灵过去也曾是天使）。",
+        "hexenzirkel_n": "尼可是魔女会成员，代号「N」，被称为「绝不迷失的指路者」。",
+        "night_god_kin": "尼可与纳塔的「夜神」是同族。",
+        "telepathic_guide": "尼可无法以言语说话，而是通过心声／在他人脑海中直接沟通。"
+      },
       "relevant_passages": [
         {
           "passage": "对，我的名字是尼可，是极少数保留了理想形态与力量的天使之一",
@@ -1161,12 +1136,6 @@
           ]
         }
       ],
-      "facet_descriptions": {
-        "angel_identity": "尼可的身份：极少数保留了理想形态与力量的「天使」之一（仙灵过去也曾是天使）。",
-        "hexenzirkel_n": "尼可是魔女会成员，代号「N」，被称为「绝不迷失的指路者」。",
-        "night_god_kin": "尼可与纳塔的「夜神」是同族。",
-        "telepathic_guide": "尼可无法以言语说话，而是通过心声／在他人脑海中直接沟通。"
-      },
       "known_redundancy": "",
       "notes": "angel_identity and telepathic_guide are both attested primarily in the Nod-Karel arc (6026, 无法传达的涟漪), which is the canonical introduction for Nicole. hexenzirkel_n is attested in the Windblume quest (40099, 存于云天的至福之解). night_god_kin is a single anchor from 6026 — no other official source explicitly confirms the relation. No dedicated voiceline or character story is needed as Nicole's self-introduction is comprehensive."
     },
@@ -1175,13 +1144,13 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "A single 'what did Dottore do in Sumeru' intent whose answer spans two timelines: his past as student Zandik conducting human experiments and being expelled from the Akademiya, and his Archon-Quest-era actions of trapping Nahida's consciousness, providing sages with technology, helping the Scaramouche god-plan, and leaving with two Gnoses via a deal. Sources are scattered across quest files from different acts and three in-universe books.",
-      "expected_coverage": [
-        "zandik_expelled",
-        "trapped_nahida",
-        "aided_sages",
-        "god_ascension_plan",
-        "obtained_gnoses"
-      ],
+      "expected_coverage": {
+        "zandik_expelled": "博士的过去：学生时代名为「赞迪克」，因人体实验等被须弥教令院驱逐／放逐。",
+        "trapped_nahida": "博士在虚空中捕获并封锁了纳西妲（小吉祥草王）的意识。",
+        "aided_sages": "博士为须弥的贤者们提供技术支持。",
+        "god_ascension_plan": "博士协助以「神之心」打造「神明的核心」（助力散兵成神计划）。",
+        "obtained_gnoses": "博士通过与纳西妲的对等交易／以秘密换取，从须弥带回了两颗「神之心」。"
+      },
       "relevant_passages": [
         {
           "passage": "「博士」以前是被须弥教令院驱逐出去的人，贤者们原本很看不起他…可当他说出那句话的时候，所有人表情都变了。",
@@ -1272,13 +1241,6 @@
           ]
         }
       ],
-      "facet_descriptions": {
-        "zandik_expelled": "博士的过去：学生时代名为「赞迪克」，因人体实验等被须弥教令院驱逐／放逐。",
-        "trapped_nahida": "博士在虚空中捕获并封锁了纳西妲（小吉祥草王）的意识。",
-        "aided_sages": "博士为须弥的贤者们提供技术支持。",
-        "god_ascension_plan": "博士协助以「神之心」打造「神明的核心」（助力散兵成神计划）。",
-        "obtained_gnoses": "博士通过与纳西妲的对等交易／以秘密换取，从须弥带回了两颗「神之心」。"
-      },
       "known_redundancy": "",
       "notes": "zandik_expelled is the most richly attested facet (four anchors across three files). aided_sages is attested only in 3022; it is closely related to trapped_nahida (same file) but covers the broader sages-plus-Dottore scheme rather than the specific consciousness capture. god_ascension_plan refers to using the Electro Gnosis (brought by Dottore) in Sumeru's Akasha to attempt Scaramouche's apotheosis; the Scaramouche segment-experiment backstory happened in 至冬, not Sumeru. The two obtained_gnoses passages from 异质的树髓三 are from the same file; they cover distinct sentences."
     },
@@ -1287,13 +1249,13 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "A single 'tell me about the Gunhildr family' intent whose answer requires the origin story (ancient refugee leader who became first priestess and crowned Barbatos), the family's conduct during the aristocracy overthrow (sided with the people), the family motto '永护蒙德', and Jean as the present-day descendant — attested across a dedicated biography book, Jean's character story, an artifact-set poem, and a quest file.",
-      "expected_coverage": [
-        "ancient_tribal_leader",
-        "crowned_barbatos",
-        "noble_family_motto",
-        "sided_with_people",
-        "jean_is_gunhildr"
-      ],
+      "expected_coverage": {
+        "ancient_tribal_leader": "",
+        "crowned_barbatos": "",
+        "noble_family_motto": "",
+        "sided_with_people": "",
+        "jean_is_gunhildr": ""
+      },
       "relevant_passages": [
         {
           "passage": "古恩希尔德是流民中最强大的部族首领。",
@@ -1385,12 +1347,12 @@
       "language": "CHS",
       "subtype": "enumeration",
       "rationale": "A single 'who are the Descenders' enumeration. The full roster — First = Heavenly Principle / Primordial One, Second = Second Throne, Third = erased for violating supreme rules, Fourth = the Traveler — is scattered across Sumeru AQ finale (3026), Enkanomiya lore (白夜国馆藏), Dottore's notes (异质的树髓三), and the Snezhnaya AQ finale (4025). Retrieval must bridge early-game lore books and late-game quests to return the complete list.",
-      "expected_coverage": [
-        "first_descender",
-        "second_descender",
-        "third_descender",
-        "fourth_descender"
-      ],
+      "expected_coverage": {
+        "first_descender": "",
+        "second_descender": "",
+        "third_descender": "",
+        "fourth_descender": ""
+      },
       "relevant_passages": [
         {
           "passage": "曾有四名降临者来到提瓦特，其中的第三位，因触犯无上规则而被抹去",
@@ -1452,15 +1414,15 @@
       "language": "CHS",
       "subtype": "enumeration",
       "rationale": "A single 'who are the Hexenzirkel members' enumeration. The six core codenames (A/R/N/B/M/O) and J are attested across the Windblume prophecy quest, Nicole's character story tea-party scene, and Barbeloth's self-introduction. The evidence is concentrated in mid-Sumeru content but spans quests, character stories, and a book.",
-      "expected_coverage": [
-        "a_alice",
-        "r_rhinedottir",
-        "n_nicole",
-        "b_barbeloth",
-        "m_lady",
-        "j_scarlet",
-        "o_okotavia"
-      ],
+      "expected_coverage": {
+        "a_alice": "",
+        "r_rhinedottir": "",
+        "n_nicole": "",
+        "b_barbeloth": "",
+        "m_lady": "",
+        "j_scarlet": "",
+        "o_okotavia": ""
+      },
       "relevant_passages": [
         {
           "passage": "艾莉丝",
@@ -1527,13 +1489,13 @@
       "language": "CHS",
       "subtype": "broad_theme",
       "rationale": "A single 'who is Red Miller' intent whose complete answer requires knowing the name is a pseudonym for a famous Snezhnayan bandit with a popular fiction series, that it is a generational title passed through three bearers (艾维雷勒安→爱莉厄→布莱赫), that the second bearer confronted and sacrificed herself to defeat the demon monk 霍德望, and that the third bearer Brekhov (布莱赫·雷德·米勒) worked to preserve the legend via witness items. Sources span an artifact set, two Brekhov notebooks, a terminal log, and the tps_shishu至冬 chapter.",
-      "expected_coverage": [
-        "legendary_bandit_alias",
-        "band_founder_relics",
-        "confronted_demon_monk",
-        "three_generations_lineage",
-        "brekhov_inheritor"
-      ],
+      "expected_coverage": {
+        "legendary_bandit_alias": "",
+        "band_founder_relics": "",
+        "confronted_demon_monk": "",
+        "three_generations_lineage": "",
+        "brekhov_inheritor": ""
+      },
       "relevant_passages": [
         {
           "passage": "流行于挪德卡莱的娱乐读物，并非出自同一套书籍，而是由不同作者写成的、诸多关于雷德·米勒的廉价小说，内容的真实程度和纸张印刷的质量相仿。",
