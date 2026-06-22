@@ -324,13 +324,8 @@ async def _aeval_fixtures(
     async def _eval_one(idx: int, fixture: retrieval.RetrievalFixture) -> None:
         intent = intent_fn(fixture.query)
         fk, fcc = _budget.allocate(budget, intent)
-        logger.info(
-            "Fixture %r: budget=%d intent=%s → k=%d cc=%d",
-            fixture.query,
-            budget,
-            intent.value,
-            fk,
-            fcc,
+        print(
+            f"[fixture] {fixture.query} → intent={intent.value} k={fk} cc={fcc}"
         )
         texts_list, chunks_list = await _afetch_sources(
             store,

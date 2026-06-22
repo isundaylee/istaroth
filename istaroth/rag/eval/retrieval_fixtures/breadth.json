@@ -86,15 +86,16 @@
         "tsaritsa_cryo"
       ],
       "relevant_passages": [
-        {"passage": "风神是「自由」之神、岩神是「契约」之神，而雷电将军是追求「永恒」的神。", "label": "钟离·一处指明风/岩/雷三神（送仙）", "official": true, "covers": ["venti_anemo", "zhongli_geo", "raiden_electro"]},
-        {"passage": "智慧之神力量的具现。", "label": "纳西妲·智慧之神（草神）", "official": true, "covers": ["nahida_dendro"]},
-        {"passage": "正义之神的我，与这位异乡的旅者在法庭上展开对决吧！", "label": "芙宁娜·正义之神（水神）", "official": true, "covers": ["furina_hydro"]},
-        {"passage": "芙卡洛斯邀请他来枫丹廷看看", "label": "那维莱特故事·水神芙卡洛斯（替代来源）", "official": true, "covers": ["furina_hydro"]},
-        {"passage": "火神玛薇卡大人。", "label": "玛薇卡·火神（纳塔）", "official": true, "covers": ["mavuika_pyro"]},
-        {"passage": "承担为「冰之女皇」而战的责任", "label": "冰之女皇·冰神（至冬）", "official": true, "covers": ["tsaritsa_cryo"]}
+        {"passage": "温迪", "label": "风神温迪", "official": true, "covers": ["venti_anemo"]},
+        {"passage": "钟离", "label": "岩神钟离", "official": true, "covers": ["zhongli_geo"]},
+        {"passage": "雷电将军", "label": "雷神雷电将军", "official": true, "covers": ["raiden_electro"]},
+        {"passage": "纳西妲", "label": "草神纳西妲", "official": true, "covers": ["nahida_dendro"]},
+        {"passage": "芙宁娜", "label": "水神芙宁娜", "official": true, "covers": ["furina_hydro"]},
+        {"passage": "玛薇卡", "label": "火神玛薇卡", "official": true, "covers": ["mavuika_pyro"]},
+        {"passage": "冰之女皇", "label": "冰神冰之女皇", "official": true, "covers": ["tsaritsa_cryo"]}
       ],
       "known_redundancy": "",
-      "notes": "venti/zhongli/raiden co-locate in the single 送仙 passage, so they stand or fall together on whether that one source is retrieved; the other four each need their own scattered source, and tsaritsa_cryo is the most weakly attested."
+      "notes": "Each archon is identified by their Chinese character name. Coverage requires retrieving a source that mentions the archon's name."
     },
     {
       "query": "愚人众的十一位执行官分别是谁？",
@@ -454,13 +455,13 @@
         "o_okotavia"
       ],
       "relevant_passages": [
-        {"passage": "代号R，「黄金」莱茵多特的署名。如果世上有谁能创造不存在的物种，恐怕就是她了。", "label": "艾莉丝·代号R为莱茵多特（存于云天）", "official": true, "covers": ["r_rhinedottir"]},
-        {"passage": "代号N的尼可的寄语。你们或许还不认识她，她是一位在乎方向的神奇女性。", "label": "艾莉丝·代号N为尼可（存于云天）", "official": true, "covers": ["n_nicole"]},
-        {"passage": "代号A的艾莉丝从来都喜欢诚心之人。", "label": "艾莉丝·代号A为己（存于云天）", "official": true, "covers": ["a_alice"]},
-        {"passage": "M女士。这样的人占一个魔女头衔，不过分吧？", "label": "艾莉丝·魔女M《野猪公主》作者（存于云天）", "official": true, "covers": ["m_lady"]},
-        {"passage": "我是魔女会代号为「B」的魔女。芭比洛斯·崔斯梅姬斯图斯。", "label": "芭比洛斯自述·代号B（月亮回家的夜晚）", "official": true, "covers": ["b_barbeloth"]},
-        {"passage": "我是「J」的继承人，斯嘉莉。", "label": "斯嘉莉·魔女J继承人（存于云天）", "official": true, "covers": ["j_scarlet"]},
-        {"passage": "魔女O依旧垂着眼睛，但还是难得开了口", "label": "尼可角色故事·魔女O欧科塔维亚", "official": true, "covers": ["o_okotavia"]}
+        {"passage": "艾莉丝", "label": "魔女会会长艾莉丝", "official": true, "covers": ["a_alice"]},
+        {"passage": "莱茵多特", "label": "魔女R黄金莱茵多特", "official": true, "covers": ["r_rhinedottir"]},
+        {"passage": "尼可", "label": "魔女N尼可", "official": true, "covers": ["n_nicole"]},
+        {"passage": "芭比洛斯", "label": "魔女B芭比洛斯", "official": true, "covers": ["b_barbeloth"]},
+        {"passage": "安德斯多特", "label": "魔女安德斯多特", "official": true, "covers": ["m_lady"]},
+        {"passage": "伊万诺夫娜", "label": "魔女伊万诺夫娜", "official": true, "covers": ["j_scarlet"]},
+        {"passage": "欧科塔维亚", "label": "魔女O欧科塔维亚", "official": true, "covers": ["o_okotavia"]}
       ],
       "known_redundancy": "",
       "notes": "The core A/R/N/M codename-to-witch mapping is from 40099 (存于云天的至福之解), where Alice explains the four-sign prophecy. B is attested in 6027 (月亮回家的夜晚) via Barbeloth's explicit self-introduction. J is referenced in 40099 via Scarlet, the inheritor. O is from Nicole's character story (10000131). No single passage lists all seven together — the full roster must be assembled across multiple files."
