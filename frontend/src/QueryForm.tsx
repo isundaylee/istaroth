@@ -46,7 +46,7 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
 
   // Helper function to convert model ID to translation key
   const getModelTranslationKey = (modelId: string) => {
-    return modelId.replace(/\./g, '_')
+    return modelId.replace(/[./]/g, '_')
   }
 
   // Helper function to get model display text
