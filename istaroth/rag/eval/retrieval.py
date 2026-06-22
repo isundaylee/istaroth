@@ -82,19 +82,6 @@ class RetrievalFixture:
     known_redundancy: str
     notes: str
 
-    def facet_description(self, facet: str) -> str:
-        """Natural-language meaning of a facet for the LLM judge.
-
-        Uses the explicit ``facet_descriptions`` entry if present, else falls back
-        to the distinct labels of the anchors covering the facet.
-        """
-        if explicit := self.facet_descriptions.get(facet):
-            return explicit
-        labels = dict.fromkeys(
-            p.label for p in self.relevant_passages if facet in p.covers
-        )
-        return "；".join(labels)
-
     def facets_in(self, text: str) -> set[str]:
         """Expected facets whose passage appears in a single source's text."""
         expected = set(self.expected_coverage)
@@ -208,7 +195,11 @@ def persist_anchors(anchors: list[tuple[str, str, dict]]) -> int:
         path = _FIXTURE_DIR / f"{category}.json"
         data = json.loads(path.read_text(encoding="utf-8"))
         fixtures_by_query = {f["query"]: f for f in data["fixtures"]}
-        for query, passage in items:
+        # Sort appended anchors so output is independent of (concurrent) discovery
+        # order; each anchor dict is already built with a fixed key order.
+        for query, passage in sorted(
+            items, key=lambda qp: (qp[0], qp[1]["covers"], qp[1]["passage"])
+        ):
             fixture = fixtures_by_query[query]
             existing = {p["passage"] for p in fixture["relevant_passages"]}
             if passage["passage"] in existing:

@@ -305,12 +305,20 @@ async def _judge_rescue(
     and dropped) and turned into an anchor whose ``official`` flag follows the
     source path it was found in.
     """
+    # Only facets with an explicit description are judged; without one there is no
+    # reliable statement of what the facet means for the judge to grade against.
+    facets = {
+        facet: fixture.facet_descriptions[facet]
+        for facet in missed
+        if facet in fixture.facet_descriptions
+    }
+    if not facets:
+        return []
     text_to_path: dict[str, str] = {}
     for texts, paths in zip(texts_list, paths_list):
         for text, path in zip(texts, paths):
             text_to_path.setdefault(text, path)
     union_texts = list(text_to_path)
-    facets = {facet: fixture.facet_description(facet) for facet in missed}
     spans = await anyio.to_thread.run_sync(
         functools.partial(judge_fn, fixture.query, union_texts, facets)
     )
