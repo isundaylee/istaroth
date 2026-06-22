@@ -217,20 +217,22 @@ def _ranked_source_texts(
     k: int,
     chunk_context: int,
     bm25: bool,
-) -> list[str]:
-    """Full file content of each retrieved source, in rank order."""
+) -> tuple[list[str], int]:
+    """Chunk content (with context window) of each retrieved source, in rank order.
+
+    Returns (texts, total_chunks).
+    """
     retrieve_output = (
         store.retrieve_bm25(fixture.query, k=k, chunk_context=chunk_context)
         if bm25
         else store.retrieve(fixture.query, k=k, chunk_context=chunk_context)
     )
-    texts = []
+    texts: list[str] = []
+    total_chunks = 0
     for _, docs in retrieve_output.results:
-        chunks = store.get_file_chunks(docs[0].metadata["file_id"])
-        texts.append(
-            "\n".join(c.page_content for c in (chunks if chunks is not None else docs))
-        )
-    return texts
+        texts.append("\n".join(doc.page_content for doc in docs))
+        total_chunks += len(docs)
+    return texts, total_chunks
 
 
 @dataclass
@@ -239,10 +241,9 @@ class _FixtureEval:
     runs: list[list[str]]
     first_ranks: list[dict[str, int | None]]
     n_sources: list[int]
-    cov_default: list[int]
-    cov_full: list[int]
-    mean_cov_default: float
-    mean_cov_full: float
+    n_chunks: list[int]
+    coverage: list[int]
+    mean_coverage: float
     missed: list[str]
 
 
@@ -250,14 +251,12 @@ def _analyze_fixture(
     fixture: retrieval.RetrievalFixture,
     texts_list: list[list[str]],
     *,
-    default_k: int,
+    n_chunks: list[int],
 ) -> _FixtureEval:
     first_ranks = [fixture.first_covered_rank(texts) for texts in texts_list]
     n_sources = [len(texts) for texts in texts_list]
-    cov_default = [len(fixture.coverage_at_k(texts, default_k)) for texts in texts_list]
-    cov_full = [len(fixture.coverage_at_k(texts, len(texts))) for texts in texts_list]
-    mean_cov_default = statistics.mean(cov_default)
-    mean_cov_full = statistics.mean(cov_full)
+    coverage = [len(fixture.coverage_at_k(texts, len(texts))) for texts in texts_list]
+    mean_coverage = statistics.mean(coverage)
     missed = [
         f for f in fixture.expected_coverage if all(fr[f] is None for fr in first_ranks)
     ]
@@ -266,10 +265,9 @@ def _analyze_fixture(
         runs=texts_list,
         first_ranks=first_ranks,
         n_sources=n_sources,
-        cov_default=cov_default,
-        cov_full=cov_full,
-        mean_cov_default=mean_cov_default,
-        mean_cov_full=mean_cov_full,
+        n_chunks=n_chunks,
+        coverage=coverage,
+        mean_coverage=mean_coverage,
         missed=missed,
     )
 
@@ -283,12 +281,13 @@ async def _afetch_sources(
     repeat: int,
     bm25: bool,
     sem: anyio.Semaphore,
-) -> list[list[str]]:
+) -> tuple[list[list[str]], list[int]]:
     texts_list: list[list[str] | None] = [None] * repeat
+    chunks_list: list[int | None] = [None] * repeat
 
     async def _run_once(idx: int) -> None:
         async with sem:
-            texts_list[idx] = await anyio.to_thread.run_sync(
+            texts, n_chunks = await anyio.to_thread.run_sync(
                 functools.partial(
                     _ranked_source_texts,
                     store,
@@ -298,12 +297,17 @@ async def _afetch_sources(
                     bm25=bm25,
                 ),
             )
+            texts_list[idx] = texts
+            chunks_list[idx] = n_chunks
 
     async with anyio.create_task_group() as tg:
         for i in range(repeat):
             tg.start_soon(_run_once, i)
 
-    return [t for t in texts_list if t is not None]
+    return (
+        [t for t in texts_list if t is not None],
+        [c for c in chunks_list if c is not None],
+    )
 
 
 async def _aeval_fixtures(
@@ -312,7 +316,6 @@ async def _aeval_fixtures(
     *,
     k: int,
     chunk_context: int,
-    default_k: int,
     repeat: int,
     bm25: bool,
 ) -> list[_FixtureEval]:
@@ -320,7 +323,7 @@ async def _aeval_fixtures(
     results: list[_FixtureEval | None] = [None] * len(fixtures)
 
     async def _eval_one(idx: int, fixture: retrieval.RetrievalFixture) -> None:
-        texts_list = await _afetch_sources(
+        texts_list, chunks_list = await _afetch_sources(
             store,
             fixture,
             k=k,
@@ -329,7 +332,7 @@ async def _aeval_fixtures(
             bm25=bm25,
             sem=sem,
         )
-        results[idx] = _analyze_fixture(fixture, texts_list, default_k=default_k)
+        results[idx] = _analyze_fixture(fixture, texts_list, n_chunks=chunks_list)
 
     async with anyio.create_task_group() as tg:
         for idx, fixture in enumerate(fixtures):
@@ -341,7 +344,6 @@ async def _aeval_fixtures(
 def _print_detail(
     fe: _FixtureEval,
     *,
-    default_k: int,
     repeat: int,
 ) -> None:
     total = len(fe.fixture.expected_coverage)
@@ -349,18 +351,14 @@ def _print_detail(
     print(f"[{fe.fixture.subtype or fe.fixture.category}] {fe.fixture.query}")
     print(
         f"runs={repeat} | sources: {statistics.mean(fe.n_sources):.1f} | "
-        f"coverage@{default_k}: {fe.mean_cov_default:.1f}/{total} | "
-        f"coverage@full: {fe.mean_cov_full:.1f}/{total}"
+        f"chunks: {statistics.mean(fe.n_chunks):.1f} | "
+        f"coverage: {fe.mean_coverage:.1f}/{total}"
     )
     for facet in fe.fixture.expected_coverage:
         ranks = [fr[facet] for fr in fe.first_ranks]
-        within = [r for r in ranks if r is not None and r <= default_k]
-        anywhere = [r for r in ranks if r is not None]
-        if within:
-            detail = f"median rank {statistics.median(within):.0f}"
-            label = f"covered {len(within)}/{repeat} @<=k ({detail})"
-        elif anywhere:
-            label = f"TAIL: covered {len(anywhere)}/{repeat} only beyond k={default_k}"
+        covered = [r for r in ranks if r is not None]
+        if covered:
+            label = f"covered {len(covered)}/{repeat} (median rank {statistics.median(covered):.0f})"
         else:
             label = f"MISSING (0/{repeat} runs)"
         print(f"  - {facet}: {label}")
@@ -374,13 +372,11 @@ def _print_detail(
 
 def _print_summary(
     evals: list[_FixtureEval],
-    *,
-    default_k: int,
 ) -> None:
     sorted_evals = sorted(
         evals,
         key=lambda e: (
-            e.mean_cov_default / len(e.fixture.expected_coverage)
+            e.mean_coverage / len(e.fixture.expected_coverage)
             if e.fixture.expected_coverage
             else 0
         ),
@@ -391,14 +387,13 @@ def _print_summary(
         rows.append(
             {
                 "category": fe.fixture.category,
-                "query": fe.fixture.query[:70],
                 "facets": total,
-                f"cov@{default_k}": f"{fe.mean_cov_default:4.1f}/{total:2d}",
-                "cov@full": f"{fe.mean_cov_full:4.1f}/{total:2d}",
-                f"cov_rate@{default_k}": (
-                    f"{fe.mean_cov_default / total:>4.0%}" if total else " N/A"
-                ),
+                "coverage": f"{fe.mean_coverage:4.1f}/{total:2d}",
+                "rate": f"{fe.mean_coverage / total:>4.0%}" if total else "N/A",
+                "files": f"{statistics.mean(fe.n_sources):.1f}",
+                "chunks": f"{statistics.mean(fe.n_chunks):.1f}",
                 "missed": ", ".join(fe.missed) if fe.missed else "",
+                "query": fe.fixture.query[:70],
             }
         )
     print()
@@ -416,12 +411,14 @@ def _print_summary(
     )
 
     total_facets = sum(len(fe.fixture.expected_coverage) for fe in evals)
-    covered_facets = sum(fe.mean_cov_default for fe in evals)
+    covered_facets = sum(fe.mean_coverage for fe in evals)
     rates = [
-        fe.mean_cov_default / len(fe.fixture.expected_coverage)
+        fe.mean_coverage / len(fe.fixture.expected_coverage)
         for fe in evals
         if fe.fixture.expected_coverage
     ]
+    all_n_sources = [s for fe in evals for s in fe.n_sources]
+    all_n_chunks = [c for fe in evals for c in fe.n_chunks]
     print()
     mean_rate = statistics.mean(rates)
     median_rate = statistics.median(rates)
@@ -429,6 +426,10 @@ def _print_summary(
         f"  Overall: {covered_facets:.1f}/{total_facets} facets ({covered_facets / total_facets:.0%}) "
         f"| avg per-query rate {mean_rate:.0%} (median {median_rate:.0%}) "
         f"| {len(evals)} queries"
+    )
+    print(
+        f"  Avg sources: {statistics.mean(all_n_sources):.1f} | "
+        f"Avg chunks: {statistics.mean(all_n_chunks):.1f}"
     )
     print("=" * 80)
 
@@ -447,9 +448,6 @@ def _print_summary(
     help="Chunk context used during retrieval (default 5 = 'thorough' frontend preset)",
 )
 @click.option(
-    "--default-k", default=10, help="Cutoff to highlight coverage at (default = k)"
-)
-@click.option(
     "--category",
     default=None,
     help="Only run fixtures from this category (default: all)",
@@ -464,7 +462,6 @@ def eval_retrieval(
     *,
     k: int,
     chunk_context: int,
-    default_k: int,
     category: str | None,
     repeat: int,
     bm25: bool,
@@ -472,11 +469,9 @@ def eval_retrieval(
     """Measure facet coverage of the retrieval-eval fixtures against retrieval.
 
     Runs every fixture category (or just --category) for the store's language.
-    Each fixture's relevant passages are matched against the FULL file content of
-    every retrieved source, so coverage reflects which sources are surfaced
-    independent of chunk_context. Reports mean coverage at the production cutoff
-    vs. the full retrieved ranking, and per-facet how reliably (over --repeat
-    runs) it is surfaced within the cutoff. Use --repeat > 1 to average out the
+    Each fixture's relevant passages are matched against the actual chunk content
+    (with context window) returned by the retriever, so coverage reflects what
+    the LLM actually receives in production. Use --repeat > 1 to average out the
     non-determinism of the rewrite query transformer. Fixture retrieval is
     parallelized with anyio (trio-style structured concurrency).
     """
@@ -503,7 +498,6 @@ def eval_retrieval(
             _aeval_fixtures,
             k=k,
             chunk_context=chunk_context,
-            default_k=default_k,
             repeat=repeat,
             bm25=bm25,
         ),
@@ -517,9 +511,9 @@ def eval_retrieval(
             current_category = fe.fixture.category
             print("#" * 80)
             print(f"# CATEGORY: {current_category}")
-        _print_detail(fe, default_k=default_k, repeat=repeat)
+        _print_detail(fe, repeat=repeat)
 
-    _print_summary(fevals, default_k=default_k)
+    _print_summary(fevals)
 
 
 @cli.command()
