@@ -10,7 +10,7 @@ _EXAMPLE_QUESTIONS = {
         "坎瑞亚为什么会覆灭？",
         "蒙德的四风守护是指哪些？",
         "玛丽安与西摩尔的关系是什么样的",
-        "捷德为什么要去永恒绿洲？",
+        "婕德为什么要去永恒绿洲？",
     ],
     localization.Language.ENG: [
         "What is the true identity of the Abyss Order?",
