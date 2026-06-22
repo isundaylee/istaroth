@@ -25,6 +25,7 @@ kubectl create secret generic <release-name>-secret \
   --from-literal=GOOGLE_API_KEY="..." \
   --from-literal=CO_API_KEY="..." \
   --from-literal=OPENAI_API_KEY="..." \
+  --from-literal=DEEPINFRA_API_KEY="..." \
   --dry-run=client -o yaml | \
 kubeseal -o yaml > app-secret-sealed.yaml
 ```

@@ -33,6 +33,8 @@ export const eng = {
     },
     models: {
       'gemini-3_1-flash-lite-preview': 'Ultra Fast (gemini-3.1-flash-lite-preview)',
+      'zai-org_GLM-4_7-Flash': 'Fast (GLM-4.7-Flash via DeepInfra)',
+      'deepseek-ai_DeepSeek-V4-Flash': 'Fast (DeepSeek-V4-Flash via DeepInfra)',
       'gemini-3-flash-preview:minimal': 'Fast (gemini-3-flash, minimal thinking)',
       'gemini-3-flash-preview:high': 'Fast (gemini-3-flash, high thinking)',
       'gpt-5-nano': 'Fast (gpt-5-nano)',

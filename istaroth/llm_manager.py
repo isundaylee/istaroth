@@ -3,6 +3,7 @@
 import os
 import typing
 
+import pydantic
 from langchain_core import language_models, messages
 from langchain_google_genai import chat_models as google_chat_models
 from langchain_openai import chat_models as openai_llms
@@ -13,11 +14,19 @@ _DEFAULT_PIPELINE_MODEL = "gemini-3.1-flash-lite-preview"
 # All technically supported models in order of decreasing speed
 _ALL_SUPPORTED_MODELS: list[str] = [
     "gemini-3.1-flash-lite-preview",  # Fastest
+    "zai-org/GLM-4.7-Flash",
+    "deepseek-ai/DeepSeek-V4-Flash",
     "gemini-3-flash-preview",
     "gpt-5-nano",
     "gpt-5-mini",
     "gemini-3.1-pro-preview",  # Slowest
 ]
+
+_DEEPINFRA_BASE_URL = "https://api.deepinfra.com/v1/openai"
+_DEEPINFRA_MODELS: set[str] = {
+    "zai-org/GLM-4.7-Flash",
+    "deepseek-ai/DeepSeek-V4-Flash",
+}
 
 # Base models exposed as one selectable variant per thinking level, mapped to
 # their offered levels in order of increasing reasoning depth (and latency).
@@ -125,6 +134,14 @@ def create_llm(model_name: str, **kwargs) -> language_models.BaseLanguageModel:
     # OpenAI models
     elif base_model.startswith("gpt-"):
         return openai_llms.ChatOpenAI(model=base_model, **implied_kwargs, **kwargs)
+    elif base_model in _DEEPINFRA_MODELS:
+        return openai_llms.ChatOpenAI(
+            model=base_model,
+            base_url=_DEEPINFRA_BASE_URL,
+            api_key=pydantic.SecretStr(os.environ["DEEPINFRA_API_KEY"]),
+            **implied_kwargs,
+            **kwargs,
+        )
     else:
         raise ValueError(f"Unknown model provider for '{model_name}'.")
 
