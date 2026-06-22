@@ -15,11 +15,10 @@ from sqlalchemy.exc import IntegrityError
 
 from istaroth import llm_errors
 from istaroth.agd import localization
-from istaroth.rag import pipeline, progress, text_set, types
+from istaroth.rag import pipeline, progress, types
 from istaroth.services.backend import (
     db_models,
     models,
-    proper_noun_highlighting,
     slugs,
 )
 from istaroth.services.backend.dependencies import (
@@ -93,10 +92,10 @@ def _build_pipeline(
     request: models.QueryRequest,
     document_store_set: DocumentStoreSet,
     llm_manager: LLMManager,
-) -> tuple[pipeline.RAGPipeline, str, localization.Language, text_set.TextSet]:
+) -> tuple[pipeline.RAGPipeline, str]:
     """Validate the request and build a pipeline.
 
-    Returns ``(pipeline, language_name, language_enum, text_set)``.
+    Returns ``(pipeline, language_name)``.
     """
     try:
         language_enum = localization.Language(request.language)
@@ -116,40 +115,13 @@ def _build_pipeline(
                     "ISTAROTH_PREPROCESSING_MODEL", "gemini-3.1-flash-lite-preview"
                 ),
             ),
+            proper_noun_llm=llm_manager.get_llm(_PROPER_NOUN_MODEL),
             text_set=selected_text_set,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=repr(e))
 
-    return rag_pipeline, language_name, language_enum, selected_text_set
-
-
-async def _extract_answer_proper_nouns(
-    answer: str,
-    *,
-    language_enum: localization.Language,
-    text_set_obj: text_set.TextSet,
-    llm_manager: LLMManager,
-    reporter: progress.ProgressReporter,
-) -> list[str]:
-    """Extract highlightable proper nouns from the answer as a reported step.
-
-    Only CHS is supported (ENG returns ``[]`` without a step). Highlighting is
-    supplementary, so any extraction failure degrades to no highlights rather
-    than failing the query.
-    """
-    if language_enum is not localization.Language.CHS:
-        return []
-    with reporter.step("extracting_proper_nouns"):
-        try:
-            return await proper_noun_highlighting.extract_highlight_nouns(
-                answer,
-                text_set_obj=text_set_obj,
-                llm=llm_manager.get_llm(_PROPER_NOUN_MODEL),
-            )
-        except Exception:
-            logger.warning("Answer proper-noun extraction failed", exc_info=True)
-            return []
+    return rag_pipeline, language_name
 
 
 def _compose_cache_key(request: models.QueryRequest) -> str:
@@ -281,7 +253,7 @@ async def query_stream(
         metrics.query_cache_total.labels(language=language_name, result="miss").inc()
         logger.info("Query cache miss for %r", cache_key)
 
-    rag_pipeline, language_name, language_enum, text_set_obj = _build_pipeline(
+    rag_pipeline, language_name = _build_pipeline(
         request, document_store_set, llm_manager
     )
 
@@ -316,15 +288,8 @@ async def query_stream(
                 logger.info(
                     "Streaming query completed in %.2f seconds", generation_time
                 )
-                proper_nouns = await _extract_answer_proper_nouns(
-                    result.answer,
-                    language_enum=language_enum,
-                    text_set_obj=text_set_obj,
-                    llm_manager=llm_manager,
-                    reporter=reporter,
-                )
                 conversation_uuid, short_slug = await _save_conversation(
-                    db_session, request, result, generation_time, proper_nouns
+                    db_session, request, result, generation_time, result.proper_nouns
                 )
                 if cache_key:
                     await _populate_query_cache(
@@ -337,7 +302,7 @@ async def query_stream(
                         conversation_uuid=conversation_uuid,
                         language=language_name,
                         short_slug=short_slug,
-                        proper_nouns=proper_nouns,
+                        proper_nouns=result.proper_nouns,
                         final_generation_input_text_length=(
                             result.stats.final_generation_input_text_length
                         ),

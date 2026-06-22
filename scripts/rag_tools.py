@@ -366,6 +366,11 @@ def query(question: str, *, k: int, chunk_context: int) -> None:
         language=language,
         llm=lm.get_default_llm(),
         preprocessing_llm=lm.get_llm("gemini-3.1-flash-lite-preview"),
+        proper_noun_llm=lm.get_llm(
+            os.environ.get(
+                "ISTAROTH_PROPER_NOUN_MODEL", "gemini-3.1-flash-lite-preview"
+            )
+        ),
         text_set=ts,
     )
 
