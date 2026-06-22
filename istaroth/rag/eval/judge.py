@@ -18,6 +18,7 @@ the production model registry is not polluted by an eval-only judge.
 import os
 from collections.abc import Callable
 
+import attrs
 import pydantic
 from langchain_core import messages
 from langchain_openai import chat_models
@@ -57,6 +58,30 @@ class _JudgeOutput(pydantic.BaseModel):
     verdicts: list[_FacetVerdict]
 
 
+@attrs.frozen
+class JudgeUsage:
+    """Token usage accumulated across judge calls."""
+
+    calls: int
+    input_tokens: int
+    output_tokens: int
+
+    @property
+    def total_tokens(self) -> int:
+        return self.input_tokens + self.output_tokens
+
+    def __add__(self, other: "JudgeUsage") -> "JudgeUsage":
+        return JudgeUsage(
+            calls=self.calls + other.calls,
+            input_tokens=self.input_tokens + other.input_tokens,
+            output_tokens=self.output_tokens + other.output_tokens,
+        )
+
+    @classmethod
+    def zero(cls) -> "JudgeUsage":
+        return cls(calls=0, input_tokens=0, output_tokens=0)
+
+
 def _build_user_message(
     query: str, ranked_texts: list[str], facets: dict[str, str]
 ) -> str:
@@ -73,13 +98,14 @@ def _build_user_message(
 
 def make_judge(
     model: str = DEFAULT_JUDGE_MODEL,
-) -> Callable[[str, list[str], dict[str, str]], dict[str, str]]:
+) -> Callable[[str, list[str], dict[str, str]], tuple[dict[str, str], JudgeUsage]]:
     """Build a judge that maps missing facets to a supporting verbatim span.
 
-    Returns a function ``judge(query, ranked_texts, facets) -> {facet: span}``,
-    including only facets the model found attested (non-empty span). The span is
-    NOT yet verified against the retrieved text — the caller must confirm it
-    actually occurs (see ``retrieval.locate_span``).
+    Returns a function
+    ``judge(query, ranked_texts, facets) -> ({facet: span}, JudgeUsage)`` covering
+    only facets the model found attested (non-empty span), plus the token usage of
+    the call. The span is NOT yet verified against the retrieved text — the caller
+    must confirm it actually occurs (see ``retrieval.locate_span``).
     """
     llm = chat_models.ChatOpenAI(
         model=model,
@@ -88,13 +114,13 @@ def make_judge(
         temperature=0,
         max_retries=2,
     )
-    structured = llm.with_structured_output(_JudgeOutput)
+    structured = llm.with_structured_output(_JudgeOutput, include_raw=True)
 
     def judge(
         query: str, ranked_texts: list[str], facets: dict[str, str]
-    ) -> dict[str, str]:
+    ) -> tuple[dict[str, str], JudgeUsage]:
         if not facets or not ranked_texts:
-            return {}
+            return {}, JudgeUsage.zero()
         result = structured.invoke(
             [
                 messages.SystemMessage(content=_SYSTEM_PROMPT),
@@ -103,11 +129,19 @@ def make_judge(
                 ),
             ]
         )
-        assert isinstance(result, _JudgeOutput)
-        return {
+        parsed = result["parsed"]
+        assert isinstance(parsed, _JudgeOutput)
+        um = result["raw"].usage_metadata or {}
+        usage = JudgeUsage(
+            calls=1,
+            input_tokens=um.get("input_tokens", 0),
+            output_tokens=um.get("output_tokens", 0),
+        )
+        spans = {
             v.facet: v.span
-            for v in result.verdicts
+            for v in parsed.verdicts
             if v.facet in facets and v.span.strip()
         }
+        return spans, usage
 
     return judge

@@ -289,6 +289,10 @@ async def _afetch_sources(
 
 _MIN_JUDGE_SPAN = 6  # chars; reject over-broad spans that would over-match as anchors
 
+_JudgeFn = Callable[
+    [str, list[str], dict[str, str]], tuple[dict[str, str], judge.JudgeUsage]
+]
+
 
 async def _judge_rescue(
     fixture: retrieval.RetrievalFixture,
@@ -296,8 +300,8 @@ async def _judge_rescue(
     paths_list: list[list[str]],
     missed: list[str],
     *,
-    judge_fn: Callable[[str, list[str], dict[str, str]], dict[str, str]],
-) -> list[retrieval.RelevantPassage]:
+    judge_fn: _JudgeFn,
+) -> tuple[list[retrieval.RelevantPassage], judge.JudgeUsage]:
     """Judge missing facets over the union of retrieved sources; return new anchors.
 
     One judge call per fixture across all runs' sources. Each returned span is
@@ -311,13 +315,13 @@ async def _judge_rescue(
         facet: desc for facet in missed if (desc := fixture.expected_coverage[facet])
     }
     if not facets:
-        return []
+        return [], judge.JudgeUsage.zero()
     text_to_path: dict[str, str] = {}
     for texts, paths in zip(texts_list, paths_list):
         for text, path in zip(texts, paths):
             text_to_path.setdefault(text, path)
     union_texts = list(text_to_path)
-    spans = await anyio.to_thread.run_sync(
+    spans, usage = await anyio.to_thread.run_sync(
         functools.partial(judge_fn, fixture.query, union_texts, facets)
     )
     new_passages: list[retrieval.RelevantPassage] = []
@@ -335,7 +339,7 @@ async def _judge_rescue(
                 covers=(facet,),
             )
         )
-    return new_passages
+    return new_passages, usage
 
 
 async def _aeval_fixtures(
@@ -346,11 +350,12 @@ async def _aeval_fixtures(
     intent_fn: Callable[[str], _budget.QueryIntent],
     repeat: int = 1,
     bm25: bool = False,
-    judge_fn: Callable[[str, list[str], dict[str, str]], dict[str, str]] | None = None,
-) -> tuple[list[_FixtureEval], list[tuple[str, str, dict]]]:
+    judge_fn: _JudgeFn | None = None,
+) -> tuple[list[_FixtureEval], list[tuple[str, str, dict]], judge.JudgeUsage]:
     sem = anyio.Semaphore(5)
     results: list[_FixtureEval | None] = [None] * len(fixtures)
     pending_writes: list[tuple[str, str, dict]] = []
+    usages: list[judge.JudgeUsage] = []
 
     async def _eval_one(idx: int, fixture: retrieval.RetrievalFixture) -> None:
         intent = intent_fn(fixture.query)
@@ -369,9 +374,10 @@ async def _aeval_fixtures(
         if judge_fn is not None and fe.missed:
             try:
                 async with sem:
-                    new_passages = await _judge_rescue(
+                    new_passages, usage = await _judge_rescue(
                         fixture, texts_list, paths_list, fe.missed, judge_fn=judge_fn
                     )
+                usages.append(usage)
             except Exception as exc:  # judge unavailable → misses stand (conservative)
                 print(
                     f"[judge] {fixture.query}: judging failed ({exc!r}); misses stand"
@@ -406,7 +412,8 @@ async def _aeval_fixtures(
         for idx, fixture in enumerate(fixtures):
             tg.start_soon(_eval_one, idx, fixture)
 
-    return [r for r in results if r is not None], pending_writes
+    total_usage = sum(usages, judge.JudgeUsage.zero())
+    return [r for r in results if r is not None], pending_writes, total_usage
 
 
 def _print_detail(
@@ -588,7 +595,7 @@ def eval_retrieval(
         assert parsed is not None
         intent_fn = lambda _query: parsed
 
-    fevals, pending_writes = anyio.run(
+    fevals, pending_writes, judge_usage = anyio.run(
         functools.partial(
             _aeval_fixtures,
             budget=_budget_val,
@@ -622,6 +629,13 @@ def eval_retrieval(
                 f"[judge] {len(pending_writes)} anchor(s) discovered "
                 "(not persisted; --no-judge-write)"
             )
+
+    if use_judge:
+        print(
+            f"[judge] tokens: {judge_usage.total_tokens} total "
+            f"({judge_usage.input_tokens} in + {judge_usage.output_tokens} out) "
+            f"over {judge_usage.calls} call(s)"
+        )
 
 
 def _make_auto_intent_fn(

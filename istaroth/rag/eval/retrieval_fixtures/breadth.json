@@ -173,6 +173,22 @@
           "covers": [
             "dragonspine_nail"
           ]
+        },
+        {
+          "passage": "前往各地搜集寒天之钉碎片",
+          "label": "judge:tps_shishu/9_第章坎瑞亚未有之梦.md",
+          "official": false,
+          "covers": [
+            "dragonspine_nail"
+          ]
+        },
+        {
+          "passage": "五百年前，是众神一同降临，覆灭了坎瑞亚",
+          "label": "judge:agd_quest/8001_无信者的使徒.txt",
+          "official": true,
+          "covers": [
+            "seven_archons_battle"
+          ]
         }
       ],
       "known_redundancy": "",
@@ -1134,6 +1150,30 @@
           "covers": [
             "telepathic_guide"
           ]
+        },
+        {
+          "passage": "我是尼可·莱恩，是一位活了很久的「天使」",
+          "label": "judge:agd_quest/3036_旧影重现.txt",
+          "official": true,
+          "covers": [
+            "angel_identity"
+          ]
+        },
+        {
+          "passage": "「N」 尼可·莱恩",
+          "label": "judge:tps_shishu/2_序章蒙德捕风的异乡人.md",
+          "official": false,
+          "covers": [
+            "hexenzirkel_n"
+          ]
+        },
+        {
+          "passage": "无法开口说话，但能凭空在他人脑内说话",
+          "label": "judge:tps_shishu/2_序章蒙德捕风的异乡人.md",
+          "official": false,
+          "covers": [
+            "telepathic_guide"
+          ]
         }
       ],
       "known_redundancy": "",
@@ -1238,6 +1278,14 @@
           "official": true,
           "covers": [
             "obtained_gnoses"
+          ]
+        },
+        {
+          "passage": "教令院的放逐者",
+          "label": "judge:agd_subtitle/273532580328867_Cs_Sumeru_AQ30161501_DT_Boy_CHS.txt",
+          "official": true,
+          "covers": [
+            "zandik_expelled"
           ]
         }
       ],
