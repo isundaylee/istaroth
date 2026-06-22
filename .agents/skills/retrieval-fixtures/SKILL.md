@@ -182,15 +182,19 @@ budget and writes anchors back into the committed fixtures, so a maintainer runs
 it deliberately, not the fixture-editing workflow.
 
 How it works: for every facet still MISSING in a fixture whose `expected_coverage`
-entry has a non-empty description, the runner makes ONE call to a cheap model
-(DeepSeek V4 Flash on DeepInfra, OpenAI-compatible; needs `DEEPINFRA_API_KEY`)
-with the query, the retrieved sources, and each missing facet's description. The
-model copies a short verbatim span from the sources that attests the facet, or
-returns nothing. Each span is verified to actually occur in a retrieved source
-(hallucinated spans are dropped) and, by default, persisted back into the fixture
-JSON as a new anchor labelled `judge:<path>` with `official` inferred from the
-source path — so the judge fires once per false miss and the deterministic matcher
-catches it for free thereafter. Your job when authoring fixtures is to supply good
+entry has a non-empty description, the runner queries a cheap model (DeepSeek V4
+Flash on DeepInfra, OpenAI-compatible; needs `DEEPINFRA_API_KEY`) in two passes.
+Pass 1 (finder) gets the query, the retrieved sources, and each missing facet's
+description, and copies the verbatim span that best supports each facet (with a
+one-line justification). Pass 2 (verifier) adversarially re-checks each candidate
+span IN ISOLATION — given only the query (for referents) and the facet, does this
+span on its own state the claim? — and drops the ones that don't; this is what
+kills fragments like 「比如…神之心」 that merely co-occur with the facet. Surviving
+spans are verified to actually occur in a retrieved source (hallucinated spans are
+dropped) and, by default, persisted back into the fixture JSON as a new anchor
+labelled `judge:<path>` with `official` inferred from the source path — so the
+judge fires once per false miss and the deterministic matcher catches it for free
+thereafter. Your job when authoring fixtures is to supply good
 `expected_coverage` descriptions, not to invoke the judge.
 
 ## Fixture JSON schema

@@ -10,52 +10,86 @@ verbatim span. The caller verifies the span really occurs in the retrieved text
 and persists it as a new anchor, so the judge fires once and the fixture
 self-hardens.
 
-The model runs on DeepInfra's OpenAI-compatible endpoint (same provider already
-used for embeddings); it is deliberately kept out of ``istaroth.llm_manager`` so
-the production model registry is not polluted by an eval-only judge.
+Judging is two-pass to guard against the leniency leak (the model crediting a
+facet on a span that merely mentions a related term): pass 1 finds candidate
+spans with a justification; pass 2 independently and adversarially re-checks each
+candidate span IN ISOLATION — does this span, on its own, state the fact? — and
+drops the ones that don't. The span-in-isolation check is what kills "比如…神之心"
+type fragments that only co-occur with the facet.
+
+The model is resolved through ``istaroth.llm_manager`` (DeepSeek V4 Flash on
+DeepInfra by default); it must be listed in ``ISTAROTH_AVAILABLE_MODELS``.
 """
 
-import os
+import typing
 from collections.abc import Callable
 
 import attrs
 import pydantic
 from langchain_core import messages
-from langchain_openai import chat_models
 
-_DEEPINFRA_BASE_URL = "https://api.deepinfra.com/v1/openai"
+from istaroth import llm_manager
+
 DEFAULT_JUDGE_MODEL = "deepseek-ai/DeepSeek-V4-Flash"
 
 _SYSTEM_PROMPT = (
     "You grade retrieval for a Genshin Impact lore QA system. Given a user query, "
     "a numbered list of retrieved passages, and a list of facets (each an aspect a "
-    "complete answer should cover), decide for EACH facet whether ANY retrieved "
-    "passage actually attests it.\n"
+    "complete answer should cover), find for EACH facet the passage span that best "
+    "supports it. A separate strict verifier will re-check your spans, so surface "
+    "the strongest candidate rather than over-rejecting.\n"
     "Rules:\n"
-    "- A passage attests a facet only if its text states the fact, not merely "
-    "mentions a related name in passing.\n"
     "- Use ONLY the passage text. Do NOT rely on your own knowledge of Genshin lore.\n"
-    "- If attested, copy a SHORT verbatim span (roughly 8-40 characters) DIRECTLY "
-    "from the passages — exact characters including punctuation (「」、，。…). Do NOT "
-    "paraphrase, translate, summarize, or invent text; the span must appear "
-    "character-for-character in the passages.\n"
-    "- If no passage attests the facet, return an empty string for its span.\n"
+    "- First write a one-line justification — the corroborating evidence for how the "
+    "span supports the facet — THEN give the span.\n"
+    "- The span must be a SHORT verbatim substring (roughly 8-40 characters) copied "
+    "character-for-character from the passages — exact characters including "
+    "punctuation (「」、，。…). Do NOT paraphrase, translate, summarize, or invent.\n"
+    "- If no passage is relevant to the facet, return an empty string for its span.\n"
     "- Return exactly one verdict per facet."
+)
+
+_VERIFY_SYSTEM_PROMPT = (
+    "You are a strict, adversarial verifier. You are given the user query (for "
+    "referential context ONLY — e.g. to resolve who 'you' / 'the traveler' refers "
+    "to) and, for each (facet, span) pair, a short span copied from a retrieved "
+    "passage. Decide whether the span — read with the query's referents but "
+    "WITHOUT any surrounding passage text and WITHOUT outside lore knowledge — "
+    "explicitly STATES the claim.\n"
+    "Answer attested=true ONLY if the span itself asserts the specific claim. "
+    "Answer attested=false if the span merely mentions a name or term from the "
+    "claim, is a fragment, or would need the surrounding passage to support the "
+    "claim. When in doubt, answer false. Echo the given facet id verbatim in the "
+    "`facet` field, one verdict per pair."
 )
 
 
 class _FacetVerdict(pydantic.BaseModel):
     facet: str = pydantic.Field(description="the facet id being judged")
+    justification: str = pydantic.Field(
+        description="one line: how the span states the fact, or why none does"
+    )
     span: str = pydantic.Field(
         description=(
             "a verbatim substring copied character-for-character from the passages "
-            "that attests the facet; empty string if no passage attests it"
+            "that states the facet on its own; empty string if no passage states it"
         )
     )
 
 
 class _JudgeOutput(pydantic.BaseModel):
     verdicts: list[_FacetVerdict]
+
+
+class _VerifyVerdict(pydantic.BaseModel):
+    facet: str = pydantic.Field(description="the facet id being verified")
+    attested: bool = pydantic.Field(
+        description="true only if the span alone explicitly states the facet"
+    )
+
+
+class _VerifyOutput(pydantic.BaseModel):
+    verdicts: list[_VerifyVerdict]
 
 
 @attrs.frozen
@@ -82,6 +116,14 @@ class JudgeUsage:
         return cls(calls=0, input_tokens=0, output_tokens=0)
 
 
+def _usage_of(raw: typing.Any) -> JudgeUsage:
+    um = raw.usage_metadata
+    assert um is not None, "judge response is missing usage_metadata"
+    return JudgeUsage(
+        calls=1, input_tokens=um["input_tokens"], output_tokens=um["output_tokens"]
+    )
+
+
 def _build_user_message(
     query: str, ranked_texts: list[str], facets: dict[str, str]
 ) -> str:
@@ -96,32 +138,38 @@ def _build_user_message(
     )
 
 
+def _build_verify_message(
+    query: str, facets: dict[str, str], candidates: dict[str, str]
+) -> str:
+    pairs = "\n\n".join(
+        f"Facet id: {facet}\nClaim: {facets[facet]}\nSpan: 「{span}」"
+        for facet, span in candidates.items()
+    )
+    return f"User query (context only):\n{query}\n\n{pairs}"
+
+
 def make_judge(
     model: str = DEFAULT_JUDGE_MODEL,
 ) -> Callable[[str, list[str], dict[str, str]], tuple[dict[str, str], JudgeUsage]]:
-    """Build a judge that maps missing facets to a supporting verbatim span.
+    """Build a two-pass judge that maps missing facets to a supporting verbatim span.
 
     Returns a function
     ``judge(query, ranked_texts, facets) -> ({facet: span}, JudgeUsage)`` covering
-    only facets the model found attested (non-empty span), plus the token usage of
-    the call. The span is NOT yet verified against the retrieved text — the caller
-    must confirm it actually occurs (see ``retrieval.locate_span``).
+    only facets the model found attested AND that survive the adversarial
+    span-in-isolation verification, plus the token usage of both passes. The span
+    is NOT yet verified against the retrieved text — the caller must confirm it
+    actually occurs (see ``retrieval.locate_span``).
     """
-    llm = chat_models.ChatOpenAI(
-        model=model,
-        base_url=_DEEPINFRA_BASE_URL,
-        api_key=pydantic.SecretStr(os.environ["DEEPINFRA_API_KEY"]),
-        temperature=0,
-        max_retries=2,
-    )
-    structured = llm.with_structured_output(_JudgeOutput, include_raw=True)
+    llm = llm_manager.LLMManager().get_llm(model, temperature=0)
+    finder = llm.with_structured_output(_JudgeOutput, include_raw=True)
+    verifier = llm.with_structured_output(_VerifyOutput, include_raw=True)
 
     def judge(
         query: str, ranked_texts: list[str], facets: dict[str, str]
     ) -> tuple[dict[str, str], JudgeUsage]:
         if not facets or not ranked_texts:
             return {}, JudgeUsage.zero()
-        result = structured.invoke(
+        result = finder.invoke(
             [
                 messages.SystemMessage(content=_SYSTEM_PROMPT),
                 messages.HumanMessage(
@@ -129,19 +177,34 @@ def make_judge(
                 ),
             ]
         )
+        assert isinstance(result, dict)  # include_raw=True returns raw/parsed/error
         parsed = result["parsed"]
         assert isinstance(parsed, _JudgeOutput)
-        um = result["raw"].usage_metadata
-        assert um is not None, "judge response is missing usage_metadata"
-        usage = JudgeUsage(
-            calls=1,
-            input_tokens=um["input_tokens"],
-            output_tokens=um["output_tokens"],
-        )
-        spans = {
+        usage = _usage_of(result["raw"])
+        candidates = {
             v.facet: v.span
             for v in parsed.verdicts
             if v.facet in facets and v.span.strip()
+        }
+        if not candidates:
+            return {}, usage
+
+        # Pass 2: adversarially re-check each candidate span in isolation.
+        vresult = verifier.invoke(
+            [
+                messages.SystemMessage(content=_VERIFY_SYSTEM_PROMPT),
+                messages.HumanMessage(
+                    content=_build_verify_message(query, facets, candidates)
+                ),
+            ]
+        )
+        assert isinstance(vresult, dict)
+        vparsed = vresult["parsed"]
+        assert isinstance(vparsed, _VerifyOutput)
+        usage = usage + _usage_of(vresult["raw"])
+        confirmed = {v.facet for v in vparsed.verdicts if v.attested}
+        spans = {
+            facet: span for facet, span in candidates.items() if facet in confirmed
         }
         return spans, usage
 
