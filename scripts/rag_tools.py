@@ -2,6 +2,7 @@
 """RAG tools for document management and querying."""
 
 import datetime
+import functools
 import hashlib
 import json
 import logging
@@ -10,8 +11,11 @@ import pathlib
 import shutil
 import statistics
 import sys
+from dataclasses import dataclass
 
+import anyio
 import click
+import tabulate
 
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
@@ -229,6 +233,206 @@ def _ranked_source_texts(
     return texts
 
 
+@dataclass
+class _FixtureEval:
+    fixture: retrieval.RetrievalFixture
+    runs: list[list[str]]
+    first_ranks: list[dict[str, int | None]]
+    n_sources: list[int]
+    cov_default: list[int]
+    cov_full: list[int]
+    mean_cov_default: float
+    mean_cov_full: float
+    missed: list[str]
+
+
+def _analyze_fixture(
+    fixture: retrieval.RetrievalFixture,
+    texts_list: list[list[str]],
+    *,
+    default_k: int,
+) -> _FixtureEval:
+    first_ranks = [fixture.first_covered_rank(texts) for texts in texts_list]
+    n_sources = [len(texts) for texts in texts_list]
+    cov_default = [len(fixture.coverage_at_k(texts, default_k)) for texts in texts_list]
+    cov_full = [len(fixture.coverage_at_k(texts, len(texts))) for texts in texts_list]
+    mean_cov_default = statistics.mean(cov_default)
+    mean_cov_full = statistics.mean(cov_full)
+    missed = [
+        f for f in fixture.expected_coverage if all(fr[f] is None for fr in first_ranks)
+    ]
+    return _FixtureEval(
+        fixture=fixture,
+        runs=texts_list,
+        first_ranks=first_ranks,
+        n_sources=n_sources,
+        cov_default=cov_default,
+        cov_full=cov_full,
+        mean_cov_default=mean_cov_default,
+        mean_cov_full=mean_cov_full,
+        missed=missed,
+    )
+
+
+async def _afetch_sources(
+    store: types.Retriever,
+    fixture: retrieval.RetrievalFixture,
+    *,
+    k: int,
+    chunk_context: int,
+    repeat: int,
+    bm25: bool,
+    sem: anyio.Semaphore,
+) -> list[list[str]]:
+    texts_list: list[list[str] | None] = [None] * repeat
+
+    async def _run_once(idx: int) -> None:
+        async with sem:
+            texts_list[idx] = await anyio.to_thread.run_sync(
+                functools.partial(
+                    _ranked_source_texts,
+                    store,
+                    fixture,
+                    k=k,
+                    chunk_context=chunk_context,
+                    bm25=bm25,
+                ),
+            )
+
+    async with anyio.create_task_group() as tg:
+        for i in range(repeat):
+            tg.start_soon(_run_once, i)
+
+    return [t for t in texts_list if t is not None]
+
+
+async def _aeval_fixtures(
+    store: types.Retriever,
+    fixtures: list[retrieval.RetrievalFixture],
+    *,
+    k: int,
+    chunk_context: int,
+    default_k: int,
+    repeat: int,
+    bm25: bool,
+) -> list[_FixtureEval]:
+    sem = anyio.Semaphore(5)
+    results: list[_FixtureEval | None] = [None] * len(fixtures)
+
+    async def _eval_one(idx: int, fixture: retrieval.RetrievalFixture) -> None:
+        texts_list = await _afetch_sources(
+            store,
+            fixture,
+            k=k,
+            chunk_context=chunk_context,
+            repeat=repeat,
+            bm25=bm25,
+            sem=sem,
+        )
+        results[idx] = _analyze_fixture(fixture, texts_list, default_k=default_k)
+
+    async with anyio.create_task_group() as tg:
+        for idx, fixture in enumerate(fixtures):
+            tg.start_soon(_eval_one, idx, fixture)
+
+    return [r for r in results if r is not None]
+
+
+def _print_detail(
+    fe: _FixtureEval,
+    *,
+    default_k: int,
+    repeat: int,
+) -> None:
+    total = len(fe.fixture.expected_coverage)
+    print("=" * 80)
+    print(f"[{fe.fixture.subtype or fe.fixture.category}] {fe.fixture.query}")
+    print(
+        f"runs={repeat} | sources: {statistics.mean(fe.n_sources):.1f} | "
+        f"coverage@{default_k}: {fe.mean_cov_default:.1f}/{total} | "
+        f"coverage@full: {fe.mean_cov_full:.1f}/{total}"
+    )
+    for facet in fe.fixture.expected_coverage:
+        ranks = [fr[facet] for fr in fe.first_ranks]
+        within = [r for r in ranks if r is not None and r <= default_k]
+        anywhere = [r for r in ranks if r is not None]
+        if within:
+            detail = f"median rank {statistics.median(within):.0f}"
+            label = f"covered {len(within)}/{repeat} @<=k ({detail})"
+        elif anywhere:
+            label = f"TAIL: covered {len(anywhere)}/{repeat} only beyond k={default_k}"
+        else:
+            label = f"MISSING (0/{repeat} runs)"
+        print(f"  - {facet}: {label}")
+    for passage in fe.fixture.relevant_passages:
+        counts = [sum(passage.matches(t) for t in texts) for texts in fe.runs]
+        if (mean_count := statistics.mean(counts)) > 1:
+            print(
+                f"  [redundant] mean {mean_count:.1f} sources/run match passage: {passage.label}"
+            )
+
+
+def _print_summary(
+    evals: list[_FixtureEval],
+    *,
+    default_k: int,
+) -> None:
+    sorted_evals = sorted(
+        evals,
+        key=lambda e: (
+            e.mean_cov_default / len(e.fixture.expected_coverage)
+            if e.fixture.expected_coverage
+            else 0
+        ),
+    )
+    rows = []
+    for fe in sorted_evals:
+        total = len(fe.fixture.expected_coverage)
+        rows.append(
+            {
+                "category": fe.fixture.category,
+                "query": fe.fixture.query[:70],
+                "facets": total,
+                f"cov@{default_k}": f"{fe.mean_cov_default:4.1f}/{total:2d}",
+                "cov@full": f"{fe.mean_cov_full:4.1f}/{total:2d}",
+                f"cov_rate@{default_k}": (
+                    f"{fe.mean_cov_default / total:>4.0%}" if total else " N/A"
+                ),
+                "missed": ", ".join(fe.missed) if fe.missed else "",
+            }
+        )
+    print()
+    print("#" * 80)
+    print("# SUMMARY TABLE (sorted by coverage rate ascending)")
+    print("#" * 80)
+    print(
+        tabulate.tabulate(
+            rows,
+            headers="keys",
+            tablefmt="minimal",
+            stralign="left",
+            numalign="right",
+        )
+    )
+
+    total_facets = sum(len(fe.fixture.expected_coverage) for fe in evals)
+    covered_facets = sum(fe.mean_cov_default for fe in evals)
+    rates = [
+        fe.mean_cov_default / len(fe.fixture.expected_coverage)
+        for fe in evals
+        if fe.fixture.expected_coverage
+    ]
+    print()
+    mean_rate = statistics.mean(rates)
+    median_rate = statistics.median(rates)
+    print(
+        f"  Overall: {covered_facets:.1f}/{total_facets} facets ({covered_facets / total_facets:.0%}) "
+        f"| avg per-query rate {mean_rate:.0%} (median {median_rate:.0%}) "
+        f"| {len(evals)} queries"
+    )
+    print("=" * 80)
+
+
 @cli.command("eval-retrieval")
 @click.option(
     "-k",
@@ -273,7 +477,8 @@ def eval_retrieval(
     independent of chunk_context. Reports mean coverage at the production cutoff
     vs. the full retrieved ranking, and per-facet how reliably (over --repeat
     runs) it is surfaced within the cutoff. Use --repeat > 1 to average out the
-    non-determinism of the rewrite query transformer.
+    non-determinism of the rewrite query transformer. Fixture retrieval is
+    parallelized with anyio (trio-style structured concurrency).
     """
     store, language, _ = _load_store()
     if store.num_documents == 0:
@@ -293,54 +498,28 @@ def eval_retrieval(
         )
         sys.exit(1)
 
+    fevals = anyio.run(
+        functools.partial(
+            _aeval_fixtures,
+            k=k,
+            chunk_context=chunk_context,
+            default_k=default_k,
+            repeat=repeat,
+            bm25=bm25,
+        ),
+        store,
+        fixtures,
+    )
+
     current_category = None
-    for fixture in fixtures:
-        if fixture.category != current_category:
-            current_category = fixture.category
+    for fe in fevals:
+        if fe.fixture.category != current_category:
+            current_category = fe.fixture.category
             print("#" * 80)
             print(f"# CATEGORY: {current_category}")
+        _print_detail(fe, default_k=default_k, repeat=repeat)
 
-        total = len(fixture.expected_coverage)
-        runs = [
-            _ranked_source_texts(
-                store, fixture, k=k, chunk_context=chunk_context, bm25=bm25
-            )
-            for _ in range(repeat)
-        ]
-        first_ranks = [fixture.first_covered_rank(texts) for texts in runs]
-
-        n_sources = [len(texts) for texts in runs]
-        cov_default = [len(fixture.coverage_at_k(texts, default_k)) for texts in runs]
-        cov_full = [len(fixture.coverage_at_k(texts, len(texts))) for texts in runs]
-
-        print("=" * 80)
-        print(f"[{fixture.subtype or fixture.category}] {fixture.query}")
-        print(
-            f"runs={repeat} | sources: {statistics.mean(n_sources):.1f} | "
-            f"coverage@{default_k}: {statistics.mean(cov_default):.1f}/{total} | "
-            f"coverage@full: {statistics.mean(cov_full):.1f}/{total}"
-        )
-        for facet in fixture.expected_coverage:
-            ranks = [fr[facet] for fr in first_ranks]
-            within = [r for r in ranks if r is not None and r <= default_k]
-            anywhere = [r for r in ranks if r is not None]
-            if within:
-                detail = f"median rank {statistics.median(within):.0f}"
-                label = f"covered {len(within)}/{repeat} @<=k ({detail})"
-            elif anywhere:
-                label = (
-                    f"TAIL: covered {len(anywhere)}/{repeat} only beyond k={default_k}"
-                )
-            else:
-                label = f"MISSING (0/{repeat} runs)"
-            print(f"  - {facet}: {label}")
-        for passage in fixture.relevant_passages:
-            counts = [sum(passage.matches(t) for t in texts) for texts in runs]
-            if (mean_count := statistics.mean(counts)) > 1:
-                print(
-                    f"  [redundant] mean {mean_count:.1f} sources/run match passage: {passage.label}"
-                )
-    print("=" * 80)
+    _print_summary(fevals, default_k=default_k)
 
 
 @cli.command()
