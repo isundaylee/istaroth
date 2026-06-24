@@ -647,48 +647,44 @@ def eval_retrieval(
         intent_fn = lambda _query: parsed
 
     run_dir = _resolve_eval_output_dir(output_dir, eval_type="retrieval")
-    provider, span_file = tracing.setup_file_tracing(
-        run_dir / "spans.jsonl", service_name="eval-retrieval"
-    )
-    try:
-        with _tracer.start_as_current_span("eval_retrieval") as run_span:
-            run_span.set_attribute("eval.output_dir", str(run_dir))
-            run_span.set_attribute("eval.language", language.value)
-            run_span.set_attribute("eval.budget", _budget_val)
-            run_span.set_attribute("eval.intent_mode", intent)
-            run_span.set_attribute("eval.repeat", repeat)
-            run_span.set_attribute("eval.bm25", bm25)
-            run_span.set_attribute("eval.num_fixtures", len(fixtures))
-            run_span.set_attribute("eval.num_documents", store.num_documents)
-            run_span.set_attribute(
-                "eval.query_transformer",
-                os.environ.get("ISTAROTH_QUERY_TRANSFORMER", "identity"),
-            )
-            run_span.set_attribute(
-                "eval.embeddings", os.environ.get("ISTAROTH_EMBEDDINGS", "local")
-            )
-            run_span.set_attribute(
-                "eval.reranker", os.environ.get("ISTAROTH_RERANKER", "rrf")
-            )
-            run_span.set_attribute(
-                "eval.query_normalizer",
-                os.environ.get("ISTAROTH_QUERY_NORMALIZER", "identity"),
-            )
-            fevals, pending_writes, judge_usage = anyio.run(
-                functools.partial(
-                    _aeval_fixtures,
-                    budget=_budget_val,
-                    intent_fn=intent_fn,
-                    repeat=repeat,
-                    bm25=bm25,
-                    judge_fn=judge.make_judge(judge_model) if use_judge else None,
-                ),
-                store,
-                fixtures,
-            )
-    finally:
-        provider.shutdown()
-        span_file.close()
+    with (
+        tracing.file_tracing(run_dir / "spans.jsonl", service_name="eval-retrieval"),
+        _tracer.start_as_current_span("eval_retrieval") as run_span,
+    ):
+        run_span.set_attribute("eval.output_dir", str(run_dir))
+        run_span.set_attribute("eval.language", language.value)
+        run_span.set_attribute("eval.budget", _budget_val)
+        run_span.set_attribute("eval.intent_mode", intent)
+        run_span.set_attribute("eval.repeat", repeat)
+        run_span.set_attribute("eval.bm25", bm25)
+        run_span.set_attribute("eval.num_fixtures", len(fixtures))
+        run_span.set_attribute("eval.num_documents", store.num_documents)
+        run_span.set_attribute(
+            "eval.query_transformer",
+            os.environ.get("ISTAROTH_QUERY_TRANSFORMER", "identity"),
+        )
+        run_span.set_attribute(
+            "eval.embeddings", os.environ.get("ISTAROTH_EMBEDDINGS", "local")
+        )
+        run_span.set_attribute(
+            "eval.reranker", os.environ.get("ISTAROTH_RERANKER", "rrf")
+        )
+        run_span.set_attribute(
+            "eval.query_normalizer",
+            os.environ.get("ISTAROTH_QUERY_NORMALIZER", "identity"),
+        )
+        fevals, pending_writes, judge_usage = anyio.run(
+            functools.partial(
+                _aeval_fixtures,
+                budget=_budget_val,
+                intent_fn=intent_fn,
+                repeat=repeat,
+                bm25=bm25,
+                judge_fn=judge.make_judge(judge_model) if use_judge else None,
+            ),
+            store,
+            fixtures,
+        )
 
     current_category = None
     for fe in fevals:
