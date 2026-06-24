@@ -1,7 +1,10 @@
 """Shared OpenTelemetry tracing setup for Istaroth services."""
 
+import collections.abc
+import contextlib
 import logging
 import os
+import pathlib
 
 import fastapi
 from opentelemetry import trace
@@ -32,6 +35,36 @@ def setup_tracing(service_name: str) -> None:
     httpx_instrumentation.HTTPXClientInstrumentor().instrument()
 
     logger.info("Tracing setup completed, sending traces to %s", endpoint)
+
+
+@contextlib.contextmanager
+def file_tracing(
+    output_path: pathlib.Path, *, service_name: str
+) -> collections.abc.Iterator[sdk_trace.TracerProvider]:
+    """Configure OTel tracing to write spans as JSONL to a local file.
+
+    Unlike :func:`setup_tracing`, this never talks to a collector; spans are
+    serialized one-per-line to ``output_path``. On exit, spans are flushed and
+    the file is closed.
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    out = output_path.open("w", encoding="utf-8")
+    provider = sdk_trace.TracerProvider(
+        resource=resources.Resource.create({"service.name": service_name})
+    )
+    provider.add_span_processor(
+        sdk_trace_export.SimpleSpanProcessor(
+            sdk_trace_export.ConsoleSpanExporter(
+                out=out, formatter=lambda span: span.to_json(indent=None) + "\n"
+            )
+        )
+    )
+    trace.set_tracer_provider(provider)
+    try:
+        yield provider
+    finally:
+        provider.shutdown()
+        out.close()
 
 
 def instrument_fastapi_app(app: fastapi.FastAPI) -> None:

@@ -7,6 +7,7 @@ the same underlying text files; a DocumentStoreSet exposes both views.
 """
 
 import concurrent.futures
+import contextvars
 import functools
 import hashlib
 import io
@@ -401,15 +402,22 @@ class DocumentStore:
     ) -> types.RetrieveOutput:
         """Search using hybrid vector + BM25 retrieval with reciprocal rank fusion.
 
-        Sync wrapper around aretrieve for use in sync contexts.
+        Sync wrapper around aretrieve for use in sync contexts. The current
+        context is copied into the worker thread so OTel spans created inside
+        aretrieve nest under the active span instead of starting a new trace.
         """
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            return pool.submit(
+        ctx = contextvars.copy_context()
+
+        def _run() -> types.RetrieveOutput:
+            return ctx.run(
                 anyio.run,
                 functools.partial(
                     self.aretrieve, query, k=k, chunk_context=chunk_context
                 ),
-            ).result()
+            )
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            return pool.submit(_run).result()
 
     async def aretrieve(
         self, query: str, *, k: int, chunk_context: int
@@ -421,6 +429,7 @@ class DocumentStore:
                 lambda: self._query_transformer.transform(query)
             )
             span.set_attribute("num_queries", len(queries))
+            span.set_attribute("queries", queries)
 
         logger.info("Transformed query '%s' into: %r", query, queries)
 
