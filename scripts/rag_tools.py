@@ -22,6 +22,7 @@ import tabulate
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 import langsmith as ls
+from opentelemetry import trace
 
 from istaroth import llm_manager, logging_utils, utils
 from istaroth.agd import localization
@@ -37,9 +38,12 @@ from istaroth.rag import (
     types,
 )
 from istaroth.rag.eval import judge, retrieval
+from istaroth.services.common import tracing
 from istaroth.text import manifest
 
 logger = logging.getLogger(__name__)
+
+_tracer = trace.get_tracer("istaroth.eval.retrieval")
 
 
 def _get_files_to_process(text_path: pathlib.Path) -> list[pathlib.Path]:
@@ -66,6 +70,25 @@ def _load_store() -> tuple[types.Retriever, localization.Language, text_set.Text
     if store.num_documents > 0:
         logger.info("Loaded store with %d existing documents", store.num_documents)
     return store, language, ts
+
+
+def _resolve_eval_output_dir(
+    output_dir: pathlib.Path | None, *, eval_type: str
+) -> pathlib.Path:
+    """Resolve a run's output directory, creating it.
+
+    Uses ``output_dir`` verbatim when given; otherwise derives
+    ``$ISTAROTH_EVAL_OUTPUT_ROOT/<eval_type>/<timestamp>``.
+    """
+    if output_dir is None:
+        if not (root := os.environ.get("ISTAROTH_EVAL_OUTPUT_ROOT")):
+            raise click.UsageError(
+                "Pass --output-dir or set ISTAROTH_EVAL_OUTPUT_ROOT."
+            )
+        timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        output_dir = pathlib.Path(root) / eval_type / timestamp
+    output_dir.mkdir(parents=True, exist_ok=True)
+    return output_dir
 
 
 @click.group()
@@ -358,55 +381,75 @@ async def _aeval_fixtures(
     usages: list[judge.JudgeUsage] = []
 
     async def _eval_one(idx: int, fixture: retrieval.RetrievalFixture) -> None:
-        intent = intent_fn(fixture.query)
-        fk, fcc = _budget.allocate(budget, intent)
-        print(f"[fixture] {fixture.query} → intent={intent.value} k={fk} cc={fcc}")
-        texts_list, paths_list, chunks_list = await _afetch_sources(
-            store,
-            fixture,
-            k=fk,
-            chunk_context=fcc,
-            repeat=repeat,
-            bm25=bm25,
-            sem=sem,
-        )
-        fe = _analyze_fixture(fixture, texts_list, n_chunks=chunks_list)
-        if judge_fn is not None and fe.missed:
-            try:
-                async with sem:
-                    new_passages, usage = await _judge_rescue(
-                        fixture, texts_list, paths_list, fe.missed, judge_fn=judge_fn
-                    )
-                usages.append(usage)
-            except Exception as exc:  # judge unavailable → misses stand (conservative)
-                print(
-                    f"[judge] {fixture.query}: judging failed ({exc!r}); misses stand"
-                )
-                new_passages = []
-            if new_passages:
-                augmented = attrs.evolve(
-                    fixture,
-                    relevant_passages=fixture.relevant_passages + tuple(new_passages),
-                )
-                fe = _analyze_fixture(augmented, texts_list, n_chunks=chunks_list)
-                for passage in new_passages:
-                    pending_writes.append(
-                        (
-                            fixture.category,
-                            fixture.query,
-                            {
-                                "passage": passage.passage,
-                                "label": passage.label,
-                                "official": passage.official,
-                                "covers": list(passage.covers),
-                            },
+        with _tracer.start_as_current_span("fixture") as span:
+            span.set_attribute("fixture.query", fixture.query)
+            span.set_attribute("fixture.category", fixture.category)
+            intent = intent_fn(fixture.query)
+            fk, fcc = _budget.allocate(budget, intent)
+            span.set_attribute("fixture.intent", intent.value)
+            span.set_attribute("fixture.k", fk)
+            span.set_attribute("fixture.chunk_context", fcc)
+            print(f"[fixture] {fixture.query} → intent={intent.value} k={fk} cc={fcc}")
+            texts_list, paths_list, chunks_list = await _afetch_sources(
+                store,
+                fixture,
+                k=fk,
+                chunk_context=fcc,
+                repeat=repeat,
+                bm25=bm25,
+                sem=sem,
+            )
+            fe = _analyze_fixture(fixture, texts_list, n_chunks=chunks_list)
+            if judge_fn is not None and fe.missed:
+                try:
+                    async with sem:
+                        new_passages, usage = await _judge_rescue(
+                            fixture,
+                            texts_list,
+                            paths_list,
+                            fe.missed,
+                            judge_fn=judge_fn,
                         )
+                    usages.append(usage)
+                except (
+                    Exception
+                ) as exc:  # judge unavailable → misses stand (conservative)
+                    print(
+                        f"[judge] {fixture.query}: judging failed ({exc!r}); misses stand"
                     )
-                print(
-                    f"[judge] {fixture.query}: rescued "
-                    f"{sorted(p.covers[0] for p in new_passages)}"
-                )
-        results[idx] = fe
+                    new_passages = []
+                if new_passages:
+                    augmented = attrs.evolve(
+                        fixture,
+                        relevant_passages=fixture.relevant_passages
+                        + tuple(new_passages),
+                    )
+                    fe = _analyze_fixture(augmented, texts_list, n_chunks=chunks_list)
+                    for passage in new_passages:
+                        pending_writes.append(
+                            (
+                                fixture.category,
+                                fixture.query,
+                                {
+                                    "passage": passage.passage,
+                                    "label": passage.label,
+                                    "official": passage.official,
+                                    "covers": list(passage.covers),
+                                },
+                            )
+                        )
+                    print(
+                        f"[judge] {fixture.query}: rescued "
+                        f"{sorted(p.covers[0] for p in new_passages)}"
+                    )
+            span.set_attribute("fixture.num_facets", len(fixture.expected_coverage))
+            span.set_attribute("fixture.coverage", fe.coverage)
+            span.set_attribute("fixture.mean_coverage", fe.mean_coverage)
+            span.set_attribute("fixture.missed", fe.missed)
+            span.set_attribute("fixture.n_sources", fe.n_sources)
+            span.set_attribute("fixture.n_chunks", fe.n_chunks)
+            span.set_attribute("fixture.first_ranks", json.dumps(fe.first_ranks))
+            results[idx] = fe
 
     async with anyio.create_task_group() as tg:
         for idx, fixture in enumerate(fixtures):
@@ -549,6 +592,13 @@ def _print_summary(
     default=True,
     help="Persist judge-discovered spans back into fixtures as anchors (self-hardening)",
 )
+@click.option(
+    "--output-dir",
+    type=click.Path(file_okay=False, path_type=pathlib.Path),
+    default=None,
+    help="Directory for this run's OTEL span output. If omitted, derived as "
+    "$ISTAROTH_EVAL_OUTPUT_ROOT/retrieval/<timestamp>.",
+)
 def eval_retrieval(
     *,
     budget: int,
@@ -559,6 +609,7 @@ def eval_retrieval(
     use_judge: bool,
     judge_model: str,
     judge_write: bool,
+    output_dir: pathlib.Path | None,
 ) -> None:
     """Measure facet coverage of the retrieval-eval fixtures against retrieval.
 
@@ -595,18 +646,49 @@ def eval_retrieval(
         assert parsed is not None
         intent_fn = lambda _query: parsed
 
-    fevals, pending_writes, judge_usage = anyio.run(
-        functools.partial(
-            _aeval_fixtures,
-            budget=_budget_val,
-            intent_fn=intent_fn,
-            repeat=repeat,
-            bm25=bm25,
-            judge_fn=judge.make_judge(judge_model) if use_judge else None,
-        ),
-        store,
-        fixtures,
+    run_dir = _resolve_eval_output_dir(output_dir, eval_type="retrieval")
+    provider, span_file = tracing.setup_file_tracing(
+        run_dir / "spans.jsonl", service_name="eval-retrieval"
     )
+    try:
+        with _tracer.start_as_current_span("eval_retrieval") as run_span:
+            run_span.set_attribute("eval.output_dir", str(run_dir))
+            run_span.set_attribute("eval.language", language.value)
+            run_span.set_attribute("eval.budget", _budget_val)
+            run_span.set_attribute("eval.intent_mode", intent)
+            run_span.set_attribute("eval.repeat", repeat)
+            run_span.set_attribute("eval.bm25", bm25)
+            run_span.set_attribute("eval.num_fixtures", len(fixtures))
+            run_span.set_attribute("eval.num_documents", store.num_documents)
+            run_span.set_attribute(
+                "eval.query_transformer",
+                os.environ.get("ISTAROTH_QUERY_TRANSFORMER", "identity"),
+            )
+            run_span.set_attribute(
+                "eval.embeddings", os.environ.get("ISTAROTH_EMBEDDINGS", "local")
+            )
+            run_span.set_attribute(
+                "eval.reranker", os.environ.get("ISTAROTH_RERANKER", "rrf")
+            )
+            run_span.set_attribute(
+                "eval.query_normalizer",
+                os.environ.get("ISTAROTH_QUERY_NORMALIZER", "identity"),
+            )
+            fevals, pending_writes, judge_usage = anyio.run(
+                functools.partial(
+                    _aeval_fixtures,
+                    budget=_budget_val,
+                    intent_fn=intent_fn,
+                    repeat=repeat,
+                    bm25=bm25,
+                    judge_fn=judge.make_judge(judge_model) if use_judge else None,
+                ),
+                store,
+                fixtures,
+            )
+    finally:
+        provider.shutdown()
+        span_file.close()
 
     current_category = None
     for fe in fevals:
@@ -636,6 +718,8 @@ def eval_retrieval(
             f"({judge_usage.input_tokens} in + {judge_usage.output_tokens} out) "
             f"over {judge_usage.calls} call(s)"
         )
+
+    print(f"[eval] OTEL spans written to {run_dir / 'spans.jsonl'}")
 
 
 def _make_auto_intent_fn(
