@@ -17,6 +17,26 @@ class _FakeLLM:
         return self._response
 
 
+@pytest.mark.parametrize(
+    "original,candidate,expected",
+    [
+        # Genuine same-length homophone corrections (tone may differ).
+        ("钟梨", "钟离", True),
+        ("桑多捏", "桑多涅", True),
+        ("鍾離", "钟离", True),  # traditional -> simplified, same reading
+        ("钟离", "钟离", True),  # unchanged
+        ("钟梨是谁", "钟离是谁", True),  # corrected term embedded in a longer query
+        # #240: substituting an unrelated proper noun that only shares some
+        # syllables must be rejected (different length-aligned readings).
+        ("山中好长日", "长日一灯明", False),
+        ("山中好长日", "山中长日明", False),  # reordered, not a per-position homophone
+        ("钟离", "钟离的身份", False),  # length change
+    ],
+)
+def test_is_homophone_rewrite(original: str, candidate: str, expected: bool) -> None:
+    assert query_normalize._is_homophone_rewrite(original, candidate) is expected
+
+
 def test_llm_normalizer_filters_vocabulary_by_phonetic_match():
     fake = _FakeLLM("钟离")
     normalizer = query_normalize.LLMQueryNormalizer(

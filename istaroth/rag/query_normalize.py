@@ -36,6 +36,36 @@ def _phonetic_signature(text: str) -> frozenset[str]:
     return frozenset(syllables)
 
 
+def _char_readings(char: str) -> frozenset[str]:
+    """All tone-less pinyin readings (incl. heteronyms) of a single character.
+
+    Non-Han characters have no pinyin; pypinyin echoes them back, so the reading
+    set is just the character itself and only matches itself.
+    """
+    return frozenset(
+        reading
+        for readings in pypinyin.pinyin(
+            char, style=pypinyin.Style.NORMAL, heteronym=True
+        )
+        for reading in readings
+    )
+
+
+def _is_homophone_rewrite(original: str, candidate: str) -> bool:
+    """Whether ``candidate`` is a same-length, per-position homophone of ``original``.
+
+    The deterministic guard behind the LLM normalizer: a legitimate correction
+    only swaps characters for same/near-reading ones (tone may differ), so it
+    must preserve length and share a reading at every position. This rejects the
+    #240 failure mode where the model substitutes an unrelated proper noun that
+    merely shares some syllables (e.g. 山中好长日 → 长日一灯明: different length-aligned
+    readings), letting us fall back to the original query.
+    """
+    return len(original) == len(candidate) and all(
+        _char_readings(o) & _char_readings(c) for o, c in zip(original, candidate)
+    )
+
+
 class QueryNormalizer(ABC):
     """Abstract base class for query normalizers (strict 1:1 correction)."""
 
@@ -118,15 +148,15 @@ class LLMQueryNormalizer(QueryNormalizer):
     def create(
         cls,
         *,
-        model: str = "gemini-3-flash-preview",
+        model: str = "gemini-3.1-flash-lite-preview",
         vocabulary: tuple[str, ...] = (),
     ) -> "LLMQueryNormalizer":
-        """Create an LLM-backed normalizer using a Gemini model.
+        """Create an LLM-backed normalizer using a cheap Gemini model.
 
-        Uses ``flash`` rather than ``flash-lite``: the lite model does not reliably
-        obey the strict same-reading homophone constraint and substitutes a
-        phonetically-adjacent proper noun from the vocabulary for a valid query
-        (#240, e.g. 山中好长日 → 长日一灯明).
+        Uses the fast ``flash-lite`` model: on its own it does not reliably obey
+        the same-reading homophone constraint (#240), but ``normalize`` rejects
+        any non-homophone output via :func:`_is_homophone_rewrite` and falls back
+        to the original query, so the lite model's speed is safe to use.
         """
         return cls(google_llms.GoogleGenerativeAI(model=model), vocabulary=vocabulary)
 
@@ -175,4 +205,13 @@ class LLMQueryNormalizer(QueryNormalizer):
                 query,
             )
             return query
-        return lines[0]
+
+        corrected = lines[0]
+        if not _is_homophone_rewrite(query, corrected):
+            logger.info(
+                "Rejecting non-homophone normalization %r -> %r; keeping original",
+                query,
+                corrected,
+            )
+            return query
+        return corrected
