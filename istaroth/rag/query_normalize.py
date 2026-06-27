@@ -36,6 +36,36 @@ def _phonetic_signature(text: str) -> frozenset[str]:
     return frozenset(syllables)
 
 
+def _char_readings(char: str) -> frozenset[str]:
+    """All tone-less pinyin readings (incl. heteronyms) of a single character.
+
+    Non-Han characters have no pinyin; pypinyin echoes them back, so the reading
+    set is just the character itself and only matches itself.
+    """
+    return frozenset(
+        reading
+        for readings in pypinyin.pinyin(
+            char, style=pypinyin.Style.NORMAL, heteronym=True
+        )
+        for reading in readings
+    )
+
+
+def _is_homophone_rewrite(original: str, candidate: str) -> bool:
+    """Whether ``candidate`` is a same-length, per-position homophone of ``original``.
+
+    The deterministic guard behind the LLM normalizer: a legitimate correction
+    only swaps characters for same/near-reading ones (tone may differ), so it
+    must preserve length and share a reading at every position. This rejects the
+    #240 failure mode where the model substitutes an unrelated proper noun that
+    merely shares some syllables (e.g. 山中好长日 → 长日一灯明: different length-aligned
+    readings), letting us fall back to the original query.
+    """
+    return len(original) == len(candidate) and all(
+        _char_readings(o) & _char_readings(c) for o, c in zip(original, candidate)
+    )
+
+
 class QueryNormalizer(ABC):
     """Abstract base class for query normalizers (strict 1:1 correction)."""
 
@@ -83,21 +113,21 @@ class LLMQueryNormalizer(QueryNormalizer):
     _PROMPT_TEMPLATE: typing.ClassVar[
         str
     ] = """\
-你是《原神》知识检索系统的查询规范化工具。请对用户输入的检索查询进行表面形式纠错，输出恰好一行纠正后的查询。
+你是《原神》知识检索系统的查询规范化工具。你只做一件事：同音字纠错——把查询里读音正确但写错的字，改成《原神》中的标准写法，输出恰好一行结果。
 {vocabulary_section}\
-需要纠正的错误类型：
-- 中文错别字或同音字误用（如"钟梨"→"钟离"，"温迪尔"→"温迪"）
-- 繁体字转简体（如"鍾離"→"钟离"）
-- 英文拼写错误（如"Zhongil"→"Zhongli"，"Raidnen"→"Raiden"）
-- 全角/半角混用、多余空格、标点规范化
+严格限制：
+- 纠正后的查询字数必须与原查询完全相同，且第 i 个字必须与原查询第 i 个字读音相同（允许仅声调不同）；输出前请逐字核对读音，只要有一个字读音对不上，就不要那样改
+- 你只能逐字替换写错的同音字（繁体转简体读音不变，也算同音纠错）；不得增字、删字、重排，不得改写、扩写、翻译或分解
+- 读音不同就一定是不同的词：绝不能因为查询与参考列表中的某个名词意思相近、或有部分相同的字，就替换成那个名词
+- 如果查询读音上已无错字，即使它不在参考列表中，也必须原样输出
+- 拿不准时一律保持原样，宁可不改也不要改错
+- 只输出纠正后的查询本身，必须只有一行，不要解释、编号或任何多余文字
 
-严格要求：
-- 不得改变查询的语义和意图
-- 不得改写、扩写、翻译或分解查询
-- 不得增删实质信息内容
-- 如果查询已经正确，原样输出
-- 只输出纠正后的查询本身，不要解释、编号或任何多余文字
-- 必须只输出一行
+示例：
+查询：钟梨
+纠正结果：钟离
+查询：那西妲
+纠正结果：纳西妲
 
 查询：{query}
 纠正结果："""
@@ -121,7 +151,13 @@ class LLMQueryNormalizer(QueryNormalizer):
         model: str = "gemini-3.1-flash-lite-preview",
         vocabulary: tuple[str, ...] = (),
     ) -> "LLMQueryNormalizer":
-        """Create an LLM-backed normalizer using a cheap Gemini model."""
+        """Create an LLM-backed normalizer using a cheap Gemini model.
+
+        Uses the fast ``flash-lite`` model: on its own it does not reliably obey
+        the same-reading homophone constraint (#240), but ``normalize`` rejects
+        any non-homophone output via :func:`_is_homophone_rewrite` and falls back
+        to the original query, so the lite model's speed is safe to use.
+        """
         return cls(google_llms.GoogleGenerativeAI(model=model), vocabulary=vocabulary)
 
     def _candidate_vocabulary(self, query: str) -> list[str]:
@@ -146,9 +182,9 @@ class LLMQueryNormalizer(QueryNormalizer):
 
         candidates = self._candidate_vocabulary(query)
         vocabulary_section = (
-            "以下是《原神》中专有名词的参考列表，纠正时应优先匹配其中的条目：\n"
-            + "\n".join(candidates)
-            + "\n"
+            "以下是《原神》中专有名词的标准写法参考，仅用于确认同音错字的正确写法。"
+            "只有当查询与某个条目读音相同、只是个别字写错时，才替换成该条目；读音不同"
+            "则一律保持原样：\n" + "\n".join(candidates) + "\n"
             if candidates
             else ""
         )
@@ -169,4 +205,13 @@ class LLMQueryNormalizer(QueryNormalizer):
                 query,
             )
             return query
-        return lines[0]
+
+        corrected = lines[0]
+        if not _is_homophone_rewrite(query, corrected):
+            logger.info(
+                "Rejecting non-homophone normalization %r -> %r; keeping original",
+                query,
+                corrected,
+            )
+            return query
+        return corrected
