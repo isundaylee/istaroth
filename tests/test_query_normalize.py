@@ -61,6 +61,10 @@ _NORMALIZER_VOCABULARY = (
         # resolve to the canonical registered spelling.
         ("捷德", "婕德"),
         ("桑多捏", "桑多涅"),
+        # Same corrections when the misspelled term is only part of a longer
+        # query, not the whole query — the rest of the sentence is untouched.
+        ("捷德是谁", "婕德是谁"),
+        ("桑多捏的故事讲了什么", "桑多涅的故事讲了什么"),
     ],
 )
 def test_llm_normalizer_corrects_typos_without_substituting_entities(
