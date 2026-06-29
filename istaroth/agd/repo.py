@@ -29,12 +29,10 @@ logger = logging.getLogger(__name__)
 _K = TypeVar("_K")
 _T = TypeVar("_T")
 # Ordered newest-to-oldest; earlier refs win when multiple fallbacks contain a hash.
+# Sex-pronoun SEXPRO tokens also resolve against these builds (see
+# _load_pronoun_text_map): 6.x dropped their TextMap rows and reassigned the manual
+# hash ids, so both token -> hash and hash -> text are read from here.
 _TEXT_MAP_FALLBACK_REFS: tuple[str, ...] = ("8c3aecbd6ed",)
-# Sex-pronoun SEXPRO tokens resolve via ManualTextMapConfigData (token -> hash) then
-# TextMap (hash -> text). 6.x dropped the TextMap rows AND reassigned the hash ids,
-# so both files must be read from one older cleartext build to resolve
-# self-consistently. Pinned to 5.4.0 (same revision as the TextMap fallback above).
-_PRONOUN_TEXT_MAP_REF = "8c3aecbd6ed"
 
 
 class IdTracker(Generic[_K]):
@@ -354,31 +352,34 @@ class DataRepo:
     def _load_pronoun_text_map(self, language_short: str) -> dict[str, str]:
         """Resolve SEXPRO ``INFO_*_PRONOUN_*`` tokens to raw text.
 
-        token -> hash (ManualTextMapConfigData) and hash -> text (TextMap) are both
-        read from ``_PRONOUN_TEXT_MAP_REF``, the only place they resolve
-        self-consistently after 6.x dropped/reassigned them (see the constant).
+        The SEXPRO branches are token *names*, so each needs token -> hash
+        (ManualTextMapConfigData) then hash -> text (TextMap). 6.x dropped these
+        TextMap rows and reassigned the manual hash ids, so the manual config is
+        read from the same older ``_TEXT_MAP_FALLBACK_REFS`` builds whose TextMaps
+        already back-fill the dropped hashes; token and hash stay consistent
+        because both come from that build.
         """
-        ref = _PRONOUN_TEXT_MAP_REF
-        text_map: dict[id_types.TextMapHash, str] = {}
-        if (
-            medium := self._git_show_text_map(
-                ref, f"TextMap_Medium{language_short}.json", required=False
-            )
-        ) is not None:
-            text_map.update({int(k): v for k, v in medium.items()})
-        main = self._git_show_text_map(
-            ref, f"TextMap{language_short}.json", required=True
-        )
-        assert main is not None
-        text_map.update({int(k): v for k, v in main.items()})
-        manual = self._git_show_json(ref, "ExcelBinOutput/ManualTextMapConfigData.json")
-        return {
-            entry["textMapId"]: text
-            for entry in manual
-            if entry["textMapId"].startswith("INFO_")
-            and (text := text_map.get(int(entry["textMapContentTextMapHash"])))
-            is not None
+        fallback_text_map = {
+            int(k): v for k, v in self._load_fallback_text_map(language_short).items()
         }
+        pronoun_map: dict[str, str] = {}
+        for ref in _TEXT_MAP_FALLBACK_REFS:
+            for entry in self._git_show_json(
+                ref, "ExcelBinOutput/ManualTextMapConfigData.json"
+            ):
+                token = entry["textMapId"]
+                if (
+                    token.startswith("INFO_")
+                    and token not in pronoun_map
+                    and (
+                        text := fallback_text_map.get(
+                            int(entry["textMapContentTextMapHash"])
+                        )
+                    )
+                    is not None
+                ):
+                    pronoun_map[token] = text
+        return pronoun_map
 
     def _git_show_json(self, ref: str, path: str) -> Any:
         result = subprocess.run(
