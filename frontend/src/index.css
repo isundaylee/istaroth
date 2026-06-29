@@ -265,11 +265,6 @@ body {
   font-size: var(--font-sm);
 }
 
-/* Retrieve reuses the composer but sizes to content (no tall hero input). */
-.query-composer.query-composer--search {
-  min-height: auto;
-}
-
 /* Segmented Keyword/Semantic toggle that lives in the composer footer. */
 .search-mode {
   display: inline-flex;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
 
 interface ComposerProps {
   value: string
@@ -10,8 +10,6 @@ interface ComposerProps {
   // Enter submits (Shift+Enter inserts a newline). When false, only Cmd/Ctrl+Enter
   // submits and a bare Enter inserts a newline.
   submitOnEnter?: boolean
-  // Adds the compact `.query-composer--search` modifier.
-  variant?: 'search'
   // Footer left slot: model/preset selects, search-mode toggle, etc.
   controls?: ReactNode
   // Footer right slot: the submit button (type="submit").
@@ -34,20 +32,22 @@ function Composer({
   disabled,
   rows = 2,
   submitOnEnter = false,
-  variant,
   controls,
   actions,
 }: ComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  useEffect(() => {
+  // Layout effects (not useEffect) so the textarea is focused and sized to its
+  // content before the browser paints — otherwise the box visibly jumps from the
+  // `rows` height to the measured height on every mount.
+  useLayoutEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.focus()
       resizeTextarea(textareaRef.current)
     }
   }, [])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (textareaRef.current) resizeTextarea(textareaRef.current)
   }, [value])
 
@@ -59,7 +59,7 @@ function Composer({
         onSubmit()
       }}
     >
-      <div className={`query-composer${variant === 'search' ? ' query-composer--search' : ''}`}>
+      <div className="query-composer">
         <textarea
           ref={textareaRef}
           value={value}

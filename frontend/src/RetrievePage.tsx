@@ -194,14 +194,12 @@ function RetrievePage() {
       <Navigation />
       <main className="main">
         <Composer
-          variant="search"
           submitOnEnter
           value={formParams.query}
           onChange={(query) => setFormParams({ ...formParams, query })}
           onSubmit={handleSubmit}
           placeholder={t('retrieve.placeholder')}
           disabled={loading}
-          rows={1}
           controls={
             <div className="search-mode" role="group" aria-label={t('retrieve.searchMode')}>
               <button
