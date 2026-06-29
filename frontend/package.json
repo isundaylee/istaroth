@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@types/html2canvas": "^0.5.35",
+    "clsx": "^2.1.1",
     "html2canvas": "^1.4.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
