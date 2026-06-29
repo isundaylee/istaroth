@@ -260,7 +260,10 @@ body {
 
 .button.query-submit-button {
   flex: 0 0 auto;
-  min-width: 5.25rem;
+  /* Wide enough that every submit label (Ask/Answering, Search/Searching…) in
+     either language fits, so the button is the same width on both pages and
+     never changes width between idle and loading. */
+  min-width: 7.5rem;
   padding: 0.5rem 1.25rem;
   font-size: var(--font-sm);
 }
