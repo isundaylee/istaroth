@@ -268,26 +268,34 @@ body {
   font-size: var(--font-sm);
 }
 
-/* Segmented Keyword/Semantic toggle that lives in the composer footer. */
+/* Segmented Keyword/Semantic toggle, styled to match the composer's selects
+   (same height, border, radius, and muted surface) so the footer controls read
+   as one family and the bottom-aligned submit button lands identically on both
+   pages. */
 .search-mode {
   display: inline-flex;
-  border: 1px solid var(--color-border);
+  align-items: stretch;
+  height: 2.25rem;
+  border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
+  background-color: var(--color-surface-secondary);
   overflow: hidden;
 }
 
 .search-mode button {
+  display: flex;
+  align-items: center;
   border: 0;
-  background: var(--color-surface);
+  padding: 0 0.95rem;
+  background: transparent;
   color: var(--color-text-secondary);
   font-size: var(--font-sm);
-  padding: 0.4rem 0.95rem;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
 }
 
 .search-mode button + button {
-  border-left: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-border-light);
 }
 
 .search-mode button.is-active {
