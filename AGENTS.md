@@ -77,6 +77,7 @@ istaroth/
 - ALWAYS prefer one-lines
 - ALWAYS avoid intermediate variables that is only used once
 - ALWAYS avoid writing obvious comments
+- NEVER delete existing comments or docstrings when making unrelated changes in the same file. If the task doesn't touch a comment's purpose, leave it in place even if it seems trivial.
 
 ## Testing Philosophy
 
