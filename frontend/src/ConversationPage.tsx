@@ -13,6 +13,8 @@ import CitationRenderer from './components/CitationRenderer'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import { useProperNounSelection } from './hooks/useProperNounSelection'
 import type { ConversationResponse } from './types/api'
+import convStyles from './ConversationPage.module.css'
+import actionStyles from './actions.module.css'
 
 interface LoaderData {
   conversation: ConversationResponse
@@ -101,7 +103,7 @@ function ConversationPage() {
     setExporting(true)
 
     try {
-      const element = document.querySelector('.conversation-content') as HTMLElement
+      const element = document.querySelector(`.${CSS.escape(convStyles.content)}`) as HTMLElement
       if (!element) {
         throw new Error(t('conversation.errors.notFound'))
       }
@@ -136,7 +138,7 @@ function ConversationPage() {
         <QueryForm key={conversation.uuid} currentQuestion={conversation.question} onSubmitStart={() => setSubmittingNew(true)} />
 
         {!submittingNew &&
-        <MinimizedPopupRegion className="conversation-content">
+        <MinimizedPopupRegion className={convStyles.content} data-conversation-content>
           <Card>
             <h3 style={{ margin: 0 }}>{conversation.question}</h3>
           </Card>
@@ -148,12 +150,12 @@ function ConversationPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                     <h3>{t('conversation.answer')}</h3>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={copyCurrentUrl} className="share-button">
+                      <button onClick={copyCurrentUrl} className={actionStyles.shareButton}>
                         {copyButtonText}
                       </button>
                       <button
                         onClick={exportPageAsPNG}
-                        className="export-button"
+                        className={actionStyles.exportButton}
                         disabled={exporting}
                       >
                         {exporting ? t('conversation.exporting') : t('conversation.export')}
@@ -197,14 +199,14 @@ function ConversationPage() {
                               link.href = exportedImage
                               link.click()
                             }}
-                            className="share-button"
+                            className={actionStyles.shareButton}
                             style={{ fontSize: 'var(--font-sm)', padding: '0.25rem 0.5rem' }}
                           >
                             {t('common.download')}
                           </button>
                           <button
                             onClick={() => setExportedImage(null)}
-                            className="export-button"
+                            className={actionStyles.exportButton}
                             style={{ fontSize: 'var(--font-sm)', padding: '0.25rem 0.5rem' }}
                           >
                             {t('common.close')}

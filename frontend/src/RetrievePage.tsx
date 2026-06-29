@@ -8,6 +8,7 @@ import Card from './components/Card'
 import Button from './components/Button'
 import Composer from './components/Composer'
 import ErrorDisplay from './components/ErrorDisplay'
+import styles from './RetrievePage.module.css'
 import { buildUrlWithLanguage } from './utils/language'
 import { buildLibraryFilePath } from './utils/library'
 import type { LibraryRetrieveRequest, LibraryRetrieveResponse } from './types/api'
@@ -95,9 +96,7 @@ function RetrievePage() {
       }
       const res = await fetch('/api/library/retrieve', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reqBody)
       })
       const data = await res.json()
@@ -131,12 +130,8 @@ function RetrievePage() {
   }
 
   useEffect(() => {
-    if (initialQuerySubmitted) {
-      return
-    }
-    if (loading) {
-      return
-    }
+    if (initialQuerySubmitted) return
+    if (loading) return
     if (!urlParams.query) {
       activeRequestIdRef.current += 1
       setResults([])
@@ -150,9 +145,7 @@ function RetrievePage() {
   }, [initialQuerySubmitted, loading])
 
   const resultsContent = useMemo(() => {
-    if (!submittedParams || loading) {
-      return null
-    }
+    if (!submittedParams || loading) return null
     if (results.length === 0) {
       return (
         <Card style={{ margin: 0 }}>
@@ -201,10 +194,10 @@ function RetrievePage() {
           placeholder={t('retrieve.placeholder')}
           disabled={loading}
           controls={
-            <div className="search-mode" role="group" aria-label={t('retrieve.searchMode')}>
+            <div className={styles.searchMode} role="group" aria-label={t('retrieve.searchMode')}>
               <button
                 type="button"
-                className={formParams.semantic ? '' : 'is-active'}
+                className={formParams.semantic ? '' : styles.isActive}
                 aria-pressed={!formParams.semantic}
                 onClick={() => setFormParams({ ...formParams, semantic: false })}
                 disabled={loading}
@@ -213,7 +206,7 @@ function RetrievePage() {
               </button>
               <button
                 type="button"
-                className={formParams.semantic ? 'is-active' : ''}
+                className={formParams.semantic ? styles.isActive : ''}
                 aria-pressed={formParams.semantic}
                 onClick={() => setFormParams({ ...formParams, semantic: true })}
                 disabled={loading}

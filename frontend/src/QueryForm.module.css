@@ -1,0 +1,24 @@
+.inputRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.buttonTextSizer {
+  display: inline-grid;
+}
+
+.buttonTextSizer > span {
+  grid-area: 1 / 1;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.buttonTextHidden {
+  visibility: hidden;
+}
+
+@media (max-width: 600px) {
+  .inputRow {
+    grid-template-columns: 1fr;
+  }
+}

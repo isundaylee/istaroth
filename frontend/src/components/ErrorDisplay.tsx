@@ -1,5 +1,6 @@
 import { useT } from '../contexts/LanguageContext'
 import Navigation from './Navigation'
+import styles from './ErrorDisplay.module.css'
 
 interface ErrorDisplayProps {
   error: string
@@ -13,7 +14,7 @@ function ErrorDisplay({
   const t = useT()
 
   const errorContent = (
-    <div className="error">
+    <div className={styles.error}>
       <h3>{t('common.error')}</h3>
       <p>{error}</p>
     </div>

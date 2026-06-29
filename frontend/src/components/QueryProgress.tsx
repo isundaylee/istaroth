@@ -1,5 +1,6 @@
 import { useT } from '../contexts/LanguageContext'
 import type { ProgressStepStart } from '../types/api'
+import styles from './QueryProgress.module.css'
 
 interface QueryProgressProps {
   steps: ProgressStepStart[]
@@ -10,16 +11,16 @@ function QueryProgress({ steps, className }: QueryProgressProps) {
   const t = useT()
   const stepLabel = (step: ProgressStepStart) => {
     if (step.kind === 'searching') {
-      return `${t('query.progress.searching')} “${step.detail ?? ''}”`
+      return `${t('query.progress.searching')} "${step.detail ?? ''}"`
     }
     return t(`query.progress.${step.kind}`)
   }
 
   return (
-    <ul className={`query-progress${className ? ` ${className}` : ''}`}>
+    <ul className={`${styles.progress}${className ? ` ${className}` : ''}`}>
       {steps.map((step) => (
-        <li key={step.id} className="query-progress-item">
-          <span className="loading-ellipsis">{stepLabel(step)}</span>
+        <li key={step.id} className={styles.item}>
+          <span className={styles.loadingEllipsis}>{stepLabel(step)}</span>
         </li>
       ))}
     </ul>

@@ -1,0 +1,208 @@
+.panel {
+  position: fixed;
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  width: min(36rem, calc(100vw - 2rem));
+  max-height: min(34rem, calc(100vh - 2rem));
+  overflow: hidden;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
+  transform: translate(calc(-50% + var(--drag-x, 0px)), var(--drag-y, 0px));
+  animation: fadeIn 0.2s ease;
+}
+
+.above {
+  transform: translate(calc(-50% + var(--drag-x, 0px)), calc(-100% + var(--drag-y, 0px)));
+}
+
+/* Hover (non-sticky) popups must not participate in hit-testing: otherwise the
+   panel sits under the cursor, elementFromPoint returns it instead of the
+   citation, and the global mousemove dismissal fights the citation's mouseenter
+   re-trigger (flicker / open-only-on-click). The sticky variant stays
+   interactive so its body scrolls and its buttons work. */
+.static {
+  pointer-events: none;
+}
+
+/* Minimized popups stay mounted (so nested popups survive) but are hidden; a
+   card in the side rail represents them. */
+.minimized {
+  display: none;
+}
+
+.resizing {
+  user-select: none;
+}
+
+/* Fullscreen variant: fixed header + scrollable body filling the viewport. */
+.fullscreen {
+  width: 100vw;
+  max-width: 800px;
+  height: 100vh;
+  max-height: 100vh;
+  top: 0;
+  left: 50%;
+  border-radius: 0;
+}
+
+.fullscreen .header {
+  padding: 1rem;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.fullscreen .body {
+  padding: 1rem;
+}
+
+.header {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Header doubles as the drag handle: a grab cursor on the title area, no text
+   selection while dragging, and touch-action: none so touch drags move the panel
+   instead of scrolling the page. The action buttons re-assert their own cursor. */
+.headerDraggable {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.headerDragging {
+  cursor: grabbing;
+}
+
+.headerDraggable button {
+  cursor: pointer;
+}
+
+.heading {
+  min-width: 0;
+}
+
+/* Prefixed with .panel so these win over .answer p / .answer h3: the
+   citation popup renders inside the .answer subtree, whose typography rules
+   would otherwise clobber the eyebrow/title margins and blow out the spacing. */
+.panel .eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.panel .title {
+  margin: 0;
+  color: var(--color-heading);
+  font-size: var(--font-lg);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.topLink {
+  display: inline-block;
+  margin-top: 0.25rem;
+  color: var(--color-primary-text);
+  font-size: var(--font-sm);
+  text-decoration: none;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-secondary);
+  color: var(--color-text);
+  font-size: var(--font-xs);
+  padding: 0.25rem 0.5rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.actionBtn:hover {
+  background: var(--color-surface-hover);
+}
+
+.actionBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.close {
+  flex: 0 0 auto;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--color-surface-hover);
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  /* Reserve room for the scrollbar so it never overlaps/clips the content */
+  scrollbar-gutter: stable;
+  font-size: var(--font-sm);
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+/* Bottom-right grip for resizing. The box is a transparent hit area; the visible
+   affordance is a pair of short diagonal ticks (the classic resize grip) drawn
+   with a repeating gradient and clipped to the lower-right triangle so they sit
+   parallel to the corner and the panel's rounded edge never bisects them.
+   touch-action: none so touch drags resize instead of scrolling. */
+.resizeHandle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 0.9rem;
+  height: 0.9rem;
+  cursor: se-resize;
+  touch-action: none;
+}
+
+.resizeHandle::after {
+  content: '';
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 10px;
+  height: 10px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-text-muted) 0 2px,
+    transparent 2px 4.5px
+  );
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

@@ -1,0 +1,12 @@
+.error {
+  background-color: var(--color-error-bg);
+  color: var(--color-error-text);
+  padding: 15px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-error-border);
+  margin-bottom: 20px;
+}
+
+.error h3 {
+  margin-bottom: 5px;
+}

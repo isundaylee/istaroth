@@ -1,5 +1,6 @@
 import { createContext, useContext, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import styles from './MinimizedPopup.module.css'
 
 interface MinimizedPopupContextValue {
   /** Rail node (provided by the active region) that minimized cards portal into. */
@@ -64,10 +65,10 @@ export function MinimizedPopupRegion({ children, className }: { children: ReactN
     : { left: '100%', marginLeft: `${RAIL_GAP}px` }
 
   return (
-    <div ref={regionRef} className={`minimized-popup-region${className ? ` ${className}` : ''}`}>
+    <div ref={regionRef} className={`${styles.region}${className ? ` ${className}` : ''}`}>
       {children}
-      <div className="minimized-popup-rail-track" style={trackStyle}>
-        <div ref={setRail} className="minimized-popup-rail" />
+      <div className={styles.railTrack} style={trackStyle}>
+        <div ref={setRail} className={styles.rail} />
       </div>
     </div>
   )
@@ -91,12 +92,12 @@ export function MinimizedPopupCard({ eyebrow, title, onRestore, onClose, expandL
   // `data-floating-popup` keeps the popups' outside-click handlers from treating
   // a click on the card as "outside" (which would minimize other open popups).
   return createPortal(
-    <div className="minimized-popup-card" data-floating-popup onMouseDown={(e) => e.stopPropagation()}>
-      <button type="button" className="minimized-popup-card__body" onClick={onRestore} title={expandLabel}>
-        {eyebrow && <span className="minimized-popup-card__eyebrow">{eyebrow}</span>}
-        <span className="minimized-popup-card__title">{title}</span>
+    <div className={styles.card} data-floating-popup onMouseDown={(e) => e.stopPropagation()}>
+      <button type="button" className={styles.cardBody} onClick={onRestore} title={expandLabel}>
+        {eyebrow && <span className={styles.cardEyebrow}>{eyebrow}</span>}
+        <span className={styles.cardTitle}>{title}</span>
       </button>
-      <button type="button" className="minimized-popup-card__close" onClick={onClose} aria-label={closeLabel}>
+      <button type="button" className={styles.cardClose} onClick={onClose} aria-label={closeLabel}>
         ×
       </button>
     </div>,

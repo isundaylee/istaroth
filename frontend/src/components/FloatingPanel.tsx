@@ -4,6 +4,7 @@ import { useT } from '../contexts/LanguageContext'
 import { MinimizedPopupCard } from '../contexts/MinimizedPopupContext'
 import { useDraggableResizable } from '../hooks/useDraggableResizable'
 import type { FloatingPlacement } from '../utils/floatingPanel'
+import styles from './FloatingPanel.module.css'
 
 interface FloatingPanelProps {
   /** Anchor placement; ignored when ``fullscreen`` is set. */
@@ -90,14 +91,14 @@ export function FloatingPanel({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
 
-  const className = [
-    'floating-panel',
-    fullscreen ? 'floating-panel--fullscreen' : `floating-panel--${placement}`,
-    interactive ? '' : 'floating-panel--static',
-    resizing ? 'floating-panel--resizing' : '',
+  const panelClass = [
+    styles.panel,
+    fullscreen ? styles.fullscreen : placement === 'above' ? styles.above : null,
+    interactive ? null : styles.static,
+    resizing ? styles.resizing : null,
     // Kept mounted (not unmounted) while minimized so nested popups rendered in
     // the body survive and can show their own cards.
-    minimized ? 'floating-panel--minimized' : ''
+    minimized ? styles.minimized : null
   ].filter(Boolean).join(' ')
 
   const style: CSSProperties | undefined = fullscreen
@@ -122,6 +123,12 @@ export function FloatingPanel({
         ['--drag-y' as string]: `${offset.y}px`
       }
 
+  const headerClass = [
+    styles.header,
+    movable ? styles.headerDraggable : null,
+    dragging ? styles.headerDragging : null
+  ].filter(Boolean).join(' ')
+
   // Portalled to body so the fixed-positioned panel is anchored to the viewport
   // even when rendered inside another panel: an ancestor with `transform`
   // (the centering on `.floating-panel`) would otherwise become its containing
@@ -141,31 +148,27 @@ export function FloatingPanel({
       )}
     <div
       ref={setPanelRef}
-      className={className}
+      className={panelClass}
       style={style}
       data-floating-popup
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div
-        className={[
-          'floating-panel__header',
-          movable ? 'floating-panel__header--draggable' : '',
-          dragging ? 'floating-panel__header--dragging' : ''
-        ].filter(Boolean).join(' ')}
+        className={headerClass}
         {...(movable ? dragHandleProps : {})}
       >
-        <div className="floating-panel__heading">
-          {eyebrow && <p className="floating-panel__eyebrow">{eyebrow}</p>}
-          <h3 className="floating-panel__title">{title}</h3>
+        <div className={styles.heading}>
+          {eyebrow && <p className={styles.eyebrow}>{eyebrow}</p>}
+          <h3 className={styles.title}>{title}</h3>
           {topLink}
         </div>
         {(actions || onToggleFullscreen || onClose) && (
-          <div className="floating-panel__actions">
+          <div className={styles.actions}>
             {actions}
             {onToggleFullscreen && (
               <button
                 type="button"
-                className="floating-panel__action-btn"
+                className={styles.actionBtn}
                 onClick={onToggleFullscreen}
                 title={fullscreen ? t('citation.exitFullscreen') : t('citation.enterFullscreen')}
               >
@@ -175,7 +178,7 @@ export function FloatingPanel({
             {onClose && (
               <button
                 type="button"
-                className="floating-panel__close"
+                className={styles.close}
                 onClick={onClose}
                 aria-label={t('common.close')}
               >
@@ -185,12 +188,12 @@ export function FloatingPanel({
           </div>
         )}
       </div>
-      <div className={`floating-panel__body${bodyClassName ? ` ${bodyClassName}` : ''}`}>
+      <div className={`${styles.body}${bodyClassName ? ` ${bodyClassName}` : ''}`}>
         {children}
       </div>
       {movable && (
         <div
-          className="floating-panel__resize-handle"
+          className={styles.resizeHandle}
           aria-hidden="true"
           {...resizeHandleProps}
         />

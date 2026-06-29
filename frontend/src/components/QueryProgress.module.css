@@ -1,0 +1,34 @@
+.progress {
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0 0 0 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item {
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+  animation: fadeIn 0.2s ease-in;
+}
+
+.loadingEllipsis::after {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  text-align: left;
+  animation: ellipsis 1.5s steps(4, end) infinite;
+}
+
+@keyframes ellipsis {
+  0%  { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
