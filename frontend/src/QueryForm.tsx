@@ -9,6 +9,8 @@ import QueryProgress from './components/QueryProgress'
 import { getClientId } from './utils/clientId'
 import { consumeQueryStream } from './utils/queryStream'
 import type { QueryRequest, ErrorResponse, ModelsResponse, ExampleQuestionResponse, ProgressStepStart } from './types/api'
+import styles from './QueryForm.module.css'
+import queryProgressStyles from './components/QueryProgress.module.css'
 
 interface QueryFormProps {
   currentQuestion?: string
@@ -199,7 +201,6 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
               value={retrievalPreset}
               onChange={(e) => setRetrievalPreset(e.target.value as RetrievalPreset)}
               disabled={loading}
-              className="retrieval-select"
               aria-label={t('query.retrievalPresetLabel')}
               title={t('query.retrievalPresetLabel')}
             >
@@ -215,9 +216,9 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
             className="query-submit-button"
             disabled={loading || (!question.trim() && !exampleQuestion) || availableModels.length === 0}
           >
-            <span className="button-text-sizer">
-              <span className={loading ? 'button-text-active' : 'button-text-hidden'}><span className="loading-ellipsis">{t('query.submitting')}</span></span>
-              <span className={loading ? 'button-text-hidden' : 'button-text-active'}>{t('query.submitButton')}</span>
+            <span className={styles.buttonTextSizer}>
+              <span className={loading ? '' : styles.buttonTextHidden}><span className={queryProgressStyles.loadingEllipsis}>{t('query.submitting')}</span></span>
+              <span className={loading ? styles.buttonTextHidden : ''}>{t('query.submitButton')}</span>
             </span>
           </Button>
         }

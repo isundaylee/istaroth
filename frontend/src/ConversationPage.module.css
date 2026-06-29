@@ -1,0 +1,13 @@
+.content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.backLink {
+  color: var(--color-primary-text);
+  text-decoration: none;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}

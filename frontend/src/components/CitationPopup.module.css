@@ -1,0 +1,55 @@
+/* Keep scrolling contained to the popup; never chain to the page behind it */
+.popupContent {
+  overscroll-behavior: contain;
+}
+
+/* Cited chunk marked with a left accent bar within the full document text */
+.cited {
+  margin: 12px 0;
+  border-left: 3px solid var(--color-primary-fill);
+  padding-left: 12px;
+}
+
+/* Context blocks reserve the cited bar's width (transparent) so their text aligns with the cited chunk */
+.context {
+  border-left: 3px solid transparent;
+  padding-left: 12px;
+}
+
+.citedLabel {
+  display: block;
+  width: fit-content;
+  margin-bottom: 6px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-text);
+  font-size: var(--font-xs);
+}
+
+/* Dashed top/bottom button; loads the full document text when clicked */
+.gap {
+  display: block;
+  width: 100%;
+  margin: 16px 0;
+  padding: 8px;
+  background: transparent;
+  border: 1px dashed var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.gap:hover:not(:disabled) {
+  background: var(--color-surface-secondary);
+  border-color: var(--color-primary-fill);
+  color: var(--color-text);
+}
+
+.gap:disabled {
+  cursor: default;
+  opacity: 0.6;
+}

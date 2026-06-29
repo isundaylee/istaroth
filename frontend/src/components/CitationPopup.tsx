@@ -3,6 +3,7 @@ import type { CitationResponse } from '../types/api'
 import { useTranslation } from '../contexts/LanguageContext'
 import { FloatingPanel } from './FloatingPanel'
 import type { FloatingPlacement } from '../utils/floatingPanel'
+import citationStyles from './CitationPopup.module.css'
 
 interface CitationPopupProps {
   /** File title (the "Source" eyebrow is added by the shared frame). */
@@ -60,8 +61,8 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
 
     // The cited region is rendered as a block marked with a left accent bar and a "cited" badge.
     const citedBlock = (text: string) => (
-      <div ref={citedRef} className="citation-cited">
-        <div className="citation-cited-label">{t.citation.current}</div>
+      <div ref={citedRef} className={citationStyles.cited}>
+        <div className={citationStyles.citedLabel}>{t.citation.current}</div>
         {text}
       </div>
     )
@@ -71,7 +72,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
       <button
         onClick={onLoadFullText}
         disabled={isLoadingFullText}
-        className="citation-gap"
+        className={citationStyles.gap}
       >
         {isLoadingFullText ? t.citation.loadingButton : t.citation.loadAllChunks}
       </button>
@@ -85,9 +86,9 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
           const after = fullText.slice(citedChunk.end_index).replace(/^\n+/, '')
           return (
             <>
-              {before && <div className="citation-context">{before}</div>}
+              {before && <div className={citationStyles.context}>{before}</div>}
               {citedBlock(fullText.slice(citedChunk.start_index, citedChunk.end_index).trim())}
-              {after && <div className="citation-context">{after}</div>}
+              {after && <div className={citationStyles.context}>{after}</div>}
             </>
           )
         })() : (
@@ -116,7 +117,7 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
         eyebrow={t.citation.source}
         title={title}
         onClose={isSticky ? onClose : undefined}
-        bodyClassName="citation-popup-content"
+        bodyClassName={citationStyles.popupContent}
       >
         {body}
       </FloatingPanel>

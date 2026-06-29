@@ -1,3 +1,4 @@
+import clsx from 'clsx'
 import { useT } from '../contexts/LanguageContext'
 import { useProperNounSelection } from '../hooks/useProperNounSelection'
 import type { LibraryRetrieveResponse, ProgressStepStart } from '../types/api'
@@ -5,6 +6,9 @@ import { buildLibraryFilePath } from '../utils/library'
 import { AppLink } from './AppLink'
 import CitationRenderer from './CitationRenderer'
 import { FloatingPanel } from './FloatingPanel'
+import panelStyles from './FloatingPanel.module.css'
+import queryProgressStyles from './QueryProgress.module.css'
+import selStyles from './SelectionPanel.module.css'
 import QueryProgress from './QueryProgress'
 
 export interface SelectionState {
@@ -51,19 +55,19 @@ function RetrievalSelectionPanel({ panel }: { panel: Extract<SelectionPanel, { k
   const t = useT()
 
   if (panel.loading) {
-    return <p className="library-selection-muted">{t('library.selection.searching')}</p>
+    return <p className={selStyles.muted}>{t('library.selection.searching')}</p>
   }
   if (panel.error) {
-    return <p className="library-selection-error">{panel.error}</p>
+    return <p className={selStyles.error}>{panel.error}</p>
   }
   if (panel.results.length === 0) {
-    return <p className="library-selection-muted">{t('library.selection.noResults')}</p>
+    return <p className={selStyles.muted}>{t('library.selection.noResults')}</p>
   }
 
   return (
-    <div className="library-selection-results">
+    <div className={selStyles.results}>
       {panel.results.map((result) => (
-        <div key={`${result.file_info.category}-${result.file_info.id}`} className="library-selection-result">
+        <div key={`${result.file_info.category}-${result.file_info.id}`} className={selStyles.result}>
           <AppLink to={buildLibraryFilePath(result.file_info)}>
             {result.file_info.title || t('library.noFileName')}
           </AppLink>
@@ -84,19 +88,19 @@ function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind:
   return (
     <>
       {panel.loading && panel.activeSteps.length === 0 && (
-        <p className="library-selection-muted loading-ellipsis">{t('query.submitting')}</p>
+        <p className={clsx(selStyles.muted, queryProgressStyles.loadingEllipsis)}>{t('query.submitting')}</p>
       )}
       {panel.loading && panel.activeSteps.length > 0 && (
-        <QueryProgress steps={panel.activeSteps} className="library-selection-progress" />
+        <QueryProgress steps={panel.activeSteps} className={selStyles.progress} />
       )}
-      {panel.error && <p className="library-selection-error">{panel.error}</p>}
+      {panel.error && <p className={selStyles.error}>{panel.error}</p>}
       {panel.answer && (
         <CitationRenderer content={panel.answer} properNouns={panel.properNouns}>
           {({ answer, citationList }) => (
             <>
               <div
                 ref={answerRef}
-                className="answer library-selection-answer"
+                className={clsx('answer', selStyles.answer)}
                 onMouseUp={answerHandlers.onMouseUp}
                 onKeyUp={answerHandlers.onKeyUp}
                 onClick={answerHandlers.onClick}
@@ -104,7 +108,7 @@ function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind:
                 {answer}
               </div>
               {citationList && (
-                <div className="library-selection-citations" data-citation-container>
+                <div className={selStyles.citations} data-citation-container>
                   {citationList}
                 </div>
               )}
@@ -133,11 +137,11 @@ export function SelectionPanelFrame({
   const eyebrow = panel.kind === 'search' ? t('library.selection.keywordSearch') : t('library.selection.ask')
   const title = panel.kind === 'ask' ? panel.question : panel.query
   const topLink = panel.kind === 'search' ? (
-    <AppLink className="floating-panel__top-link" to={retrievePagePath(panel.query)} target="_blank" rel="noopener noreferrer">
+    <AppLink className={panelStyles.topLink} to={retrievePagePath(panel.query)} target="_blank" rel="noopener noreferrer">
       {t('library.selection.openRetrieve')}
     </AppLink>
   ) : panel.kind === 'ask' && panel.conversationUuid ? (
-    <AppLink className="floating-panel__top-link" to={`/conversation/${panel.conversationUuid}`} target="_blank" rel="noopener noreferrer">
+    <AppLink className={panelStyles.topLink} to={`/conversation/${panel.conversationUuid}`} target="_blank" rel="noopener noreferrer">
       {t('library.selection.openConversation')}
     </AppLink>
   ) : null

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useT, useTranslation } from '../contexts/LanguageContext'
 import { SelectionPanelFrame, type SelectionPanel, type SelectionState } from '../components/SelectionPanel'
+import selStyles from '../components/SelectionPanel.module.css'
 import { calculateFloatingPlacement } from '../utils/floatingPanel'
 import { getClientId } from '../utils/clientId'
 import { buildUrlWithLanguage } from '../utils/language'
@@ -317,7 +318,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
       // transformed/clipping ancestor when this panel is itself nested.
       createPortal(
         <div
-          className={`library-selection-toolbar library-selection--${selection.placement}`}
+          className={`${selStyles.toolbar} ${selStyles[`toolbar${selection.placement === 'above' ? 'Above' : 'Below'}`] || ''}`}
           style={{ top: `${selection.top}px`, left: `${selection.left}px` }}
           data-floating-popup
           onMouseDown={(event) => event.preventDefault()}

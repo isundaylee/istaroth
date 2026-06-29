@@ -2,6 +2,7 @@ import { useT } from './contexts/LanguageContext'
 import Card from './components/Card'
 import LanguageSwitcher from './components/LanguageSwitcher'
 import { AppLink } from './components/AppLink'
+import convStyles from './ConversationPage.module.css'
 
 function NotFoundPage() {
   const t = useT()
@@ -27,7 +28,7 @@ function NotFoundPage() {
             </p>
             <AppLink
               to="/"
-              className="back-link"
+              className={convStyles.backLink}
               style={{
                 display: 'inline-block',
                 marginTop: '1rem',

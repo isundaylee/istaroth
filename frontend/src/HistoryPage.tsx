@@ -9,6 +9,7 @@ import PageCard from './components/PageCard'
 import Card from './components/Card'
 import { AppLink } from './components/AppLink'
 import type { ConversationListResponse, ConversationSummary } from './types/api'
+import actionStyles from './actions.module.css'
 
 const PAGE_SIZE = 50
 
@@ -109,7 +110,7 @@ function HistoryPage() {
 
               {hasMore && (
                 <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-                  <button onClick={loadMore} disabled={loadingMore} className="share-button">
+                  <button onClick={loadMore} disabled={loadingMore} className={actionStyles.shareButton}>
                     {loadingMore ? t('common.loading') : t('history.loadMore')}
                   </button>
                 </div>
