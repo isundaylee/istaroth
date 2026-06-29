@@ -29,6 +29,9 @@ logger = logging.getLogger(__name__)
 _K = TypeVar("_K")
 _T = TypeVar("_T")
 # Ordered newest-to-oldest; earlier refs win when multiple fallbacks contain a hash.
+# Sex-pronoun SEXPRO tokens also resolve against these builds (see
+# _load_pronoun_hashes): 6.x dropped their TextMap rows and reassigned the manual
+# hash ids, so both token -> hash and hash -> text are read from here.
 _TEXT_MAP_FALLBACK_REFS: tuple[str, ...] = ("8c3aecbd6ed",)
 
 
@@ -160,6 +163,8 @@ class TextMapTracker(IdTracker[id_types.TextMapHash]):
         text_map: agd_types.TextMap,
         language: localization.Language,
         fallback_text_map: agd_types.TextMap | None = None,
+        *,
+        pronoun_hashes: dict[str, id_types.TextMapHash],
     ) -> None:
         self._text_map: dict[id_types.TextMapHash, str] = {
             int(k): v for k, v in text_map.items()
@@ -168,6 +173,7 @@ class TextMapTracker(IdTracker[id_types.TextMapHash]):
         self._text_maps = (self._text_map, self._fallback_text_map)
         super().__init__(set(self._text_map))
         self._language = language
+        self._pronoun_hashes = pronoun_hashes
 
     @staticmethod
     def _normalize_text_map(
@@ -179,8 +185,19 @@ class TextMapTracker(IdTracker[id_types.TextMapHash]):
         """Whether key resolves in the current or fallback TextMap."""
         return self._get_raw_text(key) is not None
 
+    def clean_text(self, text: str) -> str:
+        """Clean game-text markers (incl. SEXPRO pronouns) for this language."""
+        return self._get_cleaned_text(text)
+
     def _get_cleaned_text(self, text: str) -> str:
+        text = text_cleanup.resolve_sexpro(text, self._resolve_pronoun_token)
         return text_cleanup.clean_text_markers(text, self._language)
+
+    def _resolve_pronoun_token(self, token: str) -> str:
+        """Raw text for a SEXPRO ``INFO_*_PRONOUN_*`` token (raises if unknown)."""
+        if (text := self._get_raw_text(self._pronoun_hashes[token])) is None:
+            raise KeyError(f"Unresolvable SEXPRO pronoun token: {token}")
+        return text
 
     def _get_raw_text(self, key: id_types.TextMapHash) -> str | None:
         for text_map in self._text_maps:
@@ -299,6 +316,7 @@ class DataRepo:
             self._load_current_text_map(language_short),
             language,
             self._load_fallback_text_map(language_short),
+            pronoun_hashes=self._load_pronoun_hashes(),
         )
 
     def _load_current_text_map(self, language_short: str) -> agd_types.TextMap:
@@ -339,30 +357,52 @@ class DataRepo:
                 data.setdefault(key, value)
         return data
 
-    def _git_show_text_map(
-        self, fallback_ref: str, filename: str, *, required: bool
-    ) -> agd_types.TextMap | None:
+    @functools.lru_cache(maxsize=None)
+    def _load_pronoun_hashes(self) -> dict[str, id_types.TextMapHash]:
+        """Map SEXPRO ``INFO_*_PRONOUN_*`` tokens to their TextMap hashes.
+
+        The SEXPRO branches are token *names*; token -> hash comes from
+        ManualTextMapConfigData (the language-neutral TextMapTracker then does
+        hash -> text). 6.x dropped these TextMap rows and reassigned the manual hash
+        ids, so the manual config is read from the same older
+        ``_TEXT_MAP_FALLBACK_REFS`` builds whose TextMaps back-fill the dropped
+        hashes, keeping token and hash consistent.
+        """
+        pronoun_hashes: dict[str, id_types.TextMapHash] = {}
+        for ref in _TEXT_MAP_FALLBACK_REFS:
+            for entry in self._git_show_json(
+                ref, "ExcelBinOutput/ManualTextMapConfigData.json"
+            ):
+                token = entry["textMapId"]
+                if token.startswith("INFO_") and token not in pronoun_hashes:
+                    pronoun_hashes[token] = int(entry["textMapContentTextMapHash"])
+        return pronoun_hashes
+
+    def _git_show_json(self, ref: str, path: str) -> Any:
         result = subprocess.run(
-            [
-                "git",
-                "-C",
-                str(self.agd_path),
-                "show",
-                f"{fallback_ref}:TextMap/{filename}",
-            ],
+            ["git", "-C", str(self.agd_path), "show", f"{ref}:{path}"],
             capture_output=True,
             text=True,
             check=False,
         )
-        if result.returncode == 0:
-            data: agd_types.TextMap = json.loads(result.stdout)
-            return data
-        if required:
+        if result.returncode != 0:
             raise RuntimeError(
-                f"Failed to load fallback TextMap {filename} at {fallback_ref}: "
-                f"{result.stderr.strip()}"
+                f"Failed to load {path} at {ref}: {result.stderr.strip()}"
             )
-        return None
+        return json.loads(result.stdout)
+
+    def _git_show_text_map(
+        self, fallback_ref: str, filename: str, *, required: bool
+    ) -> agd_types.TextMap | None:
+        try:
+            data: agd_types.TextMap = self._git_show_json(
+                fallback_ref, f"TextMap/{filename}"
+            )
+            return data
+        except RuntimeError:
+            if required:
+                raise
+            return None
 
     def load_text_map(self) -> TextMapTracker:
         """Load TextMap for the instance's language, merging Medium variant if present."""

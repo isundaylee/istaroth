@@ -2,7 +2,7 @@
 
 import pathlib
 
-from istaroth import text_cleanup, utils
+from istaroth import utils
 from istaroth.agd import (
     id_types,
     issues,
@@ -56,7 +56,7 @@ def load_readable(
     readables = data_repo.get_readables()
     if (content := readables.get_content(pathlib.Path(readable_path).name)) is None:
         raise FileNotFoundError(f"Readable not found: {readable_path}")
-    content = text_cleanup.clean_text_markers(content, data_repo.language)
+    content = data_repo.load_text_map().clean_text(content)
 
     if text_utils.should_skip_readable_content(content, data_repo.language):
         return None
