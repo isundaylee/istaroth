@@ -108,6 +108,16 @@ _clone_checkpoints() {
   echo "dev-compose.sh: checkpoint clone done ($how)."
 }
 
+# Docker mounts the `frontend-node-modules` named volume at /app/node_modules,
+# which is a subpath of the host bind mount (../../frontend). If that mountpoint
+# doesn't already exist on the host, the root Docker daemon creates it as
+# root:root and empty — clobbering host-side tooling (npm ci → EACCES, eslint/tsc
+# can't resolve), which in turn breaks the frontend pre-commit hooks. Pre-create
+# it as the current user so Docker mounts over an existing, user-owned directory.
+_ensure_frontend_node_modules() {
+  mkdir -p "$REPO_ROOT/frontend/node_modules"
+}
+
 _write_env_file() {
   cat >"$ENV_FILE" <<EOF
 COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME
@@ -155,6 +165,7 @@ cmd_setup() {
     [[ -e "$target" ]] || ln -s "$MAIN_ROOT/$name" "$target"
   done
   _clone_checkpoints
+  _ensure_frontend_node_modules
   _resolve_identity
   _export_ports
   _write_env_file
