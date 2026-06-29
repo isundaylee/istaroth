@@ -9,7 +9,7 @@ def test_text_map_tracker_uses_fallback_only_on_current_miss() -> None:
         {"100": "Current", "200": "Current wins"},
         localization.Language.ENG,
         {"200": "Fallback loses", "300": "Fallback"},
-        pronoun_map={},
+        pronoun_hashes={},
     )
 
     assert text_map.has(100)

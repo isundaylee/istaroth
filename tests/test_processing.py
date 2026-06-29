@@ -5,7 +5,6 @@ from unittest import mock
 
 import pytest
 
-from istaroth import text_cleanup
 from istaroth.agd import (
     agd_types,
     localization,
@@ -124,7 +123,7 @@ def test_talk_role_name_hash_ignores_fallback_text() -> None:
         {"100": "Hello"},
         localization.Language.ENG,
         {"200": "Stale role"},
-        pronoun_map={},
+        pronoun_hashes={},
     )
     data_repo.get_npc_id_to_name_mapping.return_value = {}
     data_repo.get_dialog_id_to_role_name_hash_mapping.return_value = {}
@@ -240,7 +239,7 @@ def test_achievement_section_filters_disused_and_keeps_hidden() -> None:
             "203": "Hidden description",
         },
         localization.Language.ENG,
-        pronoun_map={},
+        pronoun_hashes={},
     )
 
     section = achievement.get_achievement_section_info(9, data_repo=data_repo)
@@ -274,7 +273,7 @@ def test_achievement_section_requires_active_localized_text() -> None:
     data_repo.load_text_map.return_value = repo.TextMapTracker(
         {"100": "Section", "102": "Achievement"},
         localization.Language.ENG,
-        pronoun_map={},
+        pronoun_hashes={},
     )
 
     with pytest.raises(ValueError, match="Missing description for achievement 2"):
@@ -387,7 +386,7 @@ def test_get_book_series_info_assembles_volumes() -> None:
     data_repo.load_text_map.return_value = repo.TextMapTracker(
         {"700": "My Series", "101": "Volume One", "102": "Volume Two"},
         localization.Language.ENG,
-        pronoun_map={},
+        pronoun_hashes={},
     )
     data_repo.build_readable_stem_to_localization_id.return_value = {
         "Book101_EN": 101,
@@ -426,7 +425,7 @@ def test_get_book_series_info_filters_placeholder_volumes() -> None:
     data_repo.load_text_map.return_value = repo.TextMapTracker(
         {"700": "My Series", "102": "Volume Two"},
         localization.Language.ENG,
-        pronoun_map={},
+        pronoun_hashes={},
     )
     data_repo.build_readable_stem_to_localization_id.return_value = {"Book102_EN": 102}
     data_repo.build_localization_id_to_title_hash.return_value = {102: 102}
@@ -571,26 +570,16 @@ def test_creatures_discover_returns_subtype_groups(data_repo: repo.DataRepo) -> 
     assert len(discovered) < 20 < len(codex)
 
 
-def test_sexpro_pronoun_map_resolves_from_pinned_build(
+def test_sexpro_resolves_from_pinned_build(
     data_repo: repo.DataRepo, english_data_repo: repo.DataRepo
 ) -> None:
     """SEXPRO tokens resolve to per-language text via the pinned old AGD build.
 
-    6.x dropped these TextMap rows, so resolution relies on the pinned-ref
-    ManualTextMapConfigData + TextMap (see repo._PRONOUN_TEXT_MAP_REF).
+    6.x dropped these TextMap rows, so the TextMapTracker resolves the
+    token's hash (from ManualTextMapConfigData) through its fallback TextMap.
     """
     placeholder = (
         "找{PLAYERAVATAR#SEXPRO[INFO_MALE_PRONOUN_HE|INFO_FEMALE_PRONOUN_SHE]}"
     )
-    for repo_, language, expected in [
-        (data_repo, localization.Language.CHS, "找他"),
-        (english_data_repo, localization.Language.ENG, "找He"),
-    ]:
-        pronoun_map = repo_._load_pronoun_text_map(repo_.language_short)
-        assert pronoun_map["INFO_MALE_PRONOUN_HE"] == expected[1:]
-        assert (
-            text_cleanup.clean_text_markers(
-                placeholder, language, pronoun_map=pronoun_map
-            )
-            == expected
-        )
+    for repo_, expected in [(data_repo, "找他"), (english_data_repo, "找He")]:
+        assert repo_.load_text_map().clean_text(placeholder) == expected

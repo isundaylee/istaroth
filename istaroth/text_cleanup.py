@@ -1,36 +1,35 @@
 """Text cleanup utilities for processing game text markers."""
 
 import re
-from typing import Mapping
+from typing import Callable
 
 from istaroth.agd import localization
 
 # ``{PLAYERAVATAR#SEXPRO[<male-branch>|<female-branch>]}`` (and the sibling
 # ``{MATEAVATAR#SEXPRO[...]}`` variant) select a gendered pronoun/appellation from
 # the player's chosen traveler gender. The corpus consistently renders the first
-# (male-player) branch, matching the ``{M#...}{F#...}`` -> M convention below. Each
-# branch is a language-neutral ``INFO_*_PRONOUN_*`` token resolved to text via
-# ``pronoun_map`` (built at runtime from a pinned AGD revision, see DataRepo). The
-# captured token is the first branch; the female branch is matched but discarded.
+# (male-player) branch, matching the ``{M#...}{F#...}`` -> M convention. Each branch
+# is a language-neutral ``INFO_*_PRONOUN_*`` token; the captured group is the first
+# branch, the female branch is matched but discarded.
 _SEXPRO_PATTERN = re.compile(r"\{(?:PLAYER|MATE)AVATAR#SEXPRO\[([^|\]]+)\|[^\]]+\]\}")
 
 
-def _resolve_sexpro(match: re.Match[str], pronoun_map: Mapping[str, str]) -> str:
-    """Render a SEXPRO placeholder as its first (male-player) branch's text."""
-    return pronoun_map[match.group(1)]
+def resolve_sexpro(text: str, resolve_token: Callable[[str], str]) -> str:
+    """Replace SEXPRO placeholders with their first (male-player) branch's text.
+
+    ``resolve_token`` maps an ``INFO_*_PRONOUN_*`` token to its raw text; it should
+    raise on an unknown token so a new one surfaces. Run this before
+    ``clean_text_markers`` so a branch that itself carries a nested gender macro
+    (e.g. INFO_MALE_PRONOUN_BROANDSIS) is then handled by its ``{M#...}{F#...}`` pass.
+    """
+    return _SEXPRO_PATTERN.sub(lambda m: resolve_token(m.group(1)), text)
 
 
-def clean_text_markers(
-    text: str,
-    language: localization.Language,
-    *,
-    pronoun_map: Mapping[str, str],
-) -> str:
+def clean_text_markers(text: str, language: localization.Language) -> str:
     """Clean game text markers and normalize newlines.
 
-    ``pronoun_map`` resolves the ``INFO_*_PRONOUN_*`` tokens inside SEXPRO
-    placeholders; an unmapped token raises so a new one surfaces. Pass an empty
-    mapping for text that cannot contain such placeholders.
+    Does not resolve SEXPRO pronoun placeholders (those need TextMap access); run
+    ``resolve_sexpro`` first where they may appear.
     """
     if not text:
         return text
@@ -40,11 +39,6 @@ def clean_text_markers(
 
     # Replace escape sequences
     text = text.replace("\\n", "\n")
-
-    # Resolve {PLAYERAVATAR/MATEAVATAR#SEXPRO[male|female]} to the male-branch text
-    # before the {M#...}{F#...} pass below, so a branch that itself carries a nested
-    # gender macro (e.g. INFO_MALE_PRONOUN_BROANDSIS) is handled too.
-    text = _SEXPRO_PATTERN.sub(lambda m: _resolve_sexpro(m, pronoun_map), text)
 
     # Replace {NICKNAME} with appropriate traveler name
     text = re.sub(r"\{NICKNAME\}", localized_names.player, text)

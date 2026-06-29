@@ -107,7 +107,7 @@ def test_talk_collision_dedupes_identical_resolved_text() -> None:
     data_repo.load_text_map.return_value = repo.TextMapTracker(
         {"100": "Same", "101": "Same", "200": "Tail", "201": "Tail"},
         localization.Language.ENG,
-        pronoun_map={},
+        pronoun_hashes={},
     )
     data_repo.load_talk_data.side_effect = lambda path: {
         "BinOutput/Talk/Quest/42.json": {
@@ -143,7 +143,7 @@ def test_talk_collision_prefers_resolved_text_superset() -> None:
     data_repo.load_text_map.return_value = repo.TextMapTracker(
         {"100": "Start", "101": "Start", "200": "Only fuller"},
         localization.Language.ENG,
-        pronoun_map={},
+        pronoun_hashes={},
     )
     data_repo.load_talk_data.side_effect = lambda path: {
         "BinOutput/Talk/Quest/42.json": {
