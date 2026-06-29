@@ -139,6 +139,30 @@ See the [Web UI section](README.md#web-ui) in the README for environment setup a
   browser testing. Note that another worktree's stack may also be running with a
   different project name, so match the project name to this worktree.
 
+## MCP Servers
+
+Several MCP servers are wired up for agent sessions; their tools surface as
+`mcp__<server>__*` and may need `ToolSearch` to load their schemas before first
+use (deferred tools list only by name until then).
+
+- **playwright** — browser automation for verifying the Web UI end-to-end
+  (navigate, screenshot, snapshot, click, etc.). The browser binary may be
+  missing on a fresh host; if a call fails with "Chromium distribution 'chrome'
+  is not found", run `npx playwright install chrome` once, then retry. Pair it
+  with the dev-compose stack: get the URL from `scripts/dev-compose.sh urls` and
+  confirm the app is up (`docker ps` / `curl -I`) before driving the browser.
+- **claude.ai Istaroth** — the deployed Istaroth RAG tools (`retrieve`,
+  `retrieve_bm25`, `list_categories`, `get_file_content`, etc.) for querying the
+  production corpus directly.
+
+### Presenting images / screenshots
+- Inline images do NOT render for the user in this terminal. When you produce or
+  reference an image (e.g. a Playwright screenshot), ALWAYS print its full path
+  so the user can open it themselves — don't rely on the image showing up.
+- Playwright's `browser_take_screenshot` saves to the path in its `filename`
+  arg, resolved relative to the **repo root** (not the `.playwright-mcp/`
+  directory), e.g. `filename: "frontpage.png"` lands at `<repo-root>/frontpage.png`.
+
 ## Regenerating the Text Corpus
 
 Use the `regen-text` skill for corpus regeneration, diff auditing, commits, and
