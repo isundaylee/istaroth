@@ -23,6 +23,7 @@ function Navigation() {
       style={{
         backgroundColor: 'var(--color-surface)',
         borderRadius: 'var(--radius-md)',
+        border: '1px solid var(--color-border)',
         padding: '0.5rem 1rem',
         marginBottom: '1.25rem',
         display: 'flex',

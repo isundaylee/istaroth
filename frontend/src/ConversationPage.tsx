@@ -137,14 +137,14 @@ function ConversationPage() {
 
         {!submittingNew &&
         <MinimizedPopupRegion className="conversation-content">
-          <Card borderColor="green">
+          <Card>
             <h3 style={{ margin: 0 }}>{conversation.question}</h3>
           </Card>
 
           <CitationRenderer content={conversation.answer} properNouns={conversation.proper_nouns}>
             {({ answer, citationList }) => (
               <>
-                <Card borderColor="blue">
+                <Card>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                     <h3>{t('conversation.answer')}</h3>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -225,7 +225,7 @@ function ConversationPage() {
 
                 {citationList && (
                   <div data-citation-container>
-                    <Card borderColor="yellow">{citationList}</Card>
+                    <Card>{citationList}</Card>
                   </div>
                 )}
               </>

@@ -12,7 +12,9 @@
 :root {
   --radius-sm: 4px;
   --radius-md: 8px;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  /* Flat surfaces: separation comes from hairline borders, not drop-shadows.
+     Transient overlays (popups/toolbars) keep their own explicit shadows. */
+  --shadow: none;
 
   --font-xs: 0.7rem;
   --font-sm: 0.85rem;
@@ -21,32 +23,33 @@
   --font-xl: 2.5rem;
   --font-hero: 4rem;
 
-  /* Light theme colors */
-  --color-bg: #f5f5f5;
+  /* Light theme colors — navy ink on cool paper, Teyvat gold accent */
+  --color-bg: #eceef2;
   --color-surface: #ffffff;
-  --color-surface-secondary: #f8f9fa;
-  --color-surface-hover: #f8f9fa;
-  --color-surface-active: #f0f0f0;
+  --color-surface-secondary: #f4f6f9;
+  --color-surface-hover: #eaedf2;
+  --color-surface-active: #eaedf2;
 
-  --color-text: #333333;
-  --color-text-secondary: #666666;
-  --color-text-muted: #999999;
-  --color-text-subtle: #5a6c7d;
-  --color-heading: #2c3e50;
+  --color-text: #15233e;
+  --color-text-secondary: #54627a;
+  --color-text-muted: #8a96a8;
+  --color-text-subtle: #54627a;
+  --color-heading: #15233e;
 
-  --color-border: #dddddd;
-  --color-border-light: #eeeeee;
-  --color-border-subtle: #dee2e6;
-  --color-border-divider: #e0e0e0;
+  --color-border: #dfe3e9;
+  --color-border-light: #e9ecf1;
+  --color-border-subtle: #dfe3e9;
+  --color-border-divider: #e3e6eb;
 
-  /* primary-fill: solid accent (button/toggle backgrounds, accent bars).
-     primary-text: same hue used as foreground (links, nav, citations).
-     Both share one shade today; primary-text can be darkened for text
-     contrast without touching the fills. */
-  --color-primary-fill: #3498db;
-  --color-primary-fill-hover: #2980b9;
-  --color-primary-text: #3498db;
-  --color-primary-tint: #e7f3ff;
+  /* primary-fill: solid gold accent (button/toggle backgrounds, accent bars).
+     primary-text: contrast-safe gold for foreground (links, nav, citations) —
+     darkened on light so it passes AA without changing the fills.
+     on-primary: label color on a gold fill (dark ink; white fails AA on gold). */
+  --color-primary-fill: #c9a24a;
+  --color-primary-fill-hover: #b88f36;
+  --color-primary-text: #9a7320;
+  --color-primary-tint: #f3ead6;
+  --color-on-primary: #231905;
 
   --color-success: #28a745;
   --color-success-hover: #218838;
@@ -58,51 +61,48 @@
 
   --color-code-bg: #e9ecef;
   --color-code-text: #e83e8c;
-  --color-pre-bg: #f8f9fa;
+  --color-pre-bg: #f4f6f9;
   --color-blockquote-border: #dee2e6;
   --color-blockquote-text: #6c757d;
 
-  --color-citation-link-hover-bg: rgba(52, 152, 219, 0.15);
+  --color-citation-link-hover-bg: rgba(201, 162, 74, 0.16);
   --color-citation-lib-link: #888888;
   --color-citation-lib-hover: #e0e0e0;
 
-  --color-github-bg: #f6f8fa;
-  --color-github-border: #d1d9e0;
-  --color-github-hover-bg: #e1e4e8;
-  --color-github-hover-border: #c1c8cd;
-  --color-github-text: #0366d6;
+  --color-github-bg: #f4f6f9;
+  --color-github-border: #dfe3e9;
+  --color-github-hover-bg: #eaedf2;
+  --color-github-hover-border: #d4d9e1;
+  --color-github-text: #9a7320;
 
-  --color-highlight-bg: rgba(52, 152, 219, 0.5);
-
-  --color-card-border-green: #28a745;
-  --color-card-border-blue: var(--color-primary-fill);
-  --color-card-border-yellow: #f5d76e;
+  --color-highlight-bg: rgba(205, 165, 83, 0.45);
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --color-bg: #1a1a1a;
-  --color-surface: #242424;
-  --color-surface-secondary: #2a2a2a;
-  --color-surface-hover: #2e2e2e;
-  --color-surface-active: #333333;
+  --color-bg: #070d19;
+  --color-surface: #101c33;
+  --color-surface-secondary: #16243f;
+  --color-surface-hover: #1b2c4b;
+  --color-surface-active: #1b2c4b;
 
-  --color-text: #e0e0e0;
-  --color-text-secondary: #aaaaaa;
-  --color-text-muted: #777777;
-  --color-text-subtle: #8da0b3;
-  --color-heading: #c8d6e5;
+  --color-text: #e9eefb;
+  --color-text-secondary: #9fb0cc;
+  --color-text-muted: #6f82a3;
+  --color-text-subtle: #9fb0cc;
+  --color-heading: #ecf1fb;
 
-  --color-border: #444444;
-  --color-border-light: #383838;
-  --color-border-subtle: #3d3d3d;
-  --color-border-divider: #3d3d3d;
+  --color-border: #1e2c47;
+  --color-border-light: #18253f;
+  --color-border-subtle: #2a3c5e;
+  --color-border-divider: #26375a;
 
-  --color-primary-fill: #3498db;
-  --color-primary-fill-hover: #2980b9;
-  --color-primary-text: #3498db;
-  --color-primary-tint: #1e3a5f;
+  --color-primary-fill: #cda553;
+  --color-primary-fill-hover: #dcb869;
+  --color-primary-text: #e7c987;
+  --color-primary-tint: rgba(205, 165, 83, 0.14);
+  --color-on-primary: #231905;
 
   --color-success: #2ea347;
   --color-success-hover: #25903e;
@@ -112,25 +112,21 @@
   --color-error-text: #f48c94;
   --color-error-border: #6b3340;
 
-  --color-code-bg: #333333;
+  --color-code-bg: #1b2c4b;
   --color-code-text: #ff7eb3;
-  --color-pre-bg: #2a2a2a;
-  --color-blockquote-border: #555555;
-  --color-blockquote-text: #9a9a9a;
+  --color-pre-bg: #0c1526;
+  --color-blockquote-border: #2a3c5e;
+  --color-blockquote-text: #9fb0cc;
 
-  --color-citation-link-hover-bg: rgba(52, 152, 219, 0.2);
-  --color-citation-lib-link: #777777;
-  --color-citation-lib-hover: #3a3a3a;
+  --color-citation-link-hover-bg: rgba(205, 165, 83, 0.2);
+  --color-citation-lib-link: #8a96a8;
+  --color-citation-lib-hover: #1b2c4b;
 
-  --color-github-bg: #2a2a2a;
-  --color-github-border: #444444;
-  --color-github-hover-bg: #333333;
-  --color-github-hover-border: #555555;
-  --color-github-text: #58a6ff;
+  --color-github-bg: #16243f;
+  --color-github-border: #2a3c5e;
+  --color-github-hover-bg: #1b2c4b;
+  --color-github-hover-border: #3a4f73;
+  --color-github-text: #e7c987;
 
-  --color-highlight-bg: rgba(52, 152, 219, 0.35);
-
-  --color-card-border-green: transparent;
-  --color-card-border-blue: transparent;
-  --color-card-border-yellow: transparent;
+  --color-highlight-bg: rgba(205, 165, 83, 0.32);
 }

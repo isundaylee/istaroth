@@ -493,7 +493,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
                     color: 'var(--color-primary-text)',
                     textDecoration: 'none',
                     fontSize: 'var(--font-base)',
-                  fontWeight: 500,
+                  fontWeight: 400,
                   cursor: 'pointer',
                   flex: 1,
                   minWidth: 0,
@@ -511,22 +511,30 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
                       style={{
                         color: 'var(--color-citation-lib-link)',
                         textDecoration: 'none',
-                        fontSize: 'var(--font-base)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
                     cursor: 'pointer',
-                    padding: '2px 6px',
+                    padding: '4px 6px',
                     borderRadius: 'var(--radius-sm)',
-                    transition: 'background-color 0.15s ease',
+                    transition: 'background-color 0.15s ease, color 0.15s ease',
                     flexShrink: 0
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = 'var(--color-citation-lib-hover)'
+                    e.currentTarget.style.color = 'var(--color-primary-text)'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent'
+                    e.currentTarget.style.color = 'var(--color-citation-lib-link)'
                   }}
                   title={t('citation.openInLibrary')}
+                  aria-label={t('citation.openInLibrary')}
                 >
-                  📚
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" />
+                  </svg>
                 </a>
               )}
             </li>

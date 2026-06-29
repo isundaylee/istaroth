@@ -6,21 +6,8 @@
 .card {
   background-color: var(--color-surface-secondary);
   border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
   box-shadow: var(--shadow);
   padding: 0.75rem 1rem;
   margin: 1rem 0;
-}
-
-/* One class per border variant, each reading a design token. The component
- * picks the right one by name via clsx — no inline branching on color. */
-.green {
-  border-left: 3px solid var(--color-card-border-green);
-}
-
-.blue {
-  border-left: 3px solid var(--color-card-border-blue);
-}
-
-.yellow {
-  border-left: 3px solid var(--color-card-border-yellow);
 }
