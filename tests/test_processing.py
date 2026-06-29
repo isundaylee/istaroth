@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 
+from istaroth import text_cleanup
 from istaroth.agd import (
     agd_types,
     localization,
@@ -561,3 +562,28 @@ def test_creatures_discover_returns_subtype_groups(data_repo: repo.DataRepo) -> 
     )
     # Far fewer files than entries: a dozen-ish groups vs. hundreds of creatures.
     assert len(discovered) < 20 < len(codex)
+
+
+def test_sexpro_pronoun_map_resolves_from_pinned_build(
+    data_repo: repo.DataRepo, english_data_repo: repo.DataRepo
+) -> None:
+    """SEXPRO tokens resolve to per-language text via the pinned old AGD build.
+
+    6.x dropped these TextMap rows, so resolution relies on the pinned-ref
+    ManualTextMapConfigData + TextMap (see repo._PRONOUN_TEXT_MAP_REF).
+    """
+    placeholder = (
+        "找{PLAYERAVATAR#SEXPRO[INFO_MALE_PRONOUN_HE|INFO_FEMALE_PRONOUN_SHE]}"
+    )
+    for repo_, language, expected in [
+        (data_repo, localization.Language.CHS, "找他"),
+        (english_data_repo, localization.Language.ENG, "找He"),
+    ]:
+        pronoun_map = repo_._load_pronoun_text_map(repo_.language_short)
+        assert pronoun_map["INFO_MALE_PRONOUN_HE"] == expected[1:]
+        assert (
+            text_cleanup.clean_text_markers(
+                placeholder, language, pronoun_map=pronoun_map
+            )
+            == expected
+        )
