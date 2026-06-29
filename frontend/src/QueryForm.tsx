@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import Select from './components/Select'
 import Button from './components/Button'
+import Composer from './components/Composer'
 import ErrorDisplay from './components/ErrorDisplay'
 import QueryProgress from './components/QueryProgress'
 import { getClientId } from './utils/clientId'
@@ -22,11 +23,6 @@ const retrievalPresets = {
 
 type RetrievalPreset = keyof typeof retrievalPresets
 
-const resizeTextarea = (textarea: HTMLTextAreaElement) => {
-  textarea.style.height = 'auto'
-  textarea.style.height = `${textarea.scrollHeight}px`
-}
-
 function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
   const navigate = useAppNavigate()
   const t = useT()
@@ -42,7 +38,6 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
   const [modelsLoading, setModelsLoading] = useState(true)
   const [exampleQuestion, setExampleQuestion] = useState<string>('')
   const [exampleLoading, setExampleLoading] = useState(true)
-  const inputRef = useRef<HTMLTextAreaElement>(null)
 
   // Helper function to convert model ID to translation key
   const getModelTranslationKey = (modelId: string) => {
@@ -54,18 +49,6 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
     const translationKey = `query.models.${getModelTranslationKey(modelId)}`
     return t(translationKey)
   }
-
-  useEffect(() => {
-    // Focus the input field when component mounts
-    if (inputRef.current) {
-      inputRef.current.focus()
-      resizeTextarea(inputRef.current)
-    }
-  }, [])
-
-  useEffect(() => {
-    if (inputRef.current) resizeTextarea(inputRef.current)
-  }, [question])
 
   useEffect(() => {
     // Use current question if provided, otherwise fetch example question
@@ -131,9 +114,7 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
     setActiveSteps([])
   }, [currentQuestion])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
+  const handleSubmit = async () => {
     // Use example question if user didn't enter anything
     const questionToSubmit = question.trim() || exampleQuestion
     if (!questionToSubmit) return
@@ -190,70 +171,57 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="query-form">
-        <div className="query-composer">
-          <textarea
-            ref={inputRef}
-            value={question}
-            onChange={(e) => {
-              setQuestion(e.target.value)
-              resizeTextarea(e.target)
-            }}
-            onKeyDown={(e) => {
-              if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                e.preventDefault()
-                e.currentTarget.form?.requestSubmit()
-              }
-            }}
-            placeholder={exampleLoading ? t('query.exampleLoading') : exampleQuestion || t('query.placeholder')}
-            disabled={loading}
-            className="query-textarea"
-            rows={2}
-          />
-          <div className="query-composer-footer">
-            <div className="query-options-row">
-              <Select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                disabled={loading || modelsLoading}
-                className="model-select"
-              >
-                {modelsLoading ? (
-                  <option value="">{t('common.loading')}</option>
-                ) : (
-                  availableModels.map(modelId => (
-                    <option key={modelId} value={modelId}>
-                      {getModelText(modelId)}
-                    </option>
-                  ))
-                )}
-              </Select>
-              <Select
-                value={retrievalPreset}
-                onChange={(e) => setRetrievalPreset(e.target.value as RetrievalPreset)}
-                disabled={loading}
-                className="retrieval-select"
-                aria-label={t('query.retrievalPresetLabel')}
-                title={t('query.retrievalPresetLabel')}
-              >
-                <option value="fast">{t('query.retrievalPresets.fast')}</option>
-                <option value="balanced">{t('query.retrievalPresets.balanced')}</option>
-                <option value="thorough">{t('query.retrievalPresets.thorough')}</option>
-              </Select>
-            </div>
-            <Button
-              type="submit"
-              className="query-submit-button"
-              disabled={loading || (!question.trim() && !exampleQuestion) || availableModels.length === 0}
+      <Composer
+        value={question}
+        onChange={setQuestion}
+        onSubmit={handleSubmit}
+        placeholder={exampleLoading ? t('query.exampleLoading') : exampleQuestion || t('query.placeholder')}
+        disabled={loading}
+        controls={
+          <div className="query-options-row">
+            <Select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              disabled={loading || modelsLoading}
+              className="model-select"
             >
-              <span className="button-text-sizer">
-                <span className={loading ? 'button-text-active' : 'button-text-hidden'}><span className="loading-ellipsis">{t('query.submitting')}</span></span>
-                <span className={loading ? 'button-text-hidden' : 'button-text-active'}>{t('query.submitButton')}</span>
-              </span>
-            </Button>
+              {modelsLoading ? (
+                <option value="">{t('common.loading')}</option>
+              ) : (
+                availableModels.map(modelId => (
+                  <option key={modelId} value={modelId}>
+                    {getModelText(modelId)}
+                  </option>
+                ))
+              )}
+            </Select>
+            <Select
+              value={retrievalPreset}
+              onChange={(e) => setRetrievalPreset(e.target.value as RetrievalPreset)}
+              disabled={loading}
+              className="retrieval-select"
+              aria-label={t('query.retrievalPresetLabel')}
+              title={t('query.retrievalPresetLabel')}
+            >
+              <option value="fast">{t('query.retrievalPresets.fast')}</option>
+              <option value="balanced">{t('query.retrievalPresets.balanced')}</option>
+              <option value="thorough">{t('query.retrievalPresets.thorough')}</option>
+            </Select>
           </div>
-        </div>
-      </form>
+        }
+        actions={
+          <Button
+            type="submit"
+            className="query-submit-button"
+            disabled={loading || (!question.trim() && !exampleQuestion) || availableModels.length === 0}
+          >
+            <span className="button-text-sizer">
+              <span className={loading ? 'button-text-active' : 'button-text-hidden'}><span className="loading-ellipsis">{t('query.submitting')}</span></span>
+              <span className={loading ? 'button-text-hidden' : 'button-text-active'}>{t('query.submitButton')}</span>
+            </span>
+          </Button>
+        }
+      />
 
       {loading && activeSteps.length > 0 && (
         <QueryProgress steps={activeSteps} />
