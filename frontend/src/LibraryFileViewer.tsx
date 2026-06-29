@@ -7,7 +7,6 @@ import { useTranslation, useT } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
-import LibraryHeader from './components/LibraryHeader'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
 import NavButton from './components/NavButton'
 import { translate } from './i18n'
@@ -173,8 +172,6 @@ function LibraryFileViewer() {
       <main className="main">
         <MinimizedPopupRegion>
         <PageCard>
-          <LibraryHeader title={fileTitle || catLabel} />
-
           <Breadcrumbs crumbs={crumbs} />
 
           {tocLeafCount > 1 && (

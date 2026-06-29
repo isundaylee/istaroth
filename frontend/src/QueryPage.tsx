@@ -2,7 +2,6 @@ import { useT } from './contexts/LanguageContext'
 import QueryForm from './QueryForm'
 import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
-import PageTitle from './components/PageTitle'
 
 function QueryPage() {
   const t = useT()
@@ -18,9 +17,9 @@ function QueryPage() {
           textAlign: 'center',
         }}>
           <PageCard>
-            <PageTitle>
+            <h1 style={{ margin: '0 0 2rem', fontSize: 'var(--font-xl)', color: 'var(--color-heading)' }}>
               {t('query.title')}
-            </PageTitle>
+            </h1>
             <p style={{
               fontSize: 'var(--font-base)',
               color: 'var(--color-text-subtle)',

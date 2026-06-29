@@ -4,7 +4,6 @@ import { useT } from './contexts/LanguageContext'
 import Navigation from './components/Navigation'
 import Card from './components/Card'
 import PageCard from './components/PageCard'
-import PageTitle from './components/PageTitle'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
@@ -41,10 +40,6 @@ function LibraryCategoriesPage() {
       <Navigation />
       <main className="main">
         <PageCard>
-          <PageTitle>
-            {t('library.title')}
-          </PageTitle>
-
           <div
             className="category-grid"
             style={{

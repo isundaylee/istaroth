@@ -8,7 +8,6 @@ import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import {
-  categoryLabel,
   countLeaves,
   flattenLeafEntries,
   hierarchyCrumbs,
@@ -64,7 +63,6 @@ function HierarchyPage() {
     children = next.children
   }
 
-  const catLabel = categoryLabel(category, t)
   const crumbs: Crumb[] = hierarchyCrumbs(category, trail, t)
 
   const openLeaf = (fileId: number) =>
@@ -127,7 +125,6 @@ function HierarchyPage() {
 
   return (
     <HierarchyBrowser
-      title={catLabel}
       search={search}
       onSearchChange={setSearch}
       searchPlaceholder={t(searchPlaceholderKey(category))}

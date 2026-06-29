@@ -260,9 +260,57 @@ body {
 
 .button.query-submit-button {
   flex: 0 0 auto;
-  min-width: 5.25rem;
+  /* Wide enough that every submit label (Ask/Answering, Search/Searching…) in
+     either language fits, so the button is the same width on both pages and
+     never changes width between idle and loading. */
+  min-width: 7.5rem;
   padding: 0.5rem 1.25rem;
   font-size: var(--font-sm);
+}
+
+/* Segmented Keyword/Semantic toggle, styled to match the composer's selects
+   (same height, border, radius, and muted surface) so the footer controls read
+   as one family and the bottom-aligned submit button lands identically on both
+   pages. */
+.search-mode {
+  display: inline-flex;
+  align-items: stretch;
+  height: 2.25rem;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-secondary);
+  overflow: hidden;
+}
+
+.search-mode button {
+  display: flex;
+  align-items: center;
+  border: 0;
+  padding: 0 0.95rem;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.search-mode button + button {
+  border-left: 1px solid var(--color-border-light);
+}
+
+.search-mode button.is-active {
+  background: var(--color-primary-fill);
+  color: #fff;
+}
+
+.search-mode button:hover:not(:disabled):not(.is-active) {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.search-mode button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .text-input {
@@ -654,13 +702,6 @@ body {
 .citation-gap:disabled {
   cursor: default;
   opacity: 0.6;
-}
-
-.library-header__title {
-  margin: 0 0 2rem;
-  font-size: var(--font-xl);
-  color: var(--color-heading);
-  text-align: center;
 }
 
 .answer .proper-noun {
@@ -1094,6 +1135,15 @@ body {
   .query-composer .query-options-row .select,
   .query-submit-button {
     width: 100%;
+  }
+
+  .search-mode {
+    display: flex;
+    width: 100%;
+  }
+
+  .search-mode button {
+    flex: 1;
   }
 
   .text-input {

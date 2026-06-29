@@ -4,11 +4,9 @@ import { useT, useTranslation } from './contexts/LanguageContext'
 import { AppLink } from './components/AppLink'
 import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
-import PageTitle from './components/PageTitle'
 import Card from './components/Card'
-import TextInput from './components/TextInput'
-import Select from './components/Select'
 import Button from './components/Button'
+import Composer from './components/Composer'
 import ErrorDisplay from './components/ErrorDisplay'
 import { buildUrlWithLanguage } from './utils/language'
 import { buildLibraryFilePath } from './utils/library'
@@ -60,7 +58,6 @@ function RetrievePage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const activeRequestIdRef = useRef(0)
-  const queryInputRef = useRef<HTMLInputElement>(null)
 
   const urlParams = useMemo((): SearchParams => {
     const params = new URLSearchParams(location.search)
@@ -125,18 +122,13 @@ function RetrievePage() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async () => {
     const params: SearchParams = { query: formParams.query.trim(), semantic: formParams.semantic }
     if (!params.query || (params.query === submittedParams?.query && params.semantic === submittedParams?.semantic)) return
 
     writeParamsToUrl(params)
     await runSearch(params)
   }
-
-  useEffect(() => {
-    queryInputRef.current?.focus()
-  }, [])
 
   useEffect(() => {
     if (initialQuerySubmitted) {
@@ -163,13 +155,13 @@ function RetrievePage() {
     }
     if (results.length === 0) {
       return (
-        <Card style={{ marginTop: '1rem' }}>
+        <Card style={{ margin: 0 }}>
           <p>{t('retrieve.noResults')}</p>
         </Card>
       )
     }
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {results.map((result) => {
           const linkPath = buildLibraryFilePath(result.file_info)
           return (
@@ -201,39 +193,48 @@ function RetrievePage() {
     <>
       <Navigation />
       <main className="main">
-        <PageCard>
-          <PageTitle>{t('retrieve.title')}</PageTitle>
-          <form onSubmit={handleSubmit} className="query-form">
-            <div className="input-row">
-              <TextInput
-                ref={queryInputRef}
-                value={formParams.query}
-                onChange={(e) => setFormParams({ ...formParams, query: e.target.value })}
-                placeholder={t('retrieve.placeholder')}
-                disabled={loading}
-              />
-              <Select
-                value={formParams.semantic ? 'semantic' : 'bm25'}
-                onChange={(e) =>
-                  setFormParams({ ...formParams, semantic: e.target.value === 'semantic' })
-                }
+        <Composer
+          submitOnEnter
+          value={formParams.query}
+          onChange={(query) => setFormParams({ ...formParams, query })}
+          onSubmit={handleSubmit}
+          placeholder={t('retrieve.placeholder')}
+          disabled={loading}
+          controls={
+            <div className="search-mode" role="group" aria-label={t('retrieve.searchMode')}>
+              <button
+                type="button"
+                className={formParams.semantic ? '' : 'is-active'}
+                aria-pressed={!formParams.semantic}
+                onClick={() => setFormParams({ ...formParams, semantic: false })}
                 disabled={loading}
               >
-                <option value="bm25">{t('retrieve.searchModeBm25')}</option>
-                <option value="semantic">{t('retrieve.searchModeSemantic')}</option>
-              </Select>
-              <Button
-                type="submit"
-                disabled={loading || !formParams.query.trim() || (formParams.query.trim() === submittedParams?.query && formParams.semantic === submittedParams?.semantic)}
+                {t('retrieve.searchModeBm25')}
+              </button>
+              <button
+                type="button"
+                className={formParams.semantic ? 'is-active' : ''}
+                aria-pressed={formParams.semantic}
+                onClick={() => setFormParams({ ...formParams, semantic: true })}
+                disabled={loading}
               >
-                {loading ? t('retrieve.submitting') : t('retrieve.submitButton')}
-              </Button>
+                {t('retrieve.searchModeSemantic')}
+              </button>
             </div>
-          </form>
+          }
+          actions={
+            <Button
+              type="submit"
+              className="query-submit-button"
+              disabled={loading || !formParams.query.trim() || (formParams.query.trim() === submittedParams?.query && formParams.semantic === submittedParams?.semantic)}
+            >
+              {loading ? t('retrieve.submitting') : t('retrieve.submitButton')}
+            </Button>
+          }
+        />
 
-          {error && <ErrorDisplay error={error} />}
-          {resultsContent}
-        </PageCard>
+        {error && <ErrorDisplay error={error} />}
+        {resultsContent && <PageCard>{resultsContent}</PageCard>}
       </main>
     </>
   )

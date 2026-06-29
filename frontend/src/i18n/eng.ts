@@ -123,7 +123,6 @@ export const eng = {
   },
 
   history: {
-    title: 'My Conversations',
     empty: 'No conversations yet. Your past questions will appear here.',
     loadMore: 'Load more',
     errors: {
@@ -143,10 +142,10 @@ export const eng = {
   },
 
   retrieve: {
-    title: 'Text Retrieval',
     placeholder: 'Enter text to find related documents',
     submitButton: 'Search',
     submitting: 'Searching...',
+    searchMode: 'Search mode',
     semantic: 'Semantic search',
     searchModeBm25: 'Keyword',
     searchModeSemantic: 'Semantic',
