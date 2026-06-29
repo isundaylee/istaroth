@@ -6,7 +6,6 @@ import { getLanguageFromUrl } from './utils/language'
 import { getClientId } from './utils/clientId'
 import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
-import PageTitle from './components/PageTitle'
 import Card from './components/Card'
 import { AppLink } from './components/AppLink'
 import type { ConversationListResponse, ConversationSummary } from './types/api'
@@ -79,8 +78,6 @@ function HistoryPage() {
       <Navigation />
       <main className="main">
         <PageCard>
-          <PageTitle>{t('history.title')}</PageTitle>
-
           {conversations.length === 0 ? (
             <Card style={{ margin: '1rem 0' }}>
               <p>{t('history.empty')}</p>

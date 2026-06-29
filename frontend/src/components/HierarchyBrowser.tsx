@@ -4,7 +4,6 @@ import Navigation from './Navigation'
 import Card from './Card'
 import TextInput from './TextInput'
 import PageCard from './PageCard'
-import LibraryHeader from './LibraryHeader'
 import Breadcrumbs, { type Crumb } from './Breadcrumbs'
 
 // Shared presentation for the drill-down library hierarchy. The HierarchyPage
@@ -76,7 +75,6 @@ export function CardGrid({ children }: { children: React.ReactNode }) {
 }
 
 interface HierarchyBrowserProps {
-  title: string
   search: string
   onSearchChange: (value: string) => void
   searchPlaceholder: string
@@ -86,7 +84,6 @@ interface HierarchyBrowserProps {
 }
 
 export default function HierarchyBrowser({
-  title,
   search,
   onSearchChange,
   searchPlaceholder,
@@ -99,8 +96,6 @@ export default function HierarchyBrowser({
       <Navigation />
       <main className="main">
         <PageCard>
-          <LibraryHeader title={title} />
-
           <Breadcrumbs crumbs={crumbs} />
 
           <TextInput

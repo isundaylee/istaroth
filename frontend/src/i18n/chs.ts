@@ -123,7 +123,6 @@ export const chs = {
   },
 
   history: {
-    title: '我的对话',
     empty: '暂无对话。你提过的问题会显示在这里。',
     loadMore: '加载更多',
     errors: {
@@ -143,10 +142,10 @@ export const chs = {
   },
 
   retrieve: {
-    title: '文本检索',
     placeholder: '输入文本以查找相关文档',
     submitButton: '检索',
     submitting: '检索中...',
+    searchMode: '检索方式',
     semantic: '语义检索',
     searchModeBm25: '仅关键词',
     searchModeSemantic: '语义',

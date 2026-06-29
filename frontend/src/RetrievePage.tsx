@@ -4,10 +4,7 @@ import { useT, useTranslation } from './contexts/LanguageContext'
 import { AppLink } from './components/AppLink'
 import Navigation from './components/Navigation'
 import PageCard from './components/PageCard'
-import PageTitle from './components/PageTitle'
 import Card from './components/Card'
-import TextInput from './components/TextInput'
-import Select from './components/Select'
 import Button from './components/Button'
 import ErrorDisplay from './components/ErrorDisplay'
 import { buildUrlWithLanguage } from './utils/language'
@@ -24,6 +21,11 @@ interface SearchParams {
 
 const escapeRegExp = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+const resizeTextarea = (textarea: HTMLTextAreaElement) => {
+  textarea.style.height = 'auto'
+  textarea.style.height = `${textarea.scrollHeight}px`
+}
 
 const highlightSnippet = (snippet: string, query: string): React.ReactNode => {
   const tokens = Array.from(new Set(query.split(/\s+/).map((token) => token.trim()).filter(Boolean)))
@@ -60,7 +62,7 @@ function RetrievePage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const activeRequestIdRef = useRef(0)
-  const queryInputRef = useRef<HTMLInputElement>(null)
+  const queryInputRef = useRef<HTMLTextAreaElement>(null)
 
   const urlParams = useMemo((): SearchParams => {
     const params = new URLSearchParams(location.search)
@@ -135,8 +137,15 @@ function RetrievePage() {
   }
 
   useEffect(() => {
-    queryInputRef.current?.focus()
+    if (queryInputRef.current) {
+      queryInputRef.current.focus()
+      resizeTextarea(queryInputRef.current)
+    }
   }, [])
+
+  useEffect(() => {
+    if (queryInputRef.current) resizeTextarea(queryInputRef.current)
+  }, [formParams.query])
 
   useEffect(() => {
     if (initialQuerySubmitted) {
@@ -163,13 +172,13 @@ function RetrievePage() {
     }
     if (results.length === 0) {
       return (
-        <Card style={{ marginTop: '1rem' }}>
+        <Card style={{ margin: 0 }}>
           <p>{t('retrieve.noResults')}</p>
         </Card>
       )
     }
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {results.map((result) => {
           const linkPath = buildLibraryFilePath(result.file_info)
           return (
@@ -201,39 +210,60 @@ function RetrievePage() {
     <>
       <Navigation />
       <main className="main">
-        <PageCard>
-          <PageTitle>{t('retrieve.title')}</PageTitle>
-          <form onSubmit={handleSubmit} className="query-form">
-            <div className="input-row">
-              <TextInput
-                ref={queryInputRef}
-                value={formParams.query}
-                onChange={(e) => setFormParams({ ...formParams, query: e.target.value })}
-                placeholder={t('retrieve.placeholder')}
-                disabled={loading}
-              />
-              <Select
-                value={formParams.semantic ? 'semantic' : 'bm25'}
-                onChange={(e) =>
-                  setFormParams({ ...formParams, semantic: e.target.value === 'semantic' })
+        <form onSubmit={handleSubmit} className="query-form">
+          <div className="query-composer query-composer--search">
+            <textarea
+              ref={queryInputRef}
+              value={formParams.query}
+              onChange={(e) => {
+                setFormParams({ ...formParams, query: e.target.value })
+                resizeTextarea(e.target)
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  e.currentTarget.form?.requestSubmit()
                 }
-                disabled={loading}
-              >
-                <option value="bm25">{t('retrieve.searchModeBm25')}</option>
-                <option value="semantic">{t('retrieve.searchModeSemantic')}</option>
-              </Select>
+              }}
+              placeholder={t('retrieve.placeholder')}
+              disabled={loading}
+              className="query-textarea"
+              rows={1}
+            />
+            <div className="query-composer-footer">
+              <div className="search-mode" role="group" aria-label={t('retrieve.searchMode')}>
+                <button
+                  type="button"
+                  className={formParams.semantic ? '' : 'is-active'}
+                  aria-pressed={!formParams.semantic}
+                  onClick={() => setFormParams({ ...formParams, semantic: false })}
+                  disabled={loading}
+                >
+                  {t('retrieve.searchModeBm25')}
+                </button>
+                <button
+                  type="button"
+                  className={formParams.semantic ? 'is-active' : ''}
+                  aria-pressed={formParams.semantic}
+                  onClick={() => setFormParams({ ...formParams, semantic: true })}
+                  disabled={loading}
+                >
+                  {t('retrieve.searchModeSemantic')}
+                </button>
+              </div>
               <Button
                 type="submit"
+                className="query-submit-button"
                 disabled={loading || !formParams.query.trim() || (formParams.query.trim() === submittedParams?.query && formParams.semantic === submittedParams?.semantic)}
               >
                 {loading ? t('retrieve.submitting') : t('retrieve.submitButton')}
               </Button>
             </div>
-          </form>
+          </div>
+        </form>
 
-          {error && <ErrorDisplay error={error} />}
-          {resultsContent}
-        </PageCard>
+        {error && <ErrorDisplay error={error} />}
+        {resultsContent && <PageCard>{resultsContent}</PageCard>}
       </main>
     </>
   )
