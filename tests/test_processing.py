@@ -124,6 +124,7 @@ def test_talk_role_name_hash_ignores_fallback_text() -> None:
         {"100": "Hello"},
         localization.Language.ENG,
         {"200": "Stale role"},
+        pronoun_map={},
     )
     data_repo.get_npc_id_to_name_mapping.return_value = {}
     data_repo.get_dialog_id_to_role_name_hash_mapping.return_value = {}
@@ -239,6 +240,7 @@ def test_achievement_section_filters_disused_and_keeps_hidden() -> None:
             "203": "Hidden description",
         },
         localization.Language.ENG,
+        pronoun_map={},
     )
 
     section = achievement.get_achievement_section_info(9, data_repo=data_repo)
@@ -270,7 +272,9 @@ def test_achievement_section_requires_active_localized_text() -> None:
         )
     }
     data_repo.load_text_map.return_value = repo.TextMapTracker(
-        {"100": "Section", "102": "Achievement"}, localization.Language.ENG
+        {"100": "Section", "102": "Achievement"},
+        localization.Language.ENG,
+        pronoun_map={},
     )
 
     with pytest.raises(ValueError, match="Missing description for achievement 2"):
@@ -383,6 +387,7 @@ def test_get_book_series_info_assembles_volumes() -> None:
     data_repo.load_text_map.return_value = repo.TextMapTracker(
         {"700": "My Series", "101": "Volume One", "102": "Volume Two"},
         localization.Language.ENG,
+        pronoun_map={},
     )
     data_repo.build_readable_stem_to_localization_id.return_value = {
         "Book101_EN": 101,
@@ -419,7 +424,9 @@ def test_get_book_series_info_filters_placeholder_volumes() -> None:
         7: {"id": 7, "suitNameTextMapHash": 700}
     }
     data_repo.load_text_map.return_value = repo.TextMapTracker(
-        {"700": "My Series", "102": "Volume Two"}, localization.Language.ENG
+        {"700": "My Series", "102": "Volume Two"},
+        localization.Language.ENG,
+        pronoun_map={},
     )
     data_repo.build_readable_stem_to_localization_id.return_value = {"Book102_EN": 102}
     data_repo.build_localization_id_to_title_hash.return_value = {102: 102}

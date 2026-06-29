@@ -164,7 +164,7 @@ class TextMapTracker(IdTracker[id_types.TextMapHash]):
         language: localization.Language,
         fallback_text_map: agd_types.TextMap | None = None,
         *,
-        pronoun_map: dict[str, str] | None = None,
+        pronoun_map: dict[str, str],
     ) -> None:
         self._text_map: dict[id_types.TextMapHash, str] = {
             int(k): v for k, v in text_map.items()
@@ -173,7 +173,7 @@ class TextMapTracker(IdTracker[id_types.TextMapHash]):
         self._text_maps = (self._text_map, self._fallback_text_map)
         super().__init__(set(self._text_map))
         self._language = language
-        self._pronoun_map = pronoun_map or {}
+        self._pronoun_map = pronoun_map
 
     @staticmethod
     def _normalize_text_map(
@@ -184,6 +184,10 @@ class TextMapTracker(IdTracker[id_types.TextMapHash]):
     def has(self, key: id_types.TextMapHash) -> bool:
         """Whether key resolves in the current or fallback TextMap."""
         return self._get_raw_text(key) is not None
+
+    def clean_text(self, text: str) -> str:
+        """Clean game-text markers (incl. SEXPRO pronouns) for this language."""
+        return self._get_cleaned_text(text)
 
     def _get_cleaned_text(self, text: str) -> str:
         return text_cleanup.clean_text_markers(
@@ -397,27 +401,15 @@ class DataRepo:
     def _git_show_text_map(
         self, fallback_ref: str, filename: str, *, required: bool
     ) -> agd_types.TextMap | None:
-        result = subprocess.run(
-            [
-                "git",
-                "-C",
-                str(self.agd_path),
-                "show",
-                f"{fallback_ref}:TextMap/{filename}",
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode == 0:
-            data: agd_types.TextMap = json.loads(result.stdout)
-            return data
-        if required:
-            raise RuntimeError(
-                f"Failed to load fallback TextMap {filename} at {fallback_ref}: "
-                f"{result.stderr.strip()}"
+        try:
+            data: agd_types.TextMap = self._git_show_json(
+                fallback_ref, f"TextMap/{filename}"
             )
-        return None
+            return data
+        except RuntimeError:
+            if required:
+                raise
+            return None
 
     def load_text_map(self) -> TextMapTracker:
         """Load TextMap for the instance's language, merging Medium variant if present."""

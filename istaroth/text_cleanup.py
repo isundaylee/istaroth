@@ -24,13 +24,13 @@ def clean_text_markers(
     text: str,
     language: localization.Language,
     *,
-    pronoun_map: Mapping[str, str] | None = None,
+    pronoun_map: Mapping[str, str],
 ) -> str:
     """Clean game text markers and normalize newlines.
 
     ``pronoun_map`` resolves the ``INFO_*_PRONOUN_*`` tokens inside SEXPRO
-    placeholders; an unmapped token raises so a new one surfaces. Text without
-    such placeholders (e.g. readables) needs no map.
+    placeholders; an unmapped token raises so a new one surfaces. Pass an empty
+    mapping for text that cannot contain such placeholders.
     """
     if not text:
         return text
@@ -44,7 +44,7 @@ def clean_text_markers(
     # Resolve {PLAYERAVATAR/MATEAVATAR#SEXPRO[male|female]} to the male-branch text
     # before the {M#...}{F#...} pass below, so a branch that itself carries a nested
     # gender macro (e.g. INFO_MALE_PRONOUN_BROANDSIS) is handled too.
-    text = _SEXPRO_PATTERN.sub(lambda m: _resolve_sexpro(m, pronoun_map or {}), text)
+    text = _SEXPRO_PATTERN.sub(lambda m: _resolve_sexpro(m, pronoun_map), text)
 
     # Replace {NICKNAME} with appropriate traveler name
     text = re.sub(r"\{NICKNAME\}", localized_names.player, text)
