@@ -98,7 +98,7 @@ body {
 
 .search-mode button.is-active {
   background: var(--color-primary-fill);
-  color: #fff;
+  color: var(--color-on-primary);
 }
 
 .search-mode button:hover:not(:disabled):not(.is-active) {
@@ -171,7 +171,7 @@ body {
 .button {
   padding: 0.6rem 1.5rem;
   background-color: var(--color-primary-fill);
-  color: white;
+  color: var(--color-on-primary);
   border: none;
   border-radius: var(--radius-md);
   font-size: var(--font-base);
@@ -393,33 +393,30 @@ body {
   margin: 1rem 0;
 }
 
+/* Copy / Export (and the Load-more / preview buttons that reuse these classes)
+   share one flat tonal-gold style: a soft gold fill with a gold hairline,
+   filling solid gold on hover. Clearly visible in both themes. */
 .share-button,
 .export-button {
-  background: var(--color-primary-fill);
-  color: white;
-  border: none;
+  background: var(--color-primary-tint);
+  color: var(--color-primary-text);
+  border: 1px solid var(--color-primary-fill);
   padding: 0.5rem 1rem;
   border-radius: var(--radius-md);
   cursor: pointer;
   font-size: var(--font-sm);
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
 }
 
-.share-button:hover,
+.share-button:hover:not(:disabled),
 .export-button:hover:not(:disabled) {
-  background: var(--color-primary-fill-hover);
+  background: var(--color-primary-fill);
+  color: var(--color-on-primary);
 }
 
-.export-button {
-  background: var(--color-success);
-}
-
-.export-button:hover:not(:disabled) {
-  background: var(--color-success-hover);
-}
-
+.share-button:disabled,
 .export-button:disabled {
-  background: var(--color-button-disabled);
+  opacity: 0.5;
   cursor: not-allowed;
 }
 

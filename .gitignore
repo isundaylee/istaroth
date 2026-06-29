@@ -220,6 +220,9 @@ istaroth.code-workspace
 /tmp
 /claude-prompts
 
+# Playwright MCP session artifacts (console logs / snapshots) written to repo root
+/.playwright-mcp
+
 # Planning docs are scratch files kept under tmp/plans (see AGENTS.md), never committed
 /plans
 
