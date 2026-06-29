@@ -161,7 +161,9 @@ use (deferred tools list only by name until then).
   so the user can open it themselves — don't rely on the image showing up.
 - Playwright's `browser_take_screenshot` saves to the path in its `filename`
   arg, resolved relative to the **repo root** (not the `.playwright-mcp/`
-  directory), e.g. `filename: "frontpage.png"` lands at `<repo-root>/frontpage.png`.
+  directory). ALWAYS save screenshots under `tmp/screenshots/` (e.g.
+  `filename: "tmp/screenshots/frontpage.png"`) — `tmp/` is git-ignored, so they
+  can't be accidentally committed. Don't drop them at the repo root.
 
 ## Regenerating the Text Corpus
 
