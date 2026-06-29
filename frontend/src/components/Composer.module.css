@@ -1,0 +1,113 @@
+/* Styles owned by <Composer>. Class names are LOCAL: Vite hashes them at build
+ * time, so `.composer` here can never collide with a `.composer` elsewhere, and
+ * the names no longer need a `query-`/`library-` prefix to stay unique. The old
+ * global rules (.query-form, .query-composer, .query-textarea, …) move out of
+ * index.css and live here, beside the only component that uses them. */
+
+.form {
+  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 8.5rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+
+.composer:focus-within {
+  border-color: var(--color-primary-fill);
+}
+
+.textarea {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 3rem;
+  overflow: hidden;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--font-base);
+  line-height: 1.5;
+}
+
+.textarea::placeholder {
+  color: var(--color-text-muted);
+}
+
+.textarea:disabled {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* CROSS-COMPONENT COUPLING (flagged for follow-up): these rules style the
+ * `controls` slot content that the *caller* (QueryForm) renders inside the
+ * footer — `.query-options-row`, `.select`, `.model-select` are QueryForm's
+ * global class names, not Composer's. `:global(...)` is the CSS-Modules escape
+ * hatch that lets a scoped ancestor target an unscoped descendant, so behavior
+ * is preserved 1:1. The cleaner end state is for QueryForm to style its own
+ * controls in QueryForm.module.css and drop these from Composer entirely. */
+.composer :global(.query-options-row) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  width: auto;
+  min-width: 0;
+}
+
+.composer :global(.query-options-row .select) {
+  width: auto;
+  height: 2.25rem;
+  min-width: 9.5rem;
+  max-width: 100%;
+  padding: 0.4rem 1.75rem 0.4rem 0.7rem;
+  border-color: var(--color-border-light);
+  background-color: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+  font-size: var(--font-sm);
+}
+
+.composer :global(.query-options-row .model-select) {
+  min-width: min(15rem, 100%);
+}
+
+@media (max-width: 600px) {
+  .composer {
+    min-height: 14rem;
+    padding: 0.85rem;
+  }
+
+  .footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .composer :global(.query-options-row) {
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .composer :global(.query-options-row .select) {
+    width: 100%;
+  }
+}

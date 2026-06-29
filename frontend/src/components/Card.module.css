@@ -1,0 +1,26 @@
+/* Styles owned by <Card>. These previously lived as an inline `style={{…}}`
+ * object built in Card.tsx — moving them here means they can be themed,
+ * overridden, and inspected like any other CSS, and the component file goes
+ * back to describing structure, not pixels. */
+
+.card {
+  background-color: var(--color-surface-secondary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  padding: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+
+/* One class per border variant, each reading a design token. The component
+ * picks the right one by name via clsx — no inline branching on color. */
+.green {
+  border-left: 3px solid var(--color-card-border-green);
+}
+
+.blue {
+  border-left: 3px solid var(--color-card-border-blue);
+}
+
+.yellow {
+  border-left: 3px solid var(--color-card-border-yellow);
+}

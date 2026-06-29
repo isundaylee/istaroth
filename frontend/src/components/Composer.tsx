@@ -1,4 +1,5 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react'
+import styles from './Composer.module.css'
 
 interface ComposerProps {
   value: string
@@ -53,13 +54,13 @@ function Composer({
 
   return (
     <form
-      className="query-form"
+      className={styles.form}
       onSubmit={(e) => {
         e.preventDefault()
         onSubmit()
       }}
     >
-      <div className="query-composer">
+      <div className={styles.composer}>
         <textarea
           ref={textareaRef}
           value={value}
@@ -75,10 +76,10 @@ function Composer({
           }}
           placeholder={placeholder}
           disabled={disabled}
-          className="query-textarea"
+          className={styles.textarea}
           rows={rows}
         />
-        <div className="query-composer-footer">
+        <div className={styles.footer}>
           {controls}
           {actions}
         </div>

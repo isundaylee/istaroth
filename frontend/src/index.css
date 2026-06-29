@@ -1,129 +1,3 @@
-:root {
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-
-  --font-xs: 0.7rem;
-  --font-sm: 0.85rem;
-  --font-base: 1rem;
-  --font-lg: 1.2rem;
-  --font-xl: 2.5rem;
-  --font-hero: 4rem;
-
-  /* Light theme colors */
-  --color-bg: #f5f5f5;
-  --color-surface: #ffffff;
-  --color-surface-secondary: #f8f9fa;
-  --color-surface-hover: #f8f9fa;
-  --color-surface-active: #f0f0f0;
-
-  --color-text: #333333;
-  --color-text-secondary: #666666;
-  --color-text-muted: #999999;
-  --color-text-subtle: #5a6c7d;
-  --color-heading: #2c3e50;
-
-  --color-border: #dddddd;
-  --color-border-light: #eeeeee;
-  --color-border-subtle: #dee2e6;
-  --color-border-divider: #e0e0e0;
-
-  /* primary-fill: solid accent (button/toggle backgrounds, accent bars).
-     primary-text: same hue used as foreground (links, nav, citations).
-     Both share one shade today; primary-text can be darkened for text
-     contrast without touching the fills. */
-  --color-primary-fill: #3498db;
-  --color-primary-fill-hover: #2980b9;
-  --color-primary-text: #3498db;
-  --color-primary-tint: #e7f3ff;
-
-  --color-success: #28a745;
-  --color-success-hover: #218838;
-  --color-button-disabled: #bdc3c7;
-
-  --color-error-bg: #f8d7da;
-  --color-error-text: #721c24;
-  --color-error-border: #f5c6cb;
-
-  --color-code-bg: #e9ecef;
-  --color-code-text: #e83e8c;
-  --color-pre-bg: #f8f9fa;
-  --color-blockquote-border: #dee2e6;
-  --color-blockquote-text: #6c757d;
-
-  --color-citation-link-hover-bg: rgba(52, 152, 219, 0.15);
-  --color-citation-lib-link: #888888;
-  --color-citation-lib-hover: #e0e0e0;
-
-  --color-github-bg: #f6f8fa;
-  --color-github-border: #d1d9e0;
-  --color-github-hover-bg: #e1e4e8;
-  --color-github-hover-border: #c1c8cd;
-  --color-github-text: #0366d6;
-
-  --color-highlight-bg: rgba(52, 152, 219, 0.5);
-
-  --color-card-border-green: #28a745;
-  --color-card-border-blue: var(--color-primary-fill);
-  --color-card-border-yellow: #f5d76e;
-}
-
-[data-theme="dark"] {
-  color-scheme: dark;
-
-  --color-bg: #1a1a1a;
-  --color-surface: #242424;
-  --color-surface-secondary: #2a2a2a;
-  --color-surface-hover: #2e2e2e;
-  --color-surface-active: #333333;
-
-  --color-text: #e0e0e0;
-  --color-text-secondary: #aaaaaa;
-  --color-text-muted: #777777;
-  --color-text-subtle: #8da0b3;
-  --color-heading: #c8d6e5;
-
-  --color-border: #444444;
-  --color-border-light: #383838;
-  --color-border-subtle: #3d3d3d;
-  --color-border-divider: #3d3d3d;
-
-  --color-primary-fill: #3498db;
-  --color-primary-fill-hover: #2980b9;
-  --color-primary-text: #3498db;
-  --color-primary-tint: #1e3a5f;
-
-  --color-success: #2ea347;
-  --color-success-hover: #25903e;
-  --color-button-disabled: #555555;
-
-  --color-error-bg: #3d1f24;
-  --color-error-text: #f48c94;
-  --color-error-border: #6b3340;
-
-  --color-code-bg: #333333;
-  --color-code-text: #ff7eb3;
-  --color-pre-bg: #2a2a2a;
-  --color-blockquote-border: #555555;
-  --color-blockquote-text: #9a9a9a;
-
-  --color-citation-link-hover-bg: rgba(52, 152, 219, 0.2);
-  --color-citation-lib-link: #777777;
-  --color-citation-lib-hover: #3a3a3a;
-
-  --color-github-bg: #2a2a2a;
-  --color-github-border: #444444;
-  --color-github-hover-bg: #333333;
-  --color-github-hover-border: #555555;
-  --color-github-text: #58a6ff;
-
-  --color-highlight-bg: rgba(52, 152, 219, 0.35);
-
-  --color-card-border-green: transparent;
-  --color-card-border-blue: transparent;
-  --color-card-border-yellow: transparent;
-}
-
 * {
   margin: 0;
   padding: 0;
@@ -153,12 +27,8 @@ body {
   padding: 0;
 }
 
-.query-form {
-  margin-bottom: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+/* .query-form / .query-composer / .query-textarea / .query-composer-footer
+   moved to components/Composer.module.css (owned by <Composer>). */
 
 .input-row {
   display: flex;
@@ -184,78 +54,6 @@ body {
   font-size: var(--font-sm);
   min-width: 0;
   width: 100%;
-}
-
-.query-composer {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-height: 8.5rem;
-  padding: 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface);
-  box-shadow: var(--shadow);
-}
-
-.query-composer:focus-within {
-  border-color: var(--color-primary-fill);
-}
-
-.query-textarea {
-  flex: 0 0 auto;
-  width: 100%;
-  min-height: 3rem;
-  overflow: hidden;
-  resize: none;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--color-text);
-  font: inherit;
-  font-size: var(--font-base);
-  line-height: 1.5;
-}
-
-.query-textarea::placeholder {
-  color: var(--color-text-muted);
-}
-
-.query-textarea:disabled {
-  color: var(--color-text-muted);
-  cursor: not-allowed;
-}
-
-.query-composer-footer {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.query-composer .query-options-row {
-  display: flex;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  width: auto;
-  min-width: 0;
-}
-
-.query-composer .query-options-row .select {
-  width: auto;
-  height: 2.25rem;
-  min-width: 9.5rem;
-  max-width: 100%;
-  padding: 0.4rem 1.75rem 0.4rem 0.7rem;
-  border-color: var(--color-border-light);
-  background-color: var(--color-surface-secondary);
-  color: var(--color-text-secondary);
-  font-size: var(--font-sm);
-}
-
-.query-composer .query-options-row .model-select {
-  min-width: min(15rem, 100%);
 }
 
 .button.query-submit-button {
@@ -1116,23 +914,9 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .query-composer {
-    min-height: 14rem;
-    padding: 0.85rem;
-  }
-
-  .query-composer-footer {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .query-composer .query-options-row {
-    display: grid;
-    grid-template-columns: 1fr;
-    width: 100%;
-  }
-
-  .query-composer .query-options-row .select,
+  /* Composer's own responsive rules moved to Composer.module.css. The shared
+     `.query-options-row .select` width override also lives there (scoped via
+     :global); only the caller-owned submit button stays here. */
   .query-submit-button {
     width: 100%;
   }
