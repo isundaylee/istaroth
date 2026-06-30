@@ -27,12 +27,6 @@ body {
   padding: 0;
 }
 
-/* Base form primitives (.select, .button, .text-input) and the query options
-   row now live in their owning component modules (Select/Button/TextInput
-   modules, QueryForm.module.css) as LOCAL classes + variant props — no longer
-   global here. .query-form / .query-composer / .query-textarea moved earlier to
-   components/Composer.module.css. */
-
 .answer {
   padding: 0;
 }
