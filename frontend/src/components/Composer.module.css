@@ -80,7 +80,7 @@
   min-width: 9.5rem;
   max-width: 100%;
   padding: 0.4rem 1.75rem 0.4rem 0.7rem;
-  border-color: var(--color-border-light);
+  border-color: var(--color-border);
   background-color: var(--color-surface-secondary);
   color: var(--color-text-secondary);
   font-size: var(--font-sm);
