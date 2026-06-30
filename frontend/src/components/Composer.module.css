@@ -58,37 +58,10 @@
   gap: 0.75rem;
 }
 
-/* CROSS-COMPONENT COUPLING (flagged for follow-up): these rules style the
- * `controls` slot content that the *caller* (QueryForm) renders inside the
- * footer — `.query-options-row`, `.select`, `.model-select` are QueryForm's
- * global class names, not Composer's. `:global(...)` is the CSS-Modules escape
- * hatch that lets a scoped ancestor target an unscoped descendant, so behavior
- * is preserved 1:1. The cleaner end state is for QueryForm to style its own
- * controls in QueryForm.module.css and drop these from Composer entirely. */
-.composer :global(.query-options-row) {
-  display: flex;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  width: auto;
-  min-width: 0;
-}
-
-.composer :global(.query-options-row .select) {
-  width: auto;
-  height: 2.25rem;
-  min-width: 9.5rem;
-  max-width: 100%;
-  padding: 0.4rem 1.75rem 0.4rem 0.7rem;
-  border-color: var(--color-border);
-  background-color: var(--color-surface-secondary);
-  color: var(--color-text-secondary);
-  font-size: var(--font-sm);
-}
-
-.composer :global(.query-options-row .model-select) {
-  min-width: min(15rem, 100%);
-}
+/* The `controls` and `actions` slot content (QueryForm's options row, the
+ * Retrieve page's toggle, the submit button) styles itself in its own module
+ * via component variants — Composer only lays out the footer, it does not reach
+ * into the caller's slot content. */
 
 @media (max-width: 600px) {
   /* No taller min-height on mobile: let the box size to its content so a short
@@ -102,15 +75,5 @@
   .footer {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .composer :global(.query-options-row) {
-    display: grid;
-    grid-template-columns: 1fr;
-    width: 100%;
-  }
-
-  .composer :global(.query-options-row .select) {
-    width: 100%;
   }
 }

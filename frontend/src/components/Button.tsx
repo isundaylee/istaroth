@@ -1,10 +1,16 @@
 import { forwardRef } from 'react'
+import styles from './Button.module.css'
 
-const Button = forwardRef<HTMLButtonElement, React.ComponentPropsWithoutRef<'button'>>(
-  ({ className, children, ...props }, ref) => (
+interface ButtonProps extends React.ComponentPropsWithoutRef<'button'> {
+  // "submit": fixed-width composer submit button.
+  variant?: 'submit'
+}
+
+const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, children, ...props }, ref) => (
     <button
       ref={ref}
-      className={`button${className ? ` ${className}` : ''}`}
+      className={[styles.button, variant && styles[variant], className].filter(Boolean).join(' ')}
       {...props}
     >
       {children}

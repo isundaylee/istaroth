@@ -180,12 +180,13 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
         placeholder={exampleLoading ? t('query.exampleLoading') : exampleQuestion || t('query.placeholder')}
         disabled={loading}
         controls={
-          <div className="query-options-row">
+          <div className={styles.optionsRow}>
             <Select
+              variant="compact"
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
               disabled={loading || modelsLoading}
-              className="model-select"
+              className={styles.modelSelect}
             >
               {modelsLoading ? (
                 <option value="">{t('common.loading')}</option>
@@ -198,6 +199,7 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
               )}
             </Select>
             <Select
+              variant="compact"
               value={retrievalPreset}
               onChange={(e) => setRetrievalPreset(e.target.value as RetrievalPreset)}
               disabled={loading}
@@ -213,7 +215,7 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
         actions={
           <Button
             type="submit"
-            className="query-submit-button"
+            variant="submit"
             disabled={loading || (!question.trim() && !exampleQuestion) || availableModels.length === 0}
           >
             <span className={styles.buttonTextSizer}>

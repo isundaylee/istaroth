@@ -70,7 +70,7 @@ function KeyboardShortcuts() {
           break
         case '/':
           e.preventDefault()
-          document.querySelector<HTMLInputElement>('input.text-input')?.focus()
+          document.querySelector<HTMLInputElement>('input[data-text-input]')?.focus()
           break
         case 'g':
           gPendingRef.current = true

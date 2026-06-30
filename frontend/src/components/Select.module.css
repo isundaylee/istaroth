@@ -1,0 +1,61 @@
+/* Styles owned by <Select>. Base `.select` is the standard bordered dropdown;
+   `.compact` is the muted-surface footer/options-row variant used inside the
+   Composer footer. Both are LOCAL (hashed) — no other component reaches in by
+   name; contextual sizing is expressed via the `variant` prop and the caller's
+   own module, not cross-component descendant selectors. */
+
+.select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 0.6rem 2rem 0.6rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-base);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23555' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  min-width: 180px;
+  cursor: pointer;
+}
+
+[data-theme="dark"] .select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23aaa' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--color-primary-fill);
+}
+
+.select:disabled {
+  background-color: var(--color-surface-secondary);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+[data-theme="dark"] .select:disabled {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+}
+
+/* Compact, muted-surface variant for the Composer footer's options row: shorter,
+   secondary surface with a crisp hairline border. Width is left to the caller's
+   layout. */
+.compact {
+  height: 2.25rem;
+  min-width: 9.5rem;
+  max-width: 100%;
+  padding: 0.4rem 1.75rem 0.4rem 0.7rem;
+  border-color: var(--color-border);
+  background-color: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+  font-size: var(--font-sm);
+}
+
+@media (max-width: 600px) {
+  .select {
+    min-width: auto;
+  }
+}
