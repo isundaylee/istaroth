@@ -473,7 +473,6 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
               key={fileId}
               style={{
                 marginBottom: '0.25rem',
-                padding: '0',
                 borderRadius: 'var(--radius-sm)',
                 transition: 'background-color 0.15s ease',
                 display: 'flex',

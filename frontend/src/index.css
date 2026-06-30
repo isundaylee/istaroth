@@ -266,12 +266,9 @@ body {
     padding: 10px;
   }
 
-  /* Citation list mobile styles. The `li padding` override still needs
-     `!important` because <li> carries an inline `padding: 0` from
-     CitationRenderer; migrating those inline styles into a CSS module
-     (follow-up) would let it drop too. */
+  /* Citation list mobile styles */
   [data-citation-container] li {
-    padding: 0.25rem 0 !important;
+    padding: 0.25rem 0;
   }
 
   [data-citation-container] li > span {
