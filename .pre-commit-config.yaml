@@ -47,6 +47,13 @@ repos:
         files: ^frontend/.*\.(ts|tsx)$
         pass_filenames: false
 
+      - id: stylelint-frontend
+        name: stylelint (frontend)
+        entry: bash -c 'cd frontend && npx stylelint "src/**/*.css"'
+        language: system
+        files: ^frontend/src/.*\.css$
+        pass_filenames: false
+
   - repo: https://github.com/psf/black
     rev: 25.1.0
     hooks:
