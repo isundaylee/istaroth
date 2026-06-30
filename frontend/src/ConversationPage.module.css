@@ -3,6 +3,61 @@
   margin: 0 auto;
 }
 
+/* The collapsed new-question affordance: the question shown as a title with a
+   persistent "Ask another question" cue on the right. Clicking expands the
+   composer in its place. */
+.askTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.askTriggerTitle {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--color-heading);
+  overflow-wrap: anywhere;
+}
+
+.askTriggerHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: var(--font-sm);
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+
+.askTrigger:hover .askTriggerHint,
+.askTrigger:focus-visible .askTriggerHint {
+  color: var(--color-primary-text);
+}
+
+.askTrigger:focus-visible {
+  outline: 2px solid var(--color-primary-fill);
+  outline-offset: 4px;
+  border-radius: var(--radius-sm);
+}
+
+/* On phones the title + cue would crowd one row; stack the cue onto its own row
+   below the question. */
+@media (max-width: 600px) {
+  .askTrigger {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
 .backLink {
   color: var(--color-primary-text);
   text-decoration: none;

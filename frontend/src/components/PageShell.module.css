@@ -1,0 +1,56 @@
+/* Connected one-card page frame, matching the home page: the nav is embedded as
+ * the top strip and the page content sits below it in the SAME hairline-bordered
+ * surface, instead of a floating nav card above floating content cards. */
+
+.panel {
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+}
+
+/* Default body: a single padded content area (lists, grids, a lone composer). */
+.body {
+  padding: 1.5rem;
+}
+
+/* Flush body: no padding — its children are full-width <PageSection>s that own
+   their padding and are separated by edge-to-edge hairlines, exactly like the
+   home page's connected sections. */
+.bodyFlush {
+  padding: 0;
+}
+
+.section {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.section:last-child {
+  border-bottom: 0;
+}
+
+/* The composer's form trailing margin would otherwise double the gap above the
+   section divider. */
+.section form {
+  margin-bottom: 0;
+}
+
+/* Phones: run the card fully edge-to-edge (negative margins cancel .app's 10px
+   padding on the top + sides, border/radius dropped) so it reads as the page,
+   matching the home page. */
+@media (max-width: 600px) {
+  .panel {
+    margin: -10px -10px 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .body {
+    padding: 1rem;
+  }
+
+  .section {
+    padding: 1.25rem 1rem;
+  }
+}

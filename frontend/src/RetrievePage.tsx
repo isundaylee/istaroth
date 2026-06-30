@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import { AppLink } from './components/AppLink'
-import Navigation from './components/Navigation'
-import PageCard from './components/PageCard'
+import PageShell, { PageSection } from './components/PageShell'
 import Card from './components/Card'
 import Button from './components/Button'
 import Composer from './components/Composer'
@@ -183,9 +182,8 @@ function RetrievePage() {
   }, [results, submittedParams, loading, language, t])
 
   return (
-    <>
-      <Navigation />
-      <main className="main">
+    <PageShell flush>
+      <PageSection>
         <Composer
           submitOnEnter
           value={formParams.query}
@@ -227,9 +225,9 @@ function RetrievePage() {
         />
 
         {error && <ErrorDisplay error={error} />}
-        {resultsContent && <PageCard>{resultsContent}</PageCard>}
-      </main>
-    </>
+      </PageSection>
+      {resultsContent && <PageSection>{resultsContent}</PageSection>}
+    </PageShell>
   )
 }
 

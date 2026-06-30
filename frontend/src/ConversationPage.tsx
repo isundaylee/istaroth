@@ -7,8 +7,7 @@ import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { copyToClipboard } from './utils/clipboard'
 import QueryForm from './QueryForm'
-import Card from './components/Card'
-import Navigation from './components/Navigation'
+import PageShell, { PageSection } from './components/PageShell'
 import CitationRenderer from './components/CitationRenderer'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import { useProperNounSelection } from './hooks/useProperNounSelection'
@@ -43,12 +42,16 @@ function ConversationPage() {
   const { setExtraContent } = useFooter()
   const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(conversation.uuid)
   const [submittingNew, setSubmittingNew] = useState(false)
+  // The new-question composer is collapsed by default; clicking the question
+  // title expands it (saves the vertical space when just reading the answer).
+  const [editing, setEditing] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [exportedImage, setExportedImage] = useState<string | null>(null)
   const [copyButtonText, setCopyButtonText] = useState('')
 
   useEffect(() => {
     setSubmittingNew(false)
+    setEditing(false)
   }, [conversation])
 
   useEffect(() => {
@@ -131,22 +134,32 @@ function ConversationPage() {
   }
 
   return (
-    <>
-      <Navigation />
-      <main className="main">
+    <PageShell flush>
 
-        <QueryForm key={conversation.uuid} currentQuestion={conversation.question} onSubmitStart={() => setSubmittingNew(true)} />
+      <PageSection>
+        {editing ? (
+          <div onKeyDown={(e) => { if (e.key === 'Escape') setEditing(false) }}>
+            <QueryForm key={conversation.uuid} currentQuestion={conversation.question} onSubmitStart={() => setSubmittingNew(true)} />
+          </div>
+        ) : (
+          <button type="button" className={convStyles.askTrigger} onClick={() => setEditing(true)} title={t('conversation.askAnother')}>
+            <span className={convStyles.askTriggerTitle}>{conversation.question}</span>
+            <span className={convStyles.askTriggerHint}>
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/>
+              </svg>
+              {t('conversation.askAnother')}
+            </span>
+          </button>
+        )}
+      </PageSection>
 
         {!submittingNew &&
         <MinimizedPopupRegion className={convStyles.content} data-conversation-content>
-          <Card>
-            <h3 style={{ margin: 0 }}>{conversation.question}</h3>
-          </Card>
-
           <CitationRenderer content={conversation.answer} properNouns={conversation.proper_nouns}>
             {({ answer, citationList }) => (
               <>
-                <Card>
+                <PageSection>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                     <h3>{t('conversation.answer')}</h3>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -223,11 +236,11 @@ function ConversationPage() {
                     onKeyUp={answerHandlers.onKeyUp}
                     onClick={answerHandlers.onClick}
                   >{answer}</div>
-                </Card>
+                </PageSection>
 
                 {citationList && (
                   <div data-citation-container>
-                    <Card>{citationList}</Card>
+                    <PageSection>{citationList}</PageSection>
                   </div>
                 )}
               </>
@@ -235,8 +248,7 @@ function ConversationPage() {
           </CitationRenderer>
         </MinimizedPopupRegion>}
         {selectionUi}
-      </main>
-    </>
+    </PageShell>
   )
 }
 

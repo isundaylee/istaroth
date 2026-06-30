@@ -11,20 +11,13 @@
   gap: 10px;
 }
 
+/* The composer is borderless everywhere: the textarea + footer sit flush in the
+   parent section, which owns the padding/background. (There is no boxed variant —
+   every page uses the embedded section layout, like the home page.) */
 .composer {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  min-height: 8.5rem;
-  padding: 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface);
-  box-shadow: var(--shadow);
-}
-
-.composer:focus-within {
-  border-color: var(--color-primary-fill);
 }
 
 .textarea {
@@ -64,14 +57,7 @@
  * into the caller's slot content. */
 
 @media (max-width: 600px) {
-  /* No taller min-height on mobile: let the box size to its content so a short
-     footer (e.g. the Retrieve page's lone toggle + button) doesn't leave empty
-     space below it. The Q&A page's taller stack of selects grows the box past
-     the base floor on its own. */
-  .composer {
-    padding: 0.85rem;
-  }
-
+  /* Stack the footer controls full-width below the textarea on phones. */
   .footer {
     align-items: stretch;
     flex-direction: column;

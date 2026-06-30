@@ -58,6 +58,7 @@ export const eng = {
   conversation: {
     question: 'Question',
     answer: 'Answer',
+    askAnother: 'Ask another question',
     shareLink: 'Copy Share Link',
     export: 'Export Image',
     exporting: 'Exporting...',

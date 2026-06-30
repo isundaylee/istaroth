@@ -19,6 +19,18 @@
   box-shadow: var(--shadow);
 }
 
+/* Embedded variant: the nav is the top section of a connected panel, so it sheds
+   its standalone card chrome and is transparent (letting the panel's surface or
+   gradient show through), divided from the body by a single bottom hairline. */
+.navEmbedded {
+  margin-bottom: 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+}
+
 .links {
   display: flex;
   align-items: center;
