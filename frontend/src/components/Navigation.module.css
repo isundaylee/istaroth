@@ -1,0 +1,103 @@
+/* Styles owned by <Navigation>. Migrated out of the inline `style={{}}` objects
+ * in Navigation.tsx (and the global `nav …` rules that lived in index.css) so
+ * the mobile overrides no longer need `!important` to outrank inline styles, and
+ * the link/button hover states are plain `:hover` rules instead of JS
+ * onMouseEnter/onMouseLeave handlers. Scoping to a class also stops these rules
+ * from leaking onto the <nav> that Breadcrumbs renders. */
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.link {
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.3rem 1rem;
+  font-size: var(--font-base);
+  font-weight: normal;
+  color: var(--color-text-secondary);
+  background-color: transparent;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.link:not(.linkActive):hover {
+  background-color: var(--color-surface-hover);
+  color: var(--color-primary-text);
+}
+
+.linkActive {
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background-color: var(--color-primary-tint);
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.themeButton {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--font-sm);
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.themeButton:hover {
+  background-color: var(--color-surface-hover);
+}
+
+@media (max-width: 600px) {
+  /* Stack the nav into two deliberate rows instead of letting links + controls
+     wrap raggedly: row 1 is the links spread evenly full-width, row 2 is the
+     theme/language controls aligned to the right (mirroring desktop). */
+  .nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .links {
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+  }
+
+  .link {
+    flex: 1 1 0;
+    text-align: center;
+    padding: 0.4rem 0.25rem;
+    font-size: var(--font-sm);
+  }
+
+  .controls {
+    justify-content: flex-end;
+  }
+}
