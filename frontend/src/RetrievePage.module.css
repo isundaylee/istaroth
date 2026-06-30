@@ -15,6 +15,7 @@
 .searchMode button {
   display: flex;
   align-items: center;
+  justify-content: center;
   border: 0;
   padding: 0 0.95rem;
   background: transparent;
