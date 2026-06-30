@@ -8,16 +8,10 @@
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  /* Light mode: a soft paper gradient spans the whole panel (behind the nav and
-     the stage) so the transparent nav blends into it, mirroring dark mode. */
-  background: linear-gradient(180deg, #ffffff 0%, #eef1f6 100%);
-}
-
-/* Dark mode: one continuous navy gradient spans the WHOLE panel (behind the nav
-   and the stage), so the transparent nav and the stage share an unbroken tone
-   instead of the nav reading as a flat lighter block. */
-[data-theme="dark"] .panel {
-  background: linear-gradient(180deg, #0f1a31 0%, #070d19 70%);
+  /* Shared connected-card gradient (paper in light, navy in dark) — see
+     --panel-bg in tokens.css. Spans the whole panel behind the nav and the
+     stage so the transparent nav blends into it. */
+  background: var(--panel-bg);
 }
 
 /* The stage: everything under the nav, sitting on the panel gradient (so its own

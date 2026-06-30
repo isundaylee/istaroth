@@ -3,10 +3,14 @@
  * surface, instead of a floating nav card above floating content cards. */
 
 .panel {
-  overflow: hidden;
+  /* No clipping: the panel must NOT become a scroll container (that would trap
+     the minimized-popup rail's `position: sticky`, which tracks the viewport)
+     nor clip the rail, which is absolutely positioned out into the page margin
+     beside the card. The rounded corners still apply to the panel's own
+     background/border; content is inset by padding so it never reaches them. */
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background-color: var(--color-surface);
+  background: var(--panel-bg);
 }
 
 /* Default body: a single padded content area (lists, grids, a lone composer). */

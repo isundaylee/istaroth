@@ -30,6 +30,10 @@
   --color-surface-hover: #eaedf2;
   --color-surface-active: #eaedf2;
 
+  /* Connected-card background: a soft paper gradient (navy in dark mode) shared
+     by every page's panel so the nav blends into it and pages read alike. */
+  --panel-bg: linear-gradient(180deg, #ffffff 0%, #eef1f6 100%);
+
   --color-text: #15233e;
   --color-text-secondary: #54627a;
   --color-text-muted: #8a96a8;
@@ -86,6 +90,8 @@
   --color-surface-secondary: #16243f;
   --color-surface-hover: #1b2c4b;
   --color-surface-active: #1b2c4b;
+
+  --panel-bg: linear-gradient(180deg, #0f1a31 0%, #070d19 70%);
 
   --color-text: #e9eefb;
   --color-text-secondary: #9fb0cc;
