@@ -1,6 +1,8 @@
 .progress {
   list-style: none;
-  margin: 0 0 20px;
+  /* Gap above (separating it from the composer), none below — the parent section
+     padding provides the bottom spacing. */
+  margin: 0.75rem 0 0;
   padding: 0 0 0 0.5rem;
   display: flex;
   flex-direction: column;

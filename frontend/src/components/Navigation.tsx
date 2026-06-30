@@ -6,7 +6,14 @@ import { AppLink } from './AppLink'
 import LanguageSwitcher from './LanguageSwitcher'
 import styles from './Navigation.module.css'
 
-function Navigation() {
+interface NavigationProps {
+  // When embedded inside a connected panel, drop the standalone card chrome
+  // (border/radius/margin/shadow) and sit as the panel's top section, divided
+  // from the rest by a single bottom hairline.
+  embedded?: boolean
+}
+
+function Navigation({ embedded = false }: NavigationProps = {}) {
   const t = useT()
   const location = useLocation()
   const { theme, toggleTheme } = useTheme()
@@ -21,7 +28,7 @@ function Navigation() {
   ]
 
   return (
-    <nav className={styles.nav}>
+    <nav className={clsx(styles.nav, embedded && styles.navEmbedded)}>
       <div className={styles.links}>
         {navLinks.map(({ path, key }) => (
           <AppLink

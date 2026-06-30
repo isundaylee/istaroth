@@ -8,7 +8,9 @@
 
 .railTrack {
   position: absolute;
-  top: 0;
+  /* Offset from the region (answer section) top so the cards have a top margin
+     at rest too — the rail's sticky `top` only governs the stuck position. */
+  top: 1.5rem;
   bottom: 0;
   z-index: 1;
   width: min(16rem, calc(100vw - 2rem));
@@ -17,11 +19,12 @@
 
 .rail {
   position: sticky;
-  top: 0.5rem;
+  /* Top margin so the cards aren't flush against the top edge when stuck. */
+  top: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: calc(100vh - 1rem);
+  max-height: calc(100vh - 3rem);
   overflow-y: auto;
   pointer-events: none;
 }

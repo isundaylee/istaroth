@@ -1,9 +1,8 @@
 import React from 'react'
 import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import { useT } from './contexts/LanguageContext'
-import Navigation from './components/Navigation'
 import Card from './components/Card'
-import PageCard from './components/PageCard'
+import PageShell from './components/PageShell'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
@@ -36,12 +35,9 @@ function LibraryCategoriesPage() {
   }
 
   return (
-    <>
-      <Navigation />
-      <main className="main">
-        <PageCard>
-          <div
-            className="category-grid"
+    <PageShell>
+      <div
+        className="category-grid"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
@@ -81,10 +77,8 @@ function LibraryCategoriesPage() {
                 </Card>
               </div>
             ))}
-          </div>
-        </PageCard>
-      </main>
-    </>
+      </div>
+    </PageShell>
   )
 }
 

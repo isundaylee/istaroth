@@ -4,8 +4,7 @@ import { useT } from './contexts/LanguageContext'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { getClientId } from './utils/clientId'
-import Navigation from './components/Navigation'
-import PageCard from './components/PageCard'
+import PageShell from './components/PageShell'
 import Card from './components/Card'
 import { AppLink } from './components/AppLink'
 import type { ConversationListResponse, ConversationSummary } from './types/api'
@@ -75,11 +74,8 @@ function HistoryPage() {
   }
 
   return (
-    <>
-      <Navigation />
-      <main className="main">
-        <PageCard>
-          {conversations.length === 0 ? (
+    <PageShell>
+      {conversations.length === 0 ? (
             <Card style={{ margin: '1rem 0' }}>
               <p>{t('history.empty')}</p>
             </Card>
@@ -117,9 +113,7 @@ function HistoryPage() {
               )}
             </>
           )}
-        </PageCard>
-      </main>
-    </>
+    </PageShell>
   )
 }
 
