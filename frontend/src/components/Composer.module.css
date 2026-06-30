@@ -91,8 +91,11 @@
 }
 
 @media (max-width: 600px) {
+  /* No taller min-height on mobile: let the box size to its content so a short
+     footer (e.g. the Retrieve page's lone toggle + button) doesn't leave empty
+     space below it. The Q&A page's taller stack of selects grows the box past
+     the base floor on its own. */
   .composer {
-    min-height: 14rem;
     padding: 0.85rem;
   }
 
