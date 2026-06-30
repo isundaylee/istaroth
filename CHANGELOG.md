@@ -1,10 +1,41 @@
 # Changelog
 
 <!--
-Last updated through commit: e57112aa4477eeb41f43552bf41b339b9616b846 (e57112a)
+Last updated through commit: 9cbf099ea3544d8e6d6c6d775eb062028ffebc40 (9cbf099)
 When extending this changelog, document commits landed after the hash above,
 then update this marker to the new cutoff commit.
 -->
+
+## Week of 2026-06-29 – 2026-07-05
+
+- **Frontend**
+  - Re-skinned the web UI with a navy + gold palette and flat hairline surfaces,
+    then unified it into a single connected-card layout with a re-skinned home
+    hero.
+  - Migrated styling to component-scoped CSS Modules (including the nav) and
+    dropped dead citation `!important` rules.
+  - Modularized base form primitives (Select/Button/TextInput) via variant props.
+  - Added a visible hairline border to composer controls in dark mode and fixed
+    three mobile layout issues on the nav and Retrieve page.
+
+## Week of 2026-06-22 – 2026-06-28
+
+- **Frontend**
+  - Scaffolded component-scoped CSS Modules (Composer, Card) with a token layer.
+  - Leaned on nav and breadcrumbs and integrated the Retrieve composer.
+- **RAG**
+  - Reframed retrieval-intent classification around context-need and stopped the
+    query normalizer from substituting phonetically-near proper nouns.
+  - Captured retrieval-eval runs as local OTEL span traces.
+- **Text/corpus**
+  - *Enhancements & fixes:*
+    - Rendered `PLAYERAVATAR`/`MATEAVATAR` `SEXPRO` pronoun placeholders in text
+      output.
+- **CI/build**
+  - Added a frontend `tsc` pre-commit hook and fixed a dev-stack `node_modules`
+    clobber.
+- **Docs**
+  - Documented the MCP servers and image-presentation caveat in AGENTS.md.
 
 ## Week of 2026-06-15 – 2026-06-21
 
@@ -41,6 +72,15 @@ then update this marker to the new cutoff commit.
   - Added TextMap fallback for recovering dropped text IDs.
   - Recorded Q&A retrieval stats, returned user-facing messages for common LLM
     API failures, and tuned the query decomposition prompt.
+  - Migrated the RAG pipeline to a LangGraph `StateGraph`.
+  - Added an LLM query-normalization node and an adaptive retrieval budget driven
+    by query-intent classification (with the `conversations.budget` migration),
+    plus DeepInfra flash generation models.
+  - Added a retrieval-quality eval harness with production-query breadth and
+    precision fixtures (e.g. 深渊教团, 卡特的全名), a parallelized runner, a single
+    coverage metric matched against actual chunks, and an LLM judge to rescue
+    false-miss facets; removed the legacy `retrieve_eval` CLI and dead code.
+  - Added a LangSmith query tool for production trace inspection.
 - **Backend**
   - Exposed file table-of-contents as a backend endpoint (removing duplicated
     frontend logic) and resolved `title_key` at hierarchy build time.
@@ -54,6 +94,8 @@ then update this marker to the new cutoff commit.
     - Grouped multi-volume book series into single readables.
     - Keyed `GadgetGroup` by composite `(configId, groupId)` and updated the
       corpus sanity test for composite filenames.
+    - Rendered Hangout text with explicit branch routing and fork numbering, and
+      renamed the `AGD_COOP` category to `AGD_HANGOUT`.
     - Regenerated the corpus.
 - **Dev infra**
   - Added a dev-compose wrapper for per-worktree Docker dev stacks with Paseo
@@ -66,6 +108,7 @@ then update this marker to the new cutoff commit.
     tags.
   - Defaulted setup to rebase onto the configured upstream and skipped pre-PR
     checks already covered by pre-commit.
+  - Used a named volume for dev data instead of a bind mount.
 - **CI/build**
   - Made CPU-only PyTorch the default and simplified CI workflows.
   - Sped up mypy and test workflows and fixed Docker export freshness and
@@ -75,8 +118,12 @@ then update this marker to the new cutoff commit.
 - **Tech debt**
   - Split `istaroth/agd/types.py` into focused per-category modules.
   - Typed TextMap hashes as `int` end-to-end with named readable filenames.
+  - Split crowded `processing.py`/`rendering.py` into per-renderable-type
+    modules and dropped the stale category↔prefix map and orphaned naming check.
 - **Docs**
   - Documented parallel CHS/ENG text regeneration.
+  - Added a weekly CHANGELOG and changelog skill, and batched the `pr` skill's
+    happy path into three round-trips.
 
 ## Week of 2026-06-08 – 2026-06-14
 
