@@ -1,0 +1,39 @@
+/* Styles owned by <Button>. Base `.button` is the primary filled button;
+   `.submit` is the fixed-width composer submit variant. Both LOCAL (hashed). */
+
+.button {
+  padding: 0.6rem 1.5rem;
+  background-color: var(--color-primary-fill);
+  color: var(--color-on-primary);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: var(--font-base);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.button:hover:not(:disabled) {
+  background-color: var(--color-primary-fill-hover);
+}
+
+.button:disabled {
+  background-color: var(--color-button-disabled);
+  cursor: not-allowed;
+}
+
+/* Submit variant: the Composer footer's submit button. Wide enough that every
+   submit label (Ask/Answering, Search/Searching…) in either language fits, so
+   the button is the same width on both pages and never changes width between
+   idle and loading. */
+.submit {
+  flex: 0 0 auto;
+  min-width: 7.5rem;
+  padding: 0.5rem 1.25rem;
+  font-size: var(--font-sm);
+}
+
+@media (max-width: 600px) {
+  .submit {
+    width: 100%;
+  }
+}

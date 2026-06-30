@@ -27,110 +27,6 @@ body {
   padding: 0;
 }
 
-/* .query-form / .query-composer / .query-textarea / .query-composer-footer
-   moved to components/Composer.module.css (owned by <Composer>). */
-
-.query-options-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
-  width: 100%;
-}
-
-.query-options-row .select {
-  padding: 0.45rem 1.75rem 0.45rem 0.75rem;
-  font-size: var(--font-sm);
-  min-width: 0;
-  width: 100%;
-}
-
-.button.query-submit-button {
-  flex: 0 0 auto;
-  /* Wide enough that every submit label (Ask/Answering, Search/Searching…) in
-     either language fits, so the button is the same width on both pages and
-     never changes width between idle and loading. */
-  min-width: 7.5rem;
-  padding: 0.5rem 1.25rem;
-  font-size: var(--font-sm);
-}
-
-.text-input {
-  flex: 1;
-  padding: 0.6rem 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-base);
-  min-width: 250px;
-  background-color: var(--color-surface);
-  color: var(--color-text);
-}
-
-.text-input:focus {
-  outline: none;
-  border-color: var(--color-primary-fill);
-}
-
-.text-input:disabled {
-  background-color: var(--color-surface-secondary);
-  color: var(--color-text-muted);
-}
-
-.select {
-  -webkit-appearance: none;
-  appearance: none;
-  padding: 0.6rem 2rem 0.6rem 1rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-base);
-  background-color: var(--color-surface);
-  color: var(--color-text);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23555' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  min-width: 180px;
-  cursor: pointer;
-}
-
-[data-theme="dark"] .select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23aaa' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-}
-
-.select:focus {
-  outline: none;
-  border-color: var(--color-primary-fill);
-}
-
-.select:disabled {
-  background-color: var(--color-surface-secondary);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-  color: var(--color-text-muted);
-  cursor: not-allowed;
-}
-
-[data-theme="dark"] .select:disabled {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-}
-
-.button {
-  padding: 0.6rem 1.5rem;
-  background-color: var(--color-primary-fill);
-  color: var(--color-on-primary);
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: var(--font-base);
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.button:hover:not(:disabled) {
-  background-color: var(--color-primary-fill-hover);
-}
-
-.button:disabled {
-  background-color: var(--color-button-disabled);
-  cursor: not-allowed;
-}
-
 .answer {
   padding: 0;
 }
@@ -250,18 +146,6 @@ body {
 }
 
 @media (max-width: 600px) {
-  .query-submit-button {
-    width: 100%;
-  }
-
-  .text-input {
-    min-width: auto;
-  }
-
-  .select {
-    min-width: auto;
-  }
-
   .app {
     padding: 10px;
   }
