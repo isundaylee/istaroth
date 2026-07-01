@@ -7,6 +7,7 @@ import { useTranslation, useT } from './contexts/LanguageContext'
 import PageShell, { PageSection } from './components/PageShell'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
+import Button from './components/Button'
 import NavButton from './components/NavButton'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
@@ -201,20 +202,12 @@ function LibraryFileViewer() {
                               {leaf.title || t('library.noFileName')}
                             </span>
                           ) : (
-                            <button
+                            <Button
+                              variant="ghost"
                               onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(leaf.file_id!)}`)}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                padding: 0,
-                                cursor: 'pointer',
-                                color: 'var(--color-text)',
-                                fontSize: 'inherit',
-                                textAlign: 'left'
-                              }}
                             >
                               {leaf.title || t('library.noFileName')}
-                            </button>
+                            </Button>
                           )}
                         </span>
                       ))}

@@ -77,8 +77,10 @@
   border-radius: var(--radius-sm);
 }
 
+/* Derive the hover tint from the inherited text color rather than a fixed
+   surface color, so it reads correctly on both neutral and colored headers. */
 .icon:hover:not(:disabled) {
-  background: var(--color-surface-hover);
+  background-color: color-mix(in srgb, currentColor 15%, transparent);
   color: var(--color-text);
 }
 
@@ -101,4 +103,11 @@
   .submit {
     width: 100%;
   }
+}
+
+/* Compact size modifier: shrinks padding/font, e.g. for secondary/ghost
+   actions crowded into a small card. Composed on top of any variant. */
+.sm {
+  padding: 0.25rem 0.5rem;
+  font-size: var(--font-sm);
 }

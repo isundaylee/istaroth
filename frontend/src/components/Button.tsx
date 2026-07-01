@@ -8,13 +8,17 @@ interface ButtonProps extends React.ComponentPropsWithoutRef<'button'> {
   // "icon": compact square icon-only button (close, fullscreen toggle).
   // "submit": fixed-width composer submit button.
   variant?: 'primary' | 'secondary' | 'ghost' | 'icon' | 'submit'
+  // "sm": compact padding/font, layered on top of any variant.
+  size?: 'sm'
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', children, ...props }, ref) => (
+  ({ className, variant = 'primary', size, children, ...props }, ref) => (
     <button
       ref={ref}
-      className={[styles.button, variant !== 'primary' && styles[variant], className].filter(Boolean).join(' ')}
+      className={[styles.button, variant !== 'primary' && styles[variant], size && styles[size], className]
+        .filter(Boolean)
+        .join(' ')}
       {...props}
     >
       {children}
