@@ -16,8 +16,10 @@ function LanguageButton({ label, isActive, onClick }: LanguageButtonProps) {
       variant={isActive ? 'primary' : 'ghost'}
       style={{
         padding: '0.25rem 0.5rem',
-        border: isActive ? undefined : '1px solid var(--color-border)',
-        fontWeight: isActive ? 'bold' : 'normal',
+        fontSize: 'var(--font-sm)',
+        borderRadius: 'var(--radius-md)',
+        border: isActive ? '1px solid transparent' : '1px solid var(--color-border)',
+        fontWeight: isActive ? 600 : 'normal',
       }}
     >
       {label}
