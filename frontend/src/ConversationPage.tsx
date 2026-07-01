@@ -119,7 +119,7 @@ function ConversationPage() {
         backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--color-bg').trim(),
         x: -20,
         y: -20,
-        width: element.scrollWidth + 40,
+        width: element.getBoundingClientRect().width + 40,
         height: element.scrollHeight + 40
       } as any)
 
