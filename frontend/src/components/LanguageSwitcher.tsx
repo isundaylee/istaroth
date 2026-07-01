@@ -19,7 +19,7 @@ function LanguageButton({ label, isActive, onClick }: LanguageButtonProps) {
         fontSize: 'var(--font-sm)',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--color-border)',
-        fontWeight: 'normal',
+        fontWeight: isActive ? 600 : 'normal',
         background: isActive ? 'var(--color-primary-fill)' : 'transparent',
         color: isActive ? 'white' : 'var(--color-text-secondary)',
       }}
