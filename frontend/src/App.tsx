@@ -16,6 +16,7 @@ import LibraryCategoriesPage, { libraryCategoriesPageLoader } from './LibraryCat
 import HierarchyPage, { libraryCategoryLoader } from './HierarchyPage'
 import LibraryFileViewer, { libraryFileViewerLoader } from './LibraryFileViewer'
 import NotFoundPage from './NotFoundPage'
+import styles from './RootLayout.module.css'
 
 function RootLayout() {
   return (
@@ -25,8 +26,10 @@ function RootLayout() {
         <MinimizedPopupProvider>
           <DocumentTitle />
           <KeyboardShortcuts />
-          <div className="app">
-            <Outlet />
+          <div className={styles.app}>
+            <main className={styles.main}>
+              <Outlet />
+            </main>
             <Footer />
           </div>
           <ScrollRestoration />
