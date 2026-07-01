@@ -530,6 +530,7 @@ def resolve_authoritative_talk(
                     message=f"Talk {talk_id} could not be retrieved",
                     next_dialog_ids=[],
                     dialog_id=0,
+                    skip=False,
                 )
             ]
         )

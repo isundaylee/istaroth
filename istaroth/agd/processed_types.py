@@ -62,7 +62,7 @@ class TalkText:
     message: str
     next_dialog_ids: list[id_types.DialogId]
     dialog_id: id_types.DialogId
-    skip: bool = False
+    skip: bool
     """Whether this line is a dev/test placeholder to always drop at render time."""
 
 
