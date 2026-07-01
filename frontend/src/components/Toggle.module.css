@@ -45,12 +45,25 @@
 }
 
 @media (max-width: 600px) {
-  .toggle {
+  .toggle:not(.sm) {
     display: flex;
     width: 100%;
   }
 
-  .option {
+  .toggle:not(.sm) .option {
     flex: 1;
   }
+}
+
+/* Compact size modifier: drops the fixed height so the control sizes to its
+   content (padding + line-height), matching the nav theme-toggle button's
+   height instead of the default control-row height. */
+.sm {
+  height: auto;
+}
+
+.sm .option {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+  line-height: 1;
 }

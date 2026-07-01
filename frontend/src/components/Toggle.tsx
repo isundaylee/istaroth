@@ -13,13 +13,16 @@ interface ToggleProps<T extends string> extends Omit<React.ComponentPropsWithout
   value: T
   onChange: (value: T) => void
   disabled?: boolean
+  // "sm": shrinks the control to match inline icon-button heights (e.g. the
+  // nav theme toggle), for placement next to such buttons.
+  size?: 'sm'
 }
 
 // Height/border/radius are meant to line up with <Select variant="compact">
 // when both sit in the same control row.
-function Toggle<T extends string>({ options, value, onChange, disabled = false, className, ...props }: ToggleProps<T>) {
+function Toggle<T extends string>({ options, value, onChange, disabled = false, size, className, ...props }: ToggleProps<T>) {
   return (
-    <div className={[styles.toggle, className].filter(Boolean).join(' ')} role="group" {...props}>
+    <div className={[styles.toggle, size && styles[size], className].filter(Boolean).join(' ')} role="group" {...props}>
       {options.map((option) => (
         <button
           key={option.value}
