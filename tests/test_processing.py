@@ -7,6 +7,7 @@ import pytest
 
 from istaroth.agd import (
     agd_types,
+    issues,
     localization,
     renderable_types,
     repo,
@@ -132,6 +133,38 @@ def test_talk_role_name_hash_ignores_fallback_text() -> None:
 
     assert talk_info.text[0].role == "Traveler"
     assert talk_info.text[0].message == "Hello"
+
+
+def test_talk_untranslated_chs_test_placeholder_is_skipped_not_missing() -> None:
+    """A hash untranslated in ENG but a CHS ``(test)`` placeholder is dropped, not MISSING_TEXT."""
+    data_repo = mock.Mock(spec=repo.DataRepo)
+    data_repo.language = localization.Language.ENG
+    data_repo.load_talk_data.return_value = {
+        "dialogList": [
+            {
+                "id": 1,
+                "talkContentTextMapHash": 100,
+                "talkRole": {"type": "TALK_ROLE_NONE"},
+            }
+        ]
+    }
+    data_repo.load_text_map.return_value = repo.TextMapTracker(
+        {}, localization.Language.ENG, pronoun_hashes={}
+    )
+    data_repo.load_source_text_map.return_value = repo.TextMapTracker(
+        {"100": "(test)台词文本"}, localization.Language.CHS, pronoun_hashes={}
+    )
+    data_repo.get_npc_id_to_name_mapping.return_value = {}
+    data_repo.get_dialog_id_to_role_name_hash_mapping.return_value = {}
+
+    tracker = issues.IssueTracker()
+    with tracker.apply():
+        talk_info = _talk.get_talk_info(
+            "BinOutput/Talk/Quest/1.json", data_repo=data_repo
+        )
+
+    assert talk_info.text[0].skip
+    assert tracker.issues == []
 
 
 def test_quest_74078_info(data_repo: repo.DataRepo) -> None:

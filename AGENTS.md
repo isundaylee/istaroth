@@ -70,6 +70,7 @@ istaroth/
 - ALWAYS use modern features as available in Python 3.11; DO NOT use features only in Python 3.12
 - ALWAYS be strict with error handling and prefer raising exception than falling back to implicit default values
 - ALWAYS be strict with data typing; use `NotRequired`/`None` sparingly and only when a field/value is genuinely optional in the data. If every record has a field, type it as required (let a missing key raise) rather than hedging with `NotRequired`.
+- NEVER give a class field/constructor parameter a default value to avoid updating existing call sites; make every call site pass the value explicitly instead, even when it means touching more files.
 - ALWAYS give every new AGD id its own documented `TypeAlias` in `istaroth/agd/id_types.py` (e.g. `TalentId`, `SkillDepotId`), and reference that alias from TypedDict fields, loader dict keys, and processing/rendering code rather than a bare `int`/`str`.
 - NEVER import individual symbols from modules and ALWAYS use module-level imports only; exceptions: it is okay to import individual symbols from the typing stdlib package.
 - NEVER use TYPE_CHECKING conditional imports

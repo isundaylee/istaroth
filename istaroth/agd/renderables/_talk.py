@@ -111,7 +111,7 @@ def _render_dialog_line(
     Returns:
         Formatted line string or None if dialog should be skipped
     """
-    if text_utils.should_skip_text(talk_text.message, language):
+    if talk_text.skip or text_utils.should_skip_text(talk_text.message, language):
         return None
     if talk_text.role is None:
         return talk_text.message
@@ -358,13 +358,12 @@ def render_talk(
         _extract_talk_type_from_path(talk_file_path) if talk_file_path else "unknown"
     )
 
-    # Generate filename - use first few dialog lines to create a meaningful name
-    if talk.text:
-        # Use first non-empty message for filename
-        first_message = next(
-            (text.message for text in talk.text if text.message.strip()),
-            "unknown_talk",
-        )
+    # Generate filename - use first non-skipped, non-empty dialog line's message
+    first_message = next(
+        (text.message for text in talk.text if not text.skip and text.message.strip()),
+        None,
+    )
+    if first_message is not None:
         # Take first 50 characters and clean for filename
         safe_title = utils.make_safe_filename_part(first_message)
         filename = f"{talk_id}_{safe_title}.txt"
@@ -469,15 +468,28 @@ def get_talk_info(
     for dialog_item in dialog_list:
         content_hash = dialog_item["talkContentTextMapHash"]
         next_dialog_ids = dialog_item.get("nextDialogs", [])
+        skip = False
         if (message := text_map.get_optional(content_hash)) is None:
-            issues.record(issues.IssueType.MISSING_TEXT, str(content_hash))
-            message = f"Missing text ({content_hash})"
+            # An untranslated hash may still be a CHS-only dev/test placeholder
+            # (never translated into any language) rather than genuinely missing
+            # text; check the source text before flagging it as missing.
+            if (
+                chs := data_repo.load_source_text_map().get_optional(content_hash)
+            ) is not None and text_utils.should_skip_text(
+                chs, localization.Language.CHS
+            ):
+                skip = True
+                message = chs
+            else:
+                issues.record(issues.IssueType.MISSING_TEXT, str(content_hash))
+                message = f"Missing text ({content_hash})"
         talk_texts.append(
             processed_types.TalkText(
                 role=_get_role_name(dialog_item),
                 message=message,
                 next_dialog_ids=next_dialog_ids,
                 dialog_id=dialog_item["id"],
+                skip=skip,
             )
         )
 
@@ -518,6 +530,7 @@ def resolve_authoritative_talk(
                     message=f"Talk {talk_id} could not be retrieved",
                     next_dialog_ids=[],
                     dialog_id=0,
+                    skip=False,
                 )
             ]
         )

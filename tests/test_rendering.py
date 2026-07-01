@@ -130,12 +130,21 @@ def test_render_talk_basic() -> None:
             message="这里看起来很神秘呢！",
             next_dialog_ids=[2],
             dialog_id=1,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="旅行者", message="我们小心一点。", next_dialog_ids=[3], dialog_id=2
+            role="旅行者",
+            message="我们小心一点。",
+            next_dialog_ids=[3],
+            dialog_id=2,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="神秘声音", message="欢迎来到这里...", next_dialog_ids=[], dialog_id=3
+            role="神秘声音",
+            message="欢迎来到这里...",
+            next_dialog_ids=[],
+            dialog_id=3,
+            skip=False,
         ),
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
@@ -167,7 +176,11 @@ def test_render_talk_long_message() -> None:
     )
     talk_texts = [
         processed_types.TalkText(
-            role="NPC", message=long_message, next_dialog_ids=[], dialog_id=1
+            role="NPC",
+            message=long_message,
+            next_dialog_ids=[],
+            dialog_id=1,
+            skip=False,
         )
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
@@ -214,6 +227,7 @@ def test_render_talk_special_characters() -> None:
             message="「这是引号」—还有破折号！",
             next_dialog_ids=[],
             dialog_id=1,
+            skip=False,
         )
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
@@ -241,22 +255,34 @@ def test_render_talk_branching_convergence() -> None:
     # Line 4 -> end
     talk_texts = [
         processed_types.TalkText(
-            role="NPC", message="Line 1", next_dialog_ids=[2, 5], dialog_id=1
+            role="NPC",
+            message="Line 1",
+            next_dialog_ids=[2, 5],
+            dialog_id=1,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="Player", message="Line 2a", next_dialog_ids=[3], dialog_id=2
+            role="Player",
+            message="Line 2a",
+            next_dialog_ids=[3],
+            dialog_id=2,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="Line 3a", next_dialog_ids=[4], dialog_id=3
+            role="NPC", message="Line 3a", next_dialog_ids=[4], dialog_id=3, skip=False
         ),
         processed_types.TalkText(
-            role="NPC", message="Line 4", next_dialog_ids=[], dialog_id=4
+            role="NPC", message="Line 4", next_dialog_ids=[], dialog_id=4, skip=False
         ),
         processed_types.TalkText(
-            role="Player", message="Line 2b", next_dialog_ids=[6], dialog_id=5
+            role="Player",
+            message="Line 2b",
+            next_dialog_ids=[6],
+            dialog_id=5,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="Line 3b", next_dialog_ids=[4], dialog_id=6
+            role="NPC", message="Line 3b", next_dialog_ids=[4], dialog_id=6, skip=False
         ),
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
@@ -301,22 +327,34 @@ def test_render_talk_nested_branches() -> None:
     # Line 6 -> end
     talk_texts = [
         processed_types.TalkText(
-            role="NPC", message="Line 1", next_dialog_ids=[2, 3], dialog_id=1
+            role="NPC",
+            message="Line 1",
+            next_dialog_ids=[2, 3],
+            dialog_id=1,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="Player", message="Line 2", next_dialog_ids=[4, 5], dialog_id=2
+            role="Player",
+            message="Line 2",
+            next_dialog_ids=[4, 5],
+            dialog_id=2,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="Player", message="Line 3", next_dialog_ids=[6], dialog_id=3
+            role="Player",
+            message="Line 3",
+            next_dialog_ids=[6],
+            dialog_id=3,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="Line 4", next_dialog_ids=[6], dialog_id=4
+            role="NPC", message="Line 4", next_dialog_ids=[6], dialog_id=4, skip=False
         ),
         processed_types.TalkText(
-            role="NPC", message="Line 5", next_dialog_ids=[6], dialog_id=5
+            role="NPC", message="Line 5", next_dialog_ids=[6], dialog_id=5, skip=False
         ),
         processed_types.TalkText(
-            role="NPC", message="Line 6", next_dialog_ids=[], dialog_id=6
+            role="NPC", message="Line 6", next_dialog_ids=[], dialog_id=6, skip=False
         ),
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
@@ -366,25 +404,49 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
     # Convergence Y -> end
     talk_texts = [
         processed_types.TalkText(
-            role="NPC", message="Start", next_dialog_ids=[2, 3], dialog_id=1
+            role="NPC", message="Start", next_dialog_ids=[2, 3], dialog_id=1, skip=False
         ),
         processed_types.TalkText(
-            role="Player", message="Branch 1", next_dialog_ids=[7], dialog_id=2
+            role="Player",
+            message="Branch 1",
+            next_dialog_ids=[7],
+            dialog_id=2,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="Player", message="Branch 2", next_dialog_ids=[4, 5], dialog_id=3
+            role="Player",
+            message="Branch 2",
+            next_dialog_ids=[4, 5],
+            dialog_id=3,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="Branch 2a", next_dialog_ids=[6], dialog_id=4
+            role="NPC",
+            message="Branch 2a",
+            next_dialog_ids=[6],
+            dialog_id=4,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="Branch 2b", next_dialog_ids=[6], dialog_id=5
+            role="NPC",
+            message="Branch 2b",
+            next_dialog_ids=[6],
+            dialog_id=5,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="Convergence X", next_dialog_ids=[7], dialog_id=6
+            role="NPC",
+            message="Convergence X",
+            next_dialog_ids=[7],
+            dialog_id=6,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="Convergence Y", next_dialog_ids=[], dialog_id=7
+            role="NPC",
+            message="Convergence Y",
+            next_dialog_ids=[],
+            dialog_id=7,
+            skip=False,
         ),
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
@@ -439,28 +501,44 @@ def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
     # 6 (convergence) -> [7, 8] -> 9 (its own nested branch)
     talk_texts = [
         processed_types.TalkText(
-            role="NPC", message="Menu", next_dialog_ids=[2, 4], dialog_id=1
+            role="NPC", message="Menu", next_dialog_ids=[2, 4], dialog_id=1, skip=False
         ),
         processed_types.TalkText(
-            role="Player", message="Short", next_dialog_ids=[6], dialog_id=2
+            role="Player", message="Short", next_dialog_ids=[6], dialog_id=2, skip=False
         ),
         processed_types.TalkText(
-            role="Player", message="Long", next_dialog_ids=[5], dialog_id=4
+            role="Player", message="Long", next_dialog_ids=[5], dialog_id=4, skip=False
         ),
         processed_types.TalkText(
-            role="NPC", message="Long tail", next_dialog_ids=[6], dialog_id=5
+            role="NPC",
+            message="Long tail",
+            next_dialog_ids=[6],
+            dialog_id=5,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="Converged", next_dialog_ids=[7, 8], dialog_id=6
+            role="NPC",
+            message="Converged",
+            next_dialog_ids=[7, 8],
+            dialog_id=6,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="Player", message="After A", next_dialog_ids=[9], dialog_id=7
+            role="Player",
+            message="After A",
+            next_dialog_ids=[9],
+            dialog_id=7,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="Player", message="After B", next_dialog_ids=[9], dialog_id=8
+            role="Player",
+            message="After B",
+            next_dialog_ids=[9],
+            dialog_id=8,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="End", next_dialog_ids=[], dialog_id=9
+            role="NPC", message="End", next_dialog_ids=[], dialog_id=9, skip=False
         ),
     ]
 
@@ -496,31 +574,55 @@ def test_render_talk_menu_hub_no_blowup() -> None:
     # exit:    6 -> 9 (goodbye)  -> end
     talk_texts = [
         processed_types.TalkText(
-            role="NPC", message="Ask away", next_dialog_ids=[2, 4], dialog_id=1
+            role="NPC",
+            message="Ask away",
+            next_dialog_ids=[2, 4],
+            dialog_id=1,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="Player", message="Topic A?", next_dialog_ids=[3], dialog_id=2
+            role="Player",
+            message="Topic A?",
+            next_dialog_ids=[3],
+            dialog_id=2,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="Answer A", next_dialog_ids=[7], dialog_id=3
+            role="NPC", message="Answer A", next_dialog_ids=[7], dialog_id=3, skip=False
         ),
         processed_types.TalkText(
-            role="Player", message="Topic B?", next_dialog_ids=[5], dialog_id=4
+            role="Player",
+            message="Topic B?",
+            next_dialog_ids=[5],
+            dialog_id=4,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="Answer B", next_dialog_ids=[8], dialog_id=5
+            role="NPC", message="Answer B", next_dialog_ids=[8], dialog_id=5, skip=False
         ),
         processed_types.TalkText(
-            role="Player", message="Nothing", next_dialog_ids=[9], dialog_id=6
+            role="Player",
+            message="Nothing",
+            next_dialog_ids=[9],
+            dialog_id=6,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="Goodbye", next_dialog_ids=[], dialog_id=9
+            role="NPC", message="Goodbye", next_dialog_ids=[], dialog_id=9, skip=False
         ),
         processed_types.TalkText(
-            role="NPC", message="More?", next_dialog_ids=[2, 4, 6], dialog_id=7
+            role="NPC",
+            message="More?",
+            next_dialog_ids=[2, 4, 6],
+            dialog_id=7,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="More?", next_dialog_ids=[2, 4, 6], dialog_id=8
+            role="NPC",
+            message="More?",
+            next_dialog_ids=[2, 4, 6],
+            dialog_id=8,
+            skip=False,
         ),
     ]
     rendered = _talk.render_talk(
@@ -552,49 +654,89 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
     #   correct: 23 -> 26 -> 28 (end);  wrong: 24 -> 27, 25 -> 27; 27 re-offers
     talk_texts = [
         processed_types.TalkText(
-            role="NPC", message="M1", next_dialog_ids=[12, 13, 14], dialog_id=11
+            role="NPC",
+            message="M1",
+            next_dialog_ids=[12, 13, 14],
+            dialog_id=11,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="Player", message="1-correct", next_dialog_ids=[15], dialog_id=12
+            role="Player",
+            message="1-correct",
+            next_dialog_ids=[15],
+            dialog_id=12,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="Player", message="1-wrongA", next_dialog_ids=[16], dialog_id=13
+            role="Player",
+            message="1-wrongA",
+            next_dialog_ids=[16],
+            dialog_id=13,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="Player", message="1-wrongB", next_dialog_ids=[16], dialog_id=14
+            role="Player",
+            message="1-wrongB",
+            next_dialog_ids=[16],
+            dialog_id=14,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="right1", next_dialog_ids=[17], dialog_id=15
+            role="NPC", message="right1", next_dialog_ids=[17], dialog_id=15, skip=False
         ),
         processed_types.TalkText(
-            role="NPC", message="wrong1", next_dialog_ids=[12, 13, 14], dialog_id=16
+            role="NPC",
+            message="wrong1",
+            next_dialog_ids=[12, 13, 14],
+            dialog_id=16,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="mid17", next_dialog_ids=[18], dialog_id=17
+            role="NPC", message="mid17", next_dialog_ids=[18], dialog_id=17, skip=False
         ),
         processed_types.TalkText(
-            role="NPC", message="mid18", next_dialog_ids=[22], dialog_id=18
+            role="NPC", message="mid18", next_dialog_ids=[22], dialog_id=18, skip=False
         ),
         processed_types.TalkText(
-            role="NPC", message="M2", next_dialog_ids=[23, 24, 25], dialog_id=22
+            role="NPC",
+            message="M2",
+            next_dialog_ids=[23, 24, 25],
+            dialog_id=22,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="Player", message="2-correct", next_dialog_ids=[26], dialog_id=23
+            role="Player",
+            message="2-correct",
+            next_dialog_ids=[26],
+            dialog_id=23,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="Player", message="2-wrongA", next_dialog_ids=[27], dialog_id=24
+            role="Player",
+            message="2-wrongA",
+            next_dialog_ids=[27],
+            dialog_id=24,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="Player", message="2-wrongB", next_dialog_ids=[27], dialog_id=25
+            role="Player",
+            message="2-wrongB",
+            next_dialog_ids=[27],
+            dialog_id=25,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="right2", next_dialog_ids=[28], dialog_id=26
+            role="NPC", message="right2", next_dialog_ids=[28], dialog_id=26, skip=False
         ),
         processed_types.TalkText(
-            role="NPC", message="wrong2", next_dialog_ids=[23, 24, 25], dialog_id=27
+            role="NPC",
+            message="wrong2",
+            next_dialog_ids=[23, 24, 25],
+            dialog_id=27,
+            skip=False,
         ),
         processed_types.TalkText(
-            role="NPC", message="End", next_dialog_ids=[], dialog_id=28
+            role="NPC", message="End", next_dialog_ids=[], dialog_id=28, skip=False
         ),
     ]
     rendered = _talk.render_talk(
@@ -621,7 +763,11 @@ def _quest_talk_step(
         talk=processed_types.TalkInfo(
             text=[
                 processed_types.TalkText(
-                    role="NPC", message=message, next_dialog_ids=[], dialog_id=1
+                    role="NPC",
+                    message=message,
+                    next_dialog_ids=[],
+                    dialog_id=1,
+                    skip=False,
                 )
             ]
         ),
