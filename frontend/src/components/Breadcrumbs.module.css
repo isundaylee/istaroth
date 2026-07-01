@@ -1,0 +1,5 @@
+/* Crumb-specific sizing on top of AppLink.module.css's shared `.plain` link
+   look (color + color-accent hover). */
+.crumbLink {
+  font-size: var(--font-sm);
+}

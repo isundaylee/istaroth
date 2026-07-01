@@ -27,29 +27,12 @@
   font-size: var(--font-xs);
 }
 
-/* Dashed top/bottom button; loads the full document text when clicked */
+/* Layout-only add-on for the top/bottom <Button variant="secondary" size="sm">
+   that loads the full document text: makes it a full-width block with
+   breathing room, without overriding the shared secondary look. */
 .gap {
   display: block;
   width: 100%;
   margin: 16px 0;
-  padding: 8px;
-  background: transparent;
-  border: 1px dashed var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--color-text-muted);
-  font-size: var(--font-xs);
   text-align: center;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.gap:hover:not(:disabled) {
-  background: var(--color-surface-secondary);
-  border-color: var(--color-primary-fill);
-  color: var(--color-text);
-}
-
-.gap:disabled {
-  cursor: default;
-  opacity: 0.6;
 }

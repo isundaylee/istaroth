@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm'
 import { useTranslation, useT } from './contexts/LanguageContext'
 import PageShell, { PageSection } from './components/PageShell'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
+import { AppLink } from './components/AppLink'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
 import NavButton from './components/NavButton'
 import { translate } from './i18n'
@@ -201,20 +202,12 @@ function LibraryFileViewer() {
                               {leaf.title || t('library.noFileName')}
                             </span>
                           ) : (
-                            <button
-                              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(leaf.file_id!)}`)}
-                              style={{
-                                background: 'none',
-                                border: 'none',
-                                padding: 0,
-                                cursor: 'pointer',
-                                color: 'var(--color-text)',
-                                fontSize: 'inherit',
-                                textAlign: 'left'
-                              }}
+                            <AppLink
+                              to={`/library/${encodeURIComponent(category)}/${encodeURIComponent(leaf.file_id!)}`}
+                              variant="plain"
                             >
                               {leaf.title || t('library.noFileName')}
-                            </button>
+                            </AppLink>
                           )}
                         </span>
                       ))}

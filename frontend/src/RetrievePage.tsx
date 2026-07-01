@@ -193,12 +193,14 @@ function RetrievePage() {
           disabled={loading}
           controls={
             <Toggle
-              value={formParams.semantic}
-              onChange={(v) => setFormParams({ ...formParams, semantic: v })}
-              leftLabel={t('retrieve.searchModeBm25')}
-              rightLabel={t('retrieve.searchModeSemantic')}
+              value={formParams.semantic ? 'semantic' : 'bm25'}
+              onChange={(mode) => setFormParams({ ...formParams, semantic: mode === 'semantic' })}
+              options={[
+                { value: 'bm25', label: t('retrieve.searchModeBm25') },
+                { value: 'semantic', label: t('retrieve.searchModeSemantic') },
+              ]}
               disabled={loading}
-              ariaLabel={t('retrieve.searchMode')}
+              aria-label={t('retrieve.searchMode')}
             />
           }
           actions={
