@@ -1,5 +1,6 @@
 import { createContext, useContext, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import Button from '../components/Button'
 import styles from './MinimizedPopup.module.css'
 
 interface MinimizedPopupContextValue {
@@ -97,9 +98,9 @@ export function MinimizedPopupCard({ eyebrow, title, onRestore, onClose, expandL
         {eyebrow && <span className={styles.cardEyebrow}>{eyebrow}</span>}
         <span className={styles.cardTitle}>{title}</span>
       </button>
-      <button type="button" className={styles.cardClose} onClick={onClose} aria-label={closeLabel}>
+      <Button type="button" variant="icon" onClick={onClose} aria-label={closeLabel} className={styles.cardClose}>
         ×
-      </button>
+      </Button>
     </div>,
     rail
   )

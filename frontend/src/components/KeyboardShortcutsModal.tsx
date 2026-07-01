@@ -1,4 +1,5 @@
 import { useT } from '../contexts/LanguageContext'
+import Button from './Button'
 
 interface KeyboardShortcutsModalProps {
   open: boolean
@@ -87,30 +88,15 @@ function KeyboardShortcutsModal({ open, onClose }: KeyboardShortcutsModalProps) 
           }}
         >
           <span>{t('keyboard.title')}</span>
-          <button
+          <Button
+            type="button"
+            variant="icon"
             onClick={onClose}
             title={t('keyboard.close')}
-            style={{
-              background: 'rgba(255, 255, 255, 0.2)',
-              border: 'none',
-              color: 'white',
-              borderRadius: '25%',
-              width: '22px',
-              height: '22px',
-              cursor: 'pointer',
-              transition: 'background-color 0.15s ease',
-              flexShrink: 0,
-              lineHeight: 1
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'
-            }}
+            style={{ color: 'white', width: '22px', height: '22px' }}
           >
             ×
-          </button>
+          </Button>
         </div>
         <div style={{ padding: '0.25rem 1rem 0.25rem' }}>
           {rows.map(({ keys, label }, index) => (

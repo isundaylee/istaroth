@@ -77,18 +77,6 @@
 
 .cardClose {
   flex: 0 0 auto;
-  width: 1.8rem;
-  border: 0;
-  border-left: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: 1.25rem;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.cardClose:hover {
-  background: var(--color-surface-hover);
 }
 
 @keyframes fadeIn {
