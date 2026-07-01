@@ -1,0 +1,15 @@
+/* Opt-in "plain text link" look, shared by call sites that render an
+   <AppLink> as pure navigation text (Breadcrumbs, LibraryFileViewer's TOC).
+   NOT applied by <AppLink> itself: other call sites style links very
+   differently (Navigation's nav-tab hover, SelectionPanel's underline-on-hover
+   result links, HistoryPage's card-wrapper link, NotFoundPage's button-look
+   link), so this stays opt-in via className rather than a default. */
+.plain {
+  color: var(--color-text);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.plain:hover {
+  color: var(--color-primary-text);
+}

@@ -7,6 +7,7 @@ import { useTranslation, useT } from './contexts/LanguageContext'
 import PageShell, { PageSection } from './components/PageShell'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import { AppLink } from './components/AppLink'
+import appLinkStyles from './components/AppLink.module.css'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
 import NavButton from './components/NavButton'
 import { translate } from './i18n'
@@ -28,7 +29,6 @@ import type {
   LibraryFileResponse,
   ProperNounsResponse,
 } from './types/api'
-import viewerStyles from './LibraryFileViewer.module.css'
 
 interface LoaderData {
   fileContent: string
@@ -205,7 +205,7 @@ function LibraryFileViewer() {
                           ) : (
                             <AppLink
                               to={`/library/${encodeURIComponent(category)}/${encodeURIComponent(leaf.file_id!)}`}
-                              className={viewerStyles.tocLink}
+                              className={appLinkStyles.plain}
                             >
                               {leaf.title || t('library.noFileName')}
                             </AppLink>
