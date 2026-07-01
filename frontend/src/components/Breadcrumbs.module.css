@@ -1,0 +1,13 @@
+/* Plain text-link look for crumbs, rather than button chrome, since a
+   breadcrumb crumb IS just a navigation link. Hover is a color accent
+   (matching the current-crumb color) rather than an underline. */
+.crumbLink {
+  color: var(--color-text);
+  font-size: var(--font-sm);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.crumbLink:hover {
+  color: var(--color-primary-text);
+}

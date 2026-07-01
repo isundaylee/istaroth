@@ -1,0 +1,13 @@
+/* Plain text-link look for TOC entries, rather than button chrome, since a
+   TOC entry IS just a navigation link. Hover is a color accent (matching the
+   current-entry color) rather than an underline. */
+.tocLink {
+  color: var(--color-text);
+  font-size: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.tocLink:hover {
+  color: var(--color-primary-text);
+}

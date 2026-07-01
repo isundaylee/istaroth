@@ -1,9 +1,20 @@
 /* Styles owned by <Button>. Base `.button` is the primary filled button;
    `.submit` is the fixed-width composer submit variant. `.secondary`,
-   `.ghost`, and `.icon` are additional variants. All LOCAL (hashed). */
+   `.ghost`, and `.icon` are additional variants. All LOCAL (hashed).
+
+   Height is owned by `size` (`--control-height-md` by default, `.sm` for
+   `--control-height-sm`), not by any variant: every variant centers its
+   content via flex instead of padding/line-height, so swapping variants at
+   the same size never changes height. Variants only control horizontal
+   padding, color, border, and font-size. This is what lets a <Button> line
+   up with a <Toggle> or <Select variant="compact"> of the same size. */
 
 .button {
-  padding: 0.6rem 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--control-height-md);
+  padding: 0 1.5rem;
   background-color: var(--color-primary-fill);
   color: var(--color-on-primary);
   border: none;
@@ -27,7 +38,7 @@
   background: var(--color-primary-tint);
   color: var(--color-primary-text);
   border: 1px solid var(--color-primary-fill);
-  padding: 0.5rem 1rem;
+  padding: 0 1rem;
   font-size: var(--font-sm);
 }
 
@@ -46,10 +57,9 @@
 .ghost {
   background: transparent;
   border: 0;
-  padding: 0.35rem 0.6rem;
+  padding: 0 0.6rem;
   font-size: var(--font-sm);
   color: var(--color-text);
-  line-height: 1.2;
   border-radius: var(--radius-sm);
 }
 
@@ -61,19 +71,17 @@
   opacity: 0.6;
 }
 
-/* Icon: compact square icon-only button (close ×, fullscreen toggle) */
+/* Icon: compact square icon-only button (close ×, fullscreen toggle). Fixed
+   square dimensions independent of the `size` scale — it's a shape, not a
+   control-row height. */
 .icon {
   background: transparent;
   border: 0;
   padding: 0;
   width: 1.8rem;
   height: 1.8rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   color: var(--color-text-secondary);
   font-size: 1.25rem;
-  line-height: 1;
   border-radius: var(--radius-sm);
 }
 
@@ -95,7 +103,7 @@
 .submit {
   flex: 0 0 auto;
   min-width: 7.5rem;
-  padding: 0.5rem 1.25rem;
+  padding: 0 1.25rem;
   font-size: var(--font-sm);
 }
 
@@ -105,9 +113,10 @@
   }
 }
 
-/* Compact size modifier: shrinks padding/font, e.g. for secondary/ghost
-   actions crowded into a small card. Composed on top of any variant. */
+/* Compact size modifier: shrinks the control to `--control-height-sm` and
+   tightens horizontal padding. Composed on top of any variant (except
+   `icon`, which ignores `size` — see above). */
 .sm {
-  padding: 0.25rem 0.5rem;
-  font-size: var(--font-sm);
+  height: var(--control-height-sm);
+  padding: 0 0.6rem;
 }

@@ -6,8 +6,8 @@ import remarkGfm from 'remark-gfm'
 import { useTranslation, useT } from './contexts/LanguageContext'
 import PageShell, { PageSection } from './components/PageShell'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
+import { AppLink } from './components/AppLink'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
-import Button from './components/Button'
 import NavButton from './components/NavButton'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
@@ -28,6 +28,7 @@ import type {
   LibraryFileResponse,
   ProperNounsResponse,
 } from './types/api'
+import viewerStyles from './LibraryFileViewer.module.css'
 
 interface LoaderData {
   fileContent: string
@@ -202,12 +203,12 @@ function LibraryFileViewer() {
                               {leaf.title || t('library.noFileName')}
                             </span>
                           ) : (
-                            <Button
-                              variant="ghost"
-                              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(leaf.file_id!)}`)}
+                            <AppLink
+                              to={`/library/${encodeURIComponent(category)}/${encodeURIComponent(leaf.file_id!)}`}
+                              className={viewerStyles.tocLink}
                             >
                               {leaf.title || t('library.noFileName')}
-                            </Button>
+                            </AppLink>
                           )}
                         </span>
                       ))}

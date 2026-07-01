@@ -2,7 +2,9 @@
    `.compact` is the muted-surface footer/options-row variant used inside the
    Composer footer. Both are LOCAL (hashed) — no other component reaches in by
    name; contextual sizing is expressed via the `variant` prop and the caller's
-   own module, not cross-component descendant selectors. */
+   own module, not cross-component descendant selectors. `.compact`'s height
+   comes from the shared `--control-height-md` token (see tokens.css), the
+   same one <Button> and <Toggle> use, so they all line up in the same row. */
 
 .select {
   -webkit-appearance: none;
@@ -44,7 +46,7 @@
    secondary surface with a crisp hairline border. Width is left to the caller's
    layout. */
 .compact {
-  height: 2.25rem;
+  height: var(--control-height-md);
   min-width: 9.5rem;
   max-width: 100%;
   padding: 0.4rem 1.75rem 0.4rem 0.7rem;

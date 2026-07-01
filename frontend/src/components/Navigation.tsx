@@ -45,9 +45,9 @@ function Navigation({ embedded = false }: NavigationProps = {}) {
         <Button
           onClick={toggleTheme}
           variant="ghost"
+          size="sm"
           className={styles.themeButton}
           title={theme === 'light' ? t('theme.toggleDark') : t('theme.toggleLight')}
-          style={{ border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}
         >
           {theme === 'light' ? '☾' : '☀'}
         </Button>

@@ -1,7 +1,7 @@
 import React from 'react'
 import { useT } from '../contexts/LanguageContext'
-import { useAppNavigate } from '../hooks/useAppNavigate'
-import Button from './Button'
+import { AppLink } from './AppLink'
+import styles from './Breadcrumbs.module.css'
 
 export interface Crumb {
   label: string
@@ -14,7 +14,6 @@ export interface Crumb {
 // the last marks the current location and is plain text.
 export default function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
   const t = useT()
-  const navigate = useAppNavigate()
   if (crumbs.length === 0) return null
   return (
     <nav
@@ -33,9 +32,9 @@ export default function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
           <React.Fragment key={index}>
             {index > 0 && <span style={{ color: 'var(--color-text-muted)' }}>/</span>}
             {!isLast && crumb.to ? (
-              <Button onClick={() => navigate(crumb.to!)} variant="ghost">
+              <AppLink to={crumb.to} className={styles.crumbLink}>
                 {crumb.label}
-              </Button>
+              </AppLink>
             ) : (
               <span
                 style={{

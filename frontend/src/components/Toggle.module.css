@@ -1,11 +1,12 @@
-/* Styles owned by <Toggle>. Height/border/radius match .compact in
-   Select.module.css so a <Toggle> and a <Select variant="compact"> line up
-   when placed in the same control row. */
+/* Styles owned by <Toggle>. Height comes from the shared `--control-height-*`
+   scale (same tokens <Button> and <Select variant="compact"> use), not from
+   padding/line-height, so a <Toggle> lines up with those regardless of its
+   own font-size or border. */
 
 .toggle {
   display: inline-flex;
   align-items: stretch;
-  height: 2.25rem;
+  height: var(--control-height-md);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background-color: var(--color-surface-secondary);
@@ -55,15 +56,14 @@
   }
 }
 
-/* Compact size modifier: drops the fixed height so the control sizes to its
-   content (padding + line-height), matching the nav theme-toggle button's
-   height instead of the default control-row height. */
+/* Compact size modifier: shrinks to `--control-height-sm` (matching a
+   size="sm" <Button> in the same row, e.g. the nav theme toggle) and
+   tightens the option padding/font-size to fit. */
 .sm {
-  height: auto;
+  height: var(--control-height-sm);
 }
 
 .sm .option {
-  padding: 0.25rem 0.6rem;
+  padding: 0 0.6rem;
   font-size: 0.8rem;
-  line-height: 1;
 }
