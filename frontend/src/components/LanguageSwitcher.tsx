@@ -13,13 +13,15 @@ function LanguageButton({ label, isActive, onClick }: LanguageButtonProps) {
   return (
     <Button
       onClick={onClick}
-      variant={isActive ? 'primary' : 'ghost'}
+      variant="ghost"
       style={{
         padding: '0.25rem 0.5rem',
         fontSize: 'var(--font-sm)',
         borderRadius: 'var(--radius-md)',
-        border: isActive ? '1px solid transparent' : '1px solid var(--color-border)',
+        border: '1px solid var(--color-border)',
         fontWeight: isActive ? 600 : 'normal',
+        background: isActive ? 'var(--color-primary-fill)' : 'transparent',
+        color: isActive ? 'white' : 'var(--color-text-secondary)',
       }}
     >
       {label}
