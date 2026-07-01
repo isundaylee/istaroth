@@ -1,6 +1,6 @@
 import { useT } from './contexts/LanguageContext'
 import QueryForm from './QueryForm'
-import Navigation from './components/Navigation'
+import PageShell, { PageSection } from './components/PageShell'
 import styles from './QueryPage.module.css'
 
 // The clock dial cradling the Istaroth avatar — the God of Time, and a visual
@@ -74,13 +74,11 @@ function QueryPage() {
   const t = useT()
 
   return (
-    <div className={styles.panel}>
-      <Navigation embedded />
-
+    <PageShell flush>
       <div className={styles.stage}>
-        <div className={styles.composerSection}>
+        <PageSection className={styles.composerSection}>
           <QueryForm />
-        </div>
+        </PageSection>
 
         <div className={styles.heroSection}>
           <div className={styles.heroText}>
@@ -104,7 +102,7 @@ function QueryPage() {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   )
 }
 

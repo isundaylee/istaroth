@@ -4,16 +4,6 @@
  * stage is theme-aware: a soft paper gradient in light mode, a navy gradient in
  * dark mode. */
 
-.panel {
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  /* Shared connected-card gradient (paper in light, navy in dark) — see
-     --panel-bg in tokens.css. Spans the whole panel behind the nav and the
-     stage so the transparent nav blends into it. */
-  background: var(--panel-bg);
-}
-
 /* The stage: everything under the nav, sitting on the panel gradient (so its own
    background is transparent in both themes). The figure/dial tokens are
    theme-aware — deep gold on light paper, soft gold on the dark navy. The
@@ -39,17 +29,13 @@
   --stage-divider: rgba(201, 162, 74, 0.16);
 }
 
-/* Each section spans the full width; seams between them are faint full-width
-   hairlines so the stage still reads as connected sections. */
-.composerSection {
-  padding: 1.75rem 1.5rem;
-  border-bottom: 1px solid var(--stage-divider);
-}
-
-/* The composer is the only child here; drop its trailing margin so the space
-   above the divider matches the section padding. */
-.composerSection form {
-  margin-bottom: 0;
+/* composerSection is a <PageSection> — its padding and form trailing-margin
+   reset come from PageShell.module.css. Only the divider needs its own
+   themed (gold) tint here instead of the shared --color-border. The .stage
+   ancestor selector outranks .section's own border rule regardless of CSS
+   module import order. */
+.stage .composerSection {
+  border-bottom-color: var(--stage-divider);
 }
 
 /* Hero: pair the intro copy with the dial so the wide figure area is used —
@@ -149,24 +135,8 @@
   background: rgba(201, 162, 74, 0.1);
 }
 
-/* Phones: the panel went from three detached cards to one surface, but nesting
-   the composer inside .app padding + the panel + section padding wastes scarce
-   horizontal space. Reclaim it — the panel runs fully edge-to-edge (negative
-   margins cancel .app's 10px padding on the top + sides, and the border/radius
-   are dropped) so it reads as the page itself, not an inset card, and the
-   composer is nearly full width. */
-@media (max-width: 600px) {
-  .panel {
-    margin: -10px -10px 0;
-    border: 0;
-    border-radius: 0;
-  }
-
-  .composerSection {
-    padding: 1.25rem 0.85rem;
-  }
-}
-
+/* Phone edge-to-edge panel margins and composerSection's mobile padding now
+   come from PageShell.module.css's shared .panel/.section rules. */
 @media (prefers-reduced-motion: reduce) {
   .dialTicks {
     animation: none;
