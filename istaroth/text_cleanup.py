@@ -46,7 +46,19 @@ def clean_text_markers(text: str, language: localization.Language) -> str:
     # Replace {M#option1}{F#option2} with M option
     text = re.sub(r"\{M#([^}]+)\}\{F#[^}]+\}", r"\1", text)
 
-    # Replace <color=#RRGGBBAA>content</color> with markdown emphasis
-    text = re.sub(r"<color=#[0-9A-Fa-f]{8}>([^<]*)</color>", r"*\1*", text)
+    # Strip <center>/<right> structural wrappers, keeping their content
+    text = re.sub(r"<center>(.*?)</center>", r"\1", text, flags=re.DOTALL)
+    text = re.sub(r"<right>(.*?)</right>", r"\1", text, flags=re.DOTALL)
+
+    # Replace <i>content</i> with markdown emphasis; run before <color> below since
+    # a few lines nest <i> inside <color> and <color>'s content class excludes "<"
+    text = re.sub(r"<i>(.*?)</i>", r"*\1*", text, flags=re.DOTALL | re.IGNORECASE)
+
+    # Replace <color=#RRGGBB[AA]>content</color> with markdown emphasis (6-8 hex
+    # digits: the corpus has RGB, RGBA, and a handful of truncated 7-digit values)
+    text = re.sub(r"<color=#[0-9A-Fa-f]{6,8}>([^<]*)</color>", r"*\1*", text)
+
+    # Drop standalone <image name=.../> placeholders (always alone on their line)
+    text = re.sub(r"<image name=[^>]*/>\n?", "", text)
 
     return text
