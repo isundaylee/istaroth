@@ -32,7 +32,17 @@ _T = TypeVar("_T")
 # Sex-pronoun SEXPRO tokens also resolve against these builds (see
 # _load_pronoun_hashes): 6.x dropped their TextMap rows and reassigned the manual
 # hash ids, so both token -> hash and hash -> text are read from here.
-_TEXT_MAP_FALLBACK_REFS: tuple[str, ...] = ("8c3aecbd6ed",)
+#
+# 6.6.0/6.5.0 recover the great majority of hashes that a version bump drops from
+# the current TextMap (investigated in issue #273): checked back through 5.4.0,
+# nothing older than the immediately preceding minor version ever contributed a
+# recoverable hash, so there's no benefit to walking further back. 8c3aecbd6ed
+# (5.4.0) stays for the older SEXPRO manual-hash pairing above.
+_TEXT_MAP_FALLBACK_REFS: tuple[str, ...] = (
+    "4d9593eb73a",  # 6.6.0
+    "f9a21406731",  # 6.5.0
+    "8c3aecbd6ed",  # 5.4.0
+)
 
 
 class IdTracker(Generic[_K]):
@@ -229,6 +239,12 @@ class TextMapTracker(IdTracker[id_types.TextMapHash]):
     def get_optional_untracked(self, key: id_types.TextMapHash) -> str | None:
         """Get text by ID without recording access."""
         if (text := self._get_raw_text(key)) is not None:
+            return self._get_cleaned_text(text)
+        return None
+
+    def get_current_optional_untracked(self, key: id_types.TextMapHash) -> str | None:
+        """Get current-build text by ID without recording access."""
+        if (text := self._text_map.get(key)) is not None:
             return self._get_cleaned_text(text)
         return None
 

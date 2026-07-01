@@ -447,6 +447,14 @@ class TalkParser:
 
         ``dialogs`` is the raw (id, content-hash) sequence for byte-identity
         checks; ``text_ids`` are the dialog ids whose hash resolves to real text.
+
+        Resolves against the current build only (not the TextMap fallback):
+        a stale hash-named duplicate can carry a content hash that only the
+        fallback resolves, to a near-identical older-build variant of the
+        canonical file's text (e.g. differing punctuation), which would
+        otherwise make two candidates look like conflicting content and drop
+        the talkId. Same reasoning as role-name hash lookups staying
+        current-only (see `_get_role_name_by_text_map_hash` in `_talk.py`).
         """
         data = data_repo.load_talk_data(talk_path)
         try:
@@ -458,12 +466,14 @@ class TalkParser:
         )
         resolved_texts = list[tuple[int, str]]()
         for dialog_id, content_hash in raw_dialogs:
-            if (text := text_map.get_optional_untracked(content_hash)) is not None:
+            if (
+                text := text_map.get_current_optional_untracked(content_hash)
+            ) is not None:
                 resolved_texts.append((dialog_id, text))
         text_dialogs = frozenset(
             (dialog_id, content_hash)
             for dialog_id, content_hash in raw_dialogs
-            if text_map.has(content_hash)
+            if text_map.get_current_optional_untracked(content_hash) is not None
         )
         return _TalkSignature(
             dialogs=raw_dialogs,
