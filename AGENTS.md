@@ -165,6 +165,10 @@ use (deferred tools list only by name until then).
   directory). ALWAYS save screenshots under `tmp/screenshots/` (e.g.
   `filename: "tmp/screenshots/frontpage.png"`) — `tmp/` is git-ignored, so they
   can't be accidentally committed. Don't drop them at the repo root.
+- If a saved screenshot isn't where expected (e.g. after `cd`ing into a
+  subdirectory like `frontend/`), look under `<repo root>/tmp/screenshots/`
+  first. NEVER `find /` (or otherwise search the whole filesystem) to locate
+  it — it's always resolved relative to the repo root, not cwd.
 
 ## Regenerating the Text Corpus
 
