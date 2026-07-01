@@ -154,6 +154,41 @@ _COMMON_FIELD_MAPPINGS = {
     "AOOCCGGPPAI": "savePointId",
     # DialogExcelConfigData dialog id (its other text fields are already cleartext).
     "GFLDJMJKIKE": "id",
+    # CNRELWin6.7.0_R45768959_S45393582_D45767575. Some Talk/Npc files still use
+    # the reshuffled Quest-family dialog schema below (mixed with older-scheme
+    # files in the same directory); NpcGroup's own talks-item schema, Coop, and
+    # DialogExcelConfigData were untouched this build and still resolve via
+    # earlier-version keys.
+    "ANKFNLMKOII": "id",
+    "BMEACBBPBGK": "descTextMapHash",
+    "OCCBMCOGDOO": "titleTextMapHash",
+    "HONEAMECBEN": "chapterId",
+    "HLCINEMBGEF": "subQuests",
+    "OBPMJEILMMK": "talks",
+    "NDOFAOCKPGE": "subId",
+    "IFDFNEFMPIK": "order",
+    "LALLFKKNJIB": "questId",
+    "EAEHJOJPIOG": "npcId",
+    "BLCEJLFCFPH": "beginCond",
+    "KEDNDKJHLJF": "configId",
+    "DLCAICCLBOD": "groupId",
+    "OKGAHCPMLON": "activityId",
+    "FCBEKGAHMPD": "finishCond",
+    "BPEHONLLNNK": "damageRatio",
+    "PALPAGCBFDI": "param",
+    "KEHDEPAALMP": "count",
+    "GFIAGOPKHAK": "CUSTOM_paramStr",
+    # BinOutput/Talk/Quest and some Talk/Npc/Talk/Gadget files (shares the
+    # reshuffled Quest scheme).
+    "LDLMECNIJFC": "talkId",
+    "GDDPNNHLGBL": "dialogList",
+    "OMAHHDBCAPB": "nextDialogs",
+    "EENIFNIGHCH": "talkRole",
+    "DMIFDJDEFAL": "talkContentTextMapHash",
+    "GBLIAGAIAAK": "talkRoleNameTextMapHash",
+    # ExcelBinOutput/DocumentExcelConfigData.json page-2 localization id (rotates
+    # every build; see the CUSTOM_addlLocalID note on the earlier version blocks).
+    "GBAHMGGAMGH": "CUSTOM_addlLocalID",
 }
 
 
