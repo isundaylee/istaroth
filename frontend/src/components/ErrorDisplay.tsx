@@ -24,9 +24,7 @@ function ErrorDisplay({
     return (
       <>
         <Navigation />
-        <main className="main">
-          {errorContent}
-        </main>
+        {errorContent}
       </>
     )
   }

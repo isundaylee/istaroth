@@ -13,15 +13,14 @@ interface PageShellProps {
 
 // The connected one-card page frame: the embedded nav strip and the page content
 // share a single hairline-bordered surface (see the home page). Pages render
-// their content as children instead of their own <Navigation> + <main> + card.
+// their content as children instead of their own <Navigation> + card; the
+// enclosing <main> is owned by RootLayout.
 function PageShell({ children, flush = false }: PageShellProps) {
   return (
-    <main className="main">
-      <div className={styles.panel}>
-        <Navigation embedded />
-        <div className={flush ? styles.bodyFlush : styles.body}>{children}</div>
-      </div>
-    </main>
+    <div className={styles.panel}>
+      <Navigation embedded />
+      <div className={flush ? styles.bodyFlush : styles.body}>{children}</div>
+    </div>
   )
 }
 
