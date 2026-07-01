@@ -4,6 +4,7 @@ import { useT } from '../contexts/LanguageContext'
 import { MinimizedPopupCard } from '../contexts/MinimizedPopupContext'
 import { useDraggableResizable } from '../hooks/useDraggableResizable'
 import type { FloatingPlacement } from '../utils/floatingPanel'
+import Button from './Button'
 import styles from './FloatingPanel.module.css'
 
 interface FloatingPanelProps {
@@ -166,24 +167,24 @@ export function FloatingPanel({
           <div className={styles.actions}>
             {actions}
             {onToggleFullscreen && (
-              <button
+              <Button
                 type="button"
-                className={styles.actionBtn}
+                variant="icon"
                 onClick={onToggleFullscreen}
                 title={fullscreen ? t('citation.exitFullscreen') : t('citation.enterFullscreen')}
               >
                 {fullscreen ? '⧉' : '⛶'}
-              </button>
+              </Button>
             )}
             {onClose && (
-              <button
+              <Button
                 type="button"
-                className={styles.close}
+                variant="icon"
                 onClick={onClose}
                 aria-label={t('common.close')}
               >
                 ×
-              </button>
+              </Button>
             )}
           </div>
         )}

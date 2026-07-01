@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useT, useTranslation } from '../contexts/LanguageContext'
 import { SelectionPanelFrame, type SelectionPanel, type SelectionState } from '../components/SelectionPanel'
+import Button from '../components/Button'
 import selStyles from '../components/SelectionPanel.module.css'
 import { calculateFloatingPlacement } from '../utils/floatingPanel'
 import { getClientId } from '../utils/clientId'
@@ -323,8 +324,8 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
           data-floating-popup
           onMouseDown={(event) => event.preventDefault()}
         >
-          <button type="button" onClick={runKeywordSearch}>{t('library.selection.keywordSearch')}</button>
-          <button type="button" onClick={runAsk}>{t('library.selection.ask')}</button>
+          <Button type="button" variant="ghost" onClick={runKeywordSearch}>{t('library.selection.keywordSearch')}</Button>
+          <Button type="button" variant="ghost" onClick={runAsk}>{t('library.selection.ask')}</Button>
         </div>,
         document.body
       )

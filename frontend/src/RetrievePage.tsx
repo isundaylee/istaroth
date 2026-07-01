@@ -5,9 +5,9 @@ import { AppLink } from './components/AppLink'
 import PageShell, { PageSection } from './components/PageShell'
 import Card from './components/Card'
 import Button from './components/Button'
+import Toggle from './components/Toggle'
 import Composer from './components/Composer'
 import ErrorDisplay from './components/ErrorDisplay'
-import styles from './RetrievePage.module.css'
 import { buildUrlWithLanguage } from './utils/language'
 import { buildLibraryFilePath } from './utils/library'
 import type { LibraryRetrieveRequest, LibraryRetrieveResponse } from './types/api'
@@ -192,26 +192,14 @@ function RetrievePage() {
           placeholder={t('retrieve.placeholder')}
           disabled={loading}
           controls={
-            <div className={styles.searchMode} role="group" aria-label={t('retrieve.searchMode')}>
-              <button
-                type="button"
-                className={formParams.semantic ? '' : styles.isActive}
-                aria-pressed={!formParams.semantic}
-                onClick={() => setFormParams({ ...formParams, semantic: false })}
-                disabled={loading}
-              >
-                {t('retrieve.searchModeBm25')}
-              </button>
-              <button
-                type="button"
-                className={formParams.semantic ? styles.isActive : ''}
-                aria-pressed={formParams.semantic}
-                onClick={() => setFormParams({ ...formParams, semantic: true })}
-                disabled={loading}
-              >
-                {t('retrieve.searchModeSemantic')}
-              </button>
-            </div>
+            <Toggle
+              value={formParams.semantic}
+              onChange={(v) => setFormParams({ ...formParams, semantic: v })}
+              leftLabel={t('retrieve.searchModeBm25')}
+              rightLabel={t('retrieve.searchModeSemantic')}
+              disabled={loading}
+              ariaLabel={t('retrieve.searchMode')}
+            />
           }
           actions={
             <Button

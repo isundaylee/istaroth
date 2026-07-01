@@ -71,18 +71,7 @@
 
 .themeButton {
   padding: 0.25rem 0.5rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: var(--font-sm);
   line-height: 1;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.themeButton:hover {
-  background-color: var(--color-surface-hover);
 }
 
 @media (max-width: 600px) {
