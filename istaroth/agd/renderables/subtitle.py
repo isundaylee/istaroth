@@ -3,7 +3,7 @@
 import hashlib
 import pathlib
 
-from istaroth import utils
+from istaroth import text_cleanup, utils
 from istaroth.agd import (
     processed_types,
     repo,
@@ -22,7 +22,7 @@ def get_subtitle_info(
     for line in content.strip().split("\n"):
         line = line.strip()
         if line and not line.isdigit() and "-->" not in line:
-            text_lines.append(line)
+            text_lines.append(text_cleanup.clean_text_markers(line, data_repo.language))
 
     return processed_types.SubtitleInfo(text_lines=text_lines)
 

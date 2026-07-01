@@ -79,6 +79,48 @@ def test_color_markup_multiple():
     assert result == "See *red* and *green* colors."
 
 
+def test_color_markup_short_hex():
+    """Test <color=#RRGGBB> (6-digit, no alpha) replacement."""
+    text = "This is <color=#37FFFF>cyan text</color> in the game."
+    result = text_cleanup.clean_text_markers(text, localization.Language.ENG)
+    assert result == "This is *cyan text* in the game."
+
+
+def test_italic_markup_replacement():
+    """Test <i>content</i> replacement, case-insensitively."""
+    text = "This is <i>italic</i> and <I>also italic</I>."
+    result = text_cleanup.clean_text_markers(text, localization.Language.ENG)
+    assert result == "This is *italic* and *also italic*."
+
+
+def test_italic_nested_in_color():
+    """<i> nested inside <color> resolves fully rather than leaking raw tags."""
+    text = "<color=#37FFFFFF><I>emphasized</I></color>"
+    result = text_cleanup.clean_text_markers(text, localization.Language.ENG)
+    assert result == "**emphasized**"
+
+
+def test_center_and_right_stripped():
+    """<center>/<right> structural wrappers are stripped, content kept."""
+    text = "<center>Centered line</center>\n<right>Signed</right>"
+    result = text_cleanup.clean_text_markers(text, localization.Language.ENG)
+    assert result == "Centered line\nSigned"
+
+
+def test_center_spans_multiple_lines():
+    """<center> can wrap multiple paragraphs, not just a single line."""
+    text = "<center>Line one\n\nLine two</center>"
+    result = text_cleanup.clean_text_markers(text, localization.Language.ENG)
+    assert result == "Line one\n\nLine two"
+
+
+def test_image_placeholder_dropped():
+    """Standalone <image name=.../> lines are removed entirely."""
+    text = "Before.\n<image name=UI_Example />\nAfter."
+    result = text_cleanup.clean_text_markers(text, localization.Language.ENG)
+    assert result == "Before.\nAfter."
+
+
 def test_combined_markers():
     """Test all markers together."""
     text = (
