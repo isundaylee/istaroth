@@ -53,6 +53,10 @@ istaroth/
 - To determine the cleartext name for an obfuscated field, check out an older (~4.8–5.8) AnimeGameData version of the SAME file in the `<AGD>` git history — those builds had cleartext field names (e.g. `git show <5.x-commit>:BinOutput/Quest/74078.json`). 6.x onward is obfuscated.
 - Obfuscation is a global bijection within a build: one obfuscated key ↔ one cleartext name across ALL file types. So a key shared by quest and talk files resolves to the same cleartext name everywhere, and a global mapping entry is safe even if it touches multiple data types.
 - Some legacy cleartext names are misleading (e.g. the finish-condition `_type` enum is literally named `damageRatio`); keep the legacy name for consistency but note the discrepancy.
+- Deobfuscation is one step of ingesting a new AGD build. Use the
+  `agd-version-upgrade` skill (`.agents/skills/agd-version-upgrade/SKILL.md`) to
+  run the full sequence — deobfuscation mappings, a TextMap fallback-list audit
+  (`_TEXT_MAP_FALLBACK_REFS` in `istaroth/agd/repo.py`), then the corpus regen.
 
 ## Project Conventions
 - Parsing of a single item (a quest, talk, readable, etc.) should be STRICT by default: when the data is shaped unexpectedly, let it raise a parsing error for that one item rather than silently ignoring/falling back. The per-item failure then surfaces (and can be flagged/skipped at the batch level), instead of producing quietly-wrong output. Only tolerate a known, explicitly-justified case (e.g. a FINISH_PLOT condition that legitimately points at a silent cutscene with no talk file).
