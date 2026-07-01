@@ -138,6 +138,9 @@ export const chs = {
     goQuery: '前往问答',
     goRetrieve: '前往文本检索',
     goLibrary: '前往图书馆',
+    goHistory: '前往问答历史',
+    citationFullscreen: '切换引用弹窗全屏',
+    citationLoadContext: '在引用弹窗中载入全文',
     help: '显示/隐藏此帮助',
     close: '关闭'
   },

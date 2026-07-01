@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAppNavigate } from '../hooks/useAppNavigate'
+import { isEditable } from '../utils/keyboard'
 import KeyboardShortcutsModal from './KeyboardShortcutsModal'
 
 const G_CHORD_TIMEOUT_MS = 1500
@@ -7,19 +8,8 @@ const G_CHORD_TIMEOUT_MS = 1500
 const G_CHORD_ROUTES: Record<string, string> = {
   q: '/',
   r: '/retrieve',
-  l: '/library'
-}
-
-function isEditable(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) {
-    return false
-  }
-  return (
-    target.tagName === 'INPUT' ||
-    target.tagName === 'TEXTAREA' ||
-    target.tagName === 'SELECT' ||
-    target.isContentEditable
-  )
+  l: '/library',
+  h: '/history'
 }
 
 function KeyboardShortcuts() {

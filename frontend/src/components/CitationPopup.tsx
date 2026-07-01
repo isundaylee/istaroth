@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useRef } from 'react'
 import type { CitationResponse } from '../types/api'
 import { useTranslation } from '../contexts/LanguageContext'
+import { isEditable } from '../utils/keyboard'
 import { FloatingPanel } from './FloatingPanel'
 import type { FloatingPlacement } from '../utils/floatingPanel'
 import citationStyles from './CitationPopup.module.css'
@@ -58,6 +59,24 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
       const timer = setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }), 100)
       return () => clearTimeout(timer)
     }, [isSticky, citedChunk, fullText])
+
+    // 'f' toggles fullscreen and 'e' loads the full context, scoped to this popup
+    // while it's sticky and visible (not minimized to a rail card).
+    useEffect(() => {
+      if (!isSticky || minimized) return
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (isEditable(e.target) || e.metaKey || e.ctrlKey || e.altKey) return
+        if (e.key === 'f' && onToggleFullscreen) {
+          e.preventDefault()
+          onToggleFullscreen()
+        } else if (e.key === 'e' && onLoadFullText && !isLoadingFullText) {
+          e.preventDefault()
+          onLoadFullText()
+        }
+      }
+      document.addEventListener('keydown', handleKeyDown)
+      return () => document.removeEventListener('keydown', handleKeyDown)
+    }, [isSticky, minimized, onToggleFullscreen, onLoadFullText, isLoadingFullText])
 
     // The cited region is rendered as a block marked with a left accent bar and a "cited" badge.
     const citedBlock = (text: string) => (

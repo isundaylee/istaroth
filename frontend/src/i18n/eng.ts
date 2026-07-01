@@ -138,6 +138,9 @@ export const eng = {
     goQuery: 'Go to Q&A',
     goRetrieve: 'Go to Text Retrieval',
     goLibrary: 'Go to Library',
+    goHistory: 'Go to Q&A History',
+    citationFullscreen: 'Toggle fullscreen for the open citation popup',
+    citationLoadContext: 'Load full context in the open citation popup',
     help: 'Toggle this help',
     close: 'Close'
   },
