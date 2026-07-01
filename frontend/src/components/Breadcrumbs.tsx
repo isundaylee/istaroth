@@ -1,7 +1,6 @@
 import React from 'react'
 import { useT } from '../contexts/LanguageContext'
 import { AppLink } from './AppLink'
-import appLinkStyles from './AppLink.module.css'
 import styles from './Breadcrumbs.module.css'
 
 export interface Crumb {
@@ -33,7 +32,7 @@ export default function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
           <React.Fragment key={index}>
             {index > 0 && <span style={{ color: 'var(--color-text-muted)' }}>/</span>}
             {!isLast && crumb.to ? (
-              <AppLink to={crumb.to} className={`${appLinkStyles.plain} ${styles.crumbLink}`}>
+              <AppLink to={crumb.to} variant="plain" className={styles.crumbLink}>
                 {crumb.label}
               </AppLink>
             ) : (
