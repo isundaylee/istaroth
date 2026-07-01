@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import { useT } from '../contexts/LanguageContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { AppLink } from './AppLink'
+import Button from './Button'
 import LanguageSwitcher from './LanguageSwitcher'
 import styles from './Navigation.module.css'
 
@@ -41,13 +42,13 @@ function Navigation({ embedded = false }: NavigationProps = {}) {
         ))}
       </div>
       <div className={styles.controls}>
-        <button
+        <Button
+          variant="icon"
           onClick={toggleTheme}
           title={theme === 'light' ? t('theme.toggleDark') : t('theme.toggleLight')}
-          className={styles.themeButton}
         >
           {theme === 'light' ? '☾' : '☀'}
-        </button>
+        </Button>
         <LanguageSwitcher />
       </div>
     </nav>

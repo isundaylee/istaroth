@@ -9,11 +9,11 @@ import { copyToClipboard } from './utils/clipboard'
 import QueryForm from './QueryForm'
 import PageShell, { PageSection } from './components/PageShell'
 import CitationRenderer from './components/CitationRenderer'
+import Button from './components/Button'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import { useProperNounSelection } from './hooks/useProperNounSelection'
 import type { ConversationResponse } from './types/api'
 import convStyles from './ConversationPage.module.css'
-import actionStyles from './actions.module.css'
 
 interface LoaderData {
   conversation: ConversationResponse
@@ -163,16 +163,12 @@ function ConversationPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                     <h3>{t('conversation.answer')}</h3>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={copyCurrentUrl} className={actionStyles.shareButton}>
+                      <Button variant="secondary" onClick={copyCurrentUrl}>
                         {copyButtonText}
-                      </button>
-                      <button
-                        onClick={exportPageAsPNG}
-                        className={actionStyles.exportButton}
-                        disabled={exporting}
-                      >
+                      </Button>
+                      <Button variant="secondary" onClick={exportPageAsPNG} disabled={exporting}>
                         {exporting ? t('conversation.exporting') : t('conversation.export')}
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
@@ -205,25 +201,21 @@ function ConversationPage() {
                           }}
                         />
                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                          <button
+                          <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={() => {
                               const link = document.createElement('a')
                               link.download = `istaroth-conversation-${conversation.short_slug}-${Date.now()}.png`
                               link.href = exportedImage
                               link.click()
                             }}
-                            className={actionStyles.shareButton}
-                            style={{ fontSize: 'var(--font-sm)', padding: '0.25rem 0.5rem' }}
                           >
                             {t('common.download')}
-                          </button>
-                          <button
-                            onClick={() => setExportedImage(null)}
-                            className={actionStyles.exportButton}
-                            style={{ fontSize: 'var(--font-sm)', padding: '0.25rem 0.5rem' }}
-                          >
+                          </Button>
+                          <Button variant="secondary" size="sm" onClick={() => setExportedImage(null)}>
                             {t('common.close')}
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     </div>

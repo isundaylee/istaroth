@@ -1,43 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { Language } from '../i18n'
 import { getLanguageFromUrl, buildUrlWithLanguage } from '../utils/language'
-
-interface LanguageButtonProps {
-  label: string
-  isActive: boolean
-  onClick: () => void
-}
-
-function LanguageButton({ label, isActive, onClick }: LanguageButtonProps) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        background: isActive ? 'var(--color-primary-fill)' : 'transparent',
-        color: isActive ? 'white' : 'var(--color-text-secondary)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-md)',
-        padding: '0.25rem 0.5rem',
-        cursor: 'pointer',
-        fontSize: 'var(--font-sm)',
-        fontWeight: isActive ? 'bold' : 'normal',
-        transition: 'all 0.2s'
-      }}
-      onMouseOver={(e) => {
-        if (!isActive) {
-          e.currentTarget.style.backgroundColor = 'var(--color-surface-hover)'
-        }
-      }}
-      onMouseOut={(e) => {
-        if (!isActive) {
-          e.currentTarget.style.backgroundColor = 'transparent'
-        }
-      }}
-    >
-      {label}
-    </button>
-  )
-}
+import Toggle from './Toggle'
 
 function LanguageSwitcher() {
   const location = useLocation()
@@ -49,27 +13,15 @@ function LanguageSwitcher() {
     navigate(newUrl, { replace: true })
   }
 
-  const languages: Array<{ lang: Language; label: string }> = [
-    { lang: 'chs', label: '中文' },
-    { lang: 'eng', label: 'English' }
-  ]
-
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.5rem',
-      fontSize: 'var(--font-sm)'
-    }}>
-      {languages.map(({ lang, label }) => (
-        <LanguageButton
-          key={lang}
-          label={label}
-          isActive={language === lang}
-          onClick={() => handleLanguageChange(lang)}
-        />
-      ))}
-    </div>
+    <Toggle
+      options={[
+        { value: 'chs', label: '中文' },
+        { value: 'eng', label: 'English' }
+      ]}
+      value={language}
+      onChange={handleLanguageChange}
+    />
   )
 }
 

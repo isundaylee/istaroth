@@ -1,8 +1,7 @@
-/* Segmented Keyword/Semantic toggle, styled to match the composer's selects
-   (same height, border, radius, and muted surface) so the footer controls read
-   as one family and the bottom-aligned submit button lands identically on both
-   pages. */
-.searchMode {
+/* Styles owned by <Toggle>. Matches the composer's <Select variant="compact">
+   (same height, border, radius, muted surface) so a toggle sits comfortably
+   next to selects in the same control row. LOCAL (hashed). */
+.toggle {
   display: inline-flex;
   align-items: stretch;
   height: 2.25rem;
@@ -12,7 +11,7 @@
   overflow: hidden;
 }
 
-.searchMode button {
+.toggle button {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -25,32 +24,32 @@
   transition: background-color 0.2s, color 0.2s;
 }
 
-.searchMode button + button {
+.toggle button + button {
   border-left: 1px solid var(--color-border);
 }
 
-.searchMode .isActive {
+.toggle .active {
   background: var(--color-primary-fill);
   color: var(--color-on-primary);
 }
 
-.searchMode button:hover:not(:disabled):not(.isActive) {
+.toggle button:hover:not(:disabled):not(.active) {
   background: var(--color-surface-hover);
   color: var(--color-text);
 }
 
-.searchMode button:disabled {
+.toggle button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
 
 @media (max-width: 600px) {
-  .searchMode {
+  .toggle {
     display: flex;
     width: 100%;
   }
 
-  .searchMode button {
+  .toggle button {
     flex: 1;
   }
 }

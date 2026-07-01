@@ -1,6 +1,7 @@
 import React from 'react'
 import { useT } from '../contexts/LanguageContext'
 import { useAppNavigate } from '../hooks/useAppNavigate'
+import Button from './Button'
 
 export interface Crumb {
   label: string
@@ -32,19 +33,9 @@ export default function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
           <React.Fragment key={index}>
             {index > 0 && <span style={{ color: 'var(--color-text-muted)' }}>/</span>}
             {!isLast && crumb.to ? (
-              <button
-                onClick={() => navigate(crumb.to!)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  cursor: 'pointer',
-                  color: 'var(--color-text)',
-                  fontSize: 'var(--font-sm)',
-                }}
-              >
+              <Button variant="ghost" onClick={() => navigate(crumb.to!)}>
                 {crumb.label}
-              </button>
+              </Button>
             ) : (
               <span
                 style={{

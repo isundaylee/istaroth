@@ -15,22 +15,6 @@
   transform: translate(calc(-50% + var(--drag-x, 0px)), calc(-100% + var(--drag-y, 0px)));
 }
 
-.toolbar button {
-  border: 0;
-  border-radius: var(--radius-sm);
-  padding: 0.35rem 0.6rem;
-  background: transparent;
-  color: var(--color-text);
-  font-size: var(--font-sm);
-  line-height: 1.2;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.toolbar button:hover {
-  background: var(--color-surface-hover);
-}
-
 .muted,
 .error {
   margin: 0.5rem 0;

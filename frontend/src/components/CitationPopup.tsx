@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useRef } from 'react'
 import type { CitationResponse } from '../types/api'
 import { useTranslation } from '../contexts/LanguageContext'
+import Button from './Button'
 import { FloatingPanel } from './FloatingPanel'
 import type { FloatingPlacement } from '../utils/floatingPanel'
 import citationStyles from './CitationPopup.module.css'
@@ -67,15 +68,17 @@ const CitationPopup = forwardRef<HTMLDivElement, CitationPopupProps>(
       </div>
     )
 
-    // Dashed gap button (top/bottom); clicking either loads the entire file text.
+    // Gap button (top/bottom); clicking either loads the entire file text.
     const loadGap = () => onLoadFullText && (
-      <button
+      <Button
+        variant="secondary"
+        size="sm"
         onClick={onLoadFullText}
         disabled={isLoadingFullText}
         className={citationStyles.gap}
       >
         {isLoadingFullText ? t.citation.loadingButton : t.citation.loadAllChunks}
-      </button>
+      </Button>
     )
 
     const body = isSticky && citedChunk ? (

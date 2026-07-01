@@ -6,9 +6,9 @@ import { getLanguageFromUrl } from './utils/language'
 import { getClientId } from './utils/clientId'
 import PageShell from './components/PageShell'
 import Card from './components/Card'
+import Button from './components/Button'
 import { AppLink } from './components/AppLink'
 import type { ConversationListResponse, ConversationSummary } from './types/api'
-import actionStyles from './actions.module.css'
 
 const PAGE_SIZE = 50
 
@@ -106,9 +106,9 @@ function HistoryPage() {
 
               {hasMore && (
                 <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-                  <button onClick={loadMore} disabled={loadingMore} className={actionStyles.shareButton}>
+                  <Button variant="secondary" onClick={loadMore} disabled={loadingMore}>
                     {loadingMore ? t('common.loading') : t('history.loadMore')}
-                  </button>
+                  </Button>
                 </div>
               )}
             </>
