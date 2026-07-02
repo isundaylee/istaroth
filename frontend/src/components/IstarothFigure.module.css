@@ -75,12 +75,15 @@
   opacity: 1;
 }
 
+/* Anchored to the character's right, growing rightward into the hero's empty
+   side; sized to content like the phone layout. */
 .bubble {
   position: absolute;
-  left: -42%;
+  left: 57%;
   top: 7%;
-  max-width: 56%;
   z-index: 2;
+  width: max-content;
+  max-width: min(30rem, calc(100vw - 2.5rem));
 }
 
 /* The status pill sizes to its content and may outgrow the figure box (long
