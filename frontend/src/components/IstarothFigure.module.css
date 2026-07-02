@@ -15,9 +15,9 @@
   position: relative;
   /* Height cuts the pose artwork before its own bottom edge, so the character
      bleeds off the bottom of the figure instead of showing a straight cut.
-     94% keeps the greeting pose's downward-pointing fingertip (at 91% of the
-     source height) inside the box. */
-  aspect-ratio: 10 / 9.4;
+     Both poses are ~0.88× width tall; 87.5% keeps the greeting pose's
+     downward-pointing fingertip (at ~0.86× width) inside the box. */
+  aspect-ratio: 10 / 8.75;
   overflow: hidden;
 }
 
@@ -30,7 +30,7 @@
 .ring {
   position: absolute;
   left: 50%;
-  top: 48%;
+  top: 50%;
   width: 92%;
   transform: translate(-50%, -50%);
 }
@@ -50,10 +50,9 @@
   to { transform: rotate(360deg); }
 }
 
-/* Both poses render at the same width, top-aligned: measured on the source
-   art, that puts the faces within ~1% of each other, so the crossfade doesn't
-   jump. The think pose is a slightly shorter canvas, hence its small scale-up
-   (to keep bleeding past the container bottom) and horizontal recenter. */
+/* Both poses share the same source framing (same canvas size, matching head
+   scale), so they render at the same width, top-aligned; the think pose only
+   needs a small horizontal recenter for the crossfade to line up. */
 .pose {
   position: absolute;
   top: 0;
@@ -64,8 +63,7 @@
 }
 
 .poseThink {
-  width: 107%;
-  transform: translateX(calc(-50% - 2.4%));
+  transform: translateX(calc(-50% - 2.9%));
   opacity: 0;
 }
 
