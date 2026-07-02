@@ -79,11 +79,13 @@
    side; sized to content like the phone layout. */
 .bubble {
   position: absolute;
-  left: 57%;
+  left: 70%;
   top: 7%;
   z-index: 2;
   width: max-content;
-  max-width: min(30rem, calc(100vw - 2.5rem));
+  /* 18rem is what fits between this anchor and the 800px panel's edge —
+     longer examples wrap instead of clipping at the hero's overflow. */
+  max-width: min(18rem, calc(100vw - 2.5rem));
 }
 
 /* The status pill sizes to its content and may outgrow the figure box (long

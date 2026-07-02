@@ -17,6 +17,13 @@
   padding: 1.6rem 2rem 0;
   text-align: center;
   border-bottom-color: var(--color-accent-hairline);
+  transition: border-color 0.25s ease;
+}
+
+/* The composer section's top divider doubles as its focus indicator: it turns
+   gold while the question textarea has focus. */
+.stage:has(textarea:focus) .hero {
+  border-bottom-color: color-mix(in srgb, var(--color-primary-fill) 75%, transparent);
 }
 
 /* Starfield: dark theme only — the light theme keeps a plain paper hero. */
