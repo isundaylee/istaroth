@@ -83,13 +83,16 @@
   z-index: 2;
 }
 
+/* The status pill sizes to its content and may outgrow the figure box (long
+   retrieval steps), capped at the phone hero's inner width. */
 .status {
   position: absolute;
   left: 50%;
   bottom: 6%;
   transform: translateX(-50%);
   z-index: 2;
-  max-width: 92%;
+  width: max-content;
+  max-width: calc(100vw - 2.5rem);
 }
 
 /* Narrow viewports: no room beside the character — the bubble leaves the
@@ -109,14 +112,7 @@
     width: max-content;
     max-width: calc(100vw - 2.5rem);
     margin-bottom: 0.75rem;
-  }
-
-  /* Same for the thinking status pill: don't squeeze it to the figure width. */
-  .status {
-    width: max-content;
-    max-width: calc(100vw - 2.5rem);
-  }
-}
+  }}
 
 @media (prefers-reduced-motion: reduce) {
   .ringTicks {
