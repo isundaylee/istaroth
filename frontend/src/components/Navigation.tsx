@@ -46,12 +46,12 @@ function Navigation({ embedded = false }: NavigationProps = {}) {
           onClick={toggleTheme}
           variant="ghost"
           size="sm"
-          className={styles.themeButton}
+          className={styles.controlButton}
           title={theme === 'light' ? t('theme.toggleDark') : t('theme.toggleLight')}
         >
           {theme === 'light' ? '☾' : '☀'}
         </Button>
-        <LanguageSwitcher />
+        <LanguageSwitcher className={styles.controlButton} />
       </div>
     </nav>
   )
