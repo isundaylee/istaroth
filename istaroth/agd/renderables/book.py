@@ -92,7 +92,7 @@ def get_book_series_info(
 
     suit = data_repo.load_book_suit_excel_config_data()[suit_id]
     if (
-        series_name := data_repo.text_map_tracker().get_optional(
+        series_name := data_repo.build_text_map_tracker().get_optional(
             suit["suitNameTextMapHash"]
         )
     ) is None:

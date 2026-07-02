@@ -20,7 +20,7 @@ def get_achievement_section_info(
         raise ValueError(f"Achievement section not found for ID {section_id}")
     section, achievement_configs = section_config
 
-    text_map = data_repo.text_map_tracker()
+    text_map = data_repo.build_text_map_tracker()
     if (section_name := text_map.get_optional(section["nameTextMapHash"])) is None:
         raise ValueError(f"Missing name for achievement section {section_id}")
 

@@ -104,7 +104,7 @@ class Readables(BaseReadables):
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all readable files, excluding those already used."""
-        readables_tracker = data_repo.readables_tracker()
+        readables_tracker = data_repo.build_readables_tracker()
         return [
             f"Readable/{data_repo.language_short}/{filename}"
             for filename in sorted(
@@ -141,7 +141,7 @@ class Books(BaseRenderableType[_BookKey]):
         grouped_filenames = {
             filename for filenames in series_mapping.values() for filename in filenames
         }
-        readables_tracker = data_repo.readables_tracker()
+        readables_tracker = data_repo.build_readables_tracker()
         return [
             *(_BookSeriesKey(suit_id) for suit_id in sorted(series_mapping)),
             *(
@@ -210,7 +210,7 @@ class Wings(BaseReadables):
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all readable files whose filename starts with Wings."""
-        readables_tracker = data_repo.readables_tracker()
+        readables_tracker = data_repo.build_readables_tracker()
         return [
             f"Readable/{data_repo.language_short}/{filename}"
             for filename in sorted(
@@ -235,7 +235,7 @@ class Costumes(BaseReadables):
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all readable files whose filename starts with Costume."""
-        readables_tracker = data_repo.readables_tracker()
+        readables_tracker = data_repo.build_readables_tracker()
         return [
             f"Readable/{data_repo.language_short}/{filename}"
             for filename in sorted(
@@ -336,7 +336,7 @@ class MaterialTypes(BaseRenderableType[str]):
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Discover all unique material types."""
-        materials_data = data_repo.material_tracker().get_all()
+        materials_data = data_repo.build_material_tracker().get_all()
         return sorted(
             Counter(material["materialType"] for material in materials_data).keys()
         )
@@ -345,7 +345,7 @@ class MaterialTypes(BaseRenderableType[str]):
         self, renderable_key: str, data_repo: repo.DataRepo
     ) -> processed_types.RenderedItem | None:
         """Process all materials of a given type into rendered content."""
-        materials_data = data_repo.material_tracker().get_all()
+        materials_data = data_repo.build_material_tracker().get_all()
         materials_of_type = []
 
         for material_data in materials_data:
@@ -572,14 +572,14 @@ class Talks(BaseRenderableType[id_types.TalkId]):
 
     def discover(self, data_repo: repo.DataRepo) -> list[id_types.TalkId]:
         """Find all talk IDs that are not already used."""
-        talk_tracker = data_repo.talk_tracker()
+        talk_tracker = data_repo.build_talk_tracker()
         return sorted(talk_tracker.get_all_ids() - self.used_talk_ids)
 
     def process(
         self, renderable_key: id_types.TalkId, data_repo: repo.DataRepo
     ) -> processed_types.RenderedItem | None:
         """Process talk into rendered content."""
-        talk_tracker = data_repo.talk_tracker()
+        talk_tracker = data_repo.build_talk_tracker()
         talk_file_path = talk_tracker.get_talk_file_path(renderable_key)
 
         if talk_file_path is None:

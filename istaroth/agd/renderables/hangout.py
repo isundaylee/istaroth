@@ -117,7 +117,7 @@ def get_hangout_info(
     """
     stories = data_repo.build_hangout_quest_to_stories()[quest_id]
 
-    text_map = data_repo.text_map_tracker()
+    text_map = data_repo.build_text_map_tracker()
     main_quest = data_repo.load_main_quest_excel_config_data()[quest_id]
     quest_title = (
         text_map.get_optional(main_quest["titleTextMapHash"]) or f"Hangout {quest_id}"

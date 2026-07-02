@@ -30,7 +30,7 @@ def _get_relic_story_by_story_id(
 
     localization_ids = set(doc_item["questIDList"])
     language_short = data_repo.language_short
-    readables = data_repo.readables_tracker()
+    readables = data_repo.build_readables_tracker()
     for entry in data_repo.load_localization_excel_config_data():
         if entry["id"] not in localization_ids:
             continue
@@ -52,7 +52,7 @@ def get_artifact_set_info(
     """Get artifact set info, or None if no piece has a story."""
     set_data = data_repo.load_reliquary_set_excel_config_data()
     reliquary_data = data_repo.load_reliquary_excel_config_data()
-    text_map = data_repo.text_map_tracker()
+    text_map = data_repo.build_text_map_tracker()
 
     set_config = None
     for set_entry in set_data:

@@ -321,7 +321,9 @@ class DataRepo:
         return cls(agd_path, language=language)
 
     @functools.lru_cache(maxsize=None)
-    def _text_map_tracker_for(self, language: localization.Language) -> TextMapTracker:
+    def _build_text_map_tracker_for(
+        self, language: localization.Language
+    ) -> TextMapTracker:
         """Load the TextMap for a specific language, merging Medium variant if present."""
         language_short = self._language_short(language)
         return TextMapTracker(
@@ -416,18 +418,18 @@ class DataRepo:
                 raise
             return None
 
-    def text_map_tracker(self) -> TextMapTracker:
+    def build_text_map_tracker(self) -> TextMapTracker:
         """Load TextMap for the instance's language, merging Medium variant if present."""
-        return self._text_map_tracker_for(self.language)
+        return self._build_text_map_tracker_for(self.language)
 
-    def source_text_map_tracker(self) -> TextMapTracker:
+    def build_source_text_map_tracker(self) -> TextMapTracker:
         """Load the CHS (source) TextMap regardless of the instance's language.
 
         Dev markers like ``$HIDDEN``/``(test)`` only exist in the CHS title text,
         so language-independent checks (e.g. filtering test/hidden quests) must
         consult CHS rather than the output language's text map.
         """
-        return self._text_map_tracker_for(localization.Language.CHS)
+        return self._build_text_map_tracker_for(localization.Language.CHS)
 
     @functools.lru_cache(maxsize=None)
     def load_npc_excel_config_data(self) -> agd_types.NpcExcelConfigData:
@@ -564,7 +566,7 @@ class DataRepo:
         suit or readable that can't be resolved, surfacing the data gap rather than
         silently dropping the grouping.
         """
-        materials = self.material_tracker()
+        materials = self.build_material_tracker()
         suits = self.load_book_suit_excel_config_data()
         documents = self.load_document_excel_config_data()
         readable_paths = self.build_localization_id_to_readable_path()
@@ -617,7 +619,7 @@ class DataRepo:
         }
 
     @functools.lru_cache(maxsize=None)
-    def material_tracker(self) -> MaterialTracker:
+    def build_material_tracker(self) -> MaterialTracker:
         """Load material Excel configuration data as MaterialTracker."""
         return MaterialTracker(self._load_excel("MaterialExcelConfigData.json"))
 
@@ -734,7 +736,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def build_avatar_id_to_name_mapping(self) -> dict[id_types.AvatarId, str]:
         """Avatar id -> localized character name (only avatars whose name resolves)."""
-        text_map = self.text_map_tracker()
+        text_map = self.build_text_map_tracker()
         return {
             avatar["id"]: name
             for avatar in self.load_avatar_excel_config_data()
@@ -800,8 +802,8 @@ class DataRepo:
         inherit the cached results.
         """
         self.build_talk_group_mapping()
-        self.source_text_map_tracker()
-        self.text_map_tracker()
+        self.build_source_text_map_tracker()
+        self.build_text_map_tracker()
 
         # Warm the quest mapping (and, transitively, the load_quest_data cache it
         # populates) so forked workers don't each re-glob and re-parse all quests.
@@ -884,7 +886,7 @@ class DataRepo:
         return _load_talk_file(file_path)
 
     @functools.lru_cache(maxsize=None)
-    def talk_tracker(self) -> TalkTracker:
+    def build_talk_tracker(self) -> TalkTracker:
         """Build the access-tracking TalkTracker with resolved talk file paths."""
         return TalkTracker(
             self.load_talk_excel_config_data(),
@@ -1067,7 +1069,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def get_npc_id_to_name_mapping(self) -> dict[str, str]:
         """Get cached mapping from NPC ID to name."""
-        return self._build_npc_id_to_name(self.text_map_tracker())
+        return self._build_npc_id_to_name(self.build_text_map_tracker())
 
     @functools.lru_cache(maxsize=None)
     def get_npc_id_to_source_name_mapping(self) -> dict[str, str]:
@@ -1075,7 +1077,7 @@ class DataRepo:
 
         Dev markers like ``$HIDDEN``/``(test)`` only exist in the CHS name text.
         """
-        return self._build_npc_id_to_name(self.source_text_map_tracker())
+        return self._build_npc_id_to_name(self.build_source_text_map_tracker())
 
     @functools.lru_cache(maxsize=None)
     def get_dialog_id_to_role_name_hash_mapping(
@@ -1121,6 +1123,6 @@ class DataRepo:
         )
 
     @functools.lru_cache(maxsize=None)
-    def readables_tracker(self) -> ReadablesTracker:
+    def build_readables_tracker(self) -> ReadablesTracker:
         """Get ReadablesTracker for tracking access to readable files."""
         return ReadablesTracker(self.agd_path, self.language_short)

@@ -329,7 +329,7 @@ class TalkParser:
         are loaded (deobfuscated) only for colliding ids, which also warms the
         cache for later rendering.
         """
-        text_map = data_repo.text_map_tracker()
+        text_map = data_repo.build_text_map_tracker()
         stats = collections.Counter[str]()
         for talk_id, candidates in self._talk_candidates.items():
             if len(candidates) == 1:

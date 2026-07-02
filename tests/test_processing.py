@@ -120,7 +120,7 @@ def test_talk_role_name_hash_ignores_fallback_text() -> None:
             }
         ]
     }
-    data_repo.text_map_tracker.return_value = repo.TextMapTracker(
+    data_repo.build_text_map_tracker.return_value = repo.TextMapTracker(
         {"100": "Hello"},
         localization.Language.ENG,
         {"200": "Stale role"},
@@ -148,10 +148,10 @@ def test_talk_untranslated_chs_test_placeholder_is_skipped_not_missing() -> None
             }
         ]
     }
-    data_repo.text_map_tracker.return_value = repo.TextMapTracker(
+    data_repo.build_text_map_tracker.return_value = repo.TextMapTracker(
         {}, localization.Language.ENG, pronoun_hashes={}
     )
-    data_repo.source_text_map_tracker.return_value = repo.TextMapTracker(
+    data_repo.build_source_text_map_tracker.return_value = repo.TextMapTracker(
         {"100": "(test)台词文本"}, localization.Language.CHS, pronoun_hashes={}
     )
     data_repo.get_npc_id_to_name_mapping.return_value = {}
@@ -263,7 +263,7 @@ def test_achievement_section_filters_disused_and_keeps_hidden() -> None:
     data_repo.build_achievement_section_mapping.return_value = (
         repo.DataRepo.build_achievement_section_mapping(data_repo)
     )
-    data_repo.text_map_tracker.return_value = repo.TextMapTracker(
+    data_repo.build_text_map_tracker.return_value = repo.TextMapTracker(
         {
             "100": "Section",
             "102": "Visible",
@@ -303,7 +303,7 @@ def test_achievement_section_requires_active_localized_text() -> None:
             ],
         )
     }
-    data_repo.text_map_tracker.return_value = repo.TextMapTracker(
+    data_repo.build_text_map_tracker.return_value = repo.TextMapTracker(
         {"100": "Section", "102": "Achievement"},
         localization.Language.ENG,
         pronoun_hashes={},
@@ -361,7 +361,7 @@ def _book_series_mock_repo() -> mock.Mock:
         7: {"id": 7, "suitNameTextMapHash": 700},
         8: {"id": 8, "suitNameTextMapHash": 800},
     }
-    data_repo.material_tracker.return_value = repo.MaterialTracker(
+    data_repo.build_material_tracker.return_value = repo.MaterialTracker(
         [
             _book_material(101, 7),
             _book_material(102, 7),
@@ -416,7 +416,7 @@ def test_get_book_series_info_assembles_volumes() -> None:
     data_repo.load_book_suit_excel_config_data.return_value = {
         7: {"id": 7, "suitNameTextMapHash": 700}
     }
-    data_repo.text_map_tracker.return_value = repo.TextMapTracker(
+    data_repo.build_text_map_tracker.return_value = repo.TextMapTracker(
         {"700": "My Series", "101": "Volume One", "102": "Volume Two"},
         localization.Language.ENG,
         pronoun_hashes={},
@@ -431,7 +431,7 @@ def test_get_book_series_info_assembles_volumes() -> None:
         "Book101_EN.txt": "First body.",
         "Book102_EN.txt": "Second body.",
     }[filename]
-    data_repo.readables_tracker.return_value = readables
+    data_repo.build_readables_tracker.return_value = readables
 
     series = book.get_book_series_info(7, data_repo=data_repo)
 
@@ -455,7 +455,7 @@ def test_get_book_series_info_filters_placeholder_volumes() -> None:
     data_repo.load_book_suit_excel_config_data.return_value = {
         7: {"id": 7, "suitNameTextMapHash": 700}
     }
-    data_repo.text_map_tracker.return_value = repo.TextMapTracker(
+    data_repo.build_text_map_tracker.return_value = repo.TextMapTracker(
         {"700": "My Series", "102": "Volume Two"},
         localization.Language.ENG,
         pronoun_hashes={},
@@ -467,7 +467,7 @@ def test_get_book_series_info_filters_placeholder_volumes() -> None:
         "Book101_EN.txt": "test",  # placeholder content -> filtered
         "Book102_EN.txt": "Second body.",
     }[filename]
-    data_repo.readables_tracker.return_value = readables
+    data_repo.build_readables_tracker.return_value = readables
 
     series = book.get_book_series_info(7, data_repo=data_repo)
 
@@ -615,4 +615,4 @@ def test_sexpro_resolves_from_pinned_build(
         "找{PLAYERAVATAR#SEXPRO[INFO_MALE_PRONOUN_HE|INFO_FEMALE_PRONOUN_SHE]}"
     )
     for repo_, expected in [(data_repo, "找他"), (english_data_repo, "找He")]:
-        assert repo_.text_map_tracker().clean_text(placeholder) == expected
+        assert repo_.build_text_map_tracker().clean_text(placeholder) == expected
