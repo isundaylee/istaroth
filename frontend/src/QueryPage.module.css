@@ -1,144 +1,151 @@
-/* Home/Query page — one hairline-bordered surface instead of detached cards.
- * The nav is a strip on top; everything below it (composer, intro, and the
- * logo/figure) sits on one continuous "stage" that reads as a single hero. The
- * stage is theme-aware: a soft paper gradient in light mode, a navy gradient in
- * dark mode. */
+/* Home page — reference-style hero: title → tagline → guide character (with
+ * speech bubble / thinking status) → composer. The hero and composer are
+ * connected <PageSection>s on the shared panel; the figure sits flush on the
+ * divider so the character reads as standing behind the composer. */
 
-/* The stage: everything under the nav, sitting on the panel gradient (so its own
-   background is transparent in both themes). The figure/dial tokens are
-   theme-aware — deep gold on light paper, soft gold on the dark navy. The
-   composer + intro text inherit the global theme-aware colors, so no per-theme
-   overrides are needed there. */
+/* The stage wrapper exists so page overrides of PageShell's `.section` rules
+   (padding, divider color) win by specificity regardless of CSS module bundle
+   order — same trick as the old home page. */
 .stage {
-  --figure-ink: #eef1f6;
-  --figure-gold: #b88f36;
-  --figure-gold-dim: rgba(154, 115, 32, 0.55);
-  --figure-line: rgba(154, 115, 32, 0.28);
-  --figure-label: #9a7320;
-  --stage-divider: rgba(154, 115, 32, 0.2);
-
   background: transparent;
 }
 
-[data-theme="dark"] .stage {
-  --figure-ink: #070d19;
-  --figure-gold: #c9a24a;
-  --figure-gold-dim: rgba(201, 162, 74, 0.55);
-  --figure-line: rgba(201, 162, 74, 0.2);
-  --figure-label: rgba(216, 198, 156, 0.7);
-  --stage-divider: rgba(201, 162, 74, 0.16);
+.stage .hero {
+  position: relative;
+  overflow: hidden;
+  /* No bottom padding: the figure is cut by the section divider itself. */
+  padding: 1.6rem 2rem 0;
+  text-align: center;
+  border-bottom-color: var(--color-accent-hairline);
 }
 
-/* composerSection is a <PageSection> — its padding and form trailing-margin
-   reset come from PageShell.module.css. Only the divider needs its own
-   themed (gold) tint here instead of the shared --color-border. The .stage
-   ancestor selector outranks .section's own border rule regardless of CSS
-   module import order. */
-.stage .composerSection {
-  border-bottom-color: var(--stage-divider);
-}
-
-/* Hero: pair the intro copy with the dial so the wide figure area is used —
-   text on the left, the clock medallion on the right (stacks on narrow widths). */
-.heroSection {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: center;
-  gap: 2rem;
-  /* Left padding (3.75rem) is tuned so the text's gap to the panel edge matches
-     the dial's gap to the right edge — symmetric outer margins. */
-  padding: 2.5rem 2.25rem 2.75rem 3.75rem;
-}
-
-.heroText {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1.1rem;
-}
-
-.introTitle {
-  margin: 0;
-  font-size: var(--font-xl);
-  color: var(--color-heading);
-}
-
-.introText {
-  margin: 0;
-  font-size: var(--font-base);
-  line-height: 1.6;
-  color: var(--color-text-secondary);
-}
-
-.heroFigure {
-  justify-self: center;
-  display: grid;
-  place-items: center;
+/* Starfield: dark theme only — the light theme keeps a plain paper hero. */
+.starfield {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  background: radial-gradient(58% 58% at 50% 50%, rgba(201, 162, 74, 0.08), transparent 70%);
+  height: 100%;
+  pointer-events: none;
+  display: none;
 }
 
-.dial {
-  width: min(100%, 17rem);
-  height: auto;
+[data-theme="dark"] .starfield {
   display: block;
 }
 
-@media (max-width: 720px) {
-  .heroSection {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    text-align: center;
-    gap: 1.5rem;
-    padding: 2.25rem 1.5rem 2.5rem;
-  }
-
-  .heroText {
-    align-items: center;
-  }
+.star,
+.starSlow {
+  opacity: 0.5;
+  animation: twinkle 5s ease-in-out infinite alternate;
 }
 
-.dialTicks {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: dialspin 240s linear infinite;
+.starSlow {
+  animation-duration: 8.5s;
+  animation-delay: -3s;
 }
 
-@keyframes dialspin {
-  to { transform: rotate(360deg); }
+@keyframes twinkle {
+  from { opacity: 0.16; }
+  to { opacity: 0.75; }
 }
 
-.dialNumerals {
-  font-family: Georgia, 'Times New Roman', serif;
-  font-size: 16px;
-  letter-spacing: -0.02em;
-  fill: var(--figure-label);
+.figure {
+  width: min(100%, 21rem);
+  margin: 0 auto;
 }
 
-.figureGithub {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border: 1px solid var(--figure-gold-dim);
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--figure-label);
+/* The idle speech bubble: greeting + a clickable example question that fills
+   the composer. */
+.bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--color-accent-hairline);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+  backdrop-filter: blur(6px);
+  text-align: left;
+  font: inherit;
   font-size: var(--font-sm);
-  text-decoration: none;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
 }
 
-.figureGithub:hover {
-  border-color: var(--figure-gold);
-  color: var(--figure-gold);
-  background: rgba(201, 162, 74, 0.1);
+.bubble:hover:not(:disabled) {
+  border-color: var(--color-primary-fill);
 }
 
-/* Phone edge-to-edge panel margins and composerSection's mobile padding now
-   come from PageShell.module.css's shared .panel/.section rules. */
+/* While the example question is still loading the bubble is a placeholder:
+   present (so the layout doesn't shift when it fills in) but not clickable. */
+.bubble:disabled {
+  cursor: default;
+}
+
+.bubble:focus-visible {
+  outline: 2px solid var(--color-primary-fill);
+  outline-offset: 2px;
+}
+
+.bubbleGreeting {
+  font-weight: 600;
+  color: var(--color-primary-text);
+}
+
+.bubbleQuestion {
+  color: var(--color-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* The thinking status pill overlaying the figure's lower edge: a translucent
+   scrim so the caption stays readable over the artwork. */
+.thinkingStatus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--color-accent-hairline);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--color-bg) 80%, transparent);
+  backdrop-filter: blur(6px);
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+}
+
+.thinkingCaption {
+  white-space: nowrap;
+}
+
+/* Descendant selector outranks QueryProgress's own `.progress` spacing rules
+   regardless of bundle order. */
+.thinkingStatus .thinkingSteps {
+  margin: 0;
+  padding: 0;
+  align-items: center;
+  gap: 2px;
+}
+
+/* composerSection is a <PageSection>; padding and the form margin reset come
+   from PageShell.module.css. */
+
+@media (max-width: 720px) {
+  .stage .hero {
+    padding: 1.4rem 1.25rem 0;
+  }
+
+  .figure {
+    width: min(100%, 18rem);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .dialTicks {
+  .star,
+  .starSlow {
     animation: none;
   }
 }

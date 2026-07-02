@@ -11,13 +11,22 @@
   gap: 10px;
 }
 
-/* The composer is borderless everywhere: the textarea + footer sit flush in the
-   parent section, which owns the padding/background. (There is no boxed variant —
-   every page uses the embedded section layout, like the home page.) */
+/* The composer is a gold-hairline rounded box inside the parent section (which
+   still owns the section padding/background). The border brightens to the full
+   accent while the textarea has focus. */
 .composer {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-accent-hairline);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-surface-secondary) 45%, transparent);
+  transition: border-color 0.2s ease;
+}
+
+.composer:focus-within {
+  border-color: var(--color-primary-fill);
 }
 
 .textarea {

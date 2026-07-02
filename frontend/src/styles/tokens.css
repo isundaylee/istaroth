@@ -61,6 +61,10 @@
   --color-primary-tint: #f3ead6;
   --color-on-primary: #231905;
 
+  /* accent-hairline: translucent gold border for accented surfaces (the
+     composer box, the home hero's speech bubble / status pill). */
+  --color-accent-hairline: rgba(154, 115, 32, 0.4);
+
   --color-success: #28a745;
   --color-success-hover: #218838;
   --color-button-disabled: #bdc3c7;
@@ -115,6 +119,8 @@
   --color-primary-text: #e7c987;
   --color-primary-tint: rgba(205, 165, 83, 0.14);
   --color-on-primary: #231905;
+
+  --color-accent-hairline: rgba(205, 165, 83, 0.35);
 
   --color-success: #2ea347;
   --color-success-hover: #25903e;

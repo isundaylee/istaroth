@@ -52,6 +52,12 @@ export const chs = {
       searching: '正在检索',
       generating: '正在生成回答',
       extracting_proper_nouns: '正在提取专有名词'
+    },
+    hero: {
+      figureAlt: '伊斯塔露',
+      greeting: '你好，旅行者！有什么想问的吗？',
+      tryAsking: '不妨问问：',
+      thinking: '伊斯塔露正在思考中'
     }
   },
 
@@ -165,7 +171,8 @@ export const chs = {
   },
 
   footer: {
-    checkpointVersion: '文本数据版本'
+    checkpointVersion: '文本数据版本',
+    tagline: '基于原神游戏文本的智能知识库'
   },
 
   library: {

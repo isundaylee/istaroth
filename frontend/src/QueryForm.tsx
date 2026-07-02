@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import Select from './components/Select'
@@ -12,9 +12,26 @@ import type { QueryRequest, ErrorResponse, ModelsResponse, ExampleQuestionRespon
 import styles from './QueryForm.module.css'
 import queryProgressStyles from './components/QueryProgress.module.css'
 
+// Imperative handle: lets the home hero's bubble submit the form directly.
+export interface QueryFormHandle {
+  submit: () => void
+}
+
 interface QueryFormProps {
   currentQuestion?: string
   onSubmitStart?: () => void
+  // Controlled question text (the home hero's bubble fills it); when omitted
+  // the form keeps its own internal state.
+  question?: string
+  onQuestionChange?: (question: string) => void
+  // Observers for the home hero: it mirrors the form's example question,
+  // loading flag, and in-flight pipeline steps into the figure/status UI.
+  onExampleChange?: (example: string) => void
+  onLoadingChange?: (loading: boolean) => void
+  onActiveStepsChange?: (steps: ProgressStepStart[]) => void
+  // When true the form doesn't render its own <QueryProgress> (the caller
+  // displays the steps elsewhere, e.g. over the hero figure).
+  hideProgress?: boolean
 }
 
 const retrievalPresets = {
@@ -25,11 +42,20 @@ const retrievalPresets = {
 
 type RetrievalPreset = keyof typeof retrievalPresets
 
-function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
+const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm({
+  currentQuestion,
+  onSubmitStart,
+  question: questionProp,
+  onQuestionChange,
+  onExampleChange,
+  onLoadingChange,
+  onActiveStepsChange,
+  hideProgress = false,
+}, ref) {
   const navigate = useAppNavigate()
   const t = useT()
   const { language } = useTranslation()
-  const [question, setQuestion] = useState('')
+  const [internalQuestion, setInternalQuestion] = useState('')
   const [availableModels, setAvailableModels] = useState<string[]>([])
   const [selectedModel, setSelectedModel] = useState('')
   const [retrievalPreset, setRetrievalPreset] = useState<RetrievalPreset>('balanced')
@@ -41,6 +67,12 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
   const [exampleQuestion, setExampleQuestion] = useState<string>('')
   const [exampleLoading, setExampleLoading] = useState(true)
 
+  const question = questionProp ?? internalQuestion
+  const setQuestion = (value: string) => {
+    onQuestionChange?.(value)
+    if (questionProp === undefined) setInternalQuestion(value)
+  }
+
   // Helper function to convert model ID to translation key
   const getModelTranslationKey = (modelId: string) => {
     return modelId.replace(/[./]/g, '_')
@@ -51,6 +83,18 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
     const translationKey = `query.models.${getModelTranslationKey(modelId)}`
     return t(translationKey)
   }
+
+  useEffect(() => {
+    onExampleChange?.(exampleQuestion)
+  }, [exampleQuestion, onExampleChange])
+
+  useEffect(() => {
+    onLoadingChange?.(loading)
+  }, [loading, onLoadingChange])
+
+  useEffect(() => {
+    onActiveStepsChange?.(activeSteps)
+  }, [activeSteps, onActiveStepsChange])
 
   useEffect(() => {
     // Use current question if provided, otherwise fetch example question
@@ -116,6 +160,8 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
     setActiveSteps([])
   }, [currentQuestion])
 
+  useImperativeHandle(ref, () => ({ submit: handleSubmit }))
+
   const handleSubmit = async () => {
     // Use example question if user didn't enter anything
     const questionToSubmit = question.trim() || exampleQuestion
@@ -153,7 +199,7 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
         onStepStart: (step) => setActiveSteps((prev) => [...prev, step]),
         onStepEnd: (id) => setActiveSteps((prev) => prev.filter((step) => step.id !== id)),
         onDone: (result) => {
-          // Don't reset loading here — the dots animation stays visible until the
+          // Don't reset loading here — the thinking state stays visible until the
           // component unmounts (front page) or currentQuestion changes (conversation page).
           setQuestion('')
           navigate(`/conversation/${result.conversation_uuid}`)
@@ -226,13 +272,13 @@ function QueryForm({ currentQuestion, onSubmitStart }: QueryFormProps = {}) {
         }
       />
 
-      {loading && activeSteps.length > 0 && (
+      {!hideProgress && loading && activeSteps.length > 0 && (
         <QueryProgress steps={activeSteps} />
       )}
 
       {error && <ErrorDisplay error={error} />}
     </>
   )
-}
+})
 
 export default QueryForm

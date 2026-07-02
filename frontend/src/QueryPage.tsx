@@ -1,106 +1,151 @@
-import { useT } from './contexts/LanguageContext'
-import QueryForm from './QueryForm'
+import { useEffect, useRef, useState } from 'react'
+import { useT, useTranslation } from './contexts/LanguageContext'
+import QueryForm, { type QueryFormHandle } from './QueryForm'
 import PageShell, { PageSection } from './components/PageShell'
+import IstarothFigure from './components/IstarothFigure'
+import QueryProgress from './components/QueryProgress'
+import type { ProgressStepStart } from './types/api'
 import styles from './QueryPage.module.css'
 
-// The clock dial cradling the Istaroth avatar — the God of Time, and a visual
-// pun on a knowledge base that has every legend "indexed". The avatar PNG is
-// clipped to a circle so only the round portrait shows (not its wordmark tile);
-// the tick ring lives in its own group so it can rotate slowly behind the face.
-const DIAL_TICK_OUTER = 173
+// Fixed star positions for the hero's dark-theme starfield (viewBox 1000×640).
+// Hand-placed to ring the character (center-bottom stays clear) — no runtime
+// randomness, so the sky is stable across renders.
+const SPARKLES: Array<{ x: number; y: number; r: number; slow?: boolean }> = [
+  { x: 76, y: 88, r: 7 },
+  { x: 178, y: 210, r: 5, slow: true },
+  { x: 120, y: 388, r: 8 },
+  { x: 62, y: 540, r: 5, slow: true },
+  { x: 262, y: 500, r: 4 },
+  { x: 310, y: 96, r: 4, slow: true },
+  { x: 235, y: 305, r: 3 },
+  { x: 700, y: 120, r: 5 },
+  { x: 785, y: 300, r: 8, slow: true },
+  { x: 872, y: 90, r: 5 },
+  { x: 930, y: 245, r: 4 },
+  { x: 950, y: 470, r: 7, slow: true },
+  { x: 838, y: 560, r: 5 },
+  { x: 745, y: 460, r: 3, slow: true },
+  { x: 480, y: 60, r: 4 },
+  { x: 590, y: 150, r: 3, slow: true },
+]
 
-function Dial({ label }: { label: string }) {
-  const ticks = Array.from({ length: 60 }, (_, i) => {
-    const cardinal = i % 15 === 0
-    const major = i % 5 === 0
-    return {
-      angle: i * 6,
-      inner: cardinal ? 148 : major ? 155 : 161,
-      width: cardinal ? 2 : 1,
-      opacity: cardinal ? 0.85 : major ? 0.5 : 0.28,
-    }
-  })
+const DOTS: Array<{ x: number; y: number; r: number }> = [
+  { x: 145, y: 140, r: 2 },
+  { x: 45, y: 300, r: 1.6 },
+  { x: 210, y: 430, r: 2.2 },
+  { x: 320, y: 220, r: 1.4 },
+  { x: 170, y: 560, r: 1.6 },
+  { x: 660, y: 70, r: 1.6 },
+  { x: 760, y: 200, r: 2.2 },
+  { x: 905, y: 160, r: 1.4 },
+  { x: 855, y: 400, r: 2 },
+  { x: 700, y: 560, r: 1.8 },
+  { x: 975, y: 350, r: 1.5 },
+  { x: 545, y: 100, r: 1.8 },
+]
 
+// Four-point sparkle (✦): four quadratic curves pinched through the center.
+const sparklePath = ({ x, y, r }: { x: number; y: number; r: number }) =>
+  `M ${x} ${y - r} Q ${x} ${y} ${x + r} ${y} Q ${x} ${y} ${x} ${y + r} Q ${x} ${y} ${x - r} ${y} Q ${x} ${y} ${x} ${y - r} Z`
+
+function StarField() {
   return (
-    <svg className={styles.dial} viewBox="0 0 400 400" role="img" aria-label={label}>
-      <defs>
-        <clipPath id="dial-avatar">
-          <circle cx="200" cy="200" r="102" />
-        </clipPath>
-      </defs>
-
-      <circle cx="200" cy="200" r="181" fill="none" stroke="var(--figure-line)" strokeWidth="1" />
-      <circle cx="200" cy="200" r="117" fill="none" stroke="var(--figure-line)" strokeWidth="1" />
-
-      <g className={styles.dialTicks}>
-        {ticks.map((tick) => (
-          <line
-            key={tick.angle}
-            x1="200"
-            y1={200 - DIAL_TICK_OUTER}
-            x2="200"
-            y2={200 - tick.inner}
-            stroke="var(--figure-gold)"
-            strokeWidth={tick.width}
-            strokeOpacity={tick.opacity}
-            strokeLinecap="round"
-            transform={`rotate(${tick.angle} 200 200)`}
-          />
-        ))}
-      </g>
-
-      <g className={styles.dialNumerals}>
-        <text x="200" y="74" textAnchor="middle">XII</text>
-        <text x="331" y="205" textAnchor="middle">III</text>
-        <text x="200" y="338" textAnchor="middle">VI</text>
-        <text x="69" y="205" textAnchor="middle">IX</text>
-      </g>
-
-      <circle cx="200" cy="200" r="106" fill="var(--figure-ink)" stroke="var(--figure-gold-dim)" strokeWidth="1.5" />
-      <image
-        href="/istaroth-logo.png"
-        x="44"
-        y="65"
-        width="312"
-        height="312"
-        clipPath="url(#dial-avatar)"
-        preserveAspectRatio="xMidYMid slice"
-      />
+    <svg
+      className={styles.starfield}
+      viewBox="0 0 1000 640"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+    >
+      {SPARKLES.map((s) => (
+        <path
+          key={`${s.x}-${s.y}`}
+          d={sparklePath(s)}
+          fill="var(--color-primary-fill)"
+          className={s.slow ? styles.starSlow : styles.star}
+        />
+      ))}
+      {DOTS.map((d) => (
+        <circle
+          key={`${d.x}-${d.y}`}
+          cx={d.x}
+          cy={d.y}
+          r={d.r}
+          fill="var(--color-primary-fill)"
+          className={styles.starSlow}
+        />
+      ))}
     </svg>
   )
 }
 
 function QueryPage() {
   const t = useT()
+  const { language } = useTranslation()
+  const [question, setQuestion] = useState('')
+  const [exampleQuestion, setExampleQuestion] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [activeSteps, setActiveSteps] = useState<ProgressStepStart[]>([])
+  const formRef = useRef<QueryFormHandle>(null)
+
+  useEffect(() => {
+    setExampleQuestion('')
+  }, [language])
 
   return (
     <PageShell flush>
       <div className={styles.stage}>
-        <PageSection className={styles.composerSection}>
-          <QueryForm />
-        </PageSection>
+      <PageSection className={styles.hero}>
+        <StarField />
+        <IstarothFigure
+          pose={loading ? 'think' : 'greet'}
+          label={t('query.hero.figureAlt')}
+          className={styles.figure}
+          bubble={
+            !loading ? (
+              <button
+                type="button"
+                className={styles.bubble}
+                disabled={!exampleQuestion}
+                onClick={() => {
+                  setQuestion(exampleQuestion)
+                  formRef.current?.submit()
+                }}
+              >
+                <span className={styles.bubbleGreeting}>{t('query.hero.greeting')}</span>
+                <span className={styles.bubbleQuestion}>
+                  {exampleQuestion
+                    ? `${t('query.hero.tryAsking')}${exampleQuestion}`
+                    : t('query.exampleLoading')}
+                </span>
+              </button>
+            ) : undefined
+          }
+          status={
+            loading ? (
+              <div className={styles.thinkingStatus}>
+                <span className={styles.thinkingCaption}>
+                  {t('query.hero.thinking')}
+                </span>
+                {activeSteps.length > 0 && (
+                  <QueryProgress steps={activeSteps} className={styles.thinkingSteps} />
+                )}
+              </div>
+            ) : undefined
+          }
+        />
+      </PageSection>
 
-        <div className={styles.heroSection}>
-          <div className={styles.heroText}>
-            <h1 className={styles.introTitle}>{t('query.title')}</h1>
-            <p className={styles.introText}>{t('meta.description')}</p>
-            <a
-              href="https://github.com/isundaylee/istaroth"
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.figureGithub}
-            >
-              <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-              </svg>
-              {t('meta.githubLink')}
-            </a>
-          </div>
-
-          <div className={styles.heroFigure}>
-            <Dial label={t('query.title')} />
-          </div>
-        </div>
+      <PageSection>
+        <QueryForm
+          ref={formRef}
+          question={question}
+          onQuestionChange={setQuestion}
+          onExampleChange={setExampleQuestion}
+          onLoadingChange={setLoading}
+          onActiveStepsChange={setActiveSteps}
+          hideProgress
+        />
+      </PageSection>
       </div>
     </PageShell>
   )
