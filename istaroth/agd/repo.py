@@ -273,7 +273,12 @@ class ReadablesTracker(IdTracker[id_types.ReadableFilename]):
 
 @attrs.frozen
 class DataRepo:
-    """Repository for loading AnimeGameData files."""
+    """Repository for loading AnimeGameData files.
+
+    Method naming convention: ``load_*`` reads a raw AGD file; ``build_*``
+    constructs a derived, cached object (an index/mapping or a ``*Tracker``).
+    Methods returning a tracker are named ``build_*_tracker``.
+    """
 
     agd_path: pathlib.Path = attrs.field(converter=pathlib.Path)
     language: localization.Language
