@@ -1,0 +1,130 @@
+/* Styles owned by <IstarothFigure>: the guide character over the clock ring.
+ * The figure tokens are theme-aware — deep gold on light paper, soft gold on
+ * the dark navy (carried over from the old QueryPage Dial). */
+
+.figure {
+  --figure-gold: #b88f36;
+  --figure-gold-dim: rgba(154, 115, 32, 0.55);
+  --figure-line: rgba(154, 115, 32, 0.28);
+
+  position: relative;
+  width: 100%;
+}
+
+.artwork {
+  position: relative;
+  /* Height cuts the pose artwork before its own bottom edge, so the character
+     bleeds off the bottom of the figure instead of showing a straight cut.
+     Both poses are ~0.88× width tall; 87.5% keeps the greeting pose's
+     downward-pointing fingertip (at ~0.86× width) inside the box. */
+  aspect-ratio: 10 / 8.75;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .figure {
+  --figure-gold: #c9a24a;
+  --figure-gold-dim: rgba(201, 162, 74, 0.55);
+  --figure-line: rgba(201, 162, 74, 0.2);
+}
+
+.ring {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 92%;
+  transform: translate(-50%, -50%);
+}
+
+.ringTicks {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ringspin 240s linear infinite;
+}
+
+/* Thinking: the clock visibly speeds up. */
+.thinking .ringTicks {
+  animation-duration: 36s;
+}
+
+@keyframes ringspin {
+  to { transform: rotate(360deg); }
+}
+
+/* Both poses share the same source framing (same canvas size, matching head
+   scale), so they render at the same width, top-aligned; the think pose only
+   needs a small horizontal recenter for the crossfade to line up. */
+.pose {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 100%;
+  transform: translateX(-50%);
+  transition: opacity 0.5s ease;
+}
+
+.poseThink {
+  transform: translateX(calc(-50% - 2.9%));
+  opacity: 0;
+}
+
+.thinking .poseGreet {
+  opacity: 0;
+}
+
+.thinking .poseThink {
+  opacity: 1;
+}
+
+/* Anchored to the character's right, growing rightward into the hero's empty
+   side; sized to content like the phone layout. */
+.bubble {
+  position: absolute;
+  left: 70%;
+  top: 7%;
+  z-index: 2;
+  width: max-content;
+  /* 18rem is what fits between this anchor and the 800px panel's edge —
+     longer examples wrap instead of clipping at the hero's overflow. */
+  max-width: min(18rem, calc(100vw - 2.5rem));
+}
+
+/* The status pill sizes to its content and may outgrow the figure box (long
+   retrieval steps), capped at the phone hero's inner width. */
+.status {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  transform: translateX(-50%);
+  z-index: 2;
+  width: max-content;
+  max-width: calc(100vw - 2.5rem);
+}
+
+/* Narrow viewports: no room beside the character — the bubble leaves the
+   overlay and sits in flow above the artwork instead of covering it. */
+@media (max-width: 720px) {
+  .figure {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .bubble {
+    position: static;
+    order: -1;
+    align-self: center;
+    /* May outgrow the (narrower) figure box, up to the phone hero's inner
+       width (viewport minus the section's side padding). */
+    width: max-content;
+    max-width: calc(100vw - 2.5rem);
+    margin-bottom: 0.75rem;
+  }}
+
+@media (prefers-reduced-motion: reduce) {
+  .ringTicks {
+    animation: none;
+  }
+
+  .pose {
+    transition: none;
+  }
+}

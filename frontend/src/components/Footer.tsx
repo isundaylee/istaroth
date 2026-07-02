@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation, useT } from '../contexts/LanguageContext'
 import { useFooter } from '../contexts/FooterContext'
+import appLinkStyles from './AppLink.module.css'
 
 function Footer() {
   const { language } = useTranslation()
@@ -18,8 +19,6 @@ function Footer() {
   const rawVersion = checkpointVersions?.[language.toUpperCase()] ?? null
   const versionText = rawVersion ? `${t('footer.checkpointVersion')}: ${rawVersion.replace(/^checkpoint\//, '')}` : null
 
-  if (!versionText && !extraContent) return null
-
   return (
     <footer style={{
       marginTop: '1rem',
@@ -28,8 +27,22 @@ function Footer() {
       color: 'var(--color-text-muted)',
       lineHeight: 1.5
     }}>
-      {extraContent && <div style={{ marginBottom: versionText ? '0.35rem' : 0 }}>{extraContent}</div>}
-      {versionText}
+      {extraContent && <div style={{ marginBottom: '0.35rem' }}>{extraContent}</div>}
+      <div style={{ marginBottom: '0.35rem' }}>
+        {t('query.title')} · {t('footer.tagline')}
+      </div>
+      <div>
+        {versionText}
+        {versionText && ' · '}
+        <a
+          href="https://github.com/isundaylee/istaroth"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={appLinkStyles.plain}
+        >
+          {t('meta.githubLink')}
+        </a>
+      </div>
     </footer>
   )
 }

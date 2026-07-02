@@ -52,6 +52,12 @@ export const eng = {
       searching: 'Searching',
       generating: 'Generating response',
       extracting_proper_nouns: 'Extracting proper nouns'
+    },
+    hero: {
+      figureAlt: 'Istaroth',
+      greeting: 'Hello, Traveler! What would you like to know?',
+      tryAsking: 'Try asking: ',
+      thinking: 'Istaroth is thinking'
     }
   },
 
@@ -165,7 +171,8 @@ export const eng = {
   },
 
   footer: {
-    checkpointVersion: 'Text Data Version'
+    checkpointVersion: 'Text Data Version',
+    tagline: 'A knowledge base built from Genshin Impact texts'
   },
 
   library: {

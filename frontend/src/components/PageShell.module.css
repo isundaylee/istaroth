@@ -57,4 +57,10 @@
   .section {
     padding: 1.25rem 1rem;
   }
+
+  /* The edge-to-edge phone panel dropped its own border, so keep the last
+     section's divider to split the content from the footer below. */
+  .section:last-child {
+    border-bottom: 1px solid var(--color-border);
+  }
 }
