@@ -17,8 +17,8 @@ def get_material_info(
     material_id: id_types.MaterialId, *, data_repo: repo.DataRepo
 ) -> processed_types.MaterialInfo:
     """Get material information for a specific material ID."""
-    text_map = data_repo.load_text_map()
-    material_tracker = data_repo.load_material_excel_config_data()
+    text_map = data_repo.build_text_map_tracker()
+    material_tracker = data_repo.build_material_tracker()
 
     material = material_tracker.get(material_id)
     if material is None:

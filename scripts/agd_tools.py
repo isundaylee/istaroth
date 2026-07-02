@@ -135,9 +135,9 @@ def _process_single_item(
     try:
         issue_tracker = issues.IssueTracker()
         with (
-            data_repo.load_text_map() as text_map_tracker,
+            data_repo.build_text_map_tracker() as text_map_tracker,
             data_repo.build_talk_tracker() as talk_tracker,
-            data_repo.get_readables() as readables_tracker,
+            data_repo.build_readables_tracker() as readables_tracker,
             issue_tracker.apply(),
         ):
             rendered = renderable_type.process(renderable_key, data_repo)
@@ -563,18 +563,16 @@ def generate_all(
     click.echo(f"Summary table written to {summary_table_path}")
 
     # Calculate and print unused text map and talk ID entries count
-    text_map_tracker = data_repo.load_text_map()
-    text_map_tracker._accessed_ids.update(all_tracker_stats.accessed_text_map_ids)
+    text_map_tracker = data_repo.build_text_map_tracker()
+    text_map_tracker.merge_accessed(all_tracker_stats.accessed_text_map_ids)
     click.echo(f"Text map: {text_map_tracker.format_unused_stats()} unused")
 
     talk_tracker = data_repo.build_talk_tracker()
-    talk_tracker._accessed_ids.update(all_tracker_stats.accessed_talk_ids)
+    talk_tracker.merge_accessed(all_tracker_stats.accessed_talk_ids)
     click.echo(f"Talk IDs: {talk_tracker.format_unused_stats()} unused")
 
-    readables_tracker = data_repo.get_readables()
-    readables_tracker._accessed_ids.update(
-        all_tracker_stats.accessed_readable_filenames
-    )
+    readables_tracker = data_repo.build_readables_tracker()
+    readables_tracker.merge_accessed(all_tracker_stats.accessed_readable_filenames)
     click.echo(f"Readables: {readables_tracker.format_unused_stats()} unused")
 
     # Write unused stats to JSON file

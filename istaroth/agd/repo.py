@@ -27,6 +27,7 @@ from istaroth.agd import (
 logger = logging.getLogger(__name__)
 
 _K = TypeVar("_K")
+_V = TypeVar("_V")
 _T = TypeVar("_T")
 # Ordered newest-to-oldest; earlier refs win when multiple fallbacks contain a hash.
 # Sex-pronoun SEXPRO tokens also resolve against these builds (see
@@ -72,6 +73,10 @@ class IdTracker(Generic[_K]):
         """Return set of accessed IDs."""
         return self._accessed_ids.copy()
 
+    def merge_accessed(self, ids: Iterable[_K]) -> None:
+        """Merge accessed IDs collected externally (e.g. in worker processes)."""
+        self._accessed_ids.update(ids)
+
     def get_unused_ids(self) -> set[_K]:
         """Return set of unused IDs."""
         return self._all_ids - self._accessed_ids
@@ -103,30 +108,38 @@ class IdTracker(Generic[_K]):
         self._context_depth -= 1
 
 
-class MaterialTracker(IdTracker[id_types.MaterialId]):
+class DictTracker(IdTracker[_K], Generic[_K, _V]):
+    """Access-tracking wrapper over an id-keyed mapping of items."""
+
+    def __init__(self, items: dict[_K, _V]) -> None:
+        self._items = items
+        super().__init__(set(items))
+
+    def get(self, key: _K) -> _V | None:
+        """Get item by ID and track access."""
+        if (item := self._items.get(key)) is not None:
+            self._track_access(key)
+        return item
+
+    def get_untracked(self, key: _K) -> _V | None:
+        """Get item by ID without recording access."""
+        return self._items.get(key)
+
+    def get_all(self) -> list[_V]:
+        """Get all items without tracking (for discovery purposes)."""
+        return list(self._items.values())
+
+
+class MaterialTracker(
+    DictTracker[id_types.MaterialId, agd_types.MaterialExcelConfigDataItem]
+):
     """Tracks which material IDs have been accessed."""
 
     def __init__(self, material_data: agd_types.MaterialExcelConfigData) -> None:
-        self._material_dict: dict[
-            id_types.MaterialId, agd_types.MaterialExcelConfigDataItem
-        ] = {material["id"]: material for material in material_data}
-        super().__init__(set(self._material_dict.keys()))
-
-    def get(
-        self, material_id: id_types.MaterialId
-    ) -> agd_types.MaterialExcelConfigDataItem | None:
-        """Get material data by ID and track access."""
-        if material_id in self._material_dict:
-            self._track_access(material_id)
-            return self._material_dict[material_id]
-        return None
-
-    def get_all(self) -> agd_types.MaterialExcelConfigData:
-        """Get all material data without tracking (for discovery purposes)."""
-        return list(self._material_dict.values())
+        super().__init__({material["id"]: material for material in material_data})
 
 
-class TalkTracker(IdTracker[id_types.TalkId]):
+class TalkTracker(DictTracker[id_types.TalkId, agd_types.TalkExcelConfigDataItem]):
     """Tracks which talk IDs have been accessed."""
 
     def __init__(
@@ -134,27 +147,12 @@ class TalkTracker(IdTracker[id_types.TalkId]):
         talk_excel_data: agd_types.TalkExcelConfigData,
         talk_file_mapping: dict[id_types.TalkId, str],
     ) -> None:
-        self._talk_dict: dict[id_types.TalkId, agd_types.TalkExcelConfigDataItem] = {
-            talk["id"]: talk for talk in talk_excel_data
-        }
+        super().__init__({talk["id"]: talk for talk in talk_excel_data})
         self._talk_file_mapping = talk_file_mapping
-        super().__init__(set(self._talk_dict.keys()))
-
-    def get(self, talk_id: id_types.TalkId) -> agd_types.TalkExcelConfigDataItem | None:
-        """Get talk configuration data by ID and track access."""
-        if talk_id in self._talk_dict:
-            self._track_access(talk_id)
-            return self._talk_dict[talk_id]
-        return None
-
-    def get_all(self) -> agd_types.TalkExcelConfigData:
-        """Get all talk configuration data without tracking (for discovery purposes)."""
-        return list(self._talk_dict.values())
 
     def get_talk_file_path(self, talk_id: id_types.TalkId) -> str | None:
         """Get the file path for a talk ID and track access."""
-        talk_item = self.get(talk_id)
-        if talk_item is None:
+        if self.get(talk_id) is None:
             return None
 
         # Look up the file path in the pre-built mapping
@@ -176,9 +174,7 @@ class TextMapTracker(IdTracker[id_types.TextMapHash]):
         *,
         pronoun_hashes: dict[str, id_types.TextMapHash],
     ) -> None:
-        self._text_map: dict[id_types.TextMapHash, str] = {
-            int(k): v for k, v in text_map.items()
-        }
+        self._text_map = self._normalize_text_map(text_map)
         self._fallback_text_map = self._normalize_text_map(fallback_text_map or {})
         self._text_maps = (self._text_map, self._fallback_text_map)
         super().__init__(set(self._text_map))
@@ -277,7 +273,12 @@ class ReadablesTracker(IdTracker[id_types.ReadableFilename]):
 
 @attrs.frozen
 class DataRepo:
-    """Repository for loading AnimeGameData files."""
+    """Repository for loading AnimeGameData files.
+
+    Method naming convention: ``load_*`` reads a raw AGD file; ``build_*``
+    constructs a derived, cached object (an index/mapping or a ``*Tracker``).
+    Methods returning a tracker are named ``build_*_tracker``.
+    """
 
     agd_path: pathlib.Path = attrs.field(converter=pathlib.Path)
     language: localization.Language
@@ -325,7 +326,9 @@ class DataRepo:
         return cls(agd_path, language=language)
 
     @functools.lru_cache(maxsize=None)
-    def _load_text_map_for(self, language: localization.Language) -> TextMapTracker:
+    def _build_text_map_tracker_for(
+        self, language: localization.Language
+    ) -> TextMapTracker:
         """Load the TextMap for a specific language, merging Medium variant if present."""
         language_short = self._language_short(language)
         return TextMapTracker(
@@ -420,18 +423,18 @@ class DataRepo:
                 raise
             return None
 
-    def load_text_map(self) -> TextMapTracker:
+    def build_text_map_tracker(self) -> TextMapTracker:
         """Load TextMap for the instance's language, merging Medium variant if present."""
-        return self._load_text_map_for(self.language)
+        return self._build_text_map_tracker_for(self.language)
 
-    def load_source_text_map(self) -> TextMapTracker:
+    def build_source_text_map_tracker(self) -> TextMapTracker:
         """Load the CHS (source) TextMap regardless of the instance's language.
 
         Dev markers like ``$HIDDEN``/``(test)`` only exist in the CHS title text,
         so language-independent checks (e.g. filtering test/hidden quests) must
         consult CHS rather than the output language's text map.
         """
-        return self._load_text_map_for(localization.Language.CHS)
+        return self._build_text_map_tracker_for(localization.Language.CHS)
 
     @functools.lru_cache(maxsize=None)
     def load_npc_excel_config_data(self) -> agd_types.NpcExcelConfigData:
@@ -568,10 +571,7 @@ class DataRepo:
         suit or readable that can't be resolved, surfacing the data gap rather than
         silently dropping the grouping.
         """
-        materials = {
-            material["id"]: material
-            for material in self.load_material_excel_config_data().get_all()
-        }
+        materials = self.build_material_tracker()
         suits = self.load_book_suit_excel_config_data()
         documents = self.load_document_excel_config_data()
         readable_paths = self.build_localization_id_to_readable_path()
@@ -584,7 +584,7 @@ class DataRepo:
             if codex["isDisuse"]:
                 continue
             material_id = codex["materialId"]
-            if (material := materials.get(material_id)) is None:
+            if (material := materials.get_untracked(material_id)) is None:
                 raise ValueError(
                     f"Book codex {codex['id']} references unknown material "
                     f"{material_id}"
@@ -624,7 +624,7 @@ class DataRepo:
         }
 
     @functools.lru_cache(maxsize=None)
-    def load_material_excel_config_data(self) -> MaterialTracker:
+    def build_material_tracker(self) -> MaterialTracker:
         """Load material Excel configuration data as MaterialTracker."""
         return MaterialTracker(self._load_excel("MaterialExcelConfigData.json"))
 
@@ -741,7 +741,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def build_avatar_id_to_name_mapping(self) -> dict[id_types.AvatarId, str]:
         """Avatar id -> localized character name (only avatars whose name resolves)."""
-        text_map = self.load_text_map()
+        text_map = self.build_text_map_tracker()
         return {
             avatar["id"]: name
             for avatar in self.load_avatar_excel_config_data()
@@ -807,8 +807,8 @@ class DataRepo:
         inherit the cached results.
         """
         self.build_talk_group_mapping()
-        self.load_source_text_map()
-        self.load_text_map()
+        self.build_source_text_map_tracker()
+        self.build_text_map_tracker()
 
         # Warm the quest mapping (and, transitively, the load_quest_data cache it
         # populates) so forked workers don't each re-glob and re-parse all quests.
@@ -1074,7 +1074,7 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def get_npc_id_to_name_mapping(self) -> dict[str, str]:
         """Get cached mapping from NPC ID to name."""
-        return self._build_npc_id_to_name(self.load_text_map())
+        return self._build_npc_id_to_name(self.build_text_map_tracker())
 
     @functools.lru_cache(maxsize=None)
     def get_npc_id_to_source_name_mapping(self) -> dict[str, str]:
@@ -1082,7 +1082,7 @@ class DataRepo:
 
         Dev markers like ``$HIDDEN``/``(test)`` only exist in the CHS name text.
         """
-        return self._build_npc_id_to_name(self.load_source_text_map())
+        return self._build_npc_id_to_name(self.build_source_text_map_tracker())
 
     @functools.lru_cache(maxsize=None)
     def get_dialog_id_to_role_name_hash_mapping(
@@ -1128,6 +1128,6 @@ class DataRepo:
         )
 
     @functools.lru_cache(maxsize=None)
-    def get_readables(self) -> ReadablesTracker:
+    def build_readables_tracker(self) -> ReadablesTracker:
         """Get ReadablesTracker for tracking access to readable files."""
         return ReadablesTracker(self.agd_path, self.language_short)

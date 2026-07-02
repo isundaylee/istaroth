@@ -24,7 +24,7 @@ def build_coop_hierarchy(
     flattened: its quest leaves hang directly off the character node so there is
     no redundant lone-chapter level.
     """
-    text_map = data_repo.load_text_map()
+    text_map = data_repo.build_text_map_tracker()
     main_quests = data_repo.load_main_quest_excel_config_data()
     coop_chapters = {
         chapter["id"]: chapter

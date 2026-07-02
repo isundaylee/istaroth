@@ -33,7 +33,7 @@ def _resolve_constellations(
     Strict: every depot that owns constellations must have exactly 6 talents that
     all resolve to a name and description, else raise.
     """
-    text_map = data_repo.load_text_map()
+    text_map = data_repo.build_text_map_tracker()
     talent_map = data_repo.load_avatar_talent_excel_config_data()
 
     talent_ids = [talent_id for talent_id in depot["talents"] if talent_id]
@@ -99,7 +99,7 @@ def get_character_story_info(
     avatar_id: id_types.AvatarId, *, data_repo: repo.DataRepo
 ) -> processed_types.CharacterStoryInfo:
     """Get all character story information for a specific character."""
-    text_map = data_repo.load_text_map()
+    text_map = data_repo.build_text_map_tracker()
     avatar_data = data_repo.load_avatar_excel_config_data()
     fetter_data = data_repo.load_fetter_story_excel_config_data()
 
@@ -198,7 +198,7 @@ def get_voiceline_info(
     avatar_id: id_types.AvatarId, *, data_repo: repo.DataRepo
 ) -> processed_types.VoicelineInfo:
     """Get all voiceline information for a specific character."""
-    text_map = data_repo.load_text_map()
+    text_map = data_repo.build_text_map_tracker()
     avatar_data = data_repo.load_avatar_excel_config_data()
     fetters_data = data_repo.load_fetters_excel_config_data()
 

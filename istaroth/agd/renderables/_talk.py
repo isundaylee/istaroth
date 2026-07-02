@@ -400,7 +400,7 @@ def get_talk_info(
         return processed_types.TalkInfo(text=[])
 
     # Load supporting data
-    text_map = data_repo.load_text_map()
+    text_map = data_repo.build_text_map_tracker()
 
     # Get cached mappings
     npc_id_to_name = data_repo.get_npc_id_to_name_mapping()
@@ -474,7 +474,9 @@ def get_talk_info(
             # (never translated into any language) rather than genuinely missing
             # text; check the source text before flagging it as missing.
             if (
-                chs := data_repo.load_source_text_map().get_optional(content_hash)
+                chs := data_repo.build_source_text_map_tracker().get_optional(
+                    content_hash
+                )
             ) is not None and text_utils.should_skip_text(
                 chs, localization.Language.CHS
             ):

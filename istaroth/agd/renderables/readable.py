@@ -33,7 +33,7 @@ def get_readable_metadata(
     title = (
         None
         if title_hash is None
-        else data_repo.load_text_map().get_optional(title_hash)
+        else data_repo.build_text_map_tracker().get_optional(title_hash)
     )
     if title is None:
         issues.record(issues.IssueType.MISSING_READABLE_TITLE, readable_id)
@@ -53,10 +53,10 @@ def load_readable(
     skip rules) so callers can drop them; raises if the file itself is missing.
     Reading the content marks it accessed in the readables tracker.
     """
-    readables = data_repo.get_readables()
+    readables = data_repo.build_readables_tracker()
     if (content := readables.get_content(pathlib.Path(readable_path).name)) is None:
         raise FileNotFoundError(f"Readable not found: {readable_path}")
-    content = data_repo.load_text_map().clean_text(content)
+    content = data_repo.build_text_map_tracker().clean_text(content)
 
     if text_utils.should_skip_readable_content(content, data_repo.language):
         return None
