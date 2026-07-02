@@ -400,7 +400,7 @@ def get_talk_info(
         return processed_types.TalkInfo(text=[])
 
     # Load supporting data
-    text_map = data_repo.load_text_map()
+    text_map = data_repo.text_map_tracker()
 
     # Get cached mappings
     npc_id_to_name = data_repo.get_npc_id_to_name_mapping()
@@ -474,7 +474,7 @@ def get_talk_info(
             # (never translated into any language) rather than genuinely missing
             # text; check the source text before flagging it as missing.
             if (
-                chs := data_repo.load_source_text_map().get_optional(content_hash)
+                chs := data_repo.source_text_map_tracker().get_optional(content_hash)
             ) is not None and text_utils.should_skip_text(
                 chs, localization.Language.CHS
             ):
@@ -500,7 +500,7 @@ def get_talk_info_by_id(
     talk_id: id_types.TalkId, *, data_repo: repo.DataRepo
 ) -> processed_types.TalkInfo:
     """Retrieve talk information by talk ID."""
-    talk_tracker = data_repo.build_talk_tracker()
+    talk_tracker = data_repo.talk_tracker()
     talk_file_path = talk_tracker.get_talk_file_path(talk_id)
 
     if talk_file_path is None:

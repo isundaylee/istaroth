@@ -33,7 +33,7 @@ def get_chapter_title(
     chapter: agd_types.ChapterExcelConfigDataItem, *, data_repo: repo.DataRepo
 ) -> str:
     """Resolve a chapter's display title (chapter number joined with chapter title)."""
-    text_map = data_repo.load_text_map()
+    text_map = data_repo.text_map_tracker()
     return " ".join(
         p
         for p in [
@@ -51,7 +51,9 @@ def _is_test_or_hidden_title(title_hash: int, *, data_repo: repo.DataRepo) -> bo
     so resolve the title against the CHS text map regardless of the output
     language; otherwise non-CHS corpora leak these quests.
     """
-    if (chs_title := data_repo.load_source_text_map().get_optional(title_hash)) is None:
+    if (
+        chs_title := data_repo.source_text_map_tracker().get_optional(title_hash)
+    ) is None:
         return False
     return text_utils.should_skip_text(chs_title, localization.Language.CHS)
 
@@ -90,7 +92,7 @@ def _resolve_step_description(
     """
     if _is_hidden_step(desc_hash, data_repo=data_repo):
         return None
-    text = data_repo.load_text_map().get_optional(desc_hash)
+    text = data_repo.text_map_tracker().get_optional(desc_hash)
     return text if text and text.strip() else None
 
 
@@ -102,7 +104,7 @@ def _is_hidden_step(desc_hash: int, *, data_repo: repo.DataRepo) -> bool:
     The markers live only in the CHS (source) desc text, like quest titles.
     """
     return (
-        chs := data_repo.load_source_text_map().get_optional(desc_hash)
+        chs := data_repo.source_text_map_tracker().get_optional(desc_hash)
     ) is not None and text_utils.should_skip_text(chs, localization.Language.CHS)
 
 
@@ -156,7 +158,7 @@ def get_quest_info(
     # Convert quest ID to path
     quest_path = data_repo.build_quest_mapping()[quest_id]
     quest_data = data_repo.load_quest_data(quest_path)
-    text_map = data_repo.load_text_map()
+    text_map = data_repo.text_map_tracker()
 
     # Resolve quest title and poetic description from their respective hashes.
     title_hash = quest_data["titleTextMapHash"]

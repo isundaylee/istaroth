@@ -23,8 +23,8 @@ def get_weapon_info(
     catch-all; the unrendered base/placeholder files it leaves behind are dropped
     there by the empty/placeholder content skip.
     """
-    text_map = data_repo.load_text_map()
-    readables = data_repo.get_readables()
+    text_map = data_repo.text_map_tracker()
+    readables = data_repo.readables_tracker()
 
     if (
         weapon := data_repo.load_weapon_excel_config_data().get(int(weapon_id))

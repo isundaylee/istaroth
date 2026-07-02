@@ -104,7 +104,7 @@ def test_talk_collision_dedupes_identical_resolved_text() -> None:
         ]
     }
     data_repo = mock.Mock(spec=repo.DataRepo)
-    data_repo.load_text_map.return_value = repo.TextMapTracker(
+    data_repo.text_map_tracker.return_value = repo.TextMapTracker(
         {"100": "Same", "101": "Same", "200": "Tail", "201": "Tail"},
         localization.Language.ENG,
         pronoun_hashes={},
@@ -140,7 +140,7 @@ def test_talk_collision_prefers_resolved_text_superset() -> None:
         ]
     }
     data_repo = mock.Mock(spec=repo.DataRepo)
-    data_repo.load_text_map.return_value = repo.TextMapTracker(
+    data_repo.text_map_tracker.return_value = repo.TextMapTracker(
         {"100": "Start", "101": "Start", "200": "Only fuller"},
         localization.Language.ENG,
         pronoun_hashes={},

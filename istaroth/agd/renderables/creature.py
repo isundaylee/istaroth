@@ -33,7 +33,7 @@ def _get_creature_info(
 ) -> processed_types.CreatureInfo:
     """Get a living-beings archive entry (monster or wildlife) by its codex id."""
     entry = data_repo.load_animal_codex_excel_config_data()[codex_id]
-    text_map = data_repo.load_text_map()
+    text_map = data_repo.text_map_tracker()
 
     if (description := text_map.get_optional(entry["descTextMapHash"])) is None:
         raise ValueError(f"Missing description for creature codex {codex_id}")
