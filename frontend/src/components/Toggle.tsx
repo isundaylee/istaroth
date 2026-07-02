@@ -13,15 +13,11 @@ interface ToggleProps<T extends string> extends Omit<React.ComponentPropsWithout
   value: T
   onChange: (value: T) => void
   disabled?: boolean
-  // "md" (default): --control-height-md, matching <Select variant="compact">.
-  // "sm": --control-height-sm, matching a size="sm" <Button> in the same row
-  // (e.g. the nav theme toggle).
-  size?: 'md' | 'sm'
 }
 
-function Toggle<T extends string>({ options, value, onChange, disabled = false, size = 'md', className, ...props }: ToggleProps<T>) {
+function Toggle<T extends string>({ options, value, onChange, disabled = false, className, ...props }: ToggleProps<T>) {
   return (
-    <div className={[styles.toggle, size !== 'md' && styles[size], className].filter(Boolean).join(' ')} role="group" {...props}>
+    <div className={[styles.toggle, className].filter(Boolean).join(' ')} role="group" {...props}>
       {options.map((option) => (
         <button
           key={option.value}

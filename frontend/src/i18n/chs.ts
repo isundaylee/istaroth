@@ -116,9 +116,13 @@ export const chs = {
     toggleLight: '切换到浅色模式'
   },
 
+  language: {
+    toggle: '切换为英文'
+  },
+
   navigation: {
     home: '问答',
-    retrieve: '文本检索',
+    retrieve: '搜索',
     library: '图书馆',
     history: '问答历史'
   },
@@ -136,7 +140,7 @@ export const chs = {
     focusSearch: '聚焦搜索框',
     deselect: '取消聚焦输入框',
     goQuery: '前往问答',
-    goRetrieve: '前往文本检索',
+    goRetrieve: '前往搜索',
     goLibrary: '前往图书馆',
     goHistory: '前往问答历史',
     citationFullscreen: '切换引用弹窗全屏',
@@ -147,10 +151,10 @@ export const chs = {
 
   retrieve: {
     placeholder: '输入文本以查找相关文档',
-    submitButton: '检索',
-    submitting: '检索中...',
-    searchMode: '检索方式',
-    semantic: '语义检索',
+    submitButton: '搜索',
+    submitting: '搜索中...',
+    searchMode: '搜索方式',
+    semantic: '语义搜索',
     searchModeBm25: '仅关键词',
     searchModeSemantic: '语义',
     noResults: '未找到相关文档',
@@ -208,15 +212,15 @@ export const chs = {
     hangoutCharacterToc: '本邀约的剧情',
     hangoutSearchPlaceholder: '搜索所有角色的邀约...',
     selection: {
-      keywordSearch: '关键词检索',
+      keywordSearch: '关键词搜索',
       ask: '提问',
-      searching: '检索中...',
+      searching: '搜索中...',
       noResults: '未找到匹配文档',
       score: '分数',
-      openRetrieve: '打开完整检索页',
+      openRetrieve: '打开完整搜索页',
       openConversation: '打开已保存对话',
       errors: {
-        searchFailed: '检索失败',
+        searchFailed: '搜索失败',
         noConnection: '无法连接到服务器'
       }
     }

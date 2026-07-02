@@ -1,28 +1,24 @@
-import { useLocation, useNavigate } from 'react-router-dom'
-import type { Language } from '../i18n'
-import { getLanguageFromUrl, buildUrlWithLanguage } from '../utils/language'
-import Toggle from './Toggle'
+import { useTranslation } from '../contexts/LanguageContext'
+import Button from './Button'
 
-function LanguageSwitcher() {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const language = getLanguageFromUrl(`${window.location.origin}${location.pathname}${location.search}`)
+interface LanguageSwitcherProps {
+  className?: string
+}
 
-  const handleLanguageChange = (lang: Language) => {
-    const newUrl = buildUrlWithLanguage(location.pathname, location.search, lang)
-    navigate(newUrl, { replace: true })
-  }
+// Single compact button labeled with the language it switches TO.
+function LanguageSwitcher({ className }: LanguageSwitcherProps) {
+  const { language, setLanguage, t } = useTranslation()
 
   return (
-    <Toggle
+    <Button
+      onClick={() => setLanguage(language === 'chs' ? 'eng' : 'chs')}
+      variant="ghost"
       size="sm"
-      value={language}
-      onChange={handleLanguageChange}
-      options={[
-        { value: 'chs', label: '中文' },
-        { value: 'eng', label: 'English' },
-      ]}
-    />
+      className={className}
+      title={t.language.toggle}
+    >
+      {language === 'chs' ? 'EN' : '中'}
+    </Button>
   )
 }
 

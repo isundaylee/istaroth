@@ -116,9 +116,13 @@ export const eng = {
     toggleLight: 'Switch to light mode'
   },
 
+  language: {
+    toggle: 'Switch to Chinese'
+  },
+
   navigation: {
     home: 'Q&A',
-    retrieve: 'Text Retrieval',
+    retrieve: 'Search',
     library: 'Library',
     history: 'Q&A History'
   },
@@ -136,7 +140,7 @@ export const eng = {
     focusSearch: 'Focus search box',
     deselect: 'Blur the focused input',
     goQuery: 'Go to Q&A',
-    goRetrieve: 'Go to Text Retrieval',
+    goRetrieve: 'Go to Search',
     goLibrary: 'Go to Library',
     goHistory: 'Go to Q&A History',
     citationFullscreen: 'Toggle fullscreen for the open citation popup',
@@ -213,7 +217,7 @@ export const eng = {
       searching: 'Searching...',
       noResults: 'No matching documents found',
       score: 'Score',
-      openRetrieve: 'Open full retrieval page',
+      openRetrieve: 'Open full search page',
       openConversation: 'Open saved conversation',
       errors: {
         searchFailed: 'Search failed',
