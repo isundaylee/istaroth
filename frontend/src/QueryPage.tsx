@@ -101,24 +101,22 @@ function QueryPage() {
           label={t('query.hero.figureAlt')}
           className={styles.figure}
           bubble={
-            !loading ? (
-              <button
-                type="button"
-                className={styles.bubble}
-                disabled={!exampleQuestion}
-                onClick={() => {
-                  setQuestion(exampleQuestion)
-                  formRef.current?.submit()
-                }}
-              >
-                <span className={styles.bubbleGreeting}>{t('query.hero.greeting')}</span>
-                <span className={styles.bubbleQuestion}>
-                  {exampleQuestion
-                    ? `${t('query.hero.tryAsking')}${exampleQuestion}`
-                    : t('query.exampleLoading')}
-                </span>
-              </button>
-            ) : undefined
+            <button
+              type="button"
+              className={styles.bubble}
+              disabled={loading || !exampleQuestion}
+              onClick={() => {
+                setQuestion(exampleQuestion)
+                formRef.current?.submit()
+              }}
+            >
+              <span className={styles.bubbleGreeting}>{t('query.hero.greeting')}</span>
+              <span className={styles.bubbleQuestion}>
+                {exampleQuestion
+                  ? `${t('query.hero.tryAsking')}${exampleQuestion}`
+                  : t('query.exampleLoading')}
+              </span>
+            </button>
           }
           status={
             loading ? (
