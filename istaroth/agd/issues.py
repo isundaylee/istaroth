@@ -68,15 +68,19 @@ class IssueTracker:
         finally:
             IssueTracker._active = previous
 
+    def record(self, issue_type: IssueType, detail: str) -> None:
+        """Append a gap stamped with this tracker's owning item identity."""
+        self.issues.append(
+            ParsingIssue(
+                issue_type=issue_type,
+                item_type=self._item_type,
+                item_key=self._item_key,
+                detail=detail,
+            )
+        )
+
 
 def record(issue_type: IssueType, detail: str) -> None:
     """Record a non-fatal gap into the active tracker, or no-op if none active."""
     if (active := IssueTracker._active) is not None:
-        active.issues.append(
-            ParsingIssue(
-                issue_type=issue_type,
-                item_type=active._item_type,
-                item_key=active._item_key,
-                detail=detail,
-            )
-        )
+        active.record(issue_type, detail)

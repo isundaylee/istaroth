@@ -25,19 +25,28 @@ _V = TypeVar("_V")
 
 
 class TrackerKind(enum.Enum):
-    """A per-item tracked resource.
+    """A per-item tracked resource; the value is its key in the unused-stats JSON."""
 
-    The two payload strings are the resource's key in the unused-stats JSON and
-    its human-readable label in console output.
-    """
+    TEXT_MAP = "text_map"
+    TALK = "talk_ids"
+    READABLES = "readables"
 
-    TEXT_MAP = ("text_map", "Text map")
-    TALK = ("talk_ids", "Talk IDs")
-    READABLES = ("readables", "Readables")
+    @property
+    def json_key(self) -> str:
+        """The resource's key in the unused-stats JSON."""
+        return self.value
 
-    def __init__(self, json_key: str, label: str) -> None:
-        self.json_key = json_key
-        self.label = label
+    @property
+    def label(self) -> str:
+        """The resource's human-readable label in console output."""
+        return _TRACKER_LABELS[self]
+
+
+_TRACKER_LABELS = {
+    TrackerKind.TEXT_MAP: "Text map",
+    TrackerKind.TALK: "Talk IDs",
+    TrackerKind.READABLES: "Readables",
+}
 
 
 class IdTracker(Generic[_K]):
@@ -136,9 +145,15 @@ class TrackingScope:
             item_type=item_type, item_key=item_key
         )
         self._stack = contextlib.ExitStack()
+        self._entered = False
         self.accessed_ids: dict[TrackerKind, set[Any]] = {}
 
     def __enter__(self) -> "TrackingScope":
+        # Reset-on-entry / snapshot-on-exit is not reentrant: a nested entry would
+        # clear the ids the outer scope already accumulated. Enter each scope once.
+        if self._entered:
+            raise RuntimeError("TrackingScope is not reentrant")
+        self._entered = True
         for tracker in self._trackers.values():
             tracker.reset_accessed()
         self._stack.enter_context(self._issue_tracker.apply())
