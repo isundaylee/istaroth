@@ -7,7 +7,7 @@
    content via flex instead of padding/line-height, so swapping variants at
    the same size never changes height. Variants only control horizontal
    padding, color, border, and font-size. This is what lets a <Button> line
-   up with a <Toggle> or <Select variant="compact"> of the same size. */
+   up with a <Toggle> or <Select> of the same size. */
 
 .button {
   display: inline-flex;

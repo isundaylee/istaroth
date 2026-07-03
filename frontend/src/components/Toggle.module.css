@@ -1,5 +1,5 @@
 /* Styles owned by <Toggle>. Height comes from the shared `--control-height-*`
-   scale (same tokens <Button> and <Select variant="compact"> use), not from
+   scale (same tokens <Button> and <Select> use), not from
    padding/line-height, so a <Toggle> lines up with those regardless of its
    own font-size or border. */
 
