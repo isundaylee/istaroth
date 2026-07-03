@@ -2,6 +2,7 @@ import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import Select from './components/Select'
+import SplitSelect, { type SplitSelectOption } from './components/SplitSelect'
 import Button from './components/Button'
 import Composer from './components/Composer'
 import ErrorDisplay from './components/ErrorDisplay'
@@ -73,16 +74,17 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
     if (questionProp === undefined) setInternalQuestion(value)
   }
 
-  // Helper function to convert model ID to translation key
-  const getModelTranslationKey = (modelId: string) => {
-    return modelId.replace(/[./]/g, '_')
-  }
+  // Model IDs contain `.`/`/` which aren't valid nested-key segments; the i18n
+  // keys replace them with `_`.
+  const getModelTranslationKey = (modelId: string) => modelId.replace(/[./]/g, '_')
 
-  // Helper function to get model display text
-  const getModelText = (modelId: string) => {
-    const translationKey = `query.models.${getModelTranslationKey(modelId)}`
-    return t(translationKey)
-  }
+  // The collapsed control shows only the speed; the open dropdown lists speed
+  // (prominent) + full model name (muted).
+  const modelOptions: SplitSelectOption[] = availableModels.map((modelId) => ({
+    value: modelId,
+    primary: t(`query.models.${getModelTranslationKey(modelId)}.speed`),
+    secondary: t(`query.models.${getModelTranslationKey(modelId)}.name`),
+  }))
 
   useEffect(() => {
     onExampleChange?.(exampleQuestion)
@@ -227,23 +229,14 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
         disabled={loading}
         controls={
           <div className={styles.optionsRow}>
-            <Select
-              variant="compact"
+            <SplitSelect
+              options={modelOptions}
               value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
+              onChange={setSelectedModel}
               disabled={loading || modelsLoading}
-              className={styles.modelSelect}
-            >
-              {modelsLoading ? (
-                <option value="">{t('common.loading')}</option>
-              ) : (
-                availableModels.map(modelId => (
-                  <option key={modelId} value={modelId}>
-                    {getModelText(modelId)}
-                  </option>
-                ))
-              )}
-            </Select>
+              placeholder={t('common.loading')}
+              ariaLabel={t('query.modelSelectLabel')}
+            />
             <Select
               variant="compact"
               value={retrievalPreset}
@@ -251,6 +244,7 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
               disabled={loading}
               aria-label={t('query.retrievalPresetLabel')}
               title={t('query.retrievalPresetLabel')}
+              className={styles.presetSelect}
             >
               <option value="fast">{t('query.retrievalPresets.fast')}</option>
               <option value="balanced">{t('query.retrievalPresets.balanced')}</option>

@@ -1,8 +1,3 @@
-.inputRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
 /* The model/preset select row that QueryForm renders into the Composer footer's
    `controls` slot. QueryForm owns this layout; the selects' compact look comes
    from <Select variant="compact">, not a descendant selector reaching in. */
@@ -15,10 +10,11 @@
   min-width: 0;
 }
 
-/* Wider than the preset select. Higher specificity than the `compact` variant's
-   min-width so it wins regardless of cross-module bundle order. */
-.optionsRow .modelSelect {
-  min-width: min(15rem, 100%);
+/* The budget/preset select hugs its content on all widths — its longest option
+   is short, so the compact 9.5rem floor would only leave empty space after the
+   label. (Higher specificity beats the `compact` variant's min-width.) */
+.optionsRow .presetSelect {
+  min-width: 0;
 }
 
 .buttonTextSizer {
@@ -36,17 +32,16 @@
 }
 
 @media (max-width: 600px) {
-  .inputRow {
-    grid-template-columns: 1fr;
-  }
-
+  /* Keep both selects side by side and sized to their (short) content so they
+     share the row with the submit button, rather than each spanning its own
+     full-width line. They still shrink (min-width: 0) if the row runs out of
+     room on very narrow screens. */
   .optionsRow {
-    display: grid;
-    grid-template-columns: 1fr;
-    width: 100%;
+    flex-wrap: nowrap;
   }
 
   .optionsRow > * {
-    width: 100%;
+    flex: 0 1 auto;
+    min-width: 0;
   }
 }

@@ -31,15 +31,18 @@ export const eng = {
       balanced: 'Balanced',
       thorough: 'Thorough'
     },
+    modelSelectLabel: 'Model speed',
+    // Each model carries a short `speed` label (shown alone in the collapsed
+    // composer) and a full `name` (shown inside the open dropdown).
     models: {
-      'gemini-3_1-flash-lite-preview': 'Ultra Fast (gemini-3.1-flash-lite-preview)',
-      'zai-org_GLM-4_7-Flash': 'Fast (GLM-4.7-Flash)',
-      'deepseek-ai_DeepSeek-V4-Flash': 'Fast (DeepSeek-V4-Flash)',
-      'gemini-3-flash-preview:minimal': 'Fast (gemini-3-flash, minimal thinking)',
-      'gemini-3-flash-preview:high': 'Fast (gemini-3-flash, high thinking)',
-      'gpt-5-nano': 'Fast (gpt-5-nano)',
-      'gpt-5-mini': 'Medium (gpt-5-mini)',
-      'gemini-3_1-pro-preview': 'Slow (gemini-3.1-pro-preview)'
+      'gemini-3_1-flash-lite-preview': { speed: 'Ultra Fast', name: 'gemini-3.1-flash-lite-preview' },
+      'zai-org_GLM-4_7-Flash': { speed: 'Fast', name: 'GLM-4.7-Flash' },
+      'deepseek-ai_DeepSeek-V4-Flash': { speed: 'Fast', name: 'DeepSeek-V4-Flash' },
+      'gemini-3-flash-preview:minimal': { speed: 'Fast', name: 'gemini-3-flash (minimal thinking)' },
+      'gemini-3-flash-preview:high': { speed: 'Fast', name: 'gemini-3-flash (high thinking)' },
+      'gpt-5-nano': { speed: 'Fast', name: 'gpt-5-nano' },
+      'gpt-5-mini': { speed: 'Medium', name: 'gpt-5-mini' },
+      'gemini-3_1-pro-preview': { speed: 'Slow', name: 'gemini-3.1-pro-preview' }
     },
     errors: {
       unknown: 'An unknown error occurred',

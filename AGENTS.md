@@ -126,24 +126,27 @@ See the [Web UI section](README.md#web-ui) in the README for environment setup a
 - Don't launch the stack by default. Only bring it up when the task actually
   needs a running app (e.g. browser/end-to-end verification); for code, type
   checks, and unit tests you don't need it.
-- NEVER run `scripts/dev-compose.sh up` yourself. When the task needs a running
-  app, ALWAYS ask the user to start it (it runs as the `dev-compose` Paseo
-  service, or they can run `scripts/dev-compose.sh up` manually). The script
-  derives a per-worktree compose project name and port from the workspace, so
-  each worktree gets its own isolated stack:
+- You can launch the stack yourself when the task needs a running app. ALWAYS
+  launch it with the helper script in background detach mode
+  (`scripts/dev-compose.sh up --detach`), never in the foreground (a foreground
+  run streams logs and blocks). The script derives a per-worktree compose project
+  name and port from the workspace, so each worktree gets its own isolated stack:
   - `scripts/dev-compose.sh setup` — symlink shared env files (`.env.common`,
     `.env.mcp`, `.env.web`, `tmp`) from the main checkout and write
     `.dev-stack.env` (run once per worktree).
-  - `scripts/dev-compose.sh up` — start the stack in the foreground, streaming
-    logs (add `--detach`/`-d` to run it in the background); `down` to tear it
-    down; `urls` to print the Web UI / metrics / Jaeger URLs for this worktree.
-    The user runs `up`, not you.
+  - `scripts/dev-compose.sh up --detach` — start the stack in the background;
+    `down` to tear it down; `urls` to print the Web UI / metrics / Jaeger URLs
+    for this worktree.
 - Run `scripts/dev-compose.sh urls` to get the Web UI URL for this worktree; the
   script derives its port and companion ports (`+1`/`+2`/`+3`/`+4` for
   metrics/Jaeger) and persists them in `.dev-stack.env`.
 - Confirm with `docker ps` or a quick `curl -I` against the Web UI URL before
   browser testing. Note that another worktree's stack may also be running with a
   different project name, so match the project name to this worktree.
+- When you want the user to check something in the running app, ALWAYS give them
+  the hostname URL from `scripts/dev-compose.sh urls` (e.g.
+  `http://<hostname>:<port>`), NOT a `localhost`/`127.0.0.1` URL — the user views
+  it from a different machine, so a `localhost` URL won't reach this host.
 
 ## MCP Servers
 
@@ -152,11 +155,16 @@ Several MCP servers are wired up for agent sessions; their tools surface as
 use (deferred tools list only by name until then).
 
 - **playwright** — browser automation for verifying the Web UI end-to-end
-  (navigate, screenshot, snapshot, click, etc.). The browser binary may be
-  missing on a fresh host; if a call fails with "Chromium distribution 'chrome'
-  is not found", run `npx playwright install chrome` once, then retry. Pair it
-  with the dev-compose stack: get the URL from `scripts/dev-compose.sh urls` and
-  confirm the app is up (`docker ps` / `curl -I`) before driving the browser.
+  (navigate, screenshot, snapshot, click, etc.). Do NOT default to reaching for
+  it: type checks, unit tests, and reading the code cover most changes. Reserve
+  it for the cases where actually observing the rendered browser output would
+  legitimately help and is effectively required — e.g. debugging a visual/layout
+  issue, or confirming a change that can only be judged by how it looks or
+  behaves in the browser. The browser binary may be missing on a fresh host; if a
+  call fails with "Chromium distribution 'chrome' is not found", run `npx
+  playwright install chrome` once, then retry. Pair it with the dev-compose
+  stack: get the URL from `scripts/dev-compose.sh urls` and confirm the app is up
+  (`docker ps` / `curl -I`) before driving the browser.
 - **claude.ai Istaroth** — the deployed Istaroth RAG tools (`retrieve`,
   `retrieve_bm25`, `list_categories`, `get_file_content`, etc.) for querying the
   production corpus directly.

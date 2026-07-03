@@ -107,12 +107,6 @@
   font-size: var(--font-sm);
 }
 
-@media (max-width: 600px) {
-  .submit {
-    width: 100%;
-  }
-}
-
 /* Compact size modifier: shrinks the control to `--control-height-sm` and
    tightens horizontal padding. Composed on top of any variant (except
    `icon`, which ignores `size` — see above). */

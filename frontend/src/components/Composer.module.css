@@ -57,9 +57,11 @@
  * into the caller's slot content. */
 
 @media (max-width: 600px) {
-  /* Stack the footer controls full-width below the textarea on phones. */
+  /* Keep the controls and submit button on one row on phones (both callers use
+     controls narrow enough to share it), wrapping to a second line only if too
+     wide. */
   .footer {
-    align-items: stretch;
-    flex-direction: column;
+    align-items: center;
+    flex-wrap: wrap;
   }
 }
