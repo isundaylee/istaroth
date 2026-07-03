@@ -31,15 +31,18 @@ export const chs = {
       balanced: '均衡',
       thorough: '深入'
     },
+    modelSelectLabel: '模型速度',
+    // Each model carries a short `speed` label (shown alone in the collapsed
+    // composer) and a full `name` (shown inside the open dropdown).
     models: {
-      'gemini-3_1-flash-lite-preview': '超快速 (gemini-3.1-flash-lite-preview)',
-      'zai-org_GLM-4_7-Flash': '快速 (GLM-4.7-Flash)',
-      'deepseek-ai_DeepSeek-V4-Flash': '快速 (DeepSeek-V4-Flash)',
-      'gemini-3-flash-preview:minimal': '快速 (gemini-3-flash, 极简思考)',
-      'gemini-3-flash-preview:high': '快速 (gemini-3-flash, 深度思考)',
-      'gpt-5-nano': '快速 (gpt-5-nano)',
-      'gpt-5-mini': '中速 (gpt-5-mini)',
-      'gemini-3_1-pro-preview': '慢速 (gemini-3.1-pro-preview)'
+      'gemini-3_1-flash-lite-preview': { speed: '超快速', name: 'gemini-3.1-flash-lite-preview' },
+      'zai-org_GLM-4_7-Flash': { speed: '快速', name: 'GLM-4.7-Flash' },
+      'deepseek-ai_DeepSeek-V4-Flash': { speed: '快速', name: 'DeepSeek-V4-Flash' },
+      'gemini-3-flash-preview:minimal': { speed: '快速', name: 'gemini-3-flash (极简思考)' },
+      'gemini-3-flash-preview:high': { speed: '快速', name: 'gemini-3-flash (深度思考)' },
+      'gpt-5-nano': { speed: '快速', name: 'gpt-5-nano' },
+      'gpt-5-mini': { speed: '中速', name: 'gpt-5-mini' },
+      'gemini-3_1-pro-preview': { speed: '慢速', name: 'gemini-3.1-pro-preview' }
     },
     errors: {
       unknown: '发生了未知错误',
