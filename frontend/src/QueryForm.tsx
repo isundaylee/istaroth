@@ -1,8 +1,7 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import { useAppNavigate } from './hooks/useAppNavigate'
-import Select from './components/Select'
-import SplitSelect, { type SplitSelectOption } from './components/SplitSelect'
+import Select, { type SelectOption } from './components/Select'
 import Button from './components/Button'
 import Composer from './components/Composer'
 import ErrorDisplay from './components/ErrorDisplay'
@@ -79,11 +78,11 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
   const getModelTranslationKey = (modelId: string) => modelId.replace(/[./]/g, '_')
 
   // The collapsed control shows only the speed; the open dropdown lists speed
-  // (prominent) + full model name (muted).
-  const modelOptions: SplitSelectOption[] = availableModels.map((modelId) => ({
+  // (label) + full model name (muted detail).
+  const modelOptions: SelectOption[] = availableModels.map((modelId) => ({
     value: modelId,
-    primary: t(`query.models.${getModelTranslationKey(modelId)}.speed`),
-    secondary: t(`query.models.${getModelTranslationKey(modelId)}.name`),
+    label: t(`query.models.${getModelTranslationKey(modelId)}.speed`),
+    detail: t(`query.models.${getModelTranslationKey(modelId)}.name`),
   }))
 
   useEffect(() => {
@@ -229,7 +228,7 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
         disabled={loading}
         controls={
           <div className={styles.optionsRow}>
-            <SplitSelect
+            <Select
               options={modelOptions}
               value={selectedModel}
               onChange={setSelectedModel}
@@ -238,18 +237,16 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
               ariaLabel={t('query.modelSelectLabel')}
             />
             <Select
-              variant="compact"
+              options={[
+                { value: 'fast', label: t('query.retrievalPresets.fast') },
+                { value: 'balanced', label: t('query.retrievalPresets.balanced') },
+                { value: 'thorough', label: t('query.retrievalPresets.thorough') },
+              ]}
               value={retrievalPreset}
-              onChange={(e) => setRetrievalPreset(e.target.value as RetrievalPreset)}
+              onChange={(v) => setRetrievalPreset(v as RetrievalPreset)}
               disabled={loading}
-              aria-label={t('query.retrievalPresetLabel')}
-              title={t('query.retrievalPresetLabel')}
-              className={styles.presetSelect}
-            >
-              <option value="fast">{t('query.retrievalPresets.fast')}</option>
-              <option value="balanced">{t('query.retrievalPresets.balanced')}</option>
-              <option value="thorough">{t('query.retrievalPresets.thorough')}</option>
-            </Select>
+              ariaLabel={t('query.retrievalPresetLabel')}
+            />
           </div>
         }
         actions={

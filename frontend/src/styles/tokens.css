@@ -21,8 +21,8 @@
   --font-base: 1rem;
   --font-lg: 1.2rem;
 
-  /* Shared control height scale: <Button>, <Toggle>, and <Select variant="compact">
-     all size their height off these, not their own padding/line-height, so any
+  /* Shared control height scale: <Button>, <Toggle>, and <Select> all size their
+     height off these, not their own padding/line-height, so any
      mix of them in the same row (Composer footer, nav) lines up exactly. */
   --control-height-md: 2.25rem;
   --control-height-sm: 1.5rem;

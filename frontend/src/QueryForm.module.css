@@ -1,19 +1,12 @@
 /* The model/preset select row that QueryForm renders into the Composer footer's
-   `controls` slot. QueryForm owns this layout; the selects' compact look comes
-   from <Select variant="compact">, not a descendant selector reaching in. */
+   `controls` slot. QueryForm owns this layout; each <Select> hugs its own content
+   (it sizes to the collapsed label), so the row stays compact. */
 .optionsRow {
   display: flex;
   flex: 1 1 auto;
   flex-wrap: wrap;
   gap: 0.5rem;
   width: auto;
-  min-width: 0;
-}
-
-/* The budget/preset select hugs its content on all widths — its longest option
-   is short, so the compact 9.5rem floor would only leave empty space after the
-   label. (Higher specificity beats the `compact` variant's min-width.) */
-.optionsRow .presetSelect {
   min-width: 0;
 }
 
