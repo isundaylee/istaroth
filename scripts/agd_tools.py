@@ -585,7 +585,9 @@ def render_readable(readable_path: str) -> None:
             content = f.read()
 
         # Render the content
-        rendered = readable.render_readable(content, metadata)
+        rendered = readable.render_readable_like(
+            content, metadata, category=text_types.TextCategory.AGD_READABLE
+        )
 
         # Output only the content
         click.echo(rendered.content)

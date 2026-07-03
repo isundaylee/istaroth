@@ -13,6 +13,7 @@ from istaroth.agd.renderables import (
     readable,
     weapon,
 )
+from istaroth.text import types as text_types
 
 
 def test_render_readable_basic() -> None:
@@ -22,7 +23,9 @@ def test_render_readable_basic() -> None:
         localization_id=0, title="Test Book Title"
     )
 
-    rendered = readable.render_readable(content, metadata)
+    rendered = readable.render_readable_like(
+        content, metadata, category=text_types.TextCategory.AGD_READABLE
+    )
 
     assert rendered.text_metadata.relative_path == "agd_readable/0_Test_Book_Title.txt"
     assert (
@@ -39,7 +42,9 @@ def test_render_readable_special_characters() -> None:
         localization_id=0, title="神霄折戟录·第六卷"
     )
 
-    rendered = readable.render_readable(content, metadata)
+    rendered = readable.render_readable_like(
+        content, metadata, category=text_types.TextCategory.AGD_READABLE
+    )
 
     assert rendered.text_metadata.relative_path == "agd_readable/0_神霄折戟录第六卷.txt"
     assert rendered.content == "# 神霄折戟录·第六卷\n\nContent here."
@@ -53,7 +58,9 @@ def test_render_readable_whitespace() -> None:
         localization_id=0, title="  Title   With   Spaces  "
     )
 
-    rendered = readable.render_readable(content, metadata)
+    rendered = readable.render_readable_like(
+        content, metadata, category=text_types.TextCategory.AGD_READABLE
+    )
 
     assert (
         rendered.text_metadata.relative_path == "agd_readable/0_Title_With_Spaces.txt"

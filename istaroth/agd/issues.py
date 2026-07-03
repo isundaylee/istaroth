@@ -21,17 +21,21 @@ import attrs
 
 
 class IssueType(enum.Enum):
-    """Category of a non-fatal parsing gap."""
+    """Category of a non-fatal parsing gap.
 
-    MISSING_TALK = "missing_talk"
-    MISSING_DIALOG = "missing_dialog"
-    MISSING_TEXT = "missing_text"
-    UNKNOWN_ROLE = "unknown_role"
-    MISSING_QUEST_TITLE = "missing_quest_title"
-    MISSING_STORY_CONTENT = "missing_story_content"
-    MISSING_MATERIAL_NAME = "missing_material_name"
-    MISSING_MATERIAL_DESC = "missing_material_desc"
-    MISSING_READABLE_TITLE = "missing_readable_title"
+    Reported by member name (``.name``); the values only need to be distinct, so
+    ``auto()`` is used rather than hand-written strings.
+    """
+
+    MISSING_TALK = enum.auto()
+    MISSING_DIALOG = enum.auto()
+    MISSING_TEXT = enum.auto()
+    UNKNOWN_ROLE = enum.auto()
+    MISSING_QUEST_TITLE = enum.auto()
+    MISSING_STORY_CONTENT = enum.auto()
+    MISSING_MATERIAL_NAME = enum.auto()
+    MISSING_MATERIAL_DESC = enum.auto()
+    MISSING_READABLE_TITLE = enum.auto()
 
 
 @attrs.define
