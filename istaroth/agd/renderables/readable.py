@@ -68,58 +68,22 @@ def load_readable(
     return content, metadata
 
 
-def render_readable(
-    content: str, metadata: processed_types.ReadableMetadata
+def render_readable_like(
+    content: str,
+    metadata: processed_types.ReadableMetadata,
+    *,
+    category: text_types.TextCategory,
 ) -> processed_types.RenderedItem:
-    """Render readable content into RAG-suitable format."""
+    """Render readable-style content (readable/wings/costume) into RAG-suitable format."""
     safe_title = utils.make_safe_filename_part(metadata.title)
     filename = f"{metadata.localization_id}_{safe_title}.txt"
-    rendered_content = f"# {metadata.title}\n\n{content}"
 
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
-            category=text_types.TextCategory.AGD_READABLE,
+            category=category,
             title=metadata.title,
             id=metadata.localization_id,
-            relative_path=f"{text_types.TextCategory.AGD_READABLE.value}/{filename}",
+            relative_path=f"{category.value}/{filename}",
         ),
-        content=rendered_content,
-    )
-
-
-def render_wings(
-    content: str, metadata: processed_types.ReadableMetadata
-) -> processed_types.RenderedItem:
-    """Render wings readable content into RAG-suitable format."""
-    safe_title = utils.make_safe_filename_part(metadata.title)
-    filename = f"{metadata.localization_id}_{safe_title}.txt"
-    rendered_content = f"# {metadata.title}\n\n{content}"
-
-    return processed_types.RenderedItem(
-        text_metadata=text_types.TextMetadata(
-            category=text_types.TextCategory.AGD_WINGS,
-            title=metadata.title,
-            id=metadata.localization_id,
-            relative_path=f"{text_types.TextCategory.AGD_WINGS.value}/{filename}",
-        ),
-        content=rendered_content,
-    )
-
-
-def render_costume(
-    content: str, metadata: processed_types.ReadableMetadata
-) -> processed_types.RenderedItem:
-    """Render costume readable content into RAG-suitable format."""
-    safe_title = utils.make_safe_filename_part(metadata.title)
-    filename = f"{metadata.localization_id}_{safe_title}.txt"
-    rendered_content = f"# {metadata.title}\n\n{content}"
-
-    return processed_types.RenderedItem(
-        text_metadata=text_types.TextMetadata(
-            category=text_types.TextCategory.AGD_COSTUME,
-            title=metadata.title,
-            id=metadata.localization_id,
-            relative_path=f"{text_types.TextCategory.AGD_COSTUME.value}/{filename}",
-        ),
-        content=rendered_content,
+        content=f"# {metadata.title}\n\n{content}",
     )

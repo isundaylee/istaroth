@@ -399,53 +399,46 @@ class DataRepo:
         )
 
     @functools.lru_cache(maxsize=None)
+    def _build_readable_localization_maps(
+        self,
+    ) -> tuple[
+        dict[str, id_types.LocalizationId],
+        dict[id_types.LocalizationId, id_types.ReadableFilename],
+    ]:
+        """Build both readable<->localization lookup maps in a single scan.
+
+        Inverts the per-readable linear scan over LocalizationExcelConfigData into a
+        single pass so readable-metadata lookups (stem -> id) and story-document
+        assembly (id -> filename) both become O(1). First match wins for each key,
+        matching the original break-on-first-match behavior.
+        """
+        language_short = self.language_short
+        stem_to_id: dict[str, id_types.LocalizationId] = {}
+        id_to_filename: dict[id_types.LocalizationId, id_types.ReadableFilename] = {}
+        for entry in self.load_localization_excel_config_data():
+            for path_value in entry.values():
+                if not isinstance(path_value, str):
+                    continue
+                path = pathlib.Path(path_value)
+                if (
+                    path_value.endswith(f"_{language_short}")
+                    or language_short in path.parts
+                ):
+                    stem_to_id.setdefault(path.name, entry["id"])
+                    id_to_filename.setdefault(entry["id"], f"{path.name}.txt")
+        return stem_to_id, id_to_filename
+
     def build_readable_stem_to_localization_id(
         self,
     ) -> dict[str, id_types.LocalizationId]:
-        """Map a readable file stem to its localization id for the instance language.
+        """Map a readable file stem to its localization id for the instance language."""
+        return self._build_readable_localization_maps()[0]
 
-        Inverts the per-readable linear scan over LocalizationExcelConfigData into a
-        single pass so readable-metadata lookups become O(1). First entry wins, which
-        matches the original break-on-first-match behavior.
-        """
-        language_short = self.language_short
-        mapping: dict[str, id_types.LocalizationId] = {}
-        for entry in self.load_localization_excel_config_data():
-            for path_value in entry.values():
-                if not isinstance(path_value, str):
-                    continue
-                path = pathlib.Path(path_value)
-                if (
-                    path_value.endswith(f"_{language_short}")
-                    or language_short in path.parts
-                ):
-                    mapping.setdefault(path.name, entry["id"])
-        return mapping
-
-    @functools.lru_cache(maxsize=None)
     def build_localization_id_to_readable_path(
         self,
     ) -> dict[id_types.LocalizationId, id_types.ReadableFilename]:
-        """Map a localization id to its readable filename for the instance language.
-
-        The inverse of ``build_readable_stem_to_localization_id``, precomputed once
-        so story-document assembly (e.g. weapons) resolves each page id in O(1)
-        instead of rescanning LocalizationExcelConfigData per item. First language
-        path wins, matching the original break-on-first-match behavior.
-        """
-        language_short = self.language_short
-        mapping: dict[id_types.LocalizationId, id_types.ReadableFilename] = {}
-        for entry in self.load_localization_excel_config_data():
-            for path_value in entry.values():
-                if not isinstance(path_value, str):
-                    continue
-                path = pathlib.Path(path_value)
-                if (
-                    path_value.endswith(f"_{language_short}")
-                    or language_short in path.parts
-                ):
-                    mapping.setdefault(entry["id"], f"{path.name}.txt")
-        return mapping
+        """Map a localization id to its readable filename for the instance language."""
+        return self._build_readable_localization_maps()[1]
 
     @functools.lru_cache(maxsize=None)
     def build_localization_id_to_title_hash(
@@ -624,6 +617,7 @@ class DataRepo:
         """Load CoopChapterExcelConfigData.json (cleartext)."""
         return self._load_excel("CoopChapterExcelConfigData.json")
 
+    @functools.lru_cache(maxsize=None)
     def build_coop_story_mapping(self) -> dict[id_types.CoopStoryId, list[str]]:
         """coopStoryId -> its Coop talk file paths, sorted by local talk id."""
         return self._get_talk_parser().coop_story_to_paths
@@ -747,8 +741,7 @@ class DataRepo:
 
         # Warm the readable-metadata lookup maps so forked workers don't each
         # re-scan the localization/document Excel configs once per readable.
-        self.build_readable_stem_to_localization_id()
-        self.build_localization_id_to_readable_path()
+        self._build_readable_localization_maps()
         self.build_localization_id_to_title_hash()
 
         # Warm the book-series grouping so forked book workers inherit it instead
