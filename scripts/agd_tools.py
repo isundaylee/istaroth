@@ -31,6 +31,7 @@ from istaroth.agd import (
     quest_hierarchy,
     renderable_types,
     repo,
+    tracking,
 )
 from istaroth.agd.renderables import (
     _talk,
@@ -65,7 +66,7 @@ class _RenderableResult:
     renderable_key: str
     rendered_item: processed_types.RenderedItem | None
     error_message: str | None
-    tracker_stats: processed_types.TrackerStats
+    tracker_stats: tracking.TrackerStats
     parsing_issues: list[issues.ParsingIssue]
 
 
@@ -132,34 +133,16 @@ def _process_single_item(
     renderable_key, renderable_type, strict = args
     data_repo = _get_data_repo_from_env()
     try:
-        issue_tracker = issues.IssueTracker()
-        with (
-            data_repo.build_text_map_tracker() as text_map_tracker,
-            data_repo.build_talk_tracker() as talk_tracker,
-            data_repo.build_readables_tracker() as readables_tracker,
-            issue_tracker.apply(),
-        ):
+        with data_repo.tracking_scope(
+            item_type=type(renderable_type).__name__, item_key=str(renderable_key)
+        ) as scope:
             rendered = renderable_type.process(renderable_key, data_repo)
-            accessed_text_ids = text_map_tracker.get_accessed_ids()
-            accessed_talk_ids = talk_tracker.get_accessed_ids()
-            accessed_readable_filenames = readables_tracker.get_accessed_ids()
-            recorded_issues = issue_tracker.issues
         return _RenderableResult(
             renderable_key,
             rendered,
             None,
-            processed_types.TrackerStats(
-                accessed_text_ids, accessed_talk_ids, accessed_readable_filenames
-            ),
-            [
-                issues.ParsingIssue(
-                    issue_type=issue_type,
-                    item_type=type(renderable_type).__name__,
-                    item_key=str(renderable_key),
-                    detail=detail,
-                )
-                for issue_type, detail in recorded_issues
-            ],
+            tracking.TrackerStats(scope.accessed_ids),
+            scope.issues,
         )
     except Exception as e:
         if strict:
@@ -168,7 +151,7 @@ def _process_single_item(
             renderable_key,
             None,
             repr(e),
-            processed_types.TrackerStats(set(), set(), set()),
+            tracking.TrackerStats.empty(),
             [],
         )
 
@@ -184,14 +167,10 @@ def _generate_content(
     strict: bool = False,
     manifest_list: list[text_types.TextMetadata],
     parsing_issues: list[issues.ParsingIssue],
-) -> tuple[_GenerationStats, processed_types.TrackerStats]:
+) -> tuple[_GenerationStats, tracking.TrackerStats]:
     """Generate content files using renderable type."""
     stats = _GenerationStats(success=0, error=0, skipped=0, issues=0)
-    tracker_stats = processed_types.TrackerStats(
-        accessed_text_map_ids=set(),
-        accessed_talk_ids=set(),
-        accessed_readable_filenames=set(),
-    )
+    tracker_stats = tracking.TrackerStats.empty()
 
     # Discover renderable keys for this type
     renderable_keys = renderable_type.discover(data_repo)
@@ -381,7 +360,7 @@ def generate_all(
     click.echo(f"Metadata written to {metadata_path}")
 
     total_stats = _GenerationStats(success=0, error=0, skipped=0, issues=0)
-    all_tracker_stats = processed_types.TrackerStats(set(), set(), set())
+    all_tracker_stats = tracking.TrackerStats.empty()
 
     # Collect stats for summary table
     summary_stats = []
@@ -481,23 +460,15 @@ def generate_all(
         f.write(summary_table)
     click.echo(f"Summary table written to {summary_table_path}")
 
-    # Calculate and print unused text map and talk ID entries count
-    text_map_tracker = data_repo.build_text_map_tracker()
-    text_map_tracker.merge_accessed(all_tracker_stats.accessed_text_map_ids)
-    click.echo(f"Text map: {text_map_tracker.format_unused_stats()} unused")
-
-    talk_tracker = data_repo.build_talk_tracker()
-    talk_tracker.merge_accessed(all_tracker_stats.accessed_talk_ids)
-    click.echo(f"Talk IDs: {talk_tracker.format_unused_stats()} unused")
-
-    readables_tracker = data_repo.build_readables_tracker()
-    readables_tracker.merge_accessed(all_tracker_stats.accessed_readable_filenames)
-    click.echo(f"Readables: {readables_tracker.format_unused_stats()} unused")
+    # Merge this run's accessed ids into each tracked resource, then report the
+    # unused counts. Keyed by tracker kind so adding a resource needs no changes here.
+    scope_trackers = data_repo.build_scope_trackers()
+    for kind, tracker in scope_trackers.items():
+        tracker.merge_accessed(all_tracker_stats.accessed[kind])
+        click.echo(f"{kind.label}: {tracker.format_unused_stats()} unused")
 
     # Write unused stats to JSON file
-    unused_stats_data = all_tracker_stats.to_dict(
-        text_map_tracker, talk_tracker, readables_tracker
-    )
+    unused_stats_data = all_tracker_stats.to_dict(scope_trackers)
     unused_stats_path = stats_dir / "unused_stats.json"
     with unused_stats_path.open("w", encoding="utf-8") as f:
         json.dump(unused_stats_data, f, indent=2, ensure_ascii=False)

@@ -6,10 +6,11 @@ non-fatal data gaps handled inline by emitting a placeholder (e.g. a
 which appends to the currently-active ``IssueTracker`` so the gaps can be
 aggregated and reported instead of being buried in the output.
 
-A caller collects per scope by creating a fresh ``IssueTracker`` and entering its
-``apply`` context, which installs it as the active tracker for the duration.
-``record`` outside any active context is a no-op, so ad hoc callers (CLI render,
-web backend) record nothing.
+A caller collects per scope by creating a fresh ``IssueTracker`` (stamped with the
+owning item's identity) and entering its ``apply`` context, which installs it as
+the active tracker for the duration. ``record`` builds a fully-stamped
+``ParsingIssue`` from that identity; outside any active context it is a no-op, so
+ad hoc callers (CLI render, web backend) record nothing.
 """
 
 import contextlib
@@ -44,12 +45,18 @@ class ParsingIssue:
 
 
 class IssueTracker:
-    """Accumulator of non-fatal parsing gaps for a single scope."""
+    """Accumulator of non-fatal parsing gaps for a single item's scope.
+
+    Stamped with the owning item's ``item_type``/``item_key`` so ``record`` can
+    produce fully-formed :class:`ParsingIssue`s without the caller re-stamping.
+    """
 
     _active: ClassVar["IssueTracker | None"] = None
 
-    def __init__(self) -> None:
-        self.issues: list[tuple[IssueType, str]] = []
+    def __init__(self, *, item_type: str, item_key: str) -> None:
+        self._item_type = item_type
+        self._item_key = item_key
+        self.issues: list[ParsingIssue] = []
 
     @contextlib.contextmanager
     def apply(self) -> Iterator["IssueTracker"]:
@@ -64,5 +71,12 @@ class IssueTracker:
 
 def record(issue_type: IssueType, detail: str) -> None:
     """Record a non-fatal gap into the active tracker, or no-op if none active."""
-    if IssueTracker._active is not None:
-        IssueTracker._active.issues.append((issue_type, detail))
+    if (active := IssueTracker._active) is not None:
+        active.issues.append(
+            ParsingIssue(
+                issue_type=issue_type,
+                item_type=active._item_type,
+                item_key=active._item_key,
+                detail=detail,
+            )
+        )

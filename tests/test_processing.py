@@ -157,7 +157,7 @@ def test_talk_untranslated_chs_test_placeholder_is_skipped_not_missing() -> None
     data_repo.get_npc_id_to_name_mapping.return_value = {}
     data_repo.get_dialog_id_to_role_name_hash_mapping.return_value = {}
 
-    tracker = issues.IssueTracker()
+    tracker = issues.IssueTracker(item_type="Talks", item_key="1")
     with tracker.apply():
         talk_info = _talk.get_talk_info(
             "BinOutput/Talk/Quest/1.json", data_repo=data_repo
