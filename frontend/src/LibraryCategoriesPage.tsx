@@ -1,32 +1,29 @@
 import React from 'react'
-import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
+import { useRouteLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import { useT } from './contexts/LanguageContext'
 import Card from './components/Card'
-import PageShell from './components/PageShell'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import type { LibraryCategoriesResponse } from './types/api'
 
-interface LoaderData {
-  categories: string[]
-}
-
-export async function libraryCategoriesPageLoader({ request }: LoaderFunctionArgs): Promise<LoaderData> {
+export async function libraryCategoriesPageLoader({ request }: LoaderFunctionArgs): Promise<LibraryCategoriesResponse> {
   const language = getLanguageFromUrl(request.url)
 
   const res = await fetch(`/api/library/categories?language=${language}`)
   if (!res.ok) {
     throw new Response(translate(language, 'library.errors.loadFailed'), { status: res.status })
   }
-  const data = (await res.json()) as LibraryCategoriesResponse
-  return { categories: data.categories }
+  return (await res.json()) as LibraryCategoriesResponse
 }
 
+// The Folio content at the bare /library entry. A placeholder catalogue until
+// the front desk (continue reading / featured) replaces it; the categories also
+// live in the layout rail, so this is intentionally simple for now.
 function LibraryCategoriesPage() {
   const t = useT()
   const navigate = useAppNavigate()
-  const { categories } = useLoaderData() as LoaderData
+  const { categories } = useRouteLoaderData('library-root') as LibraryCategoriesResponse
 
   const translateCategory = (category: string): string => {
     const translationKey = `library.categories.${category}`
@@ -35,15 +32,14 @@ function LibraryCategoriesPage() {
   }
 
   return (
-    <PageShell>
-      <div
-        className="category-grid"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-              gap: '1rem'
-            }}
-          >
+    <div
+      className="category-grid"
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+        gap: '1rem'
+      }}
+    >
             {categories.map((category) => (
               <div
                 key={category}
@@ -76,9 +72,8 @@ function LibraryCategoriesPage() {
                   </p>
                 </Card>
               </div>
-            ))}
-      </div>
-    </PageShell>
+      ))}
+    </div>
   )
 }
 

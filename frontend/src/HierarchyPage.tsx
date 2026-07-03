@@ -92,9 +92,9 @@ function HierarchyPage() {
         </Card>
       ) : (
         <CardGrid>
-          {searchResults.map((entry) => (
+          {searchResults.map((entry, index) => (
             <NavCard
-              key={entry.fileId}
+              key={`${entry.fileId}#${index}`}
               label={entry.title || t('library.noFileName')}
               sublabel={entry.context || undefined}
               onClick={() => openLeaf(entry.fileId)}
@@ -111,9 +111,9 @@ function HierarchyPage() {
   } else {
     content = (
       <CardGrid>
-        {children.map((node) => (
+        {children.map((node, index) => (
           <NavCard
-            key={node.key}
+            key={`${node.key}#${index}`}
             label={nodeLabel(node) || t('library.noFileName')}
             count={node.children != null ? countLeaves(node) : undefined}
             onClick={() => openChild(node)}

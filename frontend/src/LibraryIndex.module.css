@@ -1,0 +1,140 @@
+/* The hierarchical navigator inside the layout rail: category header, filter,
+ * and the expandable tree. The current-position marker is an inset box-shadow
+ * (not a border) so the gold ribbon never fights the button reset. */
+
+.tree {
+  font-size: var(--font-sm);
+}
+
+.tree button {
+  background: none;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.head {
+  padding: 0 0.3rem;
+  margin-bottom: 0.85rem;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 0.3rem;
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--color-primary-text);
+}
+
+.cat {
+  margin: 0;
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--color-heading);
+  word-break: break-word;
+}
+
+.search {
+  width: 100%;
+  margin-bottom: 0.85rem;
+}
+
+.list,
+.children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.children {
+  margin-left: 0.75rem;
+  padding-left: 0.15rem;
+  border-left: 1px solid var(--color-border-light);
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.28rem 0.5rem;
+  border-radius: var(--radius-sm);
+  line-height: 1.4;
+  color: var(--color-text-secondary);
+}
+
+.row:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.caret {
+  flex: none;
+  width: 0.85rem;
+  padding: 0;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  line-height: 1.7;
+}
+
+.caret:hover {
+  color: var(--color-primary-text);
+}
+
+.labelBtn {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0;
+}
+
+.label {
+  flex: 1;
+  word-break: break-word;
+}
+
+.count {
+  flex: none;
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
+}
+
+.dot {
+  flex: none;
+  font-size: 0.6rem;
+  line-height: 1.9;
+  color: var(--color-text-muted);
+}
+
+.context {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
+}
+
+/* The current position is marked by the color highlight alone. */
+.current,
+.current:hover {
+  background: var(--color-primary-tint);
+  color: var(--color-primary-text);
+  font-weight: 600;
+}
+
+.current .dot {
+  color: var(--color-primary-fill);
+}
+
+.empty {
+  margin: 0.5rem 0.45rem;
+  font-size: var(--font-sm);
+  color: var(--color-text-secondary);
+}

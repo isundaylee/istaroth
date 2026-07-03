@@ -4,9 +4,9 @@ import ReactMarkdown from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 import { useTranslation, useT } from './contexts/LanguageContext'
-import PageShell, { PageSection } from './components/PageShell'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import { AppLink } from './components/AppLink'
+import styles from './LibraryFileViewer.module.css'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
 import NavButton from './components/NavButton'
 import { translate } from './i18n'
@@ -167,14 +167,14 @@ function LibraryFileViewer() {
   }, [language, category, fileId])
 
   return (
-    <PageShell flush>
-      <MinimizedPopupRegion>
-        <PageSection>
+    <>
+      <MinimizedPopupRegion className={styles.measure}>
         <Breadcrumbs crumbs={crumbs} />
 
           {tocLeafCount > 1 && (
             <details
               open
+              className={styles.tocInline}
               style={{
                 margin: '0 0 1.5rem',
                 border: '1px solid var(--color-border)',
@@ -248,10 +248,9 @@ function LibraryFileViewer() {
             title={backText}
             marginTop={previousFile || nextFile ? '1rem' : '2rem'}
           />
-        </PageSection>
-        </MinimizedPopupRegion>
-        {selectionUi}
-    </PageShell>
+      </MinimizedPopupRegion>
+      {selectionUi}
+    </>
   )
 }
 
