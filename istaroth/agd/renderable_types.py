@@ -40,6 +40,27 @@ class BaseRenderableType(ABC, Generic[TKey]):
     error_limit: ClassVar[int] = 0  # Default error limit
     error_limit_non_chinese: ClassVar[int] = 0  # Higher limit for non-Chinese languages
 
+    @classmethod
+    def error_limit_for(cls, language: localization.Language) -> int:
+        """Error limit for the run's language (higher for non-Chinese languages)."""
+        return (
+            cls.error_limit
+            if language is localization.Language.CHS
+            else cls.error_limit_non_chinese
+        )
+
+    @classmethod
+    def create_for_generation(
+        cls, accessed_stats: processed_types.TrackerStats
+    ) -> "BaseRenderableType":
+        """Build an instance for one full generate-all pass.
+
+        ``accessed_stats`` carries the ids earlier passes already claimed; only
+        the trailing Readables/Talks passes use it (to skip those ids), so the
+        default ignores it.
+        """
+        return cls()
+
     @abstractmethod
     def discover(self, data_repo: repo.DataRepo) -> list[TKey]:
         """Find and return list of renderable keys for this renderable type."""
@@ -101,6 +122,12 @@ class Readables(BaseReadables):
     def __init__(self, used_readable_filenames: set[id_types.ReadableFilename]) -> None:
         """Initialize with optional set of used readable filenames to exclude."""
         self.used_readable_filenames = used_readable_filenames
+
+    @classmethod
+    def create_for_generation(
+        cls, accessed_stats: processed_types.TrackerStats
+    ) -> "Readables":
+        return cls(accessed_stats.accessed_readable_filenames.copy())
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all readable files, excluding those already used."""
@@ -570,6 +597,12 @@ class Talks(BaseRenderableType[id_types.TalkId]):
         """Initialize with set of already used talk IDs."""
         self.used_talk_ids = used_talk_ids
 
+    @classmethod
+    def create_for_generation(
+        cls, accessed_stats: processed_types.TrackerStats
+    ) -> "Talks":
+        return cls(accessed_stats.accessed_talk_ids.copy())
+
     def discover(self, data_repo: repo.DataRepo) -> list[id_types.TalkId]:
         """Find all talk IDs that are not already used."""
         talk_tracker = data_repo.build_talk_tracker()
@@ -596,3 +629,32 @@ class Talks(BaseRenderableType[id_types.TalkId]):
             language=data_repo.language,
             talk_file_path=talk_file_path,
         )
+
+
+# Ordered list of every AGD renderable type, in the order generate-all runs
+# them. Readables and Talks come last: each emits only the ids no earlier pass
+# already claimed, so they must run after everything else.
+ALL_RENDERABLE_TYPES: list[type[BaseRenderableType]] = [
+    ArtifactSets,
+    Creatures,
+    Quests,
+    CharacterStories,
+    Subtitles,
+    MaterialTypes,
+    Achievements,
+    Voicelines,
+    TalkGroups,
+    Hangouts,
+    Books,
+    Weapons,
+    Wings,
+    Costumes,
+    Readables,
+    Talks,
+]
+
+# Every AGD category must be produced by exactly one renderable type here, so a
+# newly added TextCategory can't be silently dropped from the pipeline.
+assert {renderable_type.text_category for renderable_type in ALL_RENDERABLE_TYPES} == {
+    category for category in text_types.TextCategory if category.is_agd
+}, "ALL_RENDERABLE_TYPES is out of sync with the AGD TextCategory enum"
