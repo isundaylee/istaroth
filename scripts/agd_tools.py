@@ -13,7 +13,7 @@ import random
 import shutil
 import subprocess
 import sys
-from typing import Any, Callable, TextIO
+from typing import Any, TextIO
 
 import attrs
 import click
@@ -29,26 +29,8 @@ from istaroth.agd import (
     localization,
     processed_types,
     quest_hierarchy,
+    renderable_types,
     repo,
-)
-from istaroth.agd.renderable_types import (
-    Achievements,
-    ArtifactSets,
-    BaseRenderableType,
-    Books,
-    CharacterStories,
-    Costumes,
-    Creatures,
-    Hangouts,
-    MaterialTypes,
-    Quests,
-    Readables,
-    Subtitles,
-    TalkGroups,
-    Talks,
-    Voicelines,
-    Weapons,
-    Wings,
 )
 from istaroth.agd.renderables import (
     _talk,
@@ -144,7 +126,7 @@ def _get_data_repo_from_env() -> repo.DataRepo:
 
 
 def _process_single_item(
-    args: tuple[str, BaseRenderableType, bool],
+    args: tuple[str, renderable_types.BaseRenderableType, bool],
 ) -> _RenderableResult:
     """Worker function to process a single renderable item."""
     renderable_key, renderable_type, strict = args
@@ -192,7 +174,7 @@ def _process_single_item(
 
 
 def _generate_content(
-    renderable_type: BaseRenderableType,
+    renderable_type: renderable_types.BaseRenderableType,
     output_dir: pathlib.Path,
     *,
     data_repo: repo.DataRepo,
@@ -413,7 +395,7 @@ def generate_all(
     all_parsing_issues: list[issues.ParsingIssue] = []
 
     # Helper function to process a content type and fold its counts into totals
-    def process_content_type(renderable: BaseRenderableType) -> None:
+    def process_content_type(renderable: renderable_types.BaseRenderableType) -> None:
         """Run one content type's generation and update global stats."""
         stats, tracker_stats = _generate_content(
             renderable,
@@ -444,39 +426,6 @@ def generate_all(
     def should_generate(category: text_types.TextCategory) -> bool:
         return only_category is None or only_category == category
 
-    # Ordered dispatch of every AGD content type. The leftover Readables/Talks
-    # passes come last and close over the tracker stats accumulated by the
-    # earlier passes, so they only emit items no other pass already claimed.
-    dispatch: list[tuple[text_types.TextCategory, Callable[[], BaseRenderableType]]] = [
-        (text_types.TextCategory.AGD_ARTIFACT_SET, ArtifactSets),
-        (text_types.TextCategory.AGD_CREATURE, Creatures),
-        (text_types.TextCategory.AGD_QUEST, Quests),
-        (text_types.TextCategory.AGD_CHARACTER_STORY, CharacterStories),
-        (text_types.TextCategory.AGD_SUBTITLE, Subtitles),
-        (text_types.TextCategory.AGD_MATERIAL_TYPE, MaterialTypes),
-        (text_types.TextCategory.AGD_ACHIEVEMENT, Achievements),
-        (text_types.TextCategory.AGD_VOICELINE, Voicelines),
-        (text_types.TextCategory.AGD_TALK_GROUP, TalkGroups),
-        (text_types.TextCategory.AGD_HANGOUT, Hangouts),
-        (text_types.TextCategory.AGD_BOOK, Books),
-        (text_types.TextCategory.AGD_WEAPON, Weapons),
-        (text_types.TextCategory.AGD_WINGS, Wings),
-        (text_types.TextCategory.AGD_COSTUME, Costumes),
-        (
-            text_types.TextCategory.AGD_READABLE,
-            lambda: Readables(all_tracker_stats.accessed_readable_filenames.copy()),
-        ),
-        (
-            text_types.TextCategory.AGD_TALK,
-            lambda: Talks(all_tracker_stats.accessed_talk_ids.copy()),
-        ),
-    ]
-    # Every AGD category must have exactly one dispatch entry, so a newly added
-    # TextCategory can't be silently dropped from the pipeline.
-    assert {category for category, _ in dispatch} == {
-        tc for tc in text_types.TextCategory if tc.is_agd
-    }, "generate-all dispatch is out of sync with the AGD TextCategory enum"
-
     # Set up multiprocessing pool to reuse across all content generation
     if processes is None:
         processes = multiprocessing.cpu_count()
@@ -500,12 +449,15 @@ def generate_all(
         errors_file_path.open("w", encoding="utf-8") as errors_file,
         multiprocessing.Pool(processes=processes) as pool,
     ):
-        for category, factory in dispatch:
-            if not should_generate(category):
+        # Each renderable knows its own category and how to build itself; the
+        # trailing Readables/Talks passes read the tracker stats accumulated so
+        # far to skip ids the earlier passes already claimed.
+        for renderable_type in renderable_types.ALL_RENDERABLE_TYPES:
+            if not should_generate(renderable_type.text_category):
                 continue
-            renderable = factory()
-            assert renderable.text_category == category
-            process_content_type(renderable)
+            process_content_type(
+                renderable_type.create_for_generation(all_tracker_stats)
+            )
 
     # Create summary table
     headers = ["Content Type", "Success", "Errors", "Skipped", "Issues"]
