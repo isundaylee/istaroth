@@ -39,14 +39,11 @@ class TrackerKind(enum.Enum):
     @property
     def label(self) -> str:
         """The resource's human-readable label in console output."""
-        return _TRACKER_LABELS[self]
-
-
-_TRACKER_LABELS = {
-    TrackerKind.TEXT_MAP: "Text map",
-    TrackerKind.TALK: "Talk IDs",
-    TrackerKind.READABLES: "Readables",
-}
+        return {
+            TrackerKind.TEXT_MAP: "Text map",
+            TrackerKind.TALK: "Talk IDs",
+            TrackerKind.READABLES: "Readables",
+        }[self]
 
 
 class IdTracker(Generic[_K]):
