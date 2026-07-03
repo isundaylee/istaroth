@@ -11,6 +11,7 @@ from istaroth.agd import (
     repo,
     talk_parsing,
     text_utils,
+    tracking,
 )
 from istaroth.agd.renderables import (
     _talk,
@@ -51,7 +52,7 @@ class BaseRenderableType(ABC, Generic[TKey]):
 
     @classmethod
     def create_for_generation(
-        cls, accessed_stats: processed_types.TrackerStats
+        cls, accessed_stats: tracking.TrackerStats
     ) -> "BaseRenderableType":
         """Build an instance for one full generate-all pass.
 
@@ -125,9 +126,9 @@ class Readables(BaseReadables):
 
     @classmethod
     def create_for_generation(
-        cls, accessed_stats: processed_types.TrackerStats
+        cls, accessed_stats: tracking.TrackerStats
     ) -> "Readables":
-        return cls(accessed_stats.accessed_readable_filenames.copy())
+        return cls(accessed_stats.accessed[tracking.TrackerKind.READABLES].copy())
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all readable files, excluding those already used."""
@@ -598,10 +599,8 @@ class Talks(BaseRenderableType[id_types.TalkId]):
         self.used_talk_ids = used_talk_ids
 
     @classmethod
-    def create_for_generation(
-        cls, accessed_stats: processed_types.TrackerStats
-    ) -> "Talks":
-        return cls(accessed_stats.accessed_talk_ids.copy())
+    def create_for_generation(cls, accessed_stats: tracking.TrackerStats) -> "Talks":
+        return cls(accessed_stats.accessed[tracking.TrackerKind.TALK].copy())
 
     def discover(self, data_repo: repo.DataRepo) -> list[id_types.TalkId]:
         """Find all talk IDs that are not already used."""

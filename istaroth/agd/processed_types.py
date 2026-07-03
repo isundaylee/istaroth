@@ -14,7 +14,6 @@ import attrs
 from istaroth.agd import id_types
 
 if TYPE_CHECKING:
-    from istaroth.agd.repo import ReadablesTracker, TalkTracker, TextMapTracker
     from istaroth.text import types as text_types
 
 
@@ -347,51 +346,6 @@ class VoicelineInfo:
     character_name: str
     voicelines: dict[str, str]  # title -> content mapping
     avatar_id: id_types.AvatarId
-
-
-@attrs.define
-class TrackerStats:
-    """Statistics for text map, talk ID, and readable access tracking."""
-
-    accessed_text_map_ids: set[id_types.TextMapHash]
-    accessed_talk_ids: set[id_types.TalkId]
-    accessed_readable_filenames: set[id_types.ReadableFilename]
-
-    def update(self, other: "TrackerStats") -> None:
-        """Update this TrackerStats with IDs from another TrackerStats."""
-        self.accessed_text_map_ids.update(other.accessed_text_map_ids)
-        self.accessed_talk_ids.update(other.accessed_talk_ids)
-        self.accessed_readable_filenames.update(other.accessed_readable_filenames)
-
-    def to_dict(
-        self,
-        text_map_tracker: "TextMapTracker",
-        talk_tracker: "TalkTracker",
-        readables_tracker: "ReadablesTracker",
-    ) -> dict[str, Any]:
-        """Convert TrackerStats to dictionary format for JSON serialization."""
-        result = {
-            "stats": {
-                "text_map": {
-                    "unused": len(text_map_tracker.get_unused_ids()),
-                    "total": text_map_tracker.get_total_count(),
-                },
-                "talk_ids": {
-                    "unused": len(talk_tracker.get_unused_ids()),
-                    "total": talk_tracker.get_total_count(),
-                },
-                "readables": {
-                    "unused": len(readables_tracker.get_unused_ids()),
-                    "total": readables_tracker.get_total_count(),
-                },
-            },
-            "unused_ids": {
-                "text_map": sorted(text_map_tracker.get_unused_ids()),
-                "talk_ids": sorted(talk_tracker.get_unused_ids()),
-                "readables": sorted(readables_tracker.get_unused_ids()),
-            },
-        }
-        return result
 
 
 @attrs.define

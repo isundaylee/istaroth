@@ -9,7 +9,7 @@ import logging
 import os
 import pathlib
 import subprocess
-from typing import Any, Callable, Generic, Iterable, TypeVar, cast
+from typing import Any, Callable, Iterable, TypeVar, cast
 
 import attrs
 from numpy import isin
@@ -22,12 +22,12 @@ from istaroth.agd import (
     id_types,
     localization,
     talk_parsing,
+    tracking,
 )
 
 logger = logging.getLogger(__name__)
 
 _K = TypeVar("_K")
-_V = TypeVar("_V")
 _T = TypeVar("_T")
 # Ordered newest-to-oldest; earlier refs win when multiple fallbacks contain a hash.
 # Sex-pronoun SEXPRO tokens also resolve against these builds (see
@@ -46,92 +46,8 @@ _TEXT_MAP_FALLBACK_REFS: tuple[str, ...] = (
 )
 
 
-class IdTracker(Generic[_K]):
-    """Base class for tracking which IDs have been accessed.
-
-    Generic over the id type ``_K``: readable filenames are ``str``, while
-    text-map hashes, talk, and material ids are ``int`` (their wire type).
-    """
-
-    def __init__(self, all_ids: set[_K]) -> None:
-        self._all_ids = all_ids
-        self._accessed_ids: set[_K] = set()
-        self._context_depth: int = 0
-
-    def _track_access(self, key: _K) -> None:
-        """Track that an ID has been accessed."""
-        self._accessed_ids.add(key)
-
-    def get_all_ids(self) -> set[_K]:
-        return self._all_ids.copy()
-
-    def has(self, key: _K) -> bool:
-        """Whether key is a known ID, without tracking access."""
-        return key in self._all_ids
-
-    def get_accessed_ids(self) -> set[_K]:
-        """Return set of accessed IDs."""
-        return self._accessed_ids.copy()
-
-    def merge_accessed(self, ids: Iterable[_K]) -> None:
-        """Merge accessed IDs collected externally (e.g. in worker processes)."""
-        self._accessed_ids.update(ids)
-
-    def get_unused_ids(self) -> set[_K]:
-        """Return set of unused IDs."""
-        return self._all_ids - self._accessed_ids
-
-    def get_total_count(self) -> int:
-        """Return total count of all IDs."""
-        return len(self._all_ids)
-
-    def format_unused_stats(self) -> str:
-        """Format unused statistics as 'unused / total (percentage%)'."""
-        unused_count = len(self.get_unused_ids())
-        total_count = self.get_total_count()
-        percentage = (unused_count / total_count * 100) if total_count > 0 else 0.0
-        return f"{unused_count} / {total_count} ({percentage:.1f}%)"
-
-    def _reset_stats(self) -> None:
-        """Reset access tracking statistics."""
-        self._accessed_ids.clear()
-
-    def __enter__(self):
-        """Context manager entry - reset stats only on first entry."""
-        if self._context_depth == 0:
-            self._reset_stats()
-        self._context_depth += 1
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """Context manager exit - decrement depth counter."""
-        self._context_depth -= 1
-
-
-class DictTracker(IdTracker[_K], Generic[_K, _V]):
-    """Access-tracking wrapper over an id-keyed mapping of items."""
-
-    def __init__(self, items: dict[_K, _V]) -> None:
-        self._items = items
-        super().__init__(set(items))
-
-    def get(self, key: _K) -> _V | None:
-        """Get item by ID and track access."""
-        if (item := self._items.get(key)) is not None:
-            self._track_access(key)
-        return item
-
-    def get_untracked(self, key: _K) -> _V | None:
-        """Get item by ID without recording access."""
-        return self._items.get(key)
-
-    def get_all(self) -> list[_V]:
-        """Get all items without tracking (for discovery purposes)."""
-        return list(self._items.values())
-
-
 class MaterialTracker(
-    DictTracker[id_types.MaterialId, agd_types.MaterialExcelConfigDataItem]
+    tracking.DictTracker[id_types.MaterialId, agd_types.MaterialExcelConfigDataItem]
 ):
     """Tracks which material IDs have been accessed."""
 
@@ -139,7 +55,9 @@ class MaterialTracker(
         super().__init__({material["id"]: material for material in material_data})
 
 
-class TalkTracker(DictTracker[id_types.TalkId, agd_types.TalkExcelConfigDataItem]):
+class TalkTracker(
+    tracking.DictTracker[id_types.TalkId, agd_types.TalkExcelConfigDataItem]
+):
     """Tracks which talk IDs have been accessed."""
 
     def __init__(
@@ -159,11 +77,18 @@ class TalkTracker(DictTracker[id_types.TalkId, agd_types.TalkExcelConfigDataItem
         return self._talk_file_mapping.get(talk_id)
 
 
-class TextMapTracker(IdTracker[id_types.TextMapHash]):
+class TextMapTracker(tracking.IdTracker[id_types.TextMapHash]):
     """Wrapper around TextMap that tracks which text IDs have been accessed.
 
     ``TextMap`` ships with ``str`` keys (JSON object keys are always strings);
     they are int-keyed once here so lookups carry a ``TextMapHash`` directly.
+
+    Deliberately bends the base contract: ``_all_ids`` is only the *current*
+    build's hashes, but reads that resolve via the older fallback TextMap still
+    record their hash in ``_accessed_ids`` (and ``has`` reports fallback hits).
+    Since ``get_unused_ids`` subtracts accessed from ``_all_ids``, those
+    out-of-set fallback hashes never inflate the current-build unused count --
+    they simply don't count as unused current hashes, which is the intent.
     """
 
     def __init__(
@@ -245,7 +170,7 @@ class TextMapTracker(IdTracker[id_types.TextMapHash]):
         return None
 
 
-class ReadablesTracker(IdTracker[id_types.ReadableFilename]):
+class ReadablesTracker(tracking.IdTracker[id_types.ReadableFilename]):
     """Tracks which readable filenames have been accessed."""
 
     def __init__(self, agd_path: pathlib.Path, language_short: str) -> None:
@@ -1131,3 +1056,30 @@ class DataRepo:
     def build_readables_tracker(self) -> ReadablesTracker:
         """Get ReadablesTracker for tracking access to readable files."""
         return ReadablesTracker(self.agd_path, self.language_short)
+
+    def build_scope_trackers(
+        self,
+    ) -> dict[tracking.TrackerKind, tracking.IdTracker[Any]]:
+        """The trackers a ``tracking_scope`` observes, keyed by kind.
+
+        The single registration point for per-item tracked resources: both
+        ``tracking_scope`` and the run's unused-stats aggregation consume this.
+        Adding a resource is a new ``TrackerKind`` member plus a line here.
+        """
+        return {
+            tracking.TrackerKind.TEXT_MAP: self.build_text_map_tracker(),
+            tracking.TrackerKind.TALK: self.build_talk_tracker(),
+            tracking.TrackerKind.READABLES: self.build_readables_tracker(),
+        }
+
+    def tracking_scope(
+        self, *, item_type: str, item_key: str
+    ) -> tracking.TrackingScope:
+        """Open a scope collecting access + issue side-data for one item.
+
+        Enter it around processing a single renderable; read the accessed ids and
+        recorded issues off the yielded scope after the block.
+        """
+        return tracking.TrackingScope(
+            self.build_scope_trackers(), item_type=item_type, item_key=item_key
+        )
