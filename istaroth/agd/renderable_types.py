@@ -40,6 +40,15 @@ class BaseRenderableType(ABC, Generic[TKey]):
     error_limit: ClassVar[int] = 0  # Default error limit
     error_limit_non_chinese: ClassVar[int] = 0  # Higher limit for non-Chinese languages
 
+    @classmethod
+    def error_limit_for(cls, language: localization.Language) -> int:
+        """Error limit for the run's language (higher for non-Chinese languages)."""
+        return (
+            cls.error_limit
+            if language is localization.Language.CHS
+            else cls.error_limit_non_chinese
+        )
+
     @abstractmethod
     def discover(self, data_repo: repo.DataRepo) -> list[TKey]:
         """Find and return list of renderable keys for this renderable type."""

@@ -13,7 +13,7 @@ import random
 import shutil
 import subprocess
 import sys
-from typing import Any, TextIO
+from typing import Any, Callable, TextIO
 
 import attrs
 import click
@@ -57,6 +57,23 @@ from istaroth.agd.renderables import (
 )
 from istaroth.text import manifest
 from istaroth.text import types as text_types
+
+
+@attrs.define
+class _GenerationStats:
+    """Success/error/skip/issue counts accumulated over one generation pass."""
+
+    success: int
+    error: int
+    skipped: int
+    issues: int
+
+    def update(self, other: "_GenerationStats") -> None:
+        """Accumulate another pass's counts into this one."""
+        self.success += other.success
+        self.error += other.error
+        self.skipped += other.skipped
+        self.issues += other.issues
 
 
 @attrs.define
@@ -185,16 +202,9 @@ def _generate_content(
     strict: bool = False,
     manifest_list: list[text_types.TextMetadata],
     parsing_issues: list[issues.ParsingIssue],
-) -> tuple[int, int, int, int, processed_types.TrackerStats]:
-    """Generate content files using renderable type.
-
-    Returns:
-        Tuple of (success_count, error_count, skipped_count, issue_count, tracker_stats)
-    """
-    success_count = 0
-    error_count = 0
-    skipped_count = 0
-    issue_count = 0
+) -> tuple[_GenerationStats, processed_types.TrackerStats]:
+    """Generate content files using renderable type."""
+    stats = _GenerationStats(success=0, error=0, skipped=0, issues=0)
     tracker_stats = processed_types.TrackerStats(
         accessed_text_map_ids=set(),
         accessed_talk_ids=set(),
@@ -238,27 +248,25 @@ def _generate_content(
             # Collect accessed text map IDs regardless of success/failure
             tracker_stats.update(result.tracker_stats)
             parsing_issues.extend(result.parsing_issues)
-            issue_count += len(result.parsing_issues)
+            stats.issues += len(result.parsing_issues)
             renderable_type_name = renderable_type.__class__.__name__
 
             if result.error_message is not None:
                 log_message(
                     f"✗ {renderable_type_name}: {result.renderable_key} -> ERROR: {result.error_message}"
                 )
-                error_count += 1
+                stats.error += 1
 
                 # Check if error limit exceeded
-                effective_error_limit = (
-                    renderable_type.error_limit
-                    if data_repo.language == "CHS"
-                    else renderable_type.error_limit_non_chinese
+                effective_error_limit = renderable_type.error_limit_for(
+                    data_repo.language
                 )
-                if error_count > effective_error_limit:
-                    error_msg = f"Error limit exceeded ({error_count} > {effective_error_limit}), stopping generation"
+                if stats.error > effective_error_limit:
+                    error_msg = f"Error limit exceeded ({stats.error} > {effective_error_limit}), stopping generation"
                     log_message(error_msg)
                     raise _ErrorLimitError(
                         renderable_type_name,
-                        error_count,
+                        stats.error,
                         effective_error_limit,
                         result.error_message,
                     )
@@ -270,7 +278,7 @@ def _generate_content(
                 log_message(
                     f"⚠ {renderable_type_name}: {result.renderable_key} -> SKIPPED (filtered)"
                 )
-                skipped_count += 1
+                stats.skipped += 1
                 continue
 
             # Get TextMetadata from RenderedItem
@@ -298,17 +306,11 @@ def _generate_content(
             # Add to manifest
             manifest_list.append(text_metadata)
 
-            success_count += 1
+            stats.success += 1
 
-            pbar.set_postfix({"errors": error_count, "skipped": skipped_count})
+            pbar.set_postfix({"errors": stats.error, "skipped": stats.skipped})
 
-    return (
-        success_count,
-        error_count,
-        skipped_count,
-        issue_count,
-        tracker_stats,
-    )
+    return stats, tracker_stats
 
 
 @click.group()
@@ -396,10 +398,7 @@ def generate_all(
         json.dump(metadata, f, indent=2)
     click.echo(f"Metadata written to {metadata_path}")
 
-    total_success = 0
-    total_error = 0
-    total_skipped = 0
-    total_issues = 0
+    total_stats = _GenerationStats(success=0, error=0, skipped=0, issues=0)
     all_tracker_stats = processed_types.TrackerStats(set(), set(), set())
 
     # Collect stats for summary table
@@ -413,16 +412,10 @@ def generate_all(
     issue_counts: dict[str, int] = {}
     all_parsing_issues: list[issues.ParsingIssue] = []
 
-    # Helper function to process a content type conditionally
-    def process_content_type(
-        should_generate: bool, renderable: BaseRenderableType
-    ) -> None:
-        """Process a single content type if condition is met and update global stats."""
-        if not should_generate:
-            return
-
-        nonlocal total_success, total_error, total_skipped, total_issues
-        success, error, skipped, issue_count, tracker_stats = _generate_content(
+    # Helper function to process a content type and fold its counts into totals
+    def process_content_type(renderable: BaseRenderableType) -> None:
+        """Run one content type's generation and update global stats."""
+        stats, tracker_stats = _generate_content(
             renderable,
             output_dir,
             data_repo=data_repo,
@@ -433,70 +426,56 @@ def generate_all(
             manifest_list=manifest_list,
             parsing_issues=all_parsing_issues,
         )
-        total_success += success
-        total_error += error
-        total_skipped += skipped
-        total_issues += issue_count
-        issue_counts[renderable.text_category.value] = issue_count
+        total_stats.update(stats)
+        issue_counts[renderable.text_category.value] = stats.issues
         all_tracker_stats.update(tracker_stats)
         summary_stats.append(
-            [renderable.text_category.value, success, error, skipped, issue_count]
+            [
+                renderable.text_category.value,
+                stats.success,
+                stats.error,
+                stats.skipped,
+                stats.issues,
+            ]
         )
 
-    # Determine which content types to generate
     only_category = text_types.TextCategory(only) if only else None
-    generate_readable = (
-        only_category is None or only_category == text_types.TextCategory.AGD_READABLE
-    )
-    generate_books = (
-        only_category is None or only_category == text_types.TextCategory.AGD_BOOK
-    )
-    generate_weapons = (
-        only_category is None or only_category == text_types.TextCategory.AGD_WEAPON
-    )
-    generate_wings = (
-        only_category is None or only_category == text_types.TextCategory.AGD_WINGS
-    )
-    generate_costumes = (
-        only_category is None or only_category == text_types.TextCategory.AGD_COSTUME
-    )
-    generate_quest = (
-        only_category is None or only_category == text_types.TextCategory.AGD_QUEST
-    )
-    generate_character_stories = (
-        only_category is None
-        or only_category == text_types.TextCategory.AGD_CHARACTER_STORY
-    )
-    generate_subtitles = (
-        only_category is None or only_category == text_types.TextCategory.AGD_SUBTITLE
-    )
-    generate_material_types = (
-        only_category is None
-        or only_category == text_types.TextCategory.AGD_MATERIAL_TYPE
-    )
-    generate_achievements = (
-        only_category is None
-        or only_category == text_types.TextCategory.AGD_ACHIEVEMENT
-    )
-    generate_voicelines = (
-        only_category is None or only_category == text_types.TextCategory.AGD_VOICELINE
-    )
-    generate_talk_groups = (
-        only_category is None or only_category == text_types.TextCategory.AGD_TALK_GROUP
-    )
-    generate_talks = (
-        only_category is None or only_category == text_types.TextCategory.AGD_TALK
-    )
-    generate_hangouts = (
-        only_category is None or only_category == text_types.TextCategory.AGD_HANGOUT
-    )
-    generate_artifact_sets = (
-        only_category is None
-        or only_category == text_types.TextCategory.AGD_ARTIFACT_SET
-    )
-    generate_creatures = (
-        only_category is None or only_category == text_types.TextCategory.AGD_CREATURE
-    )
+
+    def should_generate(category: text_types.TextCategory) -> bool:
+        return only_category is None or only_category == category
+
+    # Ordered dispatch of every AGD content type. The leftover Readables/Talks
+    # passes come last and close over the tracker stats accumulated by the
+    # earlier passes, so they only emit items no other pass already claimed.
+    dispatch: list[tuple[text_types.TextCategory, Callable[[], BaseRenderableType]]] = [
+        (text_types.TextCategory.AGD_ARTIFACT_SET, ArtifactSets),
+        (text_types.TextCategory.AGD_CREATURE, Creatures),
+        (text_types.TextCategory.AGD_QUEST, Quests),
+        (text_types.TextCategory.AGD_CHARACTER_STORY, CharacterStories),
+        (text_types.TextCategory.AGD_SUBTITLE, Subtitles),
+        (text_types.TextCategory.AGD_MATERIAL_TYPE, MaterialTypes),
+        (text_types.TextCategory.AGD_ACHIEVEMENT, Achievements),
+        (text_types.TextCategory.AGD_VOICELINE, Voicelines),
+        (text_types.TextCategory.AGD_TALK_GROUP, TalkGroups),
+        (text_types.TextCategory.AGD_HANGOUT, Hangouts),
+        (text_types.TextCategory.AGD_BOOK, Books),
+        (text_types.TextCategory.AGD_WEAPON, Weapons),
+        (text_types.TextCategory.AGD_WINGS, Wings),
+        (text_types.TextCategory.AGD_COSTUME, Costumes),
+        (
+            text_types.TextCategory.AGD_READABLE,
+            lambda: Readables(all_tracker_stats.accessed_readable_filenames.copy()),
+        ),
+        (
+            text_types.TextCategory.AGD_TALK,
+            lambda: Talks(all_tracker_stats.accessed_talk_ids.copy()),
+        ),
+    ]
+    # Every AGD category must have exactly one dispatch entry, so a newly added
+    # TextCategory can't be silently dropped from the pipeline.
+    assert {category for category, _ in dispatch} == {
+        tc for tc in text_types.TextCategory if tc.is_agd
+    }, "generate-all dispatch is out of sync with the AGD TextCategory enum"
 
     # Set up multiprocessing pool to reuse across all content generation
     if processes is None:
@@ -521,35 +500,23 @@ def generate_all(
         errors_file_path.open("w", encoding="utf-8") as errors_file,
         multiprocessing.Pool(processes=processes) as pool,
     ):
-        process_content_type(generate_artifact_sets, ArtifactSets())
-        process_content_type(generate_creatures, Creatures())
-        process_content_type(generate_quest, Quests())
-        process_content_type(generate_character_stories, CharacterStories())
-        process_content_type(generate_subtitles, Subtitles())
-        process_content_type(generate_material_types, MaterialTypes())
-        process_content_type(generate_achievements, Achievements())
-        process_content_type(generate_voicelines, Voicelines())
-        process_content_type(generate_talk_groups, TalkGroups())
-        process_content_type(generate_hangouts, Hangouts())
-
-        process_content_type(generate_books, Books())
-        process_content_type(generate_weapons, Weapons())
-        process_content_type(generate_wings, Wings())
-        process_content_type(generate_costumes, Costumes())
-
-        # Generating remaining unused readables/talks
-        process_content_type(
-            generate_readable,
-            Readables(all_tracker_stats.accessed_readable_filenames.copy()),
-        )
-        process_content_type(
-            generate_talks, Talks(all_tracker_stats.accessed_talk_ids.copy())
-        )
+        for category, factory in dispatch:
+            if not should_generate(category):
+                continue
+            renderable = factory()
+            assert renderable.text_category == category
+            process_content_type(renderable)
 
     # Create summary table
     headers = ["Content Type", "Success", "Errors", "Skipped", "Issues"]
     summary_stats.append(
-        ["TOTAL", total_success, total_error, total_skipped, total_issues]
+        [
+            "TOTAL",
+            total_stats.success,
+            total_stats.error,
+            total_stats.skipped,
+            total_stats.issues,
+        ]
     )
     summary_table = tabulate(summary_stats, headers=headers, tablefmt="pretty")
 
@@ -612,7 +579,7 @@ def generate_all(
     # builder runs only when its category was generated, and must then find items
     # in the manifest, so an empty bucket is a regression rather than a no-op.
     hierarchies: dict[str, dict[str, object]] = {}
-    if generate_quest:
+    if should_generate(text_types.TextCategory.AGD_QUEST):
         quest_items = [
             (item.id, item.title)
             for item in manifest_list
@@ -624,7 +591,7 @@ def generate_all(
                 quest_items, data_repo=data_repo
             ).to_dict()
         )
-    if generate_hangouts:
+    if should_generate(text_types.TextCategory.AGD_HANGOUT):
         coop_items = [
             (item.id, item.title)
             for item in manifest_list
@@ -636,7 +603,9 @@ def generate_all(
                 coop_items, data_repo=data_repo
             ).to_dict()
         )
-    if generate_quest or generate_hangouts:
+    if should_generate(text_types.TextCategory.AGD_QUEST) or should_generate(
+        text_types.TextCategory.AGD_HANGOUT
+    ):
         assert hierarchies, "expected at least one document hierarchy to write"
         metadata_dir = output_dir / "metadata" / "agd"
         metadata_dir.mkdir(parents=True, exist_ok=True)
@@ -645,7 +614,7 @@ def generate_all(
             json.dump(hierarchies, f, indent=2, ensure_ascii=False)
         click.echo(f"Document hierarchy written to {hierarchy_path}")
 
-    if total_error > 0:
+    if total_stats.error > 0:
         click.echo(f"\nDetailed errors written to {errors_file_path}")
     else:
         # Remove empty errors file
@@ -654,10 +623,10 @@ def generate_all(
 
     # Fail loudly on any per-item error unless explicitly allowed, so regen
     # pipelines don't silently ship a corpus with missing items.
-    exit_code = 1 if total_error > 0 and not allow_errors else 0
+    exit_code = 1 if total_stats.error > 0 and not allow_errors else 0
     if exit_code:
         click.echo(
-            f"\n{total_error} item(s) failed to generate; "
+            f"\n{total_stats.error} item(s) failed to generate; "
             "pass --allow-errors to exit 0 anyway.",
             err=True,
         )
