@@ -11,7 +11,6 @@ import contextvars
 import functools
 import hashlib
 import io
-import json
 import logging
 import pathlib
 import pickle
@@ -21,6 +20,7 @@ import anyio
 import attrs
 import jieba
 import langsmith as ls
+import orjson
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from opentelemetry import trace
@@ -514,13 +514,13 @@ class DocumentStore:
         self._bm25_store.save(path)
 
         # Save configuration
-        (path / "config.json").write_text(
-            json.dumps({"vector_store_type": self._vector_store.get_type().value})
+        (path / "config.json").write_bytes(
+            orjson.dumps({"vector_store_type": self._vector_store.get_type().value})
         )
 
         # Write out documents
-        (path / "documents.json").write_text(
-            json.dumps(
+        (path / "documents.json").write_bytes(
+            orjson.dumps(
                 {
                     file_id: [
                         {
@@ -556,8 +556,8 @@ class DocumentStore:
                         )
                         for doc in file_docs
                     }
-                    for file_id, file_docs in json.loads(
-                        documents_file.read_text()
+                    for file_id, file_docs in orjson.loads(
+                        documents_file.read_bytes()
                     ).items()
                 }
 
@@ -565,7 +565,7 @@ class DocumentStore:
             vs: vector_store.VectorStore
             if external_vector_store is None:
                 # Load configuration to determine vector store type
-                config = json.loads((path / "config.json").read_text())
+                config = orjson.loads((path / "config.json").read_bytes())
                 store_type = vector_store.VectorStoreType(config["vector_store_type"])
 
                 # Load the appropriate vector store
