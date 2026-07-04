@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import type { CitationResponse } from '../types/api'
 import { useTranslation } from '../contexts/LanguageContext'
 import { isEditable } from '../utils/keyboard'
 import { FloatingPanel } from './FloatingPanel'
 import type { FloatingPlacement } from '../utils/floatingPanel'
+import { SelectableAnswer } from './SelectableAnswer'
 import Button from './Button'
 import citationStyles from './CitationPopup.module.css'
 
@@ -27,6 +28,8 @@ interface CitationPopupProps {
   onLoadFullText?: () => void
   isLoadingFullText?: boolean
   onToggleFullscreen?: () => void
+  /** "Open in library" link rendered in the header by FloatingPanel. */
+  topLink?: ReactNode
 }
 
 function CitationPopup(
@@ -45,7 +48,8 @@ function CitationPopup(
     onClose,
     onLoadFullText,
     isLoadingFullText = false,
-    onToggleFullscreen
+    onToggleFullscreen,
+    topLink
   }: CitationPopupProps
 ) {
   const { t } = useTranslation()
@@ -97,26 +101,28 @@ function CitationPopup(
   )
 
   const body = isSticky && citedChunk ? (
-    <div style={{ whiteSpace: 'pre-wrap' }}>
-      {fullText != null ? (() => {
-        // Trim newlines at the cut points so the surrounding context sits flush against the bar.
-        const before = fullText.slice(0, citedChunk.start_index).replace(/\n+$/, '')
-        const after = fullText.slice(citedChunk.end_index).replace(/^\n+/, '')
-        return (
+    <SelectableAnswer resetKey={citedChunk.file_id + ':' + citedChunk.chunk_index}>
+      <div style={{ whiteSpace: 'pre-wrap' }}>
+        {fullText != null ? (() => {
+          // Trim newlines at the cut points so the surrounding context sits flush against the bar.
+          const before = fullText.slice(0, citedChunk.start_index).replace(/\n+$/, '')
+          const after = fullText.slice(citedChunk.end_index).replace(/^\n+/, '')
+          return (
+            <>
+              {before && <div className={citationStyles.context}>{before}</div>}
+              {citedBlock(fullText.slice(citedChunk.start_index, citedChunk.end_index).trim())}
+              {after && <div className={citationStyles.context}>{after}</div>}
+            </>
+          )
+        })() : (
           <>
-            {before && <div className={citationStyles.context}>{before}</div>}
-            {citedBlock(fullText.slice(citedChunk.start_index, citedChunk.end_index).trim())}
-            {after && <div className={citationStyles.context}>{after}</div>}
+            {citedChunk.chunk_index > 0 && loadGap()}
+            {citedBlock(citedChunk.content)}
+            {citedChunk.chunk_index < citedChunk.total_chunks - 1 && loadGap()}
           </>
-        )
-      })() : (
-        <>
-          {citedChunk.chunk_index > 0 && loadGap()}
-          {citedBlock(citedChunk.content)}
-          {citedChunk.chunk_index < citedChunk.total_chunks - 1 && loadGap()}
-        </>
-      )}
-    </div>
+        )}
+      </div>
+    </SelectableAnswer>
   ) : (
     <div style={{ whiteSpace: 'pre-wrap' }}>{content}</div>
   )
@@ -133,6 +139,7 @@ function CitationPopup(
       onRestore={isSticky ? onRestore : undefined}
       eyebrow={t.citation.source}
       title={title}
+      topLink={isSticky ? topLink : undefined}
       onClose={isSticky ? onClose : undefined}
       bodyClassName={citationStyles.popupContent}
     >

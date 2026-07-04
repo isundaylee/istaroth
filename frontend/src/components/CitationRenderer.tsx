@@ -1,12 +1,14 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import type { Components } from 'react-markdown'
-import { useTranslation, useT } from '../contexts/LanguageContext'
-import type { CitationResponse, LibraryFileInfo, LibraryFileResponse } from '../types/api'
+import { useT } from '../contexts/LanguageContext'
+import type { CitationResponse } from '../types/api'
 import { buildLibraryFilePath } from '../utils/library'
 import { HighlightedMarkdown } from './HighlightedMarkdown'
 import CitationPopup from './CitationPopup'
+import { CitationList } from './CitationList'
 import { preprocessCitationsForDisplay, formatCitationId, parseCitationId } from '../utils/citations'
 import { useFloatingPanelState, useOutsideMouseDown } from '../hooks/useFloatingPanelState'
+import { useCitations } from '../hooks/useCitations'
 
 interface CitationRendererProps {
   content: string
@@ -14,8 +16,6 @@ interface CitationRendererProps {
   properNouns?: string[]
   children?: (props: { answer: React.ReactNode; citationList: React.ReactNode }) => React.ReactNode
 }
-
-type CachedCitation = CitationResponse | { error: string }
 
 interface CitationContentData {
   title: string
@@ -33,12 +33,6 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
   const [stickyCitation, setStickyCitation] = useState<string | null>(null)
   const floatingState = useFloatingPanelState()
   const { minimized, fullscreen, position } = floatingState
-  const [citationCache, setCitationCache] = useState<Record<string, CachedCitation>>({})
-  const [loadingCitations, setLoadingCitations] = useState<Set<string>>(new Set())
-  // Full file text keyed by fileId, fetched on demand to render the whole document around the cited span.
-  const [fileTextCache, setFileTextCache] = useState<Record<string, string>>({})
-  const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set())
-  const { language } = useTranslation()
   const t = useT()
 
   // Preprocess content to convert XML citations to markdown links with document:chunk numbering
@@ -47,147 +41,29 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
   const processedContent = preprocessResult.processedText
   const uniqueCitedWorks = preprocessResult.uniqueFileIds
 
-  // Batch function to fetch multiple citations in a single request
-  const fetchCitationsBatch = useCallback(async (citationIds: string[]) => {
-    // Filter out already cached or loading citations
-    const citationsToFetch = citationIds.filter(
-      id => !citationCache[id] && !loadingCitations.has(id)
-    )
+  const {
+    citationCache,
+    loadingCitations,
+    fileTextCache,
+    loadingFiles,
+    fetchCitationsBatch,
+    fetchFileText,
+    getCitedWorkInfo
+  } = useCitations(uniqueCitedWorks)
 
-    if (citationsToFetch.length === 0) {
-      return
-    }
-
-    // Parse citation IDs into (file_id, chunk_index) pairs
-    const citations = citationsToFetch.map(citationId => {
-      const { fileId, chunkIndex } = parseCitationId(citationId)
-      return [fileId, chunkIndex] as [string, number]
-    })
-
-    // Mark all as loading
-    setLoadingCitations(prev => {
-      const newSet = new Set(prev)
-      citationsToFetch.forEach(id => newSet.add(id))
-      return newSet
-    })
-
-    try {
-      const response = await fetch('/api/citations/batch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          language: language.toUpperCase(),
-          citations,
-        }),
-      })
-
-      if (response.ok) {
-        const data: { successes: CitationResponse[], errors: Array<{file_id: string, chunk_index: number, error: string}> } = await response.json()
-
-        // Update cache with successes
-        setCitationCache(prev => {
-          const newCache = { ...prev }
-          data.successes.forEach(citation => {
-            const citationId = formatCitationId(citation.file_id, citation.chunk_index)
-            newCache[citationId] = citation
-          })
-          return newCache
-        })
-
-        // Update cache with errors
-        setCitationCache(prev => {
-          const newCache = { ...prev }
-          data.errors.forEach(error => {
-            const citationId = formatCitationId(error.file_id, error.chunk_index)
-            newCache[citationId] = { error: error.error }
-          })
-          return newCache
-        })
-      } else {
-        // HTTP error - mark all as failed
-        const errorMessage = `${t('citation.fetchFailed')} (${response.status}): ${response.statusText}`
-        console.error(errorMessage)
-        setCitationCache(prev => {
-          const newCache = { ...prev }
-          citationsToFetch.forEach(citationId => {
-            newCache[citationId] = { error: errorMessage }
-          })
-          return newCache
-        })
-      }
-    } catch (error) {
-      // Network error - mark all as failed
-      const errorMessage = `${t('citation.networkError')}: ${error instanceof Error ? error.message : 'Unknown error'}`
-      console.error(errorMessage)
-      setCitationCache(prev => {
-        const newCache = { ...prev }
-        citationsToFetch.forEach(citationId => {
-          newCache[citationId] = { error: errorMessage }
-        })
-        return newCache
-      })
-    } finally {
-      // Clear loading state for all
-      setLoadingCitations(prev => {
-        const newSet = new Set(prev)
-        citationsToFetch.forEach(id => newSet.delete(id))
-        return newSet
-      })
-    }
-  }, [citationCache, loadingCitations, language, t])
-
-  // Fetch the entire file text for a cited work so the sticky popup can render the
-  // full document (no chunk overlap) with the cited span highlighted.
-  const fetchFileText = useCallback(async (fileId: string) => {
-    if (fileTextCache[fileId] || loadingFiles.has(fileId)) return
-
-    // file_info (category/id) comes from any already-loaded chunk for this file.
-    const cached = Object.values(citationCache).find(
-      (value): value is CitationResponse => !('error' in value) && value.file_id === fileId
-    )
-    if (!cached) return
-    const { category, id } = cached.file_info
-
-    setLoadingFiles(prev => new Set(prev).add(fileId))
-    try {
-      const response = await fetch(
-        `/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(id)}?language=${language.toUpperCase()}`
-      )
-      if (!response.ok) {
-        console.error(`${t('citation.fetchFailed')} (${response.status}): ${response.statusText}`)
-        return
-      }
-      const data: LibraryFileResponse = await response.json()
-      setFileTextCache(prev => ({ ...prev, [fileId]: data.content }))
-    } catch (error) {
-      console.error(`${t('citation.networkError')}: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    } finally {
-      setLoadingFiles(prev => {
-        const newSet = new Set(prev)
-        newSet.delete(fileId)
-        return newSet
-      })
-    }
-  }, [fileTextCache, loadingFiles, citationCache, language, t])
-
-  // Prefetch citations for all unique file IDs to get titles immediately
-  useEffect(() => {
-    const citationIds = uniqueCitedWorks.map(fileId => formatCitationId(fileId, 0))
-    fetchCitationsBatch(citationIds)
-  }, [uniqueCitedWorks, fetchCitationsBatch])
+  // Get title for a cited work (from cache if available, otherwise use fileId)
+  const getCitedWorkTitle = useCallback((fileId: string): string => {
+    const fileInfo = getCitedWorkInfo(fileId)
+    if (fileInfo) return fileInfo.file_info.title
+    return fileId
+  }, [getCitedWorkInfo])
 
   const handleCitationHover = useCallback((e: React.MouseEvent<HTMLElement>, citationId: string) => {
     // Don't show hover popup if any citation is sticky
     if (stickyCitation) return
 
     setHoveredCitation(citationId)
-
-    // Fetch citation content if not already cached
     fetchCitationsBatch([citationId])
-
-    // Calculate optimal position to avoid going off-screen
     floatingState.openAtRect(e.currentTarget.getBoundingClientRect())
   }, [stickyCitation, fetchCitationsBatch, floatingState])
 
@@ -220,10 +96,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     e.preventDefault()
     e.stopPropagation()
 
-    // Fetch citation content if not already cached
     fetchCitationsBatch([citationId])
-
-    // Calculate optimal position to avoid going off-screen
     floatingState.openAtRect(e.currentTarget.getBoundingClientRect())
 
     // Toggle sticky state
@@ -240,13 +113,10 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     e.preventDefault()
     e.stopPropagation()
 
-    // Fetch citation content if not already cached
     fetchCitationsBatch([citationId])
-
-    // Always open fullscreen when clicking from citation list
     setStickyCitation(citationId)
     floatingState.openFullscreen()
-    setHoveredCitation(null) // Clear hover when making sticky
+    setHoveredCitation(null)
   }, [fetchCitationsBatch, floatingState])
 
   const handleCloseSticky = useCallback(() => {
@@ -254,17 +124,10 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     floatingState.reset()
   }, [floatingState])
 
-  // Minimize the sticky popup (instead of closing) when clicking outside it. The
-  // popup keeps its state and collapses to a card in the side rail; full close
-  // happens via that card. Clicks landing in any floating popup/card are
-  // exempted automatically by useOutsideMouseDown; citation-link elements are
-  // exempted here.
   const isStickyActive = stickyCitation !== null && !minimized
   const isExemptTarget = useCallback((target: HTMLElement) =>
     (target.closest?.('[data-citation-id]') ?? false), [])
   useOutsideMouseDown(isStickyActive, isExemptTarget, floatingState.minimize)
-
-  const handleToggleFullscreen = floatingState.toggleFullscreen
 
   const getSourceContent = (citationId: string): CitationContentData => {
     const { fileId, chunkIndex } = parseCitationId(citationId)
@@ -274,7 +137,6 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
 
     if (cached) {
       if ('error' in cached) {
-        // This is a cached error
         return {
           title: fileId,
           content: `${t('citation.error')}: ${cached.error}`,
@@ -282,7 +144,6 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
           chunkIndexWithPrefix
         }
       } else {
-        // This is a successful response
         return {
           title: cached.file_info.title,
           content: cached.content,
@@ -309,8 +170,6 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
   }
 
   const getStickyContent = (citationId: string): CitationContentData => (
-    // Reuse the source-content resolution (title, cited chunk, loading/error fallback) and
-    // attach the full file text once it has been fetched for this file.
     { ...getSourceContent(citationId), fullText: fileTextCache[parseCitationId(citationId).fileId] }
   )
 
@@ -352,35 +211,33 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     }
   }), [hoveredCitation, stickyCitation, handleCitationHover, handleCitationClick])
 
-
-  // Get file info for a cited work (from cache if available)
-  const getCitedWorkInfo = useCallback((fileId: string): LibraryFileInfo | null => {
-    // Try to find any cached chunk for this file to get the file info
-    const cachedChunk = Object.entries(citationCache)
-      .find(([key]) => key.startsWith(`${fileId}:`))
-
-    if (cachedChunk && !('error' in cachedChunk[1])) {
-      const citation = cachedChunk[1] as CitationResponse
-      return citation.file_info
-    }
-
-    return null
-  }, [citationCache])
-
-  // Get title for a cited work (from cache if available, otherwise use fileId)
-  const getCitedWorkTitle = useCallback((fileId: string): string => {
-    const fileInfo = getCitedWorkInfo(fileId)
-    if (fileInfo) {
-      return fileInfo.title
-    }
-    return fileId
-  }, [getCitedWorkInfo])
-
   const displayedCitation = stickyCitation || hoveredCitation
   const isSticky = stickyCitation !== null
   const popupData = displayedCitation
     ? (isSticky ? getStickyContent(displayedCitation) : getSourceContent(displayedCitation))
     : null
+
+  // Open-in-library link for the sticky popup
+  const topLink = isSticky && popupData
+    ? ((): React.ReactNode => {
+        const citedWork = getCitedWorkInfo(popupData.fileId)
+        if (!citedWork) return null
+        return (
+          <a
+            href={buildLibraryFilePath(citedWork.file_info)}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation()
+              window.open(buildLibraryFilePath(citedWork.file_info), '_blank', 'noopener,noreferrer')
+            }}
+            title={t('citation.openInLibrary')}
+          >
+            {t('citation.openInLibrary')}
+          </a>
+        )
+      })()
+    : undefined
 
   const answer = (
     <>
@@ -400,126 +257,31 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
           onClose={handleCloseSticky}
           onLoadFullText={isSticky ? () => fetchFileText(popupData.fileId) : undefined}
           isLoadingFullText={isSticky ? loadingFiles.has(popupData.fileId) : false}
-          onToggleFullscreen={isSticky ? handleToggleFullscreen : undefined}
+          onToggleFullscreen={isSticky ? floatingState.toggleFullscreen : undefined}
+          topLink={topLink}
         />
       )}
       <HighlightedMarkdown content={processedContent} properNouns={properNouns} components={components} />
     </>
   )
 
-  const citationList = uniqueCitedWorks.length > 0 && (
-    <>
-      <h3 style={{ marginBottom: '0.75rem' }}>{t('citation.list.title')}</h3>
-      <ul style={{
-        listStyle: 'none',
-        padding: 0,
-        margin: 0
-      }}>
-        {uniqueCitedWorks.map((fileId, index) => {
-          const title = getCitedWorkTitle(fileId)
-          const isLoading = loadingCitations.has(formatCitationId(fileId, 0))
-          const fileInfo = getCitedWorkInfo(fileId)
-
-          const handleLibraryLinkClick = (e: React.MouseEvent<HTMLElement>) => {
-            e.preventDefault()
-            e.stopPropagation()
-            if (fileInfo) {
-              const url = buildLibraryFilePath(fileInfo)
-              window.open(url, '_blank', 'noopener,noreferrer')
-            }
-          }
-
-          return (
-            <li
-              key={fileId}
-              style={{
-                marginBottom: '0.25rem',
-                borderRadius: 'var(--radius-sm)',
-                transition: 'background-color 0.15s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                minWidth: 0
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--color-surface-secondary)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent'
-              }}
-            >
-              <span
-                  style={{
-                    color: 'var(--color-primary-text)',
-                    textDecoration: 'none',
-                    fontSize: 'var(--font-base)',
-                  fontWeight: 400,
-                  cursor: 'pointer',
-                  flex: 1,
-                  minWidth: 0,
-                  wordBreak: 'break-all',
-                  overflowWrap: 'anywhere'
-                }}
-                onClick={(e) => handleCitationListClick(e, formatCitationId(fileId, 0))}
-              >
-                {isLoading ? t('citation.loading') : `${index + 1}. ${title}`}
-              </span>
-              {fileInfo && (
-                <a
-                  href={buildLibraryFilePath(fileInfo)}
-                  onClick={handleLibraryLinkClick}
-                      style={{
-                        color: 'var(--color-citation-lib-link)',
-                        textDecoration: 'none',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                    cursor: 'pointer',
-                    padding: '4px 6px',
-                    borderRadius: 'var(--radius-sm)',
-                    transition: 'background-color 0.15s ease, color 0.15s ease',
-                    flexShrink: 0
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'var(--color-citation-lib-hover)'
-                    e.currentTarget.style.color = 'var(--color-primary-text)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent'
-                    e.currentTarget.style.color = 'var(--color-citation-lib-link)'
-                  }}
-                  title={t('citation.openInLibrary')}
-                  aria-label={t('citation.openInLibrary')}
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                    <polyline points="15 3 21 3 21 9" />
-                    <line x1="10" y1="14" x2="21" y2="3" />
-                  </svg>
-                </a>
-              )}
-            </li>
-          )
-        })}
-      </ul>
-    </>
+  const citationList = (
+    <CitationList
+      uniqueCitedWorks={uniqueCitedWorks}
+      loadingCitations={loadingCitations}
+      getCitedWorkInfo={getCitedWorkInfo}
+      onCitationListClick={handleCitationListClick}
+    />
   )
 
   if (children) {
-    return <div style={{ position: 'relative' }}>{children({ answer, citationList: citationList ?? null })}</div>
+    return <div style={{ position: 'relative' }}>{children({ answer, citationList })}</div>
   }
 
   return (
     <div style={{ position: 'relative' }} data-citation-container>
       {answer}
-      {citationList && (
-        <div style={{
-          marginTop: '1rem',
-          paddingTop: '0.75rem',
-          borderTop: '1px solid var(--color-border-divider)'
-        }}>
-          {citationList}
-        </div>
-      )}
+      {uniqueCitedWorks.length > 0 && citationList}
     </div>
   )
 }
