@@ -1,19 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLoaderData, useRouteLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
-import ReactMarkdown from 'react-markdown'
-import remarkBreaks from 'remark-breaks'
-import remarkGfm from 'remark-gfm'
 import { useTranslation, useT } from './contexts/LanguageContext'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import styles from './LibraryFileViewer.module.css'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
+import HighlightedMarkdown from './components/HighlightedMarkdown'
 import NavButton from './components/NavButton'
+import SelectableAnswer from './components/SelectableAnswer'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
-import { useProperNounSelection } from './hooks/useProperNounSelection'
-import { buildProperNounMatcher } from './utils/properNouns'
-import { rehypeProperNouns } from './utils/rehypeProperNouns'
 import { recordLibraryView } from './utils/libraryRecents'
 import {
   categoryLabel,
@@ -65,17 +61,16 @@ function LibraryFileViewer() {
   const navigate = useAppNavigate()
   const { fileContent, fileTitle, fileId, category, currentId } = useLoaderData() as LoaderData
   const { nodes } = useRouteLoaderData('library-category') as HierarchyResponse
-  const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(fileContent)
   // Static curated list (per language, fast) and the per-file LLM extraction
   // (null = still in flight). We highlight nothing for the first 2s, then fall
   // back to the static list; the LLM result replaces it whenever it arrives.
   const [staticNouns, setStaticNouns] = useState<string[]>([])
   const [llmNouns, setLlmNouns] = useState<string[] | null>(null)
   const [fallbackElapsed, setFallbackElapsed] = useState(false)
-  const properNounMatcher = useMemo(() => {
-    const nouns = llmNouns !== null ? llmNouns : fallbackElapsed ? staticNouns : []
-    return nouns.length > 0 ? buildProperNounMatcher(nouns) : null
-  }, [llmNouns, fallbackElapsed, staticNouns])
+  const properNouns = useMemo(
+    () => (llmNouns !== null ? llmNouns : fallbackElapsed ? staticNouns : []),
+    [llmNouns, fallbackElapsed, staticNouns]
+  )
 
   const catLabel = categoryLabel(category, t)
 
@@ -149,14 +144,9 @@ function LibraryFileViewer() {
       <MinimizedPopupRegion className={styles.measure}>
         <Breadcrumbs crumbs={crumbs} />
 
-          <div ref={answerRef} className="answer" onMouseUp={answerHandlers.onMouseUp} onKeyUp={answerHandlers.onKeyUp} onClick={answerHandlers.onClick}>
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkBreaks]}
-              rehypePlugins={properNounMatcher ? [rehypeProperNouns(properNounMatcher)] : []}
-            >
-              {fileContent}
-            </ReactMarkdown>
-          </div>
+          <SelectableAnswer resetKey={fileContent}>
+            <HighlightedMarkdown content={fileContent} properNouns={properNouns} />
+          </SelectableAnswer>
           <NavButton
             onClick={() => navigate(backPath)}
             label={t('library.backToFiles')}
@@ -164,7 +154,6 @@ function LibraryFileViewer() {
             marginTop="2rem"
           />
       </MinimizedPopupRegion>
-      {selectionUi}
     </>
   )
 }

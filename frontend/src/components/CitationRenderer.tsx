@@ -1,13 +1,10 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
-import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
-import remarkBreaks from 'remark-breaks'
 import { useTranslation, useT } from '../contexts/LanguageContext'
 import type { CitationResponse, LibraryFileInfo, LibraryFileResponse } from '../types/api'
 import { buildLibraryFilePath } from '../utils/library'
-import { buildProperNounMatcher } from '../utils/properNouns'
-import { rehypeProperNouns } from '../utils/rehypeProperNouns'
 import CitationPopup from './CitationPopup'
+import HighlightedMarkdown from './HighlightedMarkdown'
 import { preprocessCitationsForDisplay, formatCitationId, parseCitationId } from '../utils/citations'
 import { calculateFloatingPlacement, type FloatingPosition } from '../utils/floatingPanel'
 
@@ -51,13 +48,6 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
   const preprocessResult = useMemo(() => preprocessCitationsForDisplay(content), [content])
   const processedContent = preprocessResult.processedText
   const uniqueCitedWorks = preprocessResult.uniqueFileIds
-
-  // Trie matcher that highlights proper nouns in the rendered answer. The rehype
-  // plugin skips citation/code nodes, so citation links are unaffected.
-  const properNounMatcher = useMemo(
-    () => (properNouns && properNouns.length > 0 ? buildProperNounMatcher(properNouns) : null),
-    [properNouns]
-  )
 
   // Calculate viewport-aware anchor position for the popup from the citation rect.
   const calculatePopupPosition = useCallback((citationRect: DOMRect): FloatingPosition =>
@@ -438,11 +428,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
           onToggleFullscreen={isSticky ? handleToggleFullscreen : undefined}
         />
       )}
-      <ReactMarkdown
-        remarkPlugins={[remarkBreaks]}
-        rehypePlugins={properNounMatcher ? [rehypeProperNouns(properNounMatcher)] : []}
-        components={components}
-      >{processedContent}</ReactMarkdown>
+      <HighlightedMarkdown content={processedContent} properNouns={properNouns} components={components} />
     </>
   )
 
