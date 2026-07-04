@@ -36,15 +36,16 @@ _FORK_WARM_METHOD_NAMES: list[str] = []
 
 
 def _warm_on_fork(method: _CachedMethodT) -> _CachedMethodT:
-    """Register a DataRepo method to be pre-warmed by ``precompute_for_fork``.
+    """``lru_cache`` a DataRepo method and register it for fork pre-warming.
 
-    Pure registration: returns the method unchanged, so it stacks above an
-    ``lru_cache`` decorator (or a thin wrapper delegating to a cached method)
-    without touching caching semantics. Registering here means a newly added
-    fork-warmed method can't silently fall off a hand-maintained warm list.
+    Applies an unbounded ``lru_cache`` and records the method in
+    ``_FORK_WARM_METHOD_NAMES`` so ``precompute_for_fork`` warms it (and, through
+    that call, everything it transitively pulls). Every fork-warmed method thus
+    caches uniformly under a single decorator, and a newly added one can't
+    silently fall off a hand-maintained warm list.
     """
     _FORK_WARM_METHOD_NAMES.append(method.__name__)
-    return method
+    return cast(_CachedMethodT, functools.lru_cache(maxsize=None)(method))
 
 
 # Ordered newest-to-oldest; earlier refs win when multiple fallbacks contain a hash.
@@ -419,7 +420,6 @@ class DataRepo:
         )
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def _build_readable_localization_maps(
         self,
     ) -> tuple[
@@ -462,7 +462,6 @@ class DataRepo:
         return self._build_readable_localization_maps()[1]
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def build_localization_id_to_title_hash(
         self,
     ) -> dict[id_types.LocalizationId, id_types.TextMapHash]:
@@ -498,7 +497,6 @@ class DataRepo:
         return self._load_excel("BooksCodexExcelConfigData.json")
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def build_book_series_mapping(
         self,
     ) -> dict[id_types.BookSuitId, list[id_types.ReadableFilename]]:
@@ -584,7 +582,6 @@ class DataRepo:
         return self._load_excel("AchievementGoalExcelConfigData.json")
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def build_achievement_section_mapping(
         self,
     ) -> dict[
@@ -617,7 +614,6 @@ class DataRepo:
         return mapping
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def build_talk_group_mapping(
         self,
     ) -> dict[tuple[talk_parsing.TalkGroupType, talk_parsing.TalkGroupId], str]:
@@ -648,7 +644,6 @@ class DataRepo:
         return self._get_talk_parser().coop_story_to_paths
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def build_coop_story_graph_mapping(
         self,
     ) -> dict[id_types.CoopStoryId, coop_graph.CoopStoryGraph]:
@@ -662,7 +657,6 @@ class DataRepo:
         return graphs
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def build_hangout_quest_to_stories(
         self,
     ) -> dict[id_types.QuestId, list[id_types.CoopStoryId]]:
@@ -675,7 +669,6 @@ class DataRepo:
         return {quest_id: sorted(stories) for quest_id, stories in mapping.items()}
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def build_coop_chapter_to_avatar_mapping(
         self,
     ) -> dict[id_types.ChapterId, id_types.AvatarId]:
@@ -686,7 +679,6 @@ class DataRepo:
         }
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def build_avatar_id_to_name_mapping(self) -> dict[id_types.AvatarId, str]:
         """Avatar id -> localized character name (only avatars whose name resolves)."""
         text_map = self.build_text_map_tracker()
@@ -697,7 +689,6 @@ class DataRepo:
         }
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def get_dialog_id_to_content_hash_mapping(
         self,
     ) -> dict[id_types.DialogId, id_types.TextMapHash]:
@@ -708,7 +699,6 @@ class DataRepo:
         }
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def build_quest_mapping(self) -> dict[id_types.QuestId, str]:
         """Build a mapping from quest ID to BinOutput/Quest file path.
 
@@ -832,13 +822,11 @@ class DataRepo:
             return data  # type: ignore[return-value]
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def load_avatar_excel_config_data(self) -> agd_types.AvatarExcelConfigData:
         """Load avatar Excel configuration data."""
         return self._load_excel("AvatarExcelConfigData.json")
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def load_avatar_skill_depot_excel_config_data(
         self,
     ) -> dict[id_types.SkillDepotId, agd_types.AvatarSkillDepotExcelConfigDataItem]:
@@ -850,7 +838,6 @@ class DataRepo:
         )
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def load_avatar_talent_excel_config_data(
         self,
     ) -> dict[id_types.TalentId, agd_types.AvatarTalentExcelConfigDataItem]:
@@ -862,7 +849,6 @@ class DataRepo:
         )
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def load_avatar_skill_excel_config_data(
         self,
     ) -> dict[id_types.SkillId, agd_types.AvatarSkillExcelConfigDataItem]:
@@ -886,7 +872,6 @@ class DataRepo:
         return self._load_excel("FettersExcelConfigData.json")
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def load_animal_codex_excel_config_data(
         self,
     ) -> dict[id_types.AnimalCodexId, agd_types.AnimalCodexExcelConfigDataItem]:
@@ -898,7 +883,6 @@ class DataRepo:
         )
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def load_monster_describe_excel_config_data(
         self,
     ) -> dict[
@@ -912,7 +896,6 @@ class DataRepo:
         )
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def load_monster_title_excel_config_data(
         self,
     ) -> dict[id_types.MonsterTitleId, agd_types.MonsterTitleExcelConfigDataItem]:
@@ -924,7 +907,6 @@ class DataRepo:
         )
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def load_monster_special_name_excel_config_data(
         self,
     ) -> agd_types.MonsterSpecialNameExcelConfigData:
@@ -932,7 +914,6 @@ class DataRepo:
         return self._load_excel("MonsterSpecialNameExcelConfigData.json")
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def load_animal_describe_excel_config_data(
         self,
     ) -> dict[id_types.CreatureDescribeId, agd_types.AnimalDescribeExcelConfigDataItem]:
@@ -944,7 +925,6 @@ class DataRepo:
         )
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def load_main_quest_excel_config_data(
         self,
     ) -> dict[id_types.QuestId, agd_types.MainQuestExcelConfigDataItem]:
@@ -977,13 +957,11 @@ class DataRepo:
         return npc_id_to_name
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def get_npc_id_to_name_mapping(self) -> dict[str, str]:
         """Get cached mapping from NPC ID to name."""
         return self._build_npc_id_to_name(self.build_text_map_tracker())
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def get_npc_id_to_source_name_mapping(self) -> dict[str, str]:
         """NPC ID -> CHS (source) name, for language-independent test/hidden filtering.
 
@@ -992,7 +970,6 @@ class DataRepo:
         return self._build_npc_id_to_name(self.build_source_text_map_tracker())
 
     @_warm_on_fork
-    @functools.lru_cache(maxsize=None)
     def get_dialog_id_to_role_name_hash_mapping(
         self,
     ) -> dict[id_types.DialogId, id_types.TextMapHash]:
