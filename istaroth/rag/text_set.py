@@ -7,11 +7,11 @@ the same underlying text files; a DocumentStoreSet exposes both views.
 """
 
 import functools
-import json
 import pathlib
 from typing import Any
 
 import attrs
+import orjson
 
 from istaroth.agd import localization
 from istaroth.text import manifest as text_manifest
@@ -75,7 +75,7 @@ class TextSet:
         path = self.text_path / "metadata" / "agd" / "hierarchy.json"
         if not path.exists():
             return {}
-        return json.loads(path.read_text(encoding="utf-8"))
+        return orjson.loads(path.read_bytes())
 
     def get_hierarchy_for_category(self, category: str) -> dict[str, Any] | None:
         """Return the pre-baked document hierarchy for a category, or None.

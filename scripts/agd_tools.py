@@ -3,7 +3,6 @@
 
 import functools
 import gc
-import json
 import logging
 import multiprocessing
 import multiprocessing.pool
@@ -17,6 +16,7 @@ from typing import Any, TextIO
 
 import attrs
 import click
+import orjson
 from tabulate import tabulate
 from tqdm import tqdm
 
@@ -355,8 +355,7 @@ def generate_all(
     istaroth_path = pathlib.Path(__file__).parent.parent
     metadata = _generate_metadata(data_repo, istaroth_path)
     metadata_path = stats_dir / "metadata.json"
-    with metadata_path.open("w", encoding="utf-8") as f:
-        json.dump(metadata, f, indent=2)
+    metadata_path.write_bytes(orjson.dumps(metadata, option=orjson.OPT_INDENT_2))
     click.echo(f"Metadata written to {metadata_path}")
 
     total_stats = _GenerationStats(success=0, error=0, skipped=0, issues=0)
@@ -470,16 +469,18 @@ def generate_all(
     # Write unused stats to JSON file
     unused_stats_data = all_tracker_stats.to_dict(scope_trackers)
     unused_stats_path = stats_dir / "unused_stats.json"
-    with unused_stats_path.open("w", encoding="utf-8") as f:
-        json.dump(unused_stats_data, f, indent=2, ensure_ascii=False)
+    unused_stats_path.write_bytes(
+        orjson.dumps(unused_stats_data, option=orjson.OPT_INDENT_2)
+    )
     click.echo(f"Text map usage stats written to {unused_stats_path}")
 
     # Write non-fatal parsing issue counts (by content type) and the full detail
     # list. Counts mirror the summary table's "Issues" column; the detail file
     # mirrors errors.info with one line per issue.
     parsing_issues_path = stats_dir / "parsing_issues.json"
-    with parsing_issues_path.open("w", encoding="utf-8") as f:
-        json.dump(issue_counts, f, indent=2, ensure_ascii=False)
+    parsing_issues_path.write_bytes(
+        orjson.dumps(issue_counts, option=orjson.OPT_INDENT_2)
+    )
     click.echo(f"Parsing issue counts written to {parsing_issues_path}")
 
     if all_parsing_issues:
@@ -533,8 +534,9 @@ def generate_all(
         metadata_dir = output_dir / "metadata" / "agd"
         metadata_dir.mkdir(parents=True, exist_ok=True)
         hierarchy_path = metadata_dir / "hierarchy.json"
-        with hierarchy_path.open("w", encoding="utf-8") as f:
-            json.dump(hierarchies, f, indent=2, ensure_ascii=False)
+        hierarchy_path.write_bytes(
+            orjson.dumps(hierarchies, option=orjson.OPT_INDENT_2)
+        )
         click.echo(f"Document hierarchy written to {hierarchy_path}")
 
     if total_stats.error > 0:

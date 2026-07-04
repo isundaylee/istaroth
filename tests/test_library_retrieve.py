@@ -1,8 +1,8 @@
 """Tests for BM25-only library retrieval mapping."""
 
-import json
 import pathlib
 
+import orjson
 import pytest
 from fastapi import HTTPException
 from langchain_core.documents import Document
@@ -25,7 +25,7 @@ def _create_text_set(tmp_path: pathlib.Path) -> text_set.TextSet:
     )
     manifest_dir = text_path / "manifest"
     manifest_dir.mkdir()
-    (manifest_dir / "test.json").write_text(json.dumps([metadata.to_dict()]))
+    (manifest_dir / "test.json").write_bytes(orjson.dumps([metadata.to_dict()]))
     return text_set.TextSet(text_path=text_path, language=localization.Language.ENG)
 
 

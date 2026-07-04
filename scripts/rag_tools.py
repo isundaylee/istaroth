@@ -3,7 +3,6 @@
 
 import datetime
 import functools
-import json
 import logging
 import os
 import pathlib
@@ -16,6 +15,7 @@ from dataclasses import dataclass
 import anyio
 import attrs
 import click
+import orjson
 import tabulate
 
 # Add the parent directory to Python path to find istaroth module
@@ -132,7 +132,9 @@ def build(
         logger.error("No files found in manifest to process.")
         sys.exit(1)
 
-    metadata = json.loads((text_path / "stats" / "agd" / "metadata.json").read_text())
+    metadata = orjson.loads(
+        (text_path / "stats" / "agd" / "metadata.json").read_bytes()
+    )
 
     match localization.Language(metadata["language"]):
         case localization.Language.CHS:
@@ -204,7 +206,7 @@ def retrieve(
             data["env"] = {
                 k: v for k, v in os.environ.items() if k.startswith("ISTAROTH_")
             }
-            save_path.write_text(json.dumps(data))
+            save_path.write_bytes(orjson.dumps(data))
 
         print(formatted_output)
 
@@ -448,7 +450,9 @@ async def _aeval_fixtures(
             span.set_attribute("fixture.missed", fe.missed)
             span.set_attribute("fixture.n_sources", fe.n_sources)
             span.set_attribute("fixture.n_chunks", fe.n_chunks)
-            span.set_attribute("fixture.first_ranks", json.dumps(fe.first_ranks))
+            span.set_attribute(
+                "fixture.first_ranks", orjson.dumps(fe.first_ranks).decode()
+            )
             results[idx] = fe
 
     async with anyio.create_task_group() as tg:
@@ -949,8 +953,8 @@ def chunk_file(file: pathlib.Path, *, chunk_size_multiplier: float) -> None:
 def diff_retrieval(file1: pathlib.Path, file2: pathlib.Path) -> None:
     """Compare two retrieval result files and show differences."""
     # Load and compare the JSON files
-    json1 = json.loads(file1.read_text())
-    json2 = json.loads(file2.read_text())
+    json1 = orjson.loads(file1.read_bytes())
+    json2 = orjson.loads(file2.read_bytes())
 
     # Create the diff object
     diff = retrieval_diff.compare_retrievals(

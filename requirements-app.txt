@@ -356,6 +356,7 @@ opentelemetry-util-http==0.60b1
 orjson==3.11.7
     # via
     #   chromadb
+    #   istaroth
     #   langgraph-sdk
     #   langsmith
 ormsgpack==1.12.2

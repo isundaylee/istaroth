@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import pathlib
 from typing import Any, TypeAlias
 
 import attrs
+import orjson
 from langchain_core.documents import Document
 from tabulate import tabulate
 
@@ -55,7 +55,7 @@ def _load_retrieval_json(
     file_path: pathlib.Path,
 ) -> tuple[dict[str, Any], types.RetrieveOutput]:
     """Load a retrieval JSON file and return metadata and results."""
-    data = json.loads(file_path.read_text())
+    data = orjson.loads(file_path.read_bytes())
     query_info = data["query"]
     env_info = data["env"]
     results = types.RetrieveOutput.from_dict(data["results"])

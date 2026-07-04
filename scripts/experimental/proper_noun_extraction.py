@@ -3,10 +3,11 @@
 
 import argparse
 import asyncio
-import json
 import logging
 import pathlib
 import sys
+
+import orjson
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent.parent))
 
@@ -39,7 +40,7 @@ def _load_checkpoint(progress_file: pathlib.Path) -> dict[str, list[str]]:
         return completed
     for line in progress_file.read_text().splitlines():
         if line.strip():
-            record = json.loads(line)
+            record = orjson.loads(line)
             completed[record["file"]] = record["nouns"]
     return completed
 
@@ -92,7 +93,7 @@ async def _run(args: argparse.Namespace) -> None:
             return
         async with lock:
             record = {"file": file_str, "nouns": nouns}
-            pf.write(json.dumps(record, ensure_ascii=False) + "\n")
+            pf.write(orjson.dumps(record).decode() + "\n")
             pf.flush()
             completed[file_str] = nouns
             _log.info(

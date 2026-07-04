@@ -1,12 +1,12 @@
 """Shared test fixtures."""
 
-import json
 import os
 import pathlib
 import shutil
 import subprocess
 import sys
 
+import orjson
 import pytest
 
 from istaroth import utils
@@ -130,7 +130,7 @@ def test_text_dir(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
     stats_agd_dir = data_dir / "stats" / "agd"
     stats_agd_dir.mkdir(parents=True)
     (stats_agd_dir / "metadata.json").write_text(
-        json.dumps({"language": localization.Language.CHS.value})
+        orjson.dumps({"language": localization.Language.CHS.value}).decode()
     )
 
     manifest_dir = data_dir / "manifest"
@@ -145,7 +145,7 @@ def test_text_dir(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
         for idx, filename in enumerate(documents.keys())
     ]
     (manifest_dir / "test.json").write_text(
-        json.dumps(manifest_data, indent=2, ensure_ascii=False)
+        orjson.dumps(manifest_data, option=orjson.OPT_INDENT_2).decode()
     )
 
     return data_dir

@@ -1,7 +1,8 @@
 """Generic manifest utilities for text files."""
 
-import json
 import pathlib
+
+import orjson
 
 from istaroth.text import types
 
@@ -16,8 +17,7 @@ def write_manifest(
     manifest_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = manifest_dir / f"{name}.json"
     manifest_data = [item.to_dict() for item in manifest]
-    with manifest_path.open("w", encoding="utf-8") as f:
-        json.dump(manifest_data, f, indent=2, ensure_ascii=False)
+    manifest_path.write_bytes(orjson.dumps(manifest_data, option=orjson.OPT_INDENT_2))
     return manifest_path
 
 
@@ -30,6 +30,6 @@ def load_manifest_dir(
         raise FileNotFoundError(f"Manifest directory not found: {manifest_dir}")
     items: list[types.TextMetadata] = []
     for path in sorted(manifest_dir.glob("*.json")):
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = orjson.loads(path.read_bytes())
         items.extend(types.TextMetadata.from_dict(entry) for entry in data)
     return tuple(items)
