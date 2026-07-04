@@ -1,19 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLoaderData, useRouteLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
-import ReactMarkdown from 'react-markdown'
-import remarkBreaks from 'remark-breaks'
-import remarkGfm from 'remark-gfm'
 import { useTranslation, useT } from './contexts/LanguageContext'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import styles from './LibraryFileViewer.module.css'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
 import NavButton from './components/NavButton'
+import { HighlightedMarkdown } from './components/HighlightedMarkdown'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import { useProperNounSelection } from './hooks/useProperNounSelection'
-import { buildProperNounMatcher } from './utils/properNouns'
-import { rehypeProperNouns } from './utils/rehypeProperNouns'
 import { recordLibraryView } from './utils/libraryRecents'
 import {
   categoryLabel,
@@ -73,9 +69,10 @@ function LibraryFileViewer() {
   const [staticNouns, setStaticNouns] = useState<string[]>([])
   const [llmNouns, setLlmNouns] = useState<string[] | null>(null)
   const [fallbackElapsed, setFallbackElapsed] = useState(false)
-  const properNounMatcher = useMemo(() => {
-    const nouns = llmNouns !== null ? llmNouns : fallbackElapsed ? staticNouns : []
-    return nouns.length > 0 ? buildProperNounMatcher(nouns) : null
+  const properNouns = useMemo(() => {
+    if (llmNouns !== null) return llmNouns
+    if (fallbackElapsed) return staticNouns
+    return []
   }, [llmNouns, fallbackElapsed, staticNouns])
 
   const catLabel = categoryLabel(category, t)
@@ -158,12 +155,7 @@ function LibraryFileViewer() {
         <Breadcrumbs crumbs={crumbs} />
 
           <div ref={answerRef} className="answer" onMouseUp={answerHandlers.onMouseUp} onKeyUp={answerHandlers.onKeyUp} onClick={answerHandlers.onClick}>
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkBreaks]}
-              rehypePlugins={properNounMatcher ? [rehypeProperNouns(properNounMatcher)] : []}
-            >
-              {fileContent}
-            </ReactMarkdown>
+            <HighlightedMarkdown content={fileContent} properNouns={properNouns} />
           </div>
           {previousFile && (
             <NavButton
