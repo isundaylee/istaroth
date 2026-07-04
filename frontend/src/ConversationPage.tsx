@@ -9,7 +9,7 @@ import { copyToClipboard } from './utils/clipboard'
 import QueryForm from './QueryForm'
 import PageShell, { PageSection } from './components/PageShell'
 import Button from './components/Button'
-import Reader from './components/Reader'
+import Reader, { ReaderCitationList, ReaderProvider } from './components/Reader'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import type { ConversationResponse } from './types/api'
 import convStyles from './ConversationPage.module.css'
@@ -154,80 +154,79 @@ function ConversationPage() {
 
       {!submittingNew &&
         <MinimizedPopupRegion className={convStyles.content}>
-          <Reader
-            content={conversation.answer}
-            properNouns={conversation.proper_nouns}
-            citations
-            resetKey={conversation.uuid}
-            sectioned
-            title={t('conversation.answer')}
-            actions={
-              <>
-                <Button onClick={copyCurrentUrl} variant="secondary">
-                  {copyButtonText}
-                </Button>
-                <Button
-                  onClick={exportPageAsPNG}
-                  variant="secondary"
-                  disabled={exporting}
-                >
-                  {exporting ? t('conversation.exporting') : t('conversation.export')}
-                </Button>
-              </>
-            }
-            beforeAnswer={
-              exportedImage && (
-                    <div style={{
-                      marginTop: '1rem',
-                      marginBottom: '1rem',
-                      display: 'flex',
-                      justifyContent: 'center'
-                    }}>
-                      <div style={{
-                        border: '1px solid var(--color-border)',
+          <ReaderProvider content={conversation.answer} properNouns={conversation.proper_nouns} resetKey={conversation.uuid}>
+            <PageSection>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h3>{t('conversation.answer')}</h3>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <Button onClick={copyCurrentUrl} variant="secondary">
+                    {copyButtonText}
+                  </Button>
+                  <Button
+                    onClick={exportPageAsPNG}
+                    variant="secondary"
+                    disabled={exporting}
+                  >
+                    {exporting ? t('conversation.exporting') : t('conversation.export')}
+                  </Button>
+                </div>
+              </div>
+
+              {exportedImage && (
+                <div style={{
+                  marginTop: '1rem',
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  justifyContent: 'center'
+                }}>
+                  <div style={{
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '1rem',
+                    backgroundColor: 'var(--color-surface)',
+                    boxShadow: 'var(--shadow)',
+                    display: 'inline-block',
+                    textAlign: 'center'
+                  }}>
+                    <img
+                      src={exportedImage}
+                      alt={t('conversation.exportImage.alt')}
+                      style={{
+                        width: '50vw',
+                        maxWidth: '400px',
+                        height: 'auto',
                         borderRadius: 'var(--radius-md)',
-                        padding: '1rem',
-                        backgroundColor: 'var(--color-surface)',
-                        boxShadow: 'var(--shadow)',
-                        display: 'inline-block',
-                        textAlign: 'center'
-                      }}>
-                        <img
-                          src={exportedImage}
-                          alt={t('conversation.exportImage.alt')}
-                          style={{
-                            width: '50vw',
-                            maxWidth: '400px',
-                            height: 'auto',
-                            borderRadius: 'var(--radius-md)',
-                            display: 'block',
-                            marginBottom: '0.75rem'
-                          }}
-                        />
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                          <Button
-                            variant="secondary"
-                            onClick={() => {
-                              const link = document.createElement('a')
-                              link.download = `istaroth-conversation-${conversation.short_slug}-${Date.now()}.png`
-                              link.href = exportedImage
-                              link.click()
-                            }}
-                          >
-                            {t('common.download')}
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            onClick={() => setExportedImage(null)}
-                          >
-                            {t('common.close')}
-                          </Button>
-                        </div>
-                      </div>
+                        display: 'block',
+                        marginBottom: '0.75rem'
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          const link = document.createElement('a')
+                          link.download = `istaroth-conversation-${conversation.short_slug}-${Date.now()}.png`
+                          link.href = exportedImage
+                          link.click()
+                        }}
+                      >
+                        {t('common.download')}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => setExportedImage(null)}
+                      >
+                        {t('common.close')}
+                      </Button>
                     </div>
-              )
-            }
-          />
+                  </div>
+                </div>
+              )}
+
+              <Reader />
+            </PageSection>
+            <ReaderCitationList sectioned />
+          </ReaderProvider>
         </MinimizedPopupRegion>}
     </PageShell>
   )

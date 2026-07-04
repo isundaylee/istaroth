@@ -5,7 +5,7 @@ import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import styles from './LibraryFileViewer.module.css'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
 import NavButton from './components/NavButton'
-import Reader from './components/Reader'
+import Reader, { ReaderProvider } from './components/Reader'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
@@ -98,7 +98,9 @@ function LibraryFileViewer() {
   return (
     <MinimizedPopupRegion className={styles.measure}>
       <Breadcrumbs crumbs={crumbs} />
-      <Reader content={fileContent} properNouns={properNouns} gfm />
+      <ReaderProvider content={fileContent} properNouns={properNouns}>
+        <Reader />
+      </ReaderProvider>
       {previousFile && (
         <NavButton
           onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(previousFile.file_id!)}`)}

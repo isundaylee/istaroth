@@ -2,29 +2,8 @@
   position: relative;
 }
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-.actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-
 .citations {
   margin-top: 1rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--color-border-divider);
-}
-
-@media (max-width: 600px) {
-  .header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
 }

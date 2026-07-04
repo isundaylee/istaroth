@@ -1,105 +1,94 @@
 import clsx from 'clsx'
-import ReactMarkdown from 'react-markdown'
-import remarkBreaks from 'remark-breaks'
-import remarkGfm from 'remark-gfm'
-import { useMemo, type ReactNode } from 'react'
+import { createContext, useContext, type MouseEvent, type ReactNode, type RefObject } from 'react'
 import { useProperNounSelection } from '../hooks/useProperNounSelection'
-import { buildProperNounMatcher } from '../utils/properNouns'
-import { rehypeProperNouns } from '../utils/rehypeProperNouns'
 import CitationRenderer from './CitationRenderer'
 import { PageSection } from './PageShell'
 import styles from './Reader.module.css'
 
-interface ReaderProps {
-  content: string
-  properNouns?: string[]
-  citations?: boolean
-  gfm?: boolean
-  resetKey?: unknown
-  answerClassName?: string
-  title?: ReactNode
-  actions?: ReactNode
-  beforeAnswer?: ReactNode
-  sectioned?: boolean
-  citationListClassName?: string
+interface ReaderContextValue {
+  answer: ReactNode
+  citationList: ReactNode
+  selectionUi: ReactNode
+  answerRef: RefObject<HTMLDivElement>
+  answerHandlers: {
+    onMouseUp: () => void
+    onKeyUp: () => void
+    onClick: (event: MouseEvent<HTMLDivElement>) => void
+  }
 }
 
-function Reader({
-  content,
-  properNouns,
-  citations = false,
-  gfm = false,
-  resetKey = content,
-  answerClassName,
-  title,
-  actions,
-  beforeAnswer,
-  sectioned = false,
-  citationListClassName
-}: ReaderProps) {
+const ReaderContext = createContext<ReaderContextValue | null>(null)
+
+function useReaderContext(): ReaderContextValue {
+  const context = useContext(ReaderContext)
+  if (!context) {
+    throw new Error('Reader components must be rendered inside ReaderProvider')
+  }
+  return context
+}
+
+interface ReaderProviderProps {
+  content: string
+  properNouns?: string[]
+  resetKey?: unknown
+  children: ReactNode
+}
+
+export function ReaderProvider({ content, properNouns, resetKey = content, children }: ReaderProviderProps) {
   const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(resetKey)
-  const properNounMatcher = useMemo(
-    () => (!citations && properNouns && properNouns.length > 0 ? buildProperNounMatcher(properNouns) : null),
-    [citations, properNouns]
+
+  return (
+    <CitationRenderer content={content} properNouns={properNouns}>
+      {({ answer, citationList }) => (
+        <ReaderContext.Provider value={{ answer, citationList, selectionUi, answerRef, answerHandlers }}>
+          {children}
+        </ReaderContext.Provider>
+      )}
+    </CitationRenderer>
   )
-  const remarkPlugins = gfm ? [remarkGfm, remarkBreaks] : [remarkBreaks]
-  const render = ({ answer, citationList }: { answer: ReactNode; citationList: ReactNode }) => {
-    const header = (title || actions) && (
-      <div className={styles.header}>
-        {title && <h3>{title}</h3>}
-        {actions && <div className={styles.actions}>{actions}</div>}
-      </div>
-    )
-    const answerBlock = (
-      <>
-        {header}
-        {beforeAnswer}
-        <div
-          ref={answerRef}
-          className={clsx('answer', answerClassName)}
-          onMouseUp={answerHandlers.onMouseUp}
-          onKeyUp={answerHandlers.onKeyUp}
-          onClick={answerHandlers.onClick}
-        >
-          {answer}
-        </div>
-      </>
-    )
-    return (
-      <div className={styles.root}>
-        {sectioned ? <PageSection>{answerBlock}</PageSection> : answerBlock}
-        {citationList && (
-          <div
-            data-citation-container
-            className={clsx(!sectioned && styles.citations, citationListClassName)}
-          >
-            {sectioned ? <PageSection>{citationList}</PageSection> : citationList}
-          </div>
-        )}
-        {selectionUi}
-      </div>
-    )
-  }
+}
 
-  if (citations) {
-    return (
-      <CitationRenderer content={content} properNouns={properNouns}>
-        {({ answer, citationList }) => render({ answer, citationList })}
-      </CitationRenderer>
-    )
-  }
+interface ReaderProps {
+  answerClassName?: string
+}
 
-  return render({
-    answer: (
-      <ReactMarkdown
-        remarkPlugins={remarkPlugins}
-        rehypePlugins={properNounMatcher ? [rehypeProperNouns(properNounMatcher)] : []}
+function Reader({ answerClassName }: ReaderProps) {
+  const { answer, selectionUi, answerRef, answerHandlers } = useReaderContext()
+
+  return (
+    <div className={styles.root}>
+      <div
+        ref={answerRef}
+        className={clsx('answer', answerClassName)}
+        onMouseUp={answerHandlers.onMouseUp}
+        onKeyUp={answerHandlers.onKeyUp}
+        onClick={answerHandlers.onClick}
       >
-        {content}
-      </ReactMarkdown>
-    ),
-    citationList: null
-  })
+        {answer}
+      </div>
+      {selectionUi}
+    </div>
+  )
+}
+
+interface ReaderCitationListProps {
+  className?: string
+  sectioned?: boolean
+}
+
+export function ReaderCitationList({ className, sectioned = false }: ReaderCitationListProps) {
+  const { citationList } = useReaderContext()
+
+  if (!citationList) return null
+
+  return (
+    <div
+      data-citation-container
+      className={clsx(!sectioned && styles.citations, className)}
+    >
+      {sectioned ? <PageSection>{citationList}</PageSection> : citationList}
+    </div>
+  )
 }
 
 export default Reader

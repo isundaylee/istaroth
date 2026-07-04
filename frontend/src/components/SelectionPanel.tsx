@@ -6,7 +6,7 @@ import { AppLink } from './AppLink'
 import { FloatingPanel } from './FloatingPanel'
 import panelStyles from './FloatingPanel.module.css'
 import queryProgressStyles from './QueryProgress.module.css'
-import Reader from './Reader'
+import Reader, { ReaderCitationList, ReaderProvider } from './Reader'
 import selStyles from './SelectionPanel.module.css'
 import QueryProgress from './QueryProgress'
 
@@ -91,14 +91,10 @@ function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind:
       )}
       {panel.error && <p className={selStyles.error}>{panel.error}</p>}
       {panel.answer && (
-        <Reader
-          content={panel.answer}
-          properNouns={panel.properNouns}
-          citations
-          resetKey={panel.answer}
-          answerClassName={selStyles.answer}
-          citationListClassName={selStyles.citations}
-        />
+        <ReaderProvider content={panel.answer} properNouns={panel.properNouns} resetKey={panel.answer}>
+          <Reader answerClassName={selStyles.answer} />
+          <ReaderCitationList className={selStyles.citations} />
+        </ReaderProvider>
       )}
     </>
   )

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
+import remarkGfm from 'remark-gfm'
 import { useTranslation, useT } from '../contexts/LanguageContext'
 import type { CitationResponse, LibraryFileInfo, LibraryFileResponse } from '../types/api'
 import { buildLibraryFilePath } from '../utils/library'
@@ -439,7 +440,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
         />
       )}
       <ReactMarkdown
-        remarkPlugins={[remarkBreaks]}
+        remarkPlugins={[remarkGfm, remarkBreaks]}
         rehypePlugins={properNounMatcher ? [rehypeProperNouns(properNounMatcher)] : []}
         components={components}
       >{processedContent}</ReactMarkdown>
