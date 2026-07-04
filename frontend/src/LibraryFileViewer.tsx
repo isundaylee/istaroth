@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect } from 'react'
 import { useLoaderData, useRouteLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
-import { useTranslation, useT } from './contexts/LanguageContext'
+import { useT } from './contexts/LanguageContext'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import styles from './LibraryFileViewer.module.css'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
@@ -11,6 +11,7 @@ import { translate } from './i18n'
 import { ApiError, fetchLibraryFile } from './utils/api'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
+import { useLibraryProperNouns } from './hooks/useLibraryProperNouns'
 import { recordLibraryView } from './utils/libraryRecents'
 import {
   categoryLabel,
@@ -18,11 +19,7 @@ import {
   hierarchyCrumbs,
   nodeLabel,
 } from './utils/hierarchy'
-import type {
-  HierarchyResponse,
-  LibraryFileResponse,
-  ProperNounsResponse,
-} from './types/api'
+import type { HierarchyResponse, LibraryFileResponse } from './types/api'
 
 interface LoaderData {
   fileContent: string
@@ -59,20 +56,10 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
 
 function LibraryFileViewer() {
   const t = useT()
-  const { language } = useTranslation()
   const navigate = useAppNavigate()
   const { fileContent, fileTitle, fileId, category, currentId } = useLoaderData() as LoaderData
   const { nodes } = useRouteLoaderData('library-category') as HierarchyResponse
-  // Static curated list (per language, fast) and the per-file LLM extraction
-  // (null = still in flight). We highlight nothing for the first 2s, then fall
-  // back to the static list; the LLM result replaces it whenever it arrives.
-  const [staticNouns, setStaticNouns] = useState<string[]>([])
-  const [llmNouns, setLlmNouns] = useState<string[] | null>(null)
-  const [fallbackElapsed, setFallbackElapsed] = useState(false)
-  const properNouns = useMemo(
-    () => (llmNouns !== null ? llmNouns : fallbackElapsed ? staticNouns : []),
-    [llmNouns, fallbackElapsed, staticNouns]
-  )
+  const properNouns = useLibraryProperNouns(category, fileId)
 
   const catLabel = categoryLabel(category, t)
 
@@ -100,46 +87,6 @@ function LibraryFileViewer() {
   useEffect(() => {
     recordLibraryView({ category, fileId: currentId, title: fileTitle })
   }, [category, currentId, fileTitle])
-
-  // Static curated list: fetched once per language, reused across files.
-  useEffect(() => {
-    let cancelled = false
-    fetch(`/api/library/proper-nouns?language=${encodeURIComponent(language.toUpperCase())}`)
-      .then((res) => (res.ok ? (res.json() as Promise<ProperNounsResponse>) : null))
-      .then((data) => {
-        if (!cancelled) setStaticNouns(data?.nouns ?? [])
-      })
-      .catch(() => {
-        if (!cancelled) setStaticNouns([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [language])
-
-  // Per-file LLM extraction: show nothing for 2s, then fall back to the static
-  // list; replace with the LLM result whenever it arrives. On failure we leave
-  // llmNouns null so the static fallback stays.
-  useEffect(() => {
-    let cancelled = false
-    setLlmNouns(null)
-    setFallbackElapsed(false)
-    const timer = window.setTimeout(() => {
-      if (!cancelled) setFallbackElapsed(true)
-    }, 2000)
-    fetch(
-      `/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(fileId)}/proper-nouns?language=${encodeURIComponent(language.toUpperCase())}`
-    )
-      .then((res) => (res.ok ? (res.json() as Promise<ProperNounsResponse>) : null))
-      .then((data) => {
-        if (!cancelled && data) setLlmNouns(data.nouns)
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-      window.clearTimeout(timer)
-    }
-  }, [language, category, fileId])
 
   return (
     <>
