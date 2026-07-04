@@ -7,7 +7,6 @@ const G_CHORD_TIMEOUT_MS = 1500
 
 const G_CHORD_ROUTES: Record<string, string> = {
   q: '/',
-  r: '/retrieve',
   l: '/library',
   h: '/history'
 }

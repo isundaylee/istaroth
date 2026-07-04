@@ -10,6 +10,11 @@ export function useCloseSidebarDrawer() {
   return useContext(CloseSidebarDrawerContext)
 }
 
+const OpenSidebarDrawerContext = createContext<() => void>(() => {})
+export function useOpenSidebarDrawer() {
+  return useContext(OpenSidebarDrawerContext)
+}
+
 interface PageShellProps {
   children: ReactNode
   // When true, the body has no padding and its children are full-width sections
@@ -24,15 +29,17 @@ interface PageShellProps {
   sidebar?: ReactNode
   // Label for the mobile drawer toggle button (also its accessible name).
   sidebarLabel?: ReactNode
+  hideMobileSidebarToggle?: boolean
 }
 
 // The connected one-card page frame: the embedded nav strip and the page content
 // share a single hairline-bordered surface (see the home page). Pages render
 // their content as children instead of their own <Navigation> + card; the
 // enclosing <main> is owned by RootLayout.
-function PageShell({ children, flush = false, sidebar, sidebarLabel }: PageShellProps) {
+function PageShell({ children, flush = false, sidebar, sidebarLabel, hideMobileSidebarToggle = false }: PageShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
+  const openDrawer = useCallback(() => setDrawerOpen(true), [])
 
   // Close the drawer on Escape while open.
   useEffect(() => {
@@ -59,19 +66,23 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel }: PageShell
               {sidebar}
             </CloseSidebarDrawerContext.Provider>
           </aside>
-          <div className={styles.body}>
-            <div className={styles.drawerToggleBar}>
-              <button
-                type="button"
-                className={styles.drawerToggle}
-                onClick={() => setDrawerOpen(true)}
-                aria-expanded={drawerOpen}
-              >
-                <span aria-hidden>☰</span>
-                {sidebarLabel}
-              </button>
-            </div>
+          <div className={clsx(styles.body, hideMobileSidebarToggle && styles.bodyNoDrawerToggle)}>
+            {!hideMobileSidebarToggle && (
+              <div className={styles.drawerToggleBar}>
+                <button
+                  type="button"
+                  className={styles.drawerToggle}
+                  onClick={openDrawer}
+                  aria-expanded={drawerOpen}
+                >
+                  <span aria-hidden>☰</span>
+                  {sidebarLabel}
+                </button>
+              </div>
+            )}
+            <OpenSidebarDrawerContext.Provider value={openDrawer}>
             {children}
+            </OpenSidebarDrawerContext.Provider>
           </div>
         </div>
       </div>

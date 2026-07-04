@@ -106,6 +106,10 @@
   background: var(--color-surface-hover);
 }
 
+.bodyNoDrawerToggle {
+  padding-top: 1.5rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rail,
   .backdrop {
@@ -169,6 +173,10 @@
 
   .body {
     padding: 1rem;
+  }
+
+  .bodyNoDrawerToggle {
+    padding-top: 1rem;
   }
 
   .drawerToggleBar {

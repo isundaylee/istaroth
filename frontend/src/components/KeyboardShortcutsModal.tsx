@@ -43,7 +43,6 @@ function KeyboardShortcutsModal({ open, onClose }: KeyboardShortcutsModalProps) 
     { keys: ['/'], label: t('keyboard.focusSearch') },
     { keys: ['Esc'], label: t('keyboard.deselect') },
     { keys: ['g', 'q'], label: t('keyboard.goQuery') },
-    { keys: ['g', 'r'], label: t('keyboard.goRetrieve') },
     { keys: ['g', 'l'], label: t('keyboard.goLibrary') },
     { keys: ['g', 'h'], label: t('keyboard.goHistory') },
     { keys: ['f'], label: t('keyboard.citationFullscreen') },
