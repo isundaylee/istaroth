@@ -62,6 +62,7 @@
   display: flex;
   gap: 0.55rem;
   overflow-x: auto;
+  overflow-y: hidden;
   padding-bottom: 0.15rem;
   scrollbar-width: thin;
 }
