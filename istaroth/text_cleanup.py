@@ -13,6 +13,15 @@ from istaroth.agd import localization
 # branch, the female branch is matched but discarded.
 _SEXPRO_PATTERN = re.compile(r"\{(?:PLAYER|MATE)AVATAR#SEXPRO\[([^|\]]+)\|[^\]]+\]\}")
 
+# Hardcoded names for ``#{REALNAME[ID(n)|...]}`` placeholders — player-chosen
+# names for specific characters that the game swaps in at runtime. Raise on
+# unmapped IDs so future additions surface instead of silently leaking.
+_REALNAME_MAP: dict[int, dict[localization.Language, str]] = {
+    1: {localization.Language.CHS: "流浪者", localization.Language.ENG: "Wanderer"},
+    2: {localization.Language.CHS: "小龙", localization.Language.ENG: "Little One"},
+}
+_REALNAME_PATTERN = re.compile(r"#\{REALNAME\[ID\((\d+)\)[^\]]*\]\}")
+
 
 def resolve_sexpro(text: str, resolve_token: Callable[[str], str]) -> str:
     """Replace SEXPRO placeholders with their first (male-player) branch's text.
@@ -45,6 +54,12 @@ def clean_text_markers(text: str, language: localization.Language) -> str:
 
     # Replace {M#option1}{F#option2} with M option
     text = re.sub(r"\{M#([^}]+)\}\{F#[^}]+\}", r"\1", text)
+
+    # Replace #{REALNAME[ID(n)|...]} with the hardcoded character name (raises
+    # on an unmapped ID so new characters surface instead of silently leaking).
+    text = _REALNAME_PATTERN.sub(
+        lambda m: _REALNAME_MAP[int(m.group(1))][language], text
+    )
 
     # Strip <center>/<right> structural wrappers, keeping their content
     text = re.sub(r"<center>(.*?)</center>", r"\1", text, flags=re.DOTALL)

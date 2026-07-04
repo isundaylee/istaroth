@@ -148,3 +148,38 @@ def test_newline_normalization():
     text = "Line 1\\nLine 2\\nLine 3"
     result = text_cleanup.clean_text_markers(text, localization.Language.ENG)
     assert result == "Line 1\nLine 2\nLine 3"
+
+
+def test_realname_speaker_label():
+    """#{REALNAME[...]}: speaker prefix resolves to the character name."""
+    text = "#{REALNAME[ID(1)|HOSTONLY(true)]}: The text after the colon."
+    result = text_cleanup.clean_text_markers(text, localization.Language.ENG)
+    assert result == "Wanderer: The text after the colon."
+
+
+def test_realname_speaker_label_chinese():
+    """#{REALNAME[...]}: speaker prefix resolves in Chinese."""
+    text = "#{REALNAME[ID(1)|HOSTONLY(true)]}: 在经历那么多次徒劳之后，你应该明白吧？"
+    result = text_cleanup.clean_text_markers(text, localization.Language.CHS)
+    assert result == "流浪者: 在经历那么多次徒劳之后，你应该明白吧？"
+
+
+def test_realname_inline():
+    """#{REALNAME[...]} inline resolves to the character name."""
+    text = "#{REALNAME[ID(2)|SHOWHOST(true)]}摆出了进攻的架势！"
+    result = text_cleanup.clean_text_markers(text, localization.Language.CHS)
+    assert result == "小龙摆出了进攻的架势！"
+
+
+def test_realname_standalone():
+    """Bare #{REALNAME[...]} used as a speaker name resolves to the name."""
+    text = "#{REALNAME[ID(2)|SHOWHOST(true)]}"
+    result = text_cleanup.clean_text_markers(text, localization.Language.ENG)
+    assert result == "Little One"
+
+
+def test_realname_unmapped_id_raises():
+    """An unmapped ID(n) raises so future additions don't silently leak."""
+    text = "#{REALNAME[ID(99)|HOSTONLY(true)]}: something"
+    with pytest.raises(KeyError):
+        text_cleanup.clean_text_markers(text, localization.Language.ENG)
