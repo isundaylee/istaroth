@@ -1,71 +1,14 @@
-/* The library's two-pane reading room. On desktop the library breaks out of the
- * app-wide 800px cap into a wider frame: a persistent navigation rail on the
- * left and the page content (browse grid or file reader) as the Folio on the
- * right. Below the breakpoint it collapses to a single column and the content
- * flows exactly as every other page, so phones/tablets keep today's layout. */
+/* Library-specific rail content for PageShell's wide two-pane variant: the
+ * category-list rail shown at the bare /library root. The frame, split, and
+ * responsive behavior live in PageShell; the in-category tree rail is styled in
+ * LibraryIndex.module.css. */
 
-.frame {
-  /* Mobile/tablet: sit inside the normal 800px column like any other page. */
-}
-
-.panel {
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--panel-bg);
-}
-
-.split {
-  /* Single column until the rail earns its keep. */
-}
-
-.rail {
-  display: none;
-}
-
-.folio {
-  padding: 1.5rem;
-  min-width: 0;
-}
-
-@media (min-width: 1000px) {
-  /* Break out of the centered 800px parent onto a viewport-centered wide frame. */
-  .frame {
-    width: min(1320px, calc(100vw - 30px));
-    position: relative;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  .split {
-    display: grid;
-    grid-template-columns: minmax(240px, 280px) 1fr;
-    align-items: start;
-  }
-
-  .rail {
-    display: block;
-    border-right: 1px solid var(--color-border);
-    padding: 1.25rem 0.9rem 2rem;
-    /* Track the viewport so the index stays put while the Folio scrolls. The
-       panel is not a scroll container, so sticky resolves against the page. */
-    position: sticky;
-    top: 15px;
-    align-self: start;
-    max-height: calc(100vh - 30px);
-    overflow: auto;
-  }
-
-  .folio {
-    padding: 1.75rem 2rem;
-  }
-}
-
+/* Match the in-category rail's back-link label (LibraryIndex .back): same small
+   muted text, no letter-spacing, same inset. */
 .railHead {
+  margin: 0 0.3rem 0.85rem;
   font-size: var(--font-xs);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--color-text-muted);
-  margin: 0 0.4rem 0.75rem;
 }
 
 .railNav {
@@ -96,18 +39,4 @@
   border-left-color: var(--color-primary-fill);
   color: var(--color-primary-text);
   font-weight: 600;
-}
-
-/* Phones: run the panel edge-to-edge (cancel .app's 10px padding, drop the
-   border/radius) so it reads as the page, matching the old PageShell. */
-@media (max-width: 600px) {
-  .panel {
-    margin: -10px -10px 0;
-    border: 0;
-    border-radius: 0;
-  }
-
-  .folio {
-    padding: 1rem;
-  }
 }

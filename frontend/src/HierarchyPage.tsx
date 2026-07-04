@@ -92,6 +92,8 @@ function HierarchyPage() {
         </Card>
       ) : (
         <CardGrid>
+          {/* agd_talk_group merges ActivityGroup + NpcGroup id spaces, which
+              overlap, so fileId/key can repeat: disambiguate keys by index. */}
           {searchResults.map((entry, index) => (
             <NavCard
               key={`${entry.fileId}#${index}`}

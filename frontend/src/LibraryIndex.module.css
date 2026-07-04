@@ -55,7 +55,6 @@
 .children {
   margin-left: 0.75rem;
   padding-left: 0.15rem;
-  border-left: 1px solid var(--color-border-light);
 }
 
 .row {
@@ -72,6 +71,14 @@
 .row:hover {
   background: var(--color-surface-hover);
   color: var(--color-text);
+}
+
+/* Leaves have no caret, so indent them by the caret slot (its width + the row
+   gap) to align with the group labels above them. Use a margin, not padding, so
+   the empty caret slot stays outside the row's highlight/hover background. */
+.leaf {
+  margin-left: calc(0.85rem + 0.35rem);
+  width: auto;
 }
 
 .caret {
@@ -107,13 +114,6 @@
   color: var(--color-text-muted);
 }
 
-.dot {
-  flex: none;
-  font-size: 0.6rem;
-  line-height: 1.9;
-  color: var(--color-text-muted);
-}
-
 .context {
   display: block;
   margin-top: 0.1rem;
@@ -121,16 +121,14 @@
   color: var(--color-text-muted);
 }
 
-/* The current position is marked by the color highlight alone. */
-.current,
-.current:hover {
+/* The current position is marked by the color highlight alone. Scoped under
+   .tree so it outranks the `.tree button` reset (which resets color/background/
+   font on the leaf-row <button> and would otherwise win on specificity). */
+.tree .current,
+.tree .current:hover {
   background: var(--color-primary-tint);
   color: var(--color-primary-text);
   font-weight: 600;
-}
-
-.current .dot {
-  color: var(--color-primary-fill);
 }
 
 .empty {

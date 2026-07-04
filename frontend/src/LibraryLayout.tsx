@@ -1,6 +1,6 @@
 import { Outlet, useParams, useRouteLoaderData } from 'react-router-dom'
 import clsx from 'clsx'
-import Navigation from './components/Navigation'
+import PageShell from './components/PageShell'
 import { AppLink } from './components/AppLink'
 import LibraryIndex from './LibraryIndex'
 import { useT } from './contexts/LanguageContext'
@@ -8,10 +8,10 @@ import { categoryLabel } from './utils/hierarchy'
 import styles from './LibraryLayout.module.css'
 import type { HierarchyResponse, LibraryCategoriesResponse } from './types/api'
 
-// The connected two-pane frame for the whole library section: the embedded nav
-// strip, the persistent navigation rail, and the Folio (child routes via
-// <Outlet/>) share one hairline-bordered panel. The rail lists the categories
-// and highlights the current one; later stages deepen it into the full tree.
+// Supplies the library's navigation rail to PageShell's wide two-pane variant:
+// the current category's tree inside a category, or the category list at the
+// bare /library root. The frame, split, and responsive behavior live in
+// PageShell; only the rail content here is library-specific.
 function LibraryLayout() {
   const t = useT()
   const params = useParams()
@@ -23,42 +23,35 @@ function LibraryLayout() {
   const activeFileId = params.id ? parseInt(params.id, 10) : null
   const activeBrowseKeys = (params['*'] ?? '').split('/').filter(Boolean)
 
+  const sidebar =
+    category && tree ? (
+      <LibraryIndex
+        category={category}
+        nodes={tree.nodes}
+        activeFileId={activeFileId}
+        activeBrowseKeys={activeBrowseKeys}
+      />
+    ) : (
+      <>
+        <p className={styles.railHead}>{t('library.title')}</p>
+        <nav className={styles.railNav}>
+          {categories.map((value) => (
+            <AppLink
+              key={value}
+              to={`/library/${encodeURIComponent(value)}`}
+              className={clsx(styles.railItem, value === category && styles.railItemActive)}
+            >
+              {categoryLabel(value, t)}
+            </AppLink>
+          ))}
+        </nav>
+      </>
+    )
+
   return (
-    <div className={styles.frame}>
-      <div className={styles.panel}>
-        <Navigation embedded />
-        <div className={styles.split}>
-          <aside className={styles.rail}>
-            {category && tree ? (
-              <LibraryIndex
-                category={category}
-                nodes={tree.nodes}
-                activeFileId={activeFileId}
-                activeBrowseKeys={activeBrowseKeys}
-              />
-            ) : (
-              <>
-                <p className={styles.railHead}>{t('library.title')}</p>
-                <nav className={styles.railNav}>
-                  {categories.map((value) => (
-                    <AppLink
-                      key={value}
-                      to={`/library/${encodeURIComponent(value)}`}
-                      className={clsx(styles.railItem, value === category && styles.railItemActive)}
-                    >
-                      {categoryLabel(value, t)}
-                    </AppLink>
-                  ))}
-                </nav>
-              </>
-            )}
-          </aside>
-          <div className={styles.folio}>
-            <Outlet />
-          </div>
-        </div>
-      </div>
-    </div>
+    <PageShell sidebar={sidebar}>
+      <Outlet />
+    </PageShell>
   )
 }
 

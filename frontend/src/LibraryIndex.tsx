@@ -32,6 +32,10 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
   const navigate = useAppNavigate()
   const [query, setQuery] = React.useState('')
 
+  // Only reserve the caret-slot indent for leaves when the category actually has
+  // groups; a flat leaf list (no carets anywhere) should not be indented.
+  const hasGroups = nodes.some((node) => node.children != null)
+
   // The group path-keys that must be open to reveal the current position: every
   // ancestor of the open file, or the browsed group's own trail.
   const activePath = activeFileId != null ? findLeafPath(nodes, activeFileId) : null
@@ -71,8 +75,9 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
     <ul className={parentPath ? styles.children : styles.list}>
       {items.map((node, index) => {
         const pathKey = parentPath ? `${parentPath}/${node.key}` : node.key
-        // Flat leaf categories (e.g. talk groups) can repeat node.key/file_id, so
-        // disambiguate the React key by sibling index; pathKey still drives state.
+        // agd_talk_group merges two id spaces (ActivityGroup + NpcGroup) that
+        // overlap, so node.key/file_id can repeat across siblings; disambiguate
+        // the React key by sibling index. pathKey still drives expand state.
         const rowKey = `${pathKey}#${index}`
         if (isLeaf(node)) {
           const current = node.file_id === activeFileId
@@ -80,10 +85,9 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
             <li key={rowKey}>
               <button
                 ref={current ? (el) => (currentRef.current = el) : undefined}
-                className={clsx(styles.row, current && styles.current)}
+                className={clsx(styles.row, hasGroups && styles.leaf, current && styles.current)}
                 onClick={() => openLeaf(node.file_id!)}
               >
-                <span className={styles.dot}>{current ? '●' : '○'}</span>
                 <span className={styles.label}>{nodeLabel(node) || t('library.noFileName')}</span>
               </button>
             </li>
@@ -150,7 +154,6 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
                   className={clsx(styles.row, entry.fileId === activeFileId && styles.current)}
                   onClick={() => openLeaf(entry.fileId)}
                 >
-                  <span className={styles.dot}>{entry.fileId === activeFileId ? '●' : '○'}</span>
                   <span className={styles.label}>
                     {entry.title || t('library.noFileName')}
                     {entry.context && <span className={styles.context}>{entry.context}</span>}

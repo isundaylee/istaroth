@@ -40,6 +40,51 @@
   margin-bottom: 0;
 }
 
+/* Wide two-pane variant (opt-in via the `sidebar` prop): a persistent sidebar
+   column beside the main body, breaking out of the app-wide 800px cap on
+   desktop. Below the breakpoint the split collapses to one column and the rail
+   is hidden, so the page reads exactly like the default single-pane shell (and
+   inherits the phone edge-to-edge treatment from `.panel` above). */
+.rail {
+  display: none;
+}
+
+@media (min-width: 1000px) {
+  /* Break out of the centered 800px parent onto a viewport-centered frame. Sized
+     for the reader (rail + one prose column) so a lone reading measure doesn't
+     leave a large empty gutter; the browse grid uses the same width. */
+  .wide {
+    position: relative;
+    left: 50%;
+    width: min(1140px, calc(100vw - 30px));
+    transform: translateX(-50%);
+  }
+
+  .split {
+    display: grid;
+    grid-template-columns: minmax(280px, 320px) 1fr;
+    align-items: start;
+  }
+
+  .split > .body {
+    /* Let the main column shrink instead of overflowing on long content. */
+    min-width: 0;
+  }
+
+  .rail {
+    display: block;
+    padding: 1.25rem 0.9rem 2rem;
+    border-right: 1px solid var(--color-border);
+    /* Track the viewport so the sidebar stays put while the body scrolls; the
+       panel is not a scroll container, so sticky resolves against the page. */
+    position: sticky;
+    top: 15px;
+    align-self: start;
+    max-height: calc(100vh - 30px);
+    overflow: auto;
+  }
+}
+
 /* Phones: run the card fully edge-to-edge (negative margins cancel .app's 10px
    padding on the top + sides, border/radius dropped) so it reads as the page,
    matching the home page. */
