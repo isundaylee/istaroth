@@ -69,7 +69,7 @@ function LibraryEntry() {
     if (results.length === 0) {
       return (
         <Card style={{ margin: 0 }}>
-          <p>{t('retrieve.noResults')}</p>
+          <p>{t('library.search.noResults')}</p>
         </Card>
       )
     }
@@ -113,18 +113,18 @@ function LibraryEntry() {
           value={formParams.query}
           onChange={(query) => setFormParams({ ...formParams, query })}
           onSubmit={submit}
-          placeholder={t('retrieve.placeholder')}
+          placeholder={t('library.search.placeholder')}
           disabled={loading}
           controls={
             <Toggle
               value={formParams.semantic ? 'semantic' : 'bm25'}
               onChange={(mode) => setFormParams({ ...formParams, semantic: mode === 'semantic' })}
               options={[
-                { value: 'bm25', label: t('retrieve.searchModeBm25') },
-                { value: 'semantic', label: t('retrieve.searchModeSemantic') },
+                { value: 'bm25', label: t('library.search.searchModeBm25') },
+                { value: 'semantic', label: t('library.search.searchModeSemantic') },
               ]}
               disabled={loading}
-              aria-label={t('retrieve.searchMode')}
+              aria-label={t('library.search.searchMode')}
             />
           }
           actions={
@@ -133,7 +133,7 @@ function LibraryEntry() {
               variant="submit"
               disabled={loading || (Boolean(formParams.query.trim()) && formParams.query.trim() === submittedParams?.query && formParams.semantic === submittedParams?.semantic)}
             >
-              {loading ? t('retrieve.submitting') : t('retrieve.submitButton')}
+              {loading ? t('library.search.submitting') : t('library.search.submitButton')}
             </Button>
           }
         />

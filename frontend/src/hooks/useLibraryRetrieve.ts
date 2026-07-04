@@ -81,11 +81,11 @@ export function useLibraryRetrieve() {
       if (res.ok) {
         setResults((data as LibraryRetrieveResponse).results)
       } else {
-        setError((data as { error?: string }).error || t('retrieve.errors.unknown'))
+        setError((data as { error?: string }).error || t('library.search.errors.unknown'))
       }
     } catch {
       if (activeRequestIdRef.current === requestId) {
-        setError(t('retrieve.errors.noConnection'))
+        setError(t('library.search.errors.noConnection'))
       }
     } finally {
       if (activeRequestIdRef.current === requestId) {
