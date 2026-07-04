@@ -18,7 +18,6 @@ import { recordLibraryView } from './utils/libraryRecents'
 import {
   categoryLabel,
   findLeafPath,
-  flattenLeaves,
   hierarchyCrumbs,
   nodeLabel,
 } from './utils/hierarchy'
@@ -81,8 +80,8 @@ function LibraryFileViewer() {
   const catLabel = categoryLabel(category, t)
 
   // Locate the file within the shared category tree to derive the breadcrumb
-  // trail and prev/next. A file absent from the tree (e.g. a quest with no
-  // hierarchy placement) simply degrades to no ancestors.
+  // trail. A file absent from the tree (e.g. a quest with no hierarchy
+  // placement) simply degrades to no ancestors.
   const path = findLeafPath(nodes, currentId)
   const ancestors = path ? path.slice(0, -1) : []
   const browseTo = (depth: number) =>
@@ -100,13 +99,6 @@ function LibraryFileViewer() {
     ancestors.length > 0 ? browseTo(ancestors.length) : `/library/${encodeURIComponent(category)}`
   const backText =
     ancestors.length > 0 ? nodeLabel(ancestors[ancestors.length - 1]) || catLabel : catLabel
-
-  // prev/next span the whole category in tree (depth-first) order.
-  const leaves = flattenLeaves(nodes)
-  const currentIndex = leaves.findIndex((leaf) => leaf.file_id === currentId)
-  const previousFile = currentIndex > 0 ? leaves[currentIndex - 1] : null
-  const nextFile =
-    currentIndex >= 0 && currentIndex < leaves.length - 1 ? leaves[currentIndex + 1] : null
 
   useEffect(() => {
     recordLibraryView({ category, fileId: currentId, title: fileTitle })
@@ -165,27 +157,11 @@ function LibraryFileViewer() {
               {fileContent}
             </ReactMarkdown>
           </div>
-          {previousFile && (
-            <NavButton
-              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(previousFile.file_id!)}`)}
-              label={t('library.previous')}
-              title={previousFile.title || t('library.noFileName')}
-              marginTop="2rem"
-            />
-          )}
-          {nextFile && (
-            <NavButton
-              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(nextFile.file_id!)}`)}
-              label={t('library.next')}
-              title={nextFile.title || t('library.noFileName')}
-              marginTop={previousFile ? '1rem' : '2rem'}
-            />
-          )}
           <NavButton
             onClick={() => navigate(backPath)}
             label={t('library.backToFiles')}
             title={backText}
-            marginTop={previousFile || nextFile ? '1rem' : '2rem'}
+            marginTop="2rem"
           />
       </MinimizedPopupRegion>
       {selectionUi}
