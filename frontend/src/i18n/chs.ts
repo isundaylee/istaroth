@@ -131,7 +131,6 @@ export const chs = {
 
   navigation: {
     home: '问答',
-    retrieve: '搜索',
     library: '图书馆',
     history: '问答历史'
   },
@@ -149,7 +148,6 @@ export const chs = {
     focusSearch: '聚焦搜索框',
     deselect: '取消聚焦输入框',
     goQuery: '前往问答',
-    goRetrieve: '前往搜索',
     goLibrary: '前往图书馆',
     goHistory: '前往问答历史',
     citationFullscreen: '切换引用弹窗全屏',
@@ -238,7 +236,7 @@ export const chs = {
       searching: '搜索中...',
       noResults: '未找到匹配文档',
       score: '分数',
-      openRetrieve: '打开完整搜索页',
+      openLibrarySearch: '在图书馆中搜索',
       openConversation: '打开已保存对话',
       errors: {
         searchFailed: '搜索失败',

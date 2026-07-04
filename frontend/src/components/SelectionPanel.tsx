@@ -45,7 +45,7 @@ interface SelectionPanelFrameProps {
   left: number
   fullscreen: boolean
   minimized: boolean
-  retrievePagePath: (query: string) => string
+  librarySearchPath: (query: string) => string
   onClose: () => void
   onRestore: () => void
   onToggleFullscreen: () => void
@@ -128,7 +128,7 @@ export function SelectionPanelFrame({
   left,
   fullscreen,
   minimized,
-  retrievePagePath,
+  librarySearchPath,
   onClose,
   onRestore,
   onToggleFullscreen
@@ -137,8 +137,8 @@ export function SelectionPanelFrame({
   const eyebrow = panel.kind === 'search' ? t('library.selection.keywordSearch') : t('library.selection.ask')
   const title = panel.kind === 'ask' ? panel.question : panel.query
   const topLink = panel.kind === 'search' ? (
-    <AppLink className={panelStyles.topLink} to={retrievePagePath(panel.query)} target="_blank" rel="noopener noreferrer">
-      {t('library.selection.openRetrieve')}
+    <AppLink className={panelStyles.topLink} to={librarySearchPath(panel.query)} target="_blank" rel="noopener noreferrer">
+      {t('library.selection.openLibrarySearch')}
     </AppLink>
   ) : panel.kind === 'ask' && panel.conversationUuid ? (
     <AppLink className={panelStyles.topLink} to={`/conversation/${panel.conversationUuid}`} target="_blank" rel="noopener noreferrer">

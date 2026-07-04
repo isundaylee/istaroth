@@ -8,7 +8,6 @@ import KeyboardShortcuts from './components/KeyboardShortcuts'
 import Footer from './components/Footer'
 import ErrorBoundary from './components/ErrorBoundary'
 import QueryPage from './QueryPage'
-import RetrievePage from './RetrievePage'
 import ConversationPage, { conversationPageLoader } from './ConversationPage'
 import HistoryPage, { historyPageLoader } from './HistoryPage'
 import ShortURLRedirect, { shortURLLoader } from './ShortURLRedirect'
@@ -46,7 +45,6 @@ const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       { path: "/", element: <QueryPage /> },
-      { path: "/retrieve", element: <RetrievePage /> },
       { path: "/s/:slug", element: <ShortURLRedirect />, loader: shortURLLoader, errorElement: <ErrorBoundary /> },
       { path: "/conversation/:id", element: <ConversationPage />, loader: conversationPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/history", element: <HistoryPage />, loader: historyPageLoader, errorElement: <ErrorBoundary /> },

@@ -1,3 +1,15 @@
+.entry {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .frontDesk {
   display: flex;
   flex-direction: column;
@@ -103,7 +115,41 @@
   gap: 0.75rem;
 }
 
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.resultCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.resultTitle {
+  color: var(--color-heading);
+  font-size: var(--font-base);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.resultTitle:hover {
+  color: var(--color-primary-text);
+}
+
+.snippet {
+  margin: 0;
+  color: var(--color-text-subtle);
+  line-height: 1.6;
+}
+
+.highlight {
+  background: var(--color-highlight-bg);
+}
+
 @media (max-width: 600px) {
+  .entry,
   .frontDesk {
     gap: 1.25rem;
   }
