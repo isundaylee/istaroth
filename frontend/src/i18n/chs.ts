@@ -170,6 +170,7 @@ export const chs = {
       openContents: '打开目录',
       search: '搜索馆藏',
       continueReading: '继续阅读',
+      matches: '段匹配',
       noRecents: '最近阅读的文本会显示在这里。'
     },
     search: {

@@ -170,6 +170,7 @@ export const eng = {
       openContents: 'Open contents',
       search: 'Search the archive',
       continueReading: 'Continue reading',
+      matches: 'matches',
       noRecents: 'Recently read texts will appear here.'
     },
     search: {

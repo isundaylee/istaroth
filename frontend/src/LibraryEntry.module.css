@@ -117,13 +117,26 @@
 .results {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  border-top: 1px solid var(--color-border);
 }
 
-.resultCard {
+.result {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  padding: 1.1rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.result:last-child {
+  border-bottom: 0;
+}
+
+.resultHead {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.6rem;
+  margin-bottom: 0.45rem;
 }
 
 .resultTitle {
@@ -137,10 +150,23 @@
   color: var(--color-primary-text);
 }
 
-.snippet {
-  margin: 0;
-  color: var(--color-text-subtle);
-  line-height: 1.6;
+.resultCat {
+  color: var(--color-text-muted);
+  font-size: var(--font-xs);
+  line-height: 1.4;
+}
+
+.excerpt {
+  margin: 0.35rem 0 0;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--color-accent-hairline);
+  color: var(--color-text-secondary);
+  font-size: var(--font-base);
+  line-height: 1.7;
+}
+
+.excerpt + .excerpt {
+  margin-top: 0.55rem;
 }
 
 .highlight {

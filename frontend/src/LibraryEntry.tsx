@@ -15,7 +15,12 @@ import { useAppNavigate } from './hooks/useAppNavigate'
 import { getLibraryRecents } from './utils/libraryRecents'
 import { categoryLabel } from './utils/hierarchy'
 import styles from './LibraryEntry.module.css'
-import type { LibraryCategoriesResponse } from './types/api'
+import type { LibraryCategoriesResponse, LibraryRetrieveResponse } from './types/api'
+
+interface _ResultGroup {
+  fileInfo: LibraryRetrieveResponse['results'][number]['file_info']
+  passages: string[]
+}
 
 const _escapeRegExp = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -33,6 +38,22 @@ const _highlightSnippet = (snippet: string, query: string): ReactNode => {
       ? <span key={`${part}-${index}`} className={styles.highlight}>{part}</span>
       : part
   ))
+}
+
+function _groupByDocument(results: LibraryRetrieveResponse['results']): _ResultGroup[] {
+  const groups: _ResultGroup[] = []
+  const byKey = new Map<string, _ResultGroup>()
+  for (const result of results) {
+    const key = `${result.file_info.category}-${result.file_info.id}`
+    let group = byKey.get(key)
+    if (!group) {
+      group = { fileInfo: result.file_info, passages: [] }
+      byKey.set(key, group)
+      groups.push(group)
+    }
+    group.passages.push(result.snippet)
+  }
+  return groups
 }
 
 export async function libraryEntryLoader({ request }: LoaderFunctionArgs): Promise<LibraryCategoriesResponse> {
@@ -73,17 +94,26 @@ function LibraryEntry() {
         </Card>
       )
     }
+    const groups = _groupByDocument(results)
     return (
       <div className={styles.results}>
-        {results.map((result) => (
-          <Card key={`${result.file_info.category}-${result.file_info.id}`} style={{ margin: 0 }}>
-            <div className={styles.resultCard}>
-              <AppLink to={`/library/${encodeURIComponent(result.file_info.category)}/${encodeURIComponent(result.file_info.id)}`} className={styles.resultTitle}>
-                {result.file_info.title || t('library.noFileName')}
+        {groups.map((group) => (
+          <article key={`${group.fileInfo.category}-${group.fileInfo.id}`} className={styles.result}>
+            <header className={styles.resultHead}>
+              <AppLink to={`/library/${encodeURIComponent(group.fileInfo.category)}/${encodeURIComponent(group.fileInfo.id)}`} className={styles.resultTitle}>
+                {group.fileInfo.title || t('library.noFileName')}
               </AppLink>
-              <p className={styles.snippet}>{_highlightSnippet(result.snippet, submittedParams.query)}</p>
-            </div>
-          </Card>
+              <span className={styles.resultCat}>{categoryLabel(group.fileInfo.category, t)}</span>
+              {group.passages.length > 1 && (
+                <span className={styles.resultCat}>
+                  {group.passages.length} {t('library.frontDesk.matches')}
+                </span>
+              )}
+            </header>
+            {group.passages.map((passage, index) => (
+              <p key={index} className={styles.excerpt}>{_highlightSnippet(passage, submittedParams.query)}</p>
+            ))}
+          </article>
         ))}
       </div>
     )
