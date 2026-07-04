@@ -1,4 +1,4 @@
-import type { CitationBatchRequest, CitationBatchResponse, CitationError, LibraryFileResponse } from '../types/api'
+import type { CitationBatchRequest, CitationBatchResponse, LibraryFileResponse } from '../types/api'
 
 export class ApiError extends Error {
   status: number

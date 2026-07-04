@@ -52,11 +52,6 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
   } = useCitations(uniqueCitedWorks)
 
   // Get title for a cited work (from cache if available, otherwise use fileId)
-  const getCitedWorkTitle = useCallback((fileId: string): string => {
-    const fileInfo = getCitedWorkInfo(fileId)
-    if (fileInfo) return fileInfo.file_info.title
-    return fileId
-  }, [getCitedWorkInfo])
 
   const handleCitationHover = useCallback((e: React.MouseEvent<HTMLElement>, citationId: string) => {
     // Don't show hover popup if any citation is sticky
@@ -126,7 +121,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
 
   const isStickyActive = stickyCitation !== null && !minimized
   const isExemptTarget = useCallback((target: HTMLElement) =>
-    (target.closest?.('[data-citation-id]') ?? false), [])
+    !!(target.closest?.('[data-citation-id]')), [])
   useOutsideMouseDown(isStickyActive, isExemptTarget, floatingState.minimize)
 
   const getSourceContent = (citationId: string): CitationContentData => {
