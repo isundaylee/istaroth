@@ -154,27 +154,29 @@ function ConversationPage() {
 
       {!submittingNew &&
         <MinimizedPopupRegion className={convStyles.content}>
-          <Reader content={conversation.answer} properNouns={conversation.proper_nouns} citations resetKey={conversation.uuid}>
-            {({ answer, citationList, selectionUi, answerRef, answerHandlers }) => (
+          <Reader
+            content={conversation.answer}
+            properNouns={conversation.proper_nouns}
+            citations
+            resetKey={conversation.uuid}
+            sectioned
+            title={t('conversation.answer')}
+            actions={
               <>
-                <PageSection>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <h3>{t('conversation.answer')}</h3>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <Button onClick={copyCurrentUrl} variant="secondary">
-                        {copyButtonText}
-                      </Button>
-                      <Button
-                        onClick={exportPageAsPNG}
-                        variant="secondary"
-                        disabled={exporting}
-                      >
-                        {exporting ? t('conversation.exporting') : t('conversation.export')}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {exportedImage && (
+                <Button onClick={copyCurrentUrl} variant="secondary">
+                  {copyButtonText}
+                </Button>
+                <Button
+                  onClick={exportPageAsPNG}
+                  variant="secondary"
+                  disabled={exporting}
+                >
+                  {exporting ? t('conversation.exporting') : t('conversation.export')}
+                </Button>
+              </>
+            }
+            beforeAnswer={
+              exportedImage && (
                     <div style={{
                       marginTop: '1rem',
                       marginBottom: '1rem',
@@ -223,26 +225,9 @@ function ConversationPage() {
                         </div>
                       </div>
                     </div>
-                  )}
-
-                  <div
-                    ref={answerRef}
-                    className="answer"
-                    onMouseUp={answerHandlers.onMouseUp}
-                    onKeyUp={answerHandlers.onKeyUp}
-                    onClick={answerHandlers.onClick}
-                  >{answer}</div>
-                </PageSection>
-
-                {citationList && (
-                  <div data-citation-container>
-                    <PageSection>{citationList}</PageSection>
-                  </div>
-                )}
-                {selectionUi}
-              </>
-            )}
-          </Reader>
+              )
+            }
+          />
         </MinimizedPopupRegion>}
     </PageShell>
   )

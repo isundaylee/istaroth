@@ -2,23 +2,13 @@ import clsx from 'clsx'
 import ReactMarkdown from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
-import { useMemo, type MouseEvent, type ReactNode, type RefObject } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { useProperNounSelection } from '../hooks/useProperNounSelection'
 import { buildProperNounMatcher } from '../utils/properNouns'
 import { rehypeProperNouns } from '../utils/rehypeProperNouns'
 import CitationRenderer from './CitationRenderer'
-
-interface ReaderRenderProps {
-  answer: ReactNode
-  citationList: ReactNode
-  selectionUi: ReactNode
-  answerRef: RefObject<HTMLDivElement>
-  answerHandlers: {
-    onMouseUp: () => void
-    onKeyUp: () => void
-    onClick: (event: MouseEvent<HTMLDivElement>) => void
-  }
-}
+import { PageSection } from './PageShell'
+import styles from './Reader.module.css'
 
 interface ReaderProps {
   content: string
@@ -27,7 +17,11 @@ interface ReaderProps {
   gfm?: boolean
   resetKey?: unknown
   answerClassName?: string
-  children?: (props: ReaderRenderProps) => ReactNode
+  title?: ReactNode
+  actions?: ReactNode
+  beforeAnswer?: ReactNode
+  sectioned?: boolean
+  citationListClassName?: string
 }
 
 function Reader({
@@ -37,7 +31,11 @@ function Reader({
   gfm = false,
   resetKey = content,
   answerClassName,
-  children
+  title,
+  actions,
+  beforeAnswer,
+  sectioned = false,
+  citationListClassName
 }: ReaderProps) {
   const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(resetKey)
   const properNounMatcher = useMemo(
@@ -45,36 +43,43 @@ function Reader({
     [citations, properNouns]
   )
   const remarkPlugins = gfm ? [remarkGfm, remarkBreaks] : [remarkBreaks]
-  const defaultRender = ({ answer, citationList }: { answer: ReactNode; citationList: ReactNode }) => (
-    <div style={{ position: 'relative' }}>
-      <div
-        ref={answerRef}
-        className={clsx('answer', answerClassName)}
-        onMouseUp={answerHandlers.onMouseUp}
-        onKeyUp={answerHandlers.onKeyUp}
-        onClick={answerHandlers.onClick}
-      >
-        {answer}
+  const render = ({ answer, citationList }: { answer: ReactNode; citationList: ReactNode }) => {
+    const header = (title || actions) && (
+      <div className={styles.header}>
+        {title && <h3>{title}</h3>}
+        {actions && <div className={styles.actions}>{actions}</div>}
       </div>
-      {citationList && (
+    )
+    const answerBlock = (
+      <>
+        {header}
+        {beforeAnswer}
         <div
-          data-citation-container
-          style={{
-            marginTop: '1rem',
-            paddingTop: '0.75rem',
-            borderTop: '1px solid var(--color-border-divider)'
-          }}
+          ref={answerRef}
+          className={clsx('answer', answerClassName)}
+          onMouseUp={answerHandlers.onMouseUp}
+          onKeyUp={answerHandlers.onKeyUp}
+          onClick={answerHandlers.onClick}
         >
-          {citationList}
+          {answer}
         </div>
-      )}
-      {selectionUi}
-    </div>
-  )
-  const render = ({ answer, citationList }: { answer: ReactNode; citationList: ReactNode }) =>
-    children
-      ? children({ answer, citationList, selectionUi, answerRef, answerHandlers })
-      : defaultRender({ answer, citationList })
+      </>
+    )
+    return (
+      <div className={styles.root}>
+        {sectioned ? <PageSection>{answerBlock}</PageSection> : answerBlock}
+        {citationList && (
+          <div
+            data-citation-container
+            className={clsx(!sectioned && styles.citations, citationListClassName)}
+          >
+            {sectioned ? <PageSection>{citationList}</PageSection> : citationList}
+          </div>
+        )}
+        {selectionUi}
+      </div>
+    )
+  }
 
   if (citations) {
     return (
