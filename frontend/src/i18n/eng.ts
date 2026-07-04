@@ -217,6 +217,7 @@ export const eng = {
     allCategories: 'All categories',
     expand: 'Expand',
     collapse: 'Collapse',
+    navMenu: 'Contents',
     previous: 'Previous',
     next: 'Next',
     questSeriesToc: 'Quests in this series',

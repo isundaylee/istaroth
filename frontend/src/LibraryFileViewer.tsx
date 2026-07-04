@@ -5,7 +5,6 @@ import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 import { useTranslation, useT } from './contexts/LanguageContext'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
-import { AppLink } from './components/AppLink'
 import styles from './LibraryFileViewer.module.css'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
 import NavButton from './components/NavButton'
@@ -23,7 +22,6 @@ import {
   nodeLabel,
 } from './utils/hierarchy'
 import type {
-  HierarchyNode,
   HierarchyResponse,
   LibraryFileResponse,
   ProperNounsResponse,
@@ -82,8 +80,8 @@ function LibraryFileViewer() {
   const catLabel = categoryLabel(category, t)
 
   // Locate the file within the shared category tree to derive the breadcrumb
-  // trail, the table of contents, and prev/next. A file absent from the tree
-  // (e.g. a quest with no hierarchy placement) simply degrades to no ancestors.
+  // trail and prev/next. A file absent from the tree (e.g. a quest with no
+  // hierarchy placement) simply degrades to no ancestors.
   const path = findLeafPath(nodes, currentId)
   const ancestors = path ? path.slice(0, -1) : []
   const browseTo = (depth: number) =>
@@ -101,23 +99,6 @@ function LibraryFileViewer() {
     ancestors.length > 0 ? browseTo(ancestors.length) : `/library/${encodeURIComponent(category)}`
   const backText =
     ancestors.length > 0 ? nodeLabel(ancestors[ancestors.length - 1]) || catLabel : catLabel
-
-  // TOC: rooted at the "section" node (the series/chapter/character grouping),
-  // i.e. the ancestor just below the top-level type/character node. Only sections
-  // that mark themselves TOC-eligible get one; synthetic buckets of unrelated
-  // files (e.g. the "standalone" group) opt out.
-  const tocCandidate: HierarchyNode | null =
-    ancestors.length >= 2 ? ancestors[1] : ancestors.length === 1 ? ancestors[0] : null
-  const tocRoot = tocCandidate?.toc_eligible ? tocCandidate : null
-  let tocSections: { title: string; leaves: HierarchyNode[] }[] = []
-  let tocTitle = ''
-  if (tocRoot?.children) {
-    tocSections = tocRoot.children.some((child) => child.children != null)
-      ? tocRoot.children.map((group) => ({ title: nodeLabel(group), leaves: flattenLeaves([group]) }))
-      : [{ title: '', leaves: tocRoot.children }]
-    tocTitle = nodeLabel(tocRoot) || t('library.tableOfContents')
-  }
-  const tocLeafCount = tocSections.reduce((sum, section) => sum + section.leaves.length, 0)
 
   // prev/next span the whole category in tree (depth-first) order.
   const leaves = flattenLeaves(nodes)
@@ -170,53 +151,6 @@ function LibraryFileViewer() {
     <>
       <MinimizedPopupRegion className={styles.measure}>
         <Breadcrumbs crumbs={crumbs} />
-
-          {tocLeafCount > 1 && (
-            <details
-              open
-              className={styles.tocInline}
-              style={{
-                margin: '0 0 1.5rem',
-                border: '1px solid var(--color-border)',
-                borderRadius: 'var(--radius-md)',
-                padding: '0.75rem 1rem'
-              }}
-            >
-              <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
-                {tocTitle}
-              </summary>
-              <div style={{ marginTop: '0.5rem' }}>
-                {tocSections.map((section, sectionIndex) => (
-                  <div key={sectionIndex} style={{ marginBottom: '0.5rem' }}>
-                    {tocSections.length > 1 && (
-                      <p style={{ margin: '0.25rem 0', color: 'var(--color-text-secondary)', fontSize: 'var(--font-sm)' }}>
-                        {section.title}
-                      </p>
-                    )}
-                    <div style={{ fontSize: 'var(--font-sm)', lineHeight: 1.8 }}>
-                      {section.leaves.map((leaf, leafIndex) => (
-                        <span key={leaf.key}>
-                          {leafIndex > 0 && <span style={{ color: 'var(--color-text-muted)' }}> / </span>}
-                          {leaf.file_id === currentId ? (
-                            <span style={{ fontWeight: 600, color: 'var(--color-primary-text)' }}>
-                              {leaf.title || t('library.noFileName')}
-                            </span>
-                          ) : (
-                            <AppLink
-                              to={`/library/${encodeURIComponent(category)}/${encodeURIComponent(leaf.file_id!)}`}
-                              variant="plain"
-                            >
-                              {leaf.title || t('library.noFileName')}
-                            </AppLink>
-                          )}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </details>
-          )}
 
           <div ref={answerRef} className="answer" onMouseUp={answerHandlers.onMouseUp} onKeyUp={answerHandlers.onKeyUp} onClick={answerHandlers.onClick}>
             <ReactMarkdown

@@ -217,6 +217,7 @@ export const chs = {
     allCategories: '所有分类',
     expand: '展开',
     collapse: '收起',
+    navMenu: '目录',
     previous: '上一篇',
     next: '下一篇',
     questSeriesToc: '本系列任务',
