@@ -12,7 +12,6 @@ import subprocess
 from typing import Any, Callable, Iterable, TypeVar, cast
 
 import attrs
-from numpy import isin
 
 from istaroth import text_cleanup
 from istaroth.agd import (
@@ -29,6 +28,25 @@ logger = logging.getLogger(__name__)
 
 _K = TypeVar("_K")
 _T = TypeVar("_T")
+_CachedMethodT = TypeVar("_CachedMethodT", bound=Callable[..., Any])
+
+# Names of the DataRepo methods marked with @_warm_on_fork, in class-definition
+# order; precompute_for_fork warms each so forked workers inherit the caches.
+_FORK_WARM_METHOD_NAMES: list[str] = []
+
+
+def _warm_on_fork(method: _CachedMethodT) -> _CachedMethodT:
+    """Register a DataRepo method to be pre-warmed by ``precompute_for_fork``.
+
+    Pure registration: returns the method unchanged, so it stacks above an
+    ``lru_cache`` decorator (or a thin wrapper delegating to a cached method)
+    without touching caching semantics. Registering here means a newly added
+    fork-warmed method can't silently fall off a hand-maintained warm list.
+    """
+    _FORK_WARM_METHOD_NAMES.append(method.__name__)
+    return method
+
+
 # Ordered newest-to-oldest; earlier refs win when multiple fallbacks contain a hash.
 # Sex-pronoun SEXPRO tokens also resolve against these builds (see
 # _load_pronoun_hashes): 6.x dropped their TextMap rows and reassigned the manual
@@ -348,10 +366,12 @@ class DataRepo:
                 raise
             return None
 
+    @_warm_on_fork
     def build_text_map_tracker(self) -> TextMapTracker:
         """Load TextMap for the instance's language, merging Medium variant if present."""
         return self._build_text_map_tracker_for(self.language)
 
+    @_warm_on_fork
     def build_source_text_map_tracker(self) -> TextMapTracker:
         """Load the CHS (source) TextMap regardless of the instance's language.
 
@@ -398,6 +418,7 @@ class DataRepo:
             data, lambda doc_item: doc_item["id"], duplicate_name="document ID"
         )
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def _build_readable_localization_maps(
         self,
@@ -440,6 +461,7 @@ class DataRepo:
         """Map a localization id to its readable filename for the instance language."""
         return self._build_readable_localization_maps()[1]
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def build_localization_id_to_title_hash(
         self,
@@ -475,6 +497,7 @@ class DataRepo:
         """Load BooksCodexExcelConfigData.json."""
         return self._load_excel("BooksCodexExcelConfigData.json")
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def build_book_series_mapping(
         self,
@@ -560,6 +583,7 @@ class DataRepo:
         """Load AchievementGoalExcelConfigData.json."""
         return self._load_excel("AchievementGoalExcelConfigData.json")
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def build_achievement_section_mapping(
         self,
@@ -592,6 +616,7 @@ class DataRepo:
             )
         return mapping
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def build_talk_group_mapping(
         self,
@@ -622,6 +647,7 @@ class DataRepo:
         """coopStoryId -> its Coop talk file paths, sorted by local talk id."""
         return self._get_talk_parser().coop_story_to_paths
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def build_coop_story_graph_mapping(
         self,
@@ -635,6 +661,7 @@ class DataRepo:
                 graphs[story["id"]] = coop_graph.build_story_graph(story)
         return graphs
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def build_hangout_quest_to_stories(
         self,
@@ -647,6 +674,7 @@ class DataRepo:
                 mapping.setdefault(entry["mainQuestId"], []).append(coop_story_id)
         return {quest_id: sorted(stories) for quest_id, stories in mapping.items()}
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def build_coop_chapter_to_avatar_mapping(
         self,
@@ -657,6 +685,7 @@ class DataRepo:
             for chapter in self.load_coop_chapter_excel_config_data()
         }
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def build_avatar_id_to_name_mapping(self) -> dict[id_types.AvatarId, str]:
         """Avatar id -> localized character name (only avatars whose name resolves)."""
@@ -667,6 +696,7 @@ class DataRepo:
             if (name := text_map.get_optional(avatar["nameTextMapHash"])) is not None
         }
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def get_dialog_id_to_content_hash_mapping(
         self,
@@ -677,6 +707,7 @@ class DataRepo:
             for dialog_item in self.load_dialog_excel_config_data()
         }
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def build_quest_mapping(self) -> dict[id_types.QuestId, str]:
         """Build a mapping from quest ID to BinOutput/Quest file path.
@@ -723,67 +754,13 @@ class DataRepo:
 
         This method should be called in the parent process before creating
         multiprocessing pools with fork start method to ensure child processes
-        inherit the cached results.
+        inherit the cached results. Warms every method marked with
+        ``@_warm_on_fork`` (which transitively warms the loaders/parsers each one
+        depends on), so adding a new fork-warmed method only requires the
+        decorator, not a matching line here.
         """
-        self.build_talk_group_mapping()
-        self.build_source_text_map_tracker()
-        self.build_text_map_tracker()
-
-        # Warm the quest mapping (and, transitively, the load_quest_data cache it
-        # populates) so forked workers don't each re-glob and re-parse all quests.
-        self.build_quest_mapping()
-
-        # Warm the dialog-derived mapping so forked workers inherit it instead of
-        # each re-parsing the large dialog Excel config and rebuilding it by
-        # iterating over all of it. This transitively warms
-        # load_dialog_excel_config_data too.
-        self.get_dialog_id_to_role_name_hash_mapping()
-
-        # Warm the readable-metadata lookup maps so forked workers don't each
-        # re-scan the localization/document Excel configs once per readable.
-        self._build_readable_localization_maps()
-        self.build_localization_id_to_title_hash()
-
-        # Warm the book-series grouping so forked book workers inherit it instead
-        # of each re-scanning the codex/material/suit configs.
-        self.build_book_series_mapping()
-
-        # Warm the NPC name mappings (output-language + CHS source) so forked
-        # talk-group workers inherit them instead of each re-scanning the NPC
-        # Excel config and text maps.
-        self.get_npc_id_to_name_mapping()
-        self.get_npc_id_to_source_name_mapping()
-
-        # Warm the achievement section index so workers inherit the parsed
-        # configs and do not each scan all achievements once per section.
-        self.build_achievement_section_mapping()
-
-        # Warm the hangout (Coop) mappings so forked Hangouts workers inherit the
-        # parsed Coop story graphs, interaction/chapter configs, and the avatar /
-        # main-quest / dialog-content lookups instead of each re-parsing them.
-        self.build_coop_story_graph_mapping()
-        self.build_hangout_quest_to_stories()
-        self.load_main_quest_excel_config_data()
-        self.build_coop_chapter_to_avatar_mapping()
-        self.build_avatar_id_to_name_mapping()
-        self.get_dialog_id_to_content_hash_mapping()
-
-        # Warm the avatar/constellation Excel configs (~1.8MB across the skill,
-        # talent, and depot files) so forked character-story workers inherit them
-        # instead of each re-parsing the large files on first constellation lookup.
-        self.load_avatar_excel_config_data()
-        self.load_avatar_skill_depot_excel_config_data()
-        self.load_avatar_talent_excel_config_data()
-        self.load_avatar_skill_excel_config_data()
-
-        # Warm the living-beings archive configs so forked creature workers inherit
-        # the parsed codex index and describe/title/special-name lookups instead of
-        # each re-parsing them.
-        self.load_animal_codex_excel_config_data()
-        self.load_monster_describe_excel_config_data()
-        self.load_monster_title_excel_config_data()
-        self.load_monster_special_name_excel_config_data()
-        self.load_animal_describe_excel_config_data()
+        for method_name in _FORK_WARM_METHOD_NAMES:
+            getattr(self, method_name)()
 
     @functools.lru_cache(maxsize=None)
     def load_talk_excel_config_data(self) -> agd_types.TalkExcelConfigData:
@@ -854,11 +831,13 @@ class DataRepo:
             data = deobfuscation.deobfuscate_quest_data(raw_data)
             return data  # type: ignore[return-value]
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def load_avatar_excel_config_data(self) -> agd_types.AvatarExcelConfigData:
         """Load avatar Excel configuration data."""
         return self._load_excel("AvatarExcelConfigData.json")
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def load_avatar_skill_depot_excel_config_data(
         self,
@@ -870,6 +849,7 @@ class DataRepo:
             duplicate_name="skill depot ID",
         )
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def load_avatar_talent_excel_config_data(
         self,
@@ -881,6 +861,7 @@ class DataRepo:
             duplicate_name="talent ID",
         )
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def load_avatar_skill_excel_config_data(
         self,
@@ -904,6 +885,7 @@ class DataRepo:
         """Load fetters Excel configuration data."""
         return self._load_excel("FettersExcelConfigData.json")
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def load_animal_codex_excel_config_data(
         self,
@@ -915,6 +897,7 @@ class DataRepo:
             duplicate_name="animal codex ID",
         )
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def load_monster_describe_excel_config_data(
         self,
@@ -928,6 +911,7 @@ class DataRepo:
             duplicate_name="monster describe ID",
         )
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def load_monster_title_excel_config_data(
         self,
@@ -939,6 +923,7 @@ class DataRepo:
             duplicate_name="monster title ID",
         )
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def load_monster_special_name_excel_config_data(
         self,
@@ -946,6 +931,7 @@ class DataRepo:
         """Load MonsterSpecialNameExcelConfigData.json."""
         return self._load_excel("MonsterSpecialNameExcelConfigData.json")
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def load_animal_describe_excel_config_data(
         self,
@@ -957,6 +943,7 @@ class DataRepo:
             duplicate_name="animal describe ID",
         )
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def load_main_quest_excel_config_data(
         self,
@@ -989,11 +976,13 @@ class DataRepo:
 
         return npc_id_to_name
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def get_npc_id_to_name_mapping(self) -> dict[str, str]:
         """Get cached mapping from NPC ID to name."""
         return self._build_npc_id_to_name(self.build_text_map_tracker())
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def get_npc_id_to_source_name_mapping(self) -> dict[str, str]:
         """NPC ID -> CHS (source) name, for language-independent test/hidden filtering.
@@ -1002,6 +991,7 @@ class DataRepo:
         """
         return self._build_npc_id_to_name(self.build_source_text_map_tracker())
 
+    @_warm_on_fork
     @functools.lru_cache(maxsize=None)
     def get_dialog_id_to_role_name_hash_mapping(
         self,
