@@ -2,7 +2,6 @@ import React from 'react'
 import { useT } from '../contexts/LanguageContext'
 import Card from './Card'
 import TextInput from './TextInput'
-import PageShell from './PageShell'
 import Breadcrumbs, { type Crumb } from './Breadcrumbs'
 
 // Shared presentation for the drill-down library hierarchy. The HierarchyPage
@@ -91,7 +90,7 @@ export default function HierarchyBrowser({
 }: HierarchyBrowserProps) {
   useT() // re-render on language change
   return (
-    <PageShell>
+    <>
       <Breadcrumbs crumbs={crumbs} />
 
       <TextInput
@@ -102,6 +101,6 @@ export default function HierarchyBrowser({
       />
 
       {children}
-    </PageShell>
+    </>
   )
 }

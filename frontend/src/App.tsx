@@ -12,6 +12,7 @@ import RetrievePage from './RetrievePage'
 import ConversationPage, { conversationPageLoader } from './ConversationPage'
 import HistoryPage, { historyPageLoader } from './HistoryPage'
 import ShortURLRedirect, { shortURLLoader } from './ShortURLRedirect'
+import LibraryLayout from './LibraryLayout'
 import LibraryCategoriesPage, { libraryCategoriesPageLoader } from './LibraryCategoriesPage'
 import HierarchyPage, { libraryCategoryLoader } from './HierarchyPage'
 import LibraryFileViewer, { libraryFileViewerLoader } from './LibraryFileViewer'
@@ -49,16 +50,25 @@ const router = createBrowserRouter([
       { path: "/s/:slug", element: <ShortURLRedirect />, loader: shortURLLoader, errorElement: <ErrorBoundary /> },
       { path: "/conversation/:id", element: <ConversationPage />, loader: conversationPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/history", element: <HistoryPage />, loader: historyPageLoader, errorElement: <ErrorBoundary /> },
-      { path: "/library", element: <LibraryCategoriesPage />, loader: libraryCategoriesPageLoader, errorElement: <ErrorBoundary /> },
       {
-        path: "/library/:category",
-        id: "library-category",
-        loader: libraryCategoryLoader,
+        path: "/library",
+        id: "library-root",
+        element: <LibraryLayout />,
+        loader: libraryCategoriesPageLoader,
         errorElement: <ErrorBoundary />,
         children: [
-          { index: true, element: <HierarchyPage /> },
-          { path: "browse/*", element: <HierarchyPage /> },
-          { path: ":id", element: <LibraryFileViewer />, loader: libraryFileViewerLoader },
+          { index: true, element: <LibraryCategoriesPage /> },
+          {
+            path: ":category",
+            id: "library-category",
+            loader: libraryCategoryLoader,
+            errorElement: <ErrorBoundary />,
+            children: [
+              { index: true, element: <HierarchyPage /> },
+              { path: "browse/*", element: <HierarchyPage /> },
+              { path: ":id", element: <LibraryFileViewer />, loader: libraryFileViewerLoader },
+            ],
+          },
         ],
       },
       { path: "*", element: <NotFoundPage /> },

@@ -1,0 +1,15 @@
+/* Reader adaptations for the two-pane layout. The Folio can be far wider than a
+ * comfortable line length, so hold the reading column to a measure; the popup
+ * rail then sits just outside its right edge in the leftover gutter. On desktop
+ * the layout's navigation rail is the table of contents, so the in-page TOC is
+ * dropped there and kept only on small screens where there is no rail. */
+
+.measure {
+  max-width: 760px;
+}
+
+@media (min-width: 1000px) {
+  .tocInline {
+    display: none;
+  }
+}
