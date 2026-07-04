@@ -185,7 +185,7 @@ export const chs = {
       openContents: '打开目录',
       search: '搜索馆藏',
       continueReading: '继续阅读',
-      noRecents: '打开几篇文档后，它们会出现在这里。'
+      noRecents: '最近阅读的文本会显示在这里。'
     },
     selectCategory: '选择分类',
     backToCategories: '返回分类',

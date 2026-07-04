@@ -181,7 +181,7 @@ export const eng = {
     placeholder: 'Library feature coming soon...',
     frontDesk: {
       title: 'Teyvat Library',
-      subtitle: 'The quests, books, character stories, and legends of Teyvat, gathered here. Pick a category to begin browsing.',
+      subtitle: 'The quests, books, character stories, and legends of Teyvat, gathered here.',
       openContents: 'Open contents',
       search: 'Search the archive',
       continueReading: 'Continue reading',
