@@ -60,15 +60,17 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel }: PageShell
             </CloseSidebarDrawerContext.Provider>
           </aside>
           <div className={styles.body}>
-            <button
-              type="button"
-              className={styles.drawerToggle}
-              onClick={() => setDrawerOpen(true)}
-              aria-expanded={drawerOpen}
-            >
-              <span aria-hidden>☰</span>
-              {sidebarLabel}
-            </button>
+            <div className={styles.drawerToggleBar}>
+              <button
+                type="button"
+                className={styles.drawerToggle}
+                onClick={() => setDrawerOpen(true)}
+                aria-expanded={drawerOpen}
+              >
+                <span aria-hidden>☰</span>
+                {sidebarLabel}
+              </button>
+            </div>
             {children}
           </div>
         </div>
