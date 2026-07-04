@@ -14,6 +14,7 @@ import { useAppNavigate } from './hooks/useAppNavigate'
 import { useProperNounSelection } from './hooks/useProperNounSelection'
 import { buildProperNounMatcher } from './utils/properNouns'
 import { rehypeProperNouns } from './utils/rehypeProperNouns'
+import { recordLibraryView } from './utils/libraryRecents'
 import {
   categoryLabel,
   findLeafPath,
@@ -106,6 +107,10 @@ function LibraryFileViewer() {
   const previousFile = currentIndex > 0 ? leaves[currentIndex - 1] : null
   const nextFile =
     currentIndex >= 0 && currentIndex < leaves.length - 1 ? leaves[currentIndex + 1] : null
+
+  useEffect(() => {
+    recordLibraryView({ category, fileId: currentId, title: fileTitle })
+  }, [category, currentId, fileTitle])
 
   // Static curated list: fetched once per language, reused across files.
   useEffect(() => {

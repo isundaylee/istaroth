@@ -233,8 +233,8 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
     setPanel((current) => current?.kind === 'ask' ? updater(current) : current)
   }
 
-  const retrievePagePath = (query: string) =>
-    buildUrlWithLanguage('/retrieve', `?q=${encodeURIComponent(query)}&semantic=0`, language)
+  const librarySearchPath = (query: string) =>
+    buildUrlWithLanguage('/library', `?q=${encodeURIComponent(query)}&semantic=0`, language)
 
   const runAsk = async () => {
     if (!selection) return
@@ -309,7 +309,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
         left={selection.left}
         fullscreen={isFullscreen}
         minimized={isMinimized}
-        retrievePagePath={retrievePagePath}
+        librarySearchPath={librarySearchPath}
         onClose={closeSelection}
         onRestore={() => setIsMinimized(false)}
         onToggleFullscreen={() => setIsFullscreen((value) => !value)}

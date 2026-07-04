@@ -8,13 +8,12 @@ import KeyboardShortcuts from './components/KeyboardShortcuts'
 import Footer from './components/Footer'
 import ErrorBoundary from './components/ErrorBoundary'
 import QueryPage from './QueryPage'
-import RetrievePage from './RetrievePage'
 import ConversationPage, { conversationPageLoader } from './ConversationPage'
 import HistoryPage, { historyPageLoader } from './HistoryPage'
 import ShortURLRedirect, { shortURLLoader } from './ShortURLRedirect'
 import LibraryLayout from './LibraryLayout'
-import LibraryCategoriesPage, { libraryCategoriesPageLoader } from './LibraryCategoriesPage'
-import HierarchyPage, { libraryCategoryLoader } from './HierarchyPage'
+import LibraryEntry, { libraryEntryLoader } from './LibraryEntry'
+import { libraryCategoryLoader } from './HierarchyPage'
 import LibraryFileViewer, { libraryFileViewerLoader } from './LibraryFileViewer'
 import NotFoundPage from './NotFoundPage'
 import styles from './RootLayout.module.css'
@@ -46,7 +45,6 @@ const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
       { path: "/", element: <QueryPage /> },
-      { path: "/retrieve", element: <RetrievePage /> },
       { path: "/s/:slug", element: <ShortURLRedirect />, loader: shortURLLoader, errorElement: <ErrorBoundary /> },
       { path: "/conversation/:id", element: <ConversationPage />, loader: conversationPageLoader, errorElement: <ErrorBoundary /> },
       { path: "/history", element: <HistoryPage />, loader: historyPageLoader, errorElement: <ErrorBoundary /> },
@@ -54,18 +52,18 @@ const router = createBrowserRouter([
         path: "/library",
         id: "library-root",
         element: <LibraryLayout />,
-        loader: libraryCategoriesPageLoader,
+        loader: libraryEntryLoader,
         errorElement: <ErrorBoundary />,
         children: [
-          { index: true, element: <LibraryCategoriesPage /> },
+          { index: true, element: <LibraryEntry /> },
           {
             path: ":category",
             id: "library-category",
             loader: libraryCategoryLoader,
             errorElement: <ErrorBoundary />,
             children: [
-              { index: true, element: <HierarchyPage /> },
-              { path: "browse/*", element: <HierarchyPage /> },
+              { index: true, element: <LibraryEntry /> },
+              { path: "browse/*", element: <LibraryEntry /> },
               { path: ":id", element: <LibraryFileViewer />, loader: libraryFileViewerLoader },
             ],
           },

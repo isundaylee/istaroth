@@ -65,8 +65,8 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
       return next
     })
 
-  // Opening a document closes the mobile drawer; descending into a group leaves
-  // it open so you can keep drilling down.
+  // Opening a document closes the mobile drawer. Groups only expand/collapse the
+  // rail; the Folio stays put until a leaf document is selected.
   const openLeaf = (fileId: number) => {
     closeDrawer()
     navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(fileId)}`)
@@ -74,7 +74,6 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
 
   const openGroup = (pathKey: string) => {
     setExpanded((prev) => new Set(prev).add(pathKey))
-    navigate(`/library/${encodeURIComponent(category)}/browse/${pathKey}`)
   }
 
   const renderNodes = (items: HierarchyNode[], parentPath: string): React.ReactNode => (

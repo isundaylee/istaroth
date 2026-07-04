@@ -131,7 +131,6 @@ export const eng = {
 
   navigation: {
     home: 'Q&A',
-    retrieve: 'Search',
     library: 'Library',
     history: 'Q&A History'
   },
@@ -149,7 +148,6 @@ export const eng = {
     focusSearch: 'Focus search box',
     deselect: 'Blur the focused input',
     goQuery: 'Go to Q&A',
-    goRetrieve: 'Go to Search',
     goLibrary: 'Go to Library',
     goHistory: 'Go to Q&A History',
     citationFullscreen: 'Toggle fullscreen for the open citation popup',
@@ -181,6 +179,14 @@ export const eng = {
   library: {
     title: 'Library',
     placeholder: 'Library feature coming soon...',
+    frontDesk: {
+      title: 'Teyvat Library',
+      subtitle: 'The quests, books, character stories, and legends of Teyvat, gathered here.',
+      openContents: 'Open contents',
+      search: 'Search the archive',
+      continueReading: 'Continue reading',
+      noRecents: 'Recently read texts will appear here.'
+    },
     selectCategory: 'Select Category',
     backToCategories: 'Back to Categories',
     backToFiles: 'Back to Files',
@@ -231,7 +237,7 @@ export const eng = {
       searching: 'Searching...',
       noResults: 'No matching documents found',
       score: 'Score',
-      openRetrieve: 'Open full search page',
+      openLibrarySearch: 'Search in the library',
       openConversation: 'Open saved conversation',
       errors: {
         searchFailed: 'Search failed',
