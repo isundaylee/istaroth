@@ -100,11 +100,7 @@ def get_book_series_info(
 
     volumes = []
     for filename in filenames:
-        if (
-            loaded := _readable.load_readable(
-                f"Readable/{data_repo.language_short}/{filename}", data_repo=data_repo
-            )
-        ) is None:
+        if (loaded := _readable.load_readable(filename, data_repo=data_repo)) is None:
             continue
         content, metadata = loaded
         volumes.append(

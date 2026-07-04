@@ -145,6 +145,6 @@ directly.
 ReadableFilename: TypeAlias = str
 """A readable file's name relative to ``Readable/<lang>/`` (e.g. ``Foo_EN.txt``).
 
-``ReadablesTracker`` keys on this; distinct from the readable *stem* (no
-``.txt``) and from a renderable's full ``Readable/<lang>/<name>.txt`` key.
+``ReadablesTracker`` keys on this, and it also doubles as the readable
+renderable key; distinct from the readable *stem* (no ``.txt``).
 """

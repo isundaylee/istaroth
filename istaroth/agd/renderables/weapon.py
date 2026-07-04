@@ -42,12 +42,12 @@ def get_weapon_info(
         + doc_item["questIDList"]
         + doc_item.get("CUSTOM_addlLocalID", [])
     )
-    readable_paths = data_repo.build_localization_id_to_readable_path_mapping()
+    readable_filenames = data_repo.build_localization_id_to_readable_filename_mapping()
     story_pages = [
         content
         for loc_id in ordered_loc_ids
-        if (path := readable_paths.get(loc_id)) is not None
-        and (content := readables.get_content(path))
+        if (filename := readable_filenames.get(loc_id)) is not None
+        and (content := readables.get_content(filename))
     ]
     if not story_pages:
         return None

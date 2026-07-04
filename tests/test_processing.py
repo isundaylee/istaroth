@@ -26,20 +26,18 @@ from istaroth.agd.renderables import (
 
 def test_book100_metadata(data_repo: repo.DataRepo) -> None:
     """Test retrieving metadata for Book100.txt."""
-    readable_path = f"Readable/{data_repo.language}/Book100.txt"
     expected_title = "神霄折戟录·第六卷"
 
-    metadata = readable.get_readable_metadata(readable_path, data_repo=data_repo)
+    metadata = readable.get_readable_metadata("Book100.txt", data_repo=data_repo)
 
     assert metadata.title == expected_title
 
 
 def test_weapon11101_metadata(data_repo: repo.DataRepo) -> None:
     """Test retrieving metadata for Weapon11101.txt."""
-    readable_path = f"Readable/{data_repo.language}/Weapon11101.txt"
     expected_title = "无锋剑"
 
-    metadata = readable.get_readable_metadata(readable_path, data_repo=data_repo)
+    metadata = readable.get_readable_metadata("Weapon11101.txt", data_repo=data_repo)
 
     assert metadata.title == expected_title
 
@@ -379,7 +377,7 @@ def _book_series_mock_repo() -> mock.Mock:
         }
         for material_id in (101, 102, 103, 104, 105)
     }
-    data_repo.build_localization_id_to_readable_path_mapping.return_value = {
+    data_repo.build_localization_id_to_readable_filename_mapping.return_value = {
         material_id: f"Book{material_id}_EN.txt"
         for material_id in (101, 102, 103, 104, 105)
     }
