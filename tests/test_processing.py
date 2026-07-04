@@ -126,8 +126,8 @@ def test_talk_role_name_hash_ignores_fallback_text() -> None:
         {"200": "Stale role"},
         pronoun_hashes={},
     )
-    data_repo.get_npc_id_to_name_mapping.return_value = {}
-    data_repo.get_dialog_id_to_role_name_hash_mapping.return_value = {}
+    data_repo.build_npc_id_to_name_mapping.return_value = {}
+    data_repo.build_dialog_id_to_role_name_hash_mapping.return_value = {}
 
     talk_info = _talk.get_talk_info("BinOutput/Talk/Quest/1.json", data_repo=data_repo)
 
@@ -154,8 +154,8 @@ def test_talk_untranslated_chs_test_placeholder_is_skipped_not_missing() -> None
     data_repo.build_source_text_map_tracker.return_value = repo.TextMapTracker(
         {"100": "(test)台词文本"}, localization.Language.CHS, pronoun_hashes={}
     )
-    data_repo.get_npc_id_to_name_mapping.return_value = {}
-    data_repo.get_dialog_id_to_role_name_hash_mapping.return_value = {}
+    data_repo.build_npc_id_to_name_mapping.return_value = {}
+    data_repo.build_dialog_id_to_role_name_hash_mapping.return_value = {}
 
     tracker = issues.IssueTracker(item_type="Talks", item_key="1")
     with tracker.apply():
@@ -379,7 +379,7 @@ def _book_series_mock_repo() -> mock.Mock:
         }
         for material_id in (101, 102, 103, 104, 105)
     }
-    data_repo.build_localization_id_to_readable_path.return_value = {
+    data_repo.build_localization_id_to_readable_path_mapping.return_value = {
         material_id: f"Book{material_id}_EN.txt"
         for material_id in (101, 102, 103, 104, 105)
     }
@@ -421,11 +421,14 @@ def test_get_book_series_info_assembles_volumes() -> None:
         localization.Language.ENG,
         pronoun_hashes={},
     )
-    data_repo.build_readable_stem_to_localization_id.return_value = {
+    data_repo.build_readable_stem_to_localization_id_mapping.return_value = {
         "Book101_EN": 101,
         "Book102_EN": 102,
     }
-    data_repo.build_localization_id_to_title_hash.return_value = {101: 101, 102: 102}
+    data_repo.build_localization_id_to_title_hash_mapping.return_value = {
+        101: 101,
+        102: 102,
+    }
     readables = mock.Mock()
     readables.get_content.side_effect = lambda filename: {
         "Book101_EN.txt": "First body.",
@@ -460,8 +463,10 @@ def test_get_book_series_info_filters_placeholder_volumes() -> None:
         localization.Language.ENG,
         pronoun_hashes={},
     )
-    data_repo.build_readable_stem_to_localization_id.return_value = {"Book102_EN": 102}
-    data_repo.build_localization_id_to_title_hash.return_value = {102: 102}
+    data_repo.build_readable_stem_to_localization_id_mapping.return_value = {
+        "Book102_EN": 102
+    }
+    data_repo.build_localization_id_to_title_hash_mapping.return_value = {102: 102}
     readables = mock.Mock()
     readables.get_content.side_effect = lambda filename: {
         "Book101_EN.txt": "test",  # placeholder content -> filtered

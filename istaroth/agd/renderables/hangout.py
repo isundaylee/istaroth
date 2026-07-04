@@ -112,10 +112,10 @@ def get_hangout_info(
     """Assemble a hangout quest's play-ordered Coop story dialogue, or None if empty.
 
     ``quest_id`` is always a hangout quest (the ``Hangouts`` renderable discovers
-    them from ``build_hangout_quest_to_stories``), so its stories and main-quest
+    them from ``build_hangout_quest_to_stories_mapping``), so its stories and main-quest
     entry are indexed strictly.
     """
-    stories = data_repo.build_hangout_quest_to_stories()[quest_id]
+    stories = data_repo.build_hangout_quest_to_stories_mapping()[quest_id]
 
     text_map = data_repo.build_text_map_tracker()
     main_quest = data_repo.load_main_quest_excel_config_data()[quest_id]
@@ -133,7 +133,7 @@ def get_hangout_info(
 
     coop_story_mapping = data_repo.build_coop_story_mapping()
     graph_mapping = data_repo.build_coop_story_graph_mapping()
-    dialog_content_hashes = data_repo.get_dialog_id_to_content_hash_mapping()
+    dialog_content_hashes = data_repo.build_dialog_id_to_content_hash_mapping()
 
     story_infos: list[processed_types.CoopStoryInfo] = []
     for coop_story_id in stories:

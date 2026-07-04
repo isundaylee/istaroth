@@ -42,7 +42,7 @@ def get_weapon_info(
         + doc_item["questIDList"]
         + doc_item.get("CUSTOM_addlLocalID", [])
     )
-    readable_paths = data_repo.build_localization_id_to_readable_path()
+    readable_paths = data_repo.build_localization_id_to_readable_path_mapping()
     story_pages = [
         content
         for loc_id in ordered_loc_ids

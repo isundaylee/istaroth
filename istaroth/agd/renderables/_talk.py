@@ -403,8 +403,8 @@ def get_talk_info(
     text_map = data_repo.build_text_map_tracker()
 
     # Get cached mappings
-    npc_id_to_name = data_repo.get_npc_id_to_name_mapping()
-    dialog_id_to_role_hash = data_repo.get_dialog_id_to_role_name_hash_mapping()
+    npc_id_to_name = data_repo.build_npc_id_to_name_mapping()
+    dialog_id_to_role_hash = data_repo.build_dialog_id_to_role_name_hash_mapping()
 
     # Get localized role names for fallbacks
     localized_roles = localization.get_localized_role_names(data_repo.language)

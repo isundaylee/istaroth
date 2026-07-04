@@ -535,11 +535,11 @@ class TalkGroups(
         group_name: str | None = None
         if renderable_key[0] == "NpcGroup":
             npc_id = renderable_key[1]
-            source_name = data_repo.get_npc_id_to_source_name_mapping().get(npc_id)
+            source_name = data_repo.build_npc_id_to_source_name_mapping().get(npc_id)
             if source_name is not None:
                 if text_utils.should_skip_text(source_name, localization.Language.CHS):
                     return None
-                group_name = data_repo.get_npc_id_to_name_mapping()[npc_id]
+                group_name = data_repo.build_npc_id_to_name_mapping()[npc_id]
 
         return talk_group.render_talk_group(
             renderable_key[0],
@@ -561,7 +561,7 @@ class Hangouts(BaseRenderableType[id_types.QuestId]):
 
     def discover(self, data_repo: repo.DataRepo) -> list[id_types.QuestId]:
         """All hangout quest ids that have Coop talk files."""
-        return sorted(data_repo.build_hangout_quest_to_stories())
+        return sorted(data_repo.build_hangout_quest_to_stories_mapping())
 
     def process(
         self, renderable_key: id_types.QuestId, data_repo: repo.DataRepo

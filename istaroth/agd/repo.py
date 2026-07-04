@@ -219,9 +219,14 @@ class ReadablesTracker(tracking.IdTracker[id_types.ReadableFilename]):
 class DataRepo:
     """Repository for loading AnimeGameData files.
 
-    Method naming convention: ``load_*`` reads a raw AGD file; ``build_*``
-    constructs a derived, cached object (an index/mapping or a ``*Tracker``).
-    Methods returning a tracker are named ``build_*_tracker``.
+    Method naming convention:
+
+    - ``load_*`` reads a raw AGD file (returned as-is, or keyed by id).
+    - ``build_*`` constructs a derived, cached object. Two suffixes distinguish
+      what it returns: ``build_*_tracker`` returns a ``*Tracker``;
+      ``build_*_mapping`` returns a ``dict`` index/mapping. The ``_mapping``
+      suffix is kept even on ``build_<key>_to_<value>_mapping`` names, so the
+      method reads as "the whole mapping" rather than a single-item conversion.
     """
 
     agd_path: pathlib.Path = attrs.field(converter=pathlib.Path)
@@ -449,20 +454,20 @@ class DataRepo:
                     id_to_filename.setdefault(entry["id"], f"{path.name}.txt")
         return stem_to_id, id_to_filename
 
-    def build_readable_stem_to_localization_id(
+    def build_readable_stem_to_localization_id_mapping(
         self,
     ) -> dict[str, id_types.LocalizationId]:
         """Map a readable file stem to its localization id for the instance language."""
         return self._build_readable_localization_maps()[0]
 
-    def build_localization_id_to_readable_path(
+    def build_localization_id_to_readable_path_mapping(
         self,
     ) -> dict[id_types.LocalizationId, id_types.ReadableFilename]:
         """Map a localization id to its readable filename for the instance language."""
         return self._build_readable_localization_maps()[1]
 
     @_warm_on_fork
-    def build_localization_id_to_title_hash(
+    def build_localization_id_to_title_hash_mapping(
         self,
     ) -> dict[id_types.LocalizationId, id_types.TextMapHash]:
         """Map a localization id to its document title hash.
@@ -513,7 +518,7 @@ class DataRepo:
         materials = self.build_material_tracker()
         suits = self.load_book_suit_excel_config_data()
         documents = self.load_document_excel_config_data()
-        readable_paths = self.build_localization_id_to_readable_path()
+        readable_paths = self.build_localization_id_to_readable_path_mapping()
 
         grouped: dict[id_types.BookSuitId, list[id_types.ReadableFilename]] = {}
         for codex in sorted(
@@ -657,7 +662,7 @@ class DataRepo:
         return graphs
 
     @_warm_on_fork
-    def build_hangout_quest_to_stories(
+    def build_hangout_quest_to_stories_mapping(
         self,
     ) -> dict[id_types.QuestId, list[id_types.CoopStoryId]]:
         """hangout questId -> its coopStoryIds that have talk files, sorted."""
@@ -689,7 +694,7 @@ class DataRepo:
         }
 
     @_warm_on_fork
-    def get_dialog_id_to_content_hash_mapping(
+    def build_dialog_id_to_content_hash_mapping(
         self,
     ) -> dict[id_types.DialogId, id_types.TextMapHash]:
         """Dialog id -> talkContentTextMapHash, for resolving Coop choice prompts."""
@@ -957,12 +962,12 @@ class DataRepo:
         return npc_id_to_name
 
     @_warm_on_fork
-    def get_npc_id_to_name_mapping(self) -> dict[str, str]:
+    def build_npc_id_to_name_mapping(self) -> dict[str, str]:
         """Get cached mapping from NPC ID to name."""
         return self._build_npc_id_to_name(self.build_text_map_tracker())
 
     @_warm_on_fork
-    def get_npc_id_to_source_name_mapping(self) -> dict[str, str]:
+    def build_npc_id_to_source_name_mapping(self) -> dict[str, str]:
         """NPC ID -> CHS (source) name, for language-independent test/hidden filtering.
 
         Dev markers like ``$HIDDEN``/``(test)`` only exist in the CHS name text.
@@ -970,7 +975,7 @@ class DataRepo:
         return self._build_npc_id_to_name(self.build_source_text_map_tracker())
 
     @_warm_on_fork
-    def get_dialog_id_to_role_name_hash_mapping(
+    def build_dialog_id_to_role_name_hash_mapping(
         self,
     ) -> dict[id_types.DialogId, id_types.TextMapHash]:
         """Get cached mapping from dialog ID to talkRoleNameTextMapHash."""
