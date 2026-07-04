@@ -11,7 +11,7 @@ import PageShell, { PageSection } from './components/PageShell'
 import Button from './components/Button'
 import CitationRenderer from './components/CitationRenderer'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
-import { useProperNounSelection } from './hooks/useProperNounSelection'
+import { SelectableAnswer } from './components/SelectableAnswer'
 import type { ConversationResponse } from './types/api'
 import convStyles from './ConversationPage.module.css'
 
@@ -40,7 +40,6 @@ function ConversationPage() {
   const t = useT()
   const { conversation } = useLoaderData() as LoaderData
   const { setExtraContent } = useFooter()
-  const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(conversation.uuid)
   const [submittingNew, setSubmittingNew] = useState(false)
   // The new-question composer is collapsed by default; clicking the question
   // title expands it (saves the vertical space when just reading the answer).
@@ -227,13 +226,9 @@ function ConversationPage() {
                     </div>
                   )}
 
-                  <div
-                    ref={answerRef}
-                    className="answer"
-                    onMouseUp={answerHandlers.onMouseUp}
-                    onKeyUp={answerHandlers.onKeyUp}
-                    onClick={answerHandlers.onClick}
-                  >{answer}</div>
+                  <SelectableAnswer resetKey={conversation.uuid}>
+                    {answer}
+                  </SelectableAnswer>
                 </PageSection>
 
                 {citationList && (
@@ -245,7 +240,6 @@ function ConversationPage() {
             )}
           </CitationRenderer>
         </MinimizedPopupRegion>}
-        {selectionUi}
     </PageShell>
   )
 }

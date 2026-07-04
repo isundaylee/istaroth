@@ -9,7 +9,7 @@ import { HighlightedMarkdown } from './components/HighlightedMarkdown'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
-import { useProperNounSelection } from './hooks/useProperNounSelection'
+import { SelectableAnswer } from './components/SelectableAnswer'
 import { recordLibraryView } from './utils/libraryRecents'
 import {
   categoryLabel,
@@ -62,7 +62,6 @@ function LibraryFileViewer() {
   const navigate = useAppNavigate()
   const { fileContent, fileTitle, fileId, category, currentId } = useLoaderData() as LoaderData
   const { nodes } = useRouteLoaderData('library-category') as HierarchyResponse
-  const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(fileContent)
   // Static curated list (per language, fast) and the per-file LLM extraction
   // (null = still in flight). We highlight nothing for the first 2s, then fall
   // back to the static list; the LLM result replaces it whenever it arrives.
@@ -154,9 +153,9 @@ function LibraryFileViewer() {
       <MinimizedPopupRegion className={styles.measure}>
         <Breadcrumbs crumbs={crumbs} />
 
-          <div ref={answerRef} className="answer" onMouseUp={answerHandlers.onMouseUp} onKeyUp={answerHandlers.onKeyUp} onClick={answerHandlers.onClick}>
+          <SelectableAnswer resetKey={fileContent}>
             <HighlightedMarkdown content={fileContent} properNouns={properNouns} />
-          </div>
+          </SelectableAnswer>
           {previousFile && (
             <NavButton
               onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(previousFile.file_id!)}`)}
@@ -180,7 +179,6 @@ function LibraryFileViewer() {
             marginTop={previousFile || nextFile ? '1rem' : '2rem'}
           />
       </MinimizedPopupRegion>
-      {selectionUi}
     </>
   )
 }

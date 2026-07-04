@@ -1,11 +1,11 @@
 import clsx from 'clsx'
 import { useT } from '../contexts/LanguageContext'
-import { useProperNounSelection } from '../hooks/useProperNounSelection'
 import type { LibraryRetrieveResponse, ProgressStepStart } from '../types/api'
 import { buildLibraryFilePath } from '../utils/library'
 import { AppLink } from './AppLink'
 import CitationRenderer from './CitationRenderer'
 import { FloatingPanel } from './FloatingPanel'
+import { SelectableAnswer } from './SelectableAnswer'
 import panelStyles from './FloatingPanel.module.css'
 import queryProgressStyles from './QueryProgress.module.css'
 import selStyles from './SelectionPanel.module.css'
@@ -81,9 +81,6 @@ function RetrievalSelectionPanel({ panel }: { panel: Extract<SelectionPanel, { k
 
 function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind: 'ask' }> }) {
   const t = useT()
-  // Recurse: proper nouns highlighted inside this answer become clickable and
-  // open their own nested selection panel, exactly like the page-level answer.
-  const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(panel.answer)
 
   return (
     <>
@@ -98,21 +95,14 @@ function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind:
         <CitationRenderer content={panel.answer} properNouns={panel.properNouns}>
           {({ answer, citationList }) => (
             <>
-              <div
-                ref={answerRef}
-                className={clsx('answer', selStyles.answer)}
-                onMouseUp={answerHandlers.onMouseUp}
-                onKeyUp={answerHandlers.onKeyUp}
-                onClick={answerHandlers.onClick}
-              >
+              <SelectableAnswer resetKey={panel.answer} className={selStyles.answer}>
                 {answer}
-              </div>
+              </SelectableAnswer>
               {citationList && (
                 <div className={selStyles.citations} data-citation-container>
                   {citationList}
                 </div>
               )}
-              {selectionUi}
             </>
           )}
         </CitationRenderer>
