@@ -181,6 +181,13 @@ export const eng = {
   library: {
     title: 'Library',
     placeholder: 'Library feature coming soon...',
+    frontDesk: {
+      kicker: "Istaroth's Archive",
+      title: 'Open the Archives of Teyvat',
+      subtitle: 'The quests, books, character stories, and legends of Teyvat, gathered here. Pick a category to begin, or open something at random.',
+      continueReading: 'Continue reading',
+      random: 'Open a random entry'
+    },
     selectCategory: 'Select Category',
     backToCategories: 'Back to Categories',
     backToFiles: 'Back to Files',

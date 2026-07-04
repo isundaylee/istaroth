@@ -13,7 +13,7 @@ import ConversationPage, { conversationPageLoader } from './ConversationPage'
 import HistoryPage, { historyPageLoader } from './HistoryPage'
 import ShortURLRedirect, { shortURLLoader } from './ShortURLRedirect'
 import LibraryLayout from './LibraryLayout'
-import LibraryCategoriesPage, { libraryCategoriesPageLoader } from './LibraryCategoriesPage'
+import LibraryEntry, { libraryEntryLoader } from './LibraryEntry'
 import HierarchyPage, { libraryCategoryLoader } from './HierarchyPage'
 import LibraryFileViewer, { libraryFileViewerLoader } from './LibraryFileViewer'
 import NotFoundPage from './NotFoundPage'
@@ -54,10 +54,10 @@ const router = createBrowserRouter([
         path: "/library",
         id: "library-root",
         element: <LibraryLayout />,
-        loader: libraryCategoriesPageLoader,
+        loader: libraryEntryLoader,
         errorElement: <ErrorBoundary />,
         children: [
-          { index: true, element: <LibraryCategoriesPage /> },
+          { index: true, element: <LibraryEntry /> },
           {
             path: ":category",
             id: "library-category",

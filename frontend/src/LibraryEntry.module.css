@@ -1,0 +1,118 @@
+.frontDesk {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--color-primary-text);
+  font-size: var(--font-xs);
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.title {
+  max-width: 13em;
+  margin: 0;
+  color: var(--color-heading);
+  font-size: var(--font-xl);
+  line-height: 1.08;
+}
+
+.subtitle {
+  max-width: 42rem;
+  margin: 0;
+  padding-left: 1rem;
+  border-left: 3px solid var(--color-accent-hairline);
+  color: var(--color-text-secondary);
+  font-size: var(--font-base);
+  line-height: 1.7;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sectionHead {
+  margin: 0;
+  color: var(--color-heading);
+  font-size: var(--font-sm);
+  font-weight: 700;
+}
+
+.recents {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.75rem;
+}
+
+.recentCard {
+  display: flex;
+  min-height: 6rem;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-secondary);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    transform 0.2s;
+}
+
+.recentCard:hover,
+.recentCard:focus-visible {
+  border-color: var(--color-accent-hairline);
+  background: var(--color-surface-hover);
+  transform: translateY(-1px);
+}
+
+.recentCategory {
+  color: var(--color-primary-text);
+  font-size: var(--font-xs);
+  font-weight: 700;
+}
+
+.recentTitle {
+  color: var(--color-heading);
+  font-size: var(--font-base);
+  font-weight: 600;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+@media (max-width: 600px) {
+  .frontDesk {
+    gap: 1.25rem;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .recents {
+    grid-template-columns: 1fr;
+  }
+}

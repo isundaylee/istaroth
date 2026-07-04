@@ -181,6 +181,13 @@ export const chs = {
   library: {
     title: '图书馆',
     placeholder: '图书馆功能即将推出...',
+    frontDesk: {
+      kicker: '时间之神的书库',
+      title: '翻开提瓦特的卷宗',
+      subtitle: '这里收藏着提瓦特的任务、书籍、角色故事与传说。挑一个分类开始，或信手翻阅一卷。',
+      continueReading: '继续阅读',
+      random: '信手翻阅'
+    },
     selectCategory: '选择分类',
     backToCategories: '返回分类',
     backToFiles: '返回文件列表',
