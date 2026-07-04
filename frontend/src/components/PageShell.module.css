@@ -134,8 +134,20 @@
     align-items: start;
   }
 
+  .split::before {
+    content: "";
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: end;
+    align-self: stretch;
+    width: 1px;
+    background: var(--color-border);
+  }
+
   .split > .body {
     /* Let the main column shrink instead of overflowing on long content. */
+    grid-column: 2;
+    grid-row: 1;
     min-width: 0;
   }
 
@@ -144,7 +156,10 @@
     position: sticky;
     top: 15px;
     z-index: auto;
+    grid-column: 1;
+    grid-row: 1;
     width: auto;
+    border-right: 0;
     background: transparent;
     transform: none;
     transition: none;
