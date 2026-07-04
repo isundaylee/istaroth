@@ -8,6 +8,7 @@ import HighlightedMarkdown from './components/HighlightedMarkdown'
 import NavButton from './components/NavButton'
 import SelectableAnswer from './components/SelectableAnswer'
 import { translate } from './i18n'
+import { ApiError, fetchLibraryFile } from './utils/api'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import { recordLibraryView } from './utils/libraryRecents'
@@ -38,14 +39,15 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
   }
 
   const language = getLanguageFromUrl(request.url)
-  const res = await fetch(
-    `/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(id)}?language=${language}`
-  )
-  if (!res.ok) {
-    throw new Response(translate(language, 'library.errors.loadFailed'), { status: res.status })
+  let fileData: LibraryFileResponse
+  try {
+    fileData = await fetchLibraryFile(category, id, language)
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw new Response(translate(language, 'library.errors.loadFailed'), { status: error.status })
+    }
+    throw error
   }
-
-  const fileData = (await res.json()) as LibraryFileResponse
   return {
     fileContent: fileData.content,
     fileTitle: fileData.file_info.title,

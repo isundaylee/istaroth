@@ -1,0 +1,51 @@
+.title {
+  margin-bottom: 0.75rem;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  margin-bottom: 0.25rem;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.15s ease;
+}
+
+.item:hover {
+  background-color: var(--color-surface-secondary);
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-primary-text);
+  font-size: var(--font-base);
+  font-weight: 400;
+  cursor: pointer;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.libLink {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--color-citation-lib-link);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.libLink:hover {
+  background-color: var(--color-citation-lib-hover);
+  color: var(--color-primary-text);
+}

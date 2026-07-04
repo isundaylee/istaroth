@@ -2,10 +2,14 @@ import { useEffect, useRef } from 'react'
 import type { CitationResponse } from '../types/api'
 import { useTranslation } from '../contexts/LanguageContext'
 import { isEditable } from '../utils/keyboard'
+import { buildLibraryFilePath } from '../utils/library'
+import { AppLink } from './AppLink'
 import { FloatingPanel } from './FloatingPanel'
 import type { FloatingPlacement } from '../utils/floatingPanel'
 import Button from './Button'
+import SelectableAnswer from './SelectableAnswer'
 import citationStyles from './CitationPopup.module.css'
+import panelStyles from './FloatingPanel.module.css'
 
 interface CitationPopupProps {
   /** File title (the "Source" eyebrow is added by the shared frame). */
@@ -27,6 +31,8 @@ interface CitationPopupProps {
   onLoadFullText?: () => void
   isLoadingFullText?: boolean
   onToggleFullscreen?: () => void
+  /** Identity of the displayed citation; clears any text selection inside the sticky popup when it changes. */
+  selectionResetKey?: unknown
 }
 
 function CitationPopup({
@@ -44,7 +50,8 @@ function CitationPopup({
   onClose,
   onLoadFullText,
   isLoadingFullText = false,
-  onToggleFullscreen
+  onToggleFullscreen,
+  selectionResetKey
 }: CitationPopupProps) {
   const { t } = useTranslation()
   const citedRef = useRef<HTMLDivElement>(null)
@@ -131,10 +138,22 @@ function CitationPopup({
       onRestore={isSticky ? onRestore : undefined}
       eyebrow={t.citation.source}
       title={title}
+      topLink={isSticky && citedChunk ? (
+        <AppLink
+          className={panelStyles.topLink}
+          to={buildLibraryFilePath(citedChunk.file_info)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {t.citation.openInLibrary}
+        </AppLink>
+      ) : null}
       onClose={isSticky ? onClose : undefined}
       bodyClassName={citationStyles.popupContent}
     >
-      {body}
+      {/* Selecting text in the sticky popup opens the shared search/ask toolbar;
+          hover popups stay non-interactive (hit-test transparent). */}
+      {isSticky ? <SelectableAnswer resetKey={selectionResetKey}>{body}</SelectableAnswer> : body}
     </FloatingPanel>
   )
 }
