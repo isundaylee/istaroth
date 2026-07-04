@@ -452,7 +452,7 @@ class DataRepo:
         """Map a readable file stem to its localization id for the instance language."""
         return self._build_readable_localization_maps()[0]
 
-    def build_localization_id_to_readable_path_mapping(
+    def build_localization_id_to_readable_filename_mapping(
         self,
     ) -> dict[id_types.LocalizationId, id_types.ReadableFilename]:
         """Map a localization id to its readable filename for the instance language."""
@@ -510,7 +510,7 @@ class DataRepo:
         materials = self.build_material_tracker()
         suits = self.load_book_suit_excel_config_data()
         documents = self.load_document_excel_config_data()
-        readable_paths = self.build_localization_id_to_readable_path_mapping()
+        readable_filenames = self.build_localization_id_to_readable_filename_mapping()
 
         grouped: dict[id_types.BookSuitId, list[id_types.ReadableFilename]] = {}
         for codex in sorted(
@@ -538,13 +538,14 @@ class DataRepo:
             if (
                 filename := next(
                     (
-                        readable_path
+                        readable_filename
                         for loc_id in itertools.chain(
                             document["questIDList"],
                             document["questContentLocalizedId"],
                             document.get("CUSTOM_addlLocalID", []),
                         )
-                        if (readable_path := readable_paths.get(loc_id)) is not None
+                        if (readable_filename := readable_filenames.get(loc_id))
+                        is not None
                     ),
                     None,
                 )

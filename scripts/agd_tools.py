@@ -579,7 +579,9 @@ def render_readable(readable_path: str) -> None:
         data_repo = repo.DataRepo.from_env()
 
         # Get readable metadata
-        metadata = readable.get_readable_metadata(readable_path, data_repo=data_repo)
+        metadata = readable.get_readable_metadata(
+            pathlib.Path(readable_path).name, data_repo=data_repo
+        )
 
         # Read the actual readable content
         readable_file_path = data_repo.agd_path / readable_path
@@ -677,10 +679,9 @@ def list_readables() -> None:
     error_count = 0
 
     for txt_file in txt_files:
-        relative_path = f"Readable/{data_repo.language.value}/{txt_file.name}"
         try:
             metadata = readable.get_readable_metadata(
-                relative_path, data_repo=data_repo
+                txt_file.name, data_repo=data_repo
             )
             click.echo(f"{txt_file.name:<20} -> {metadata.title}")
             success_count += 1

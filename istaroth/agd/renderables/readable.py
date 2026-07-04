@@ -15,11 +15,11 @@ from istaroth.text import types as text_types
 
 
 def get_readable_metadata(
-    readable_path: str, *, data_repo: repo.DataRepo
+    readable_filename: id_types.ReadableFilename, *, data_repo: repo.DataRepo
 ) -> processed_types.ReadableMetadata:
     """Retrieve metadata for a readable file."""
     language_short = data_repo.language_short
-    readable_stem = pathlib.Path(readable_path).stem
+    readable_stem = pathlib.Path(readable_filename).stem
     readable_id = readable_stem.removesuffix(f"_{language_short}")
 
     if (
@@ -47,7 +47,7 @@ def get_readable_metadata(
 
 
 def load_readable(
-    readable_path: str, *, data_repo: repo.DataRepo
+    readable_filename: id_types.ReadableFilename, *, data_repo: repo.DataRepo
 ) -> tuple[str, processed_types.ReadableMetadata] | None:
     """Read and clean a readable's content and metadata.
 
@@ -56,14 +56,14 @@ def load_readable(
     Reading the content marks it accessed in the readables tracker.
     """
     readables = data_repo.build_readables_tracker()
-    if (content := readables.get_content(pathlib.Path(readable_path).name)) is None:
-        raise FileNotFoundError(f"Readable not found: {readable_path}")
+    if (content := readables.get_content(readable_filename)) is None:
+        raise FileNotFoundError(f"Readable not found: {readable_filename}")
     content = data_repo.build_text_map_tracker().clean_text(content)
 
     if text_utils.should_skip_readable_content(content, data_repo.language):
         return None
 
-    metadata = get_readable_metadata(readable_path, data_repo=data_repo)
+    metadata = get_readable_metadata(readable_filename, data_repo=data_repo)
     if text_utils.should_skip_text(metadata.title, data_repo.language):
         return None
 

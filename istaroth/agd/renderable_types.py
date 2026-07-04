@@ -76,7 +76,7 @@ class BaseRenderableType(ABC, Generic[TKey]):
 
 
 def _process_single_readable(
-    renderable_key: str,
+    renderable_key: id_types.ReadableFilename,
     data_repo: repo.DataRepo,
     render: Callable[
         [str, processed_types.ReadableMetadata], processed_types.RenderedItem
@@ -93,20 +93,17 @@ def _discover_prefixed_readables(
     prefix: str,
     *,
     excluded: frozenset[id_types.ReadableFilename] = frozenset(),
-) -> list[str]:
-    """Readable paths whose filename starts with ``prefix``, minus ``excluded``."""
+) -> list[id_types.ReadableFilename]:
+    """Readable filenames starting with ``prefix``, minus ``excluded``."""
     readables_tracker = data_repo.build_readables_tracker()
-    return [
-        f"Readable/{data_repo.language_short}/{filename}"
-        for filename in sorted(
-            filename
-            for filename in readables_tracker.get_all_ids()
-            if filename.startswith(prefix) and filename not in excluded
-        )
-    ]
+    return sorted(
+        filename
+        for filename in readables_tracker.get_all_ids()
+        if filename.startswith(prefix) and filename not in excluded
+    )
 
 
-class BaseReadables(BaseRenderableType[str]):
+class BaseReadables(BaseRenderableType[id_types.ReadableFilename]):
     """Base renderable for readable content (readables/wings/costumes).
 
     Rendering is identical across subclasses apart from the ``text_category``, so
@@ -125,7 +122,7 @@ class BaseReadables(BaseRenderableType[str]):
         )
 
     def process(
-        self, renderable_key: str, data_repo: repo.DataRepo
+        self, renderable_key: id_types.ReadableFilename, data_repo: repo.DataRepo
     ) -> processed_types.RenderedItem | None:
         """Process readable file into rendered content."""
         return _process_single_readable(renderable_key, data_repo, self._render)
@@ -148,15 +145,10 @@ class Readables(BaseReadables):
     ) -> "Readables":
         return cls(accessed_stats.accessed[tracking.TrackerKind.READABLES].copy())
 
-    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+    def discover(self, data_repo: repo.DataRepo) -> list[id_types.ReadableFilename]:
         """Find all readable files, excluding those already used."""
         readables_tracker = data_repo.build_readables_tracker()
-        return [
-            f"Readable/{data_repo.language_short}/{filename}"
-            for filename in sorted(
-                readables_tracker.get_all_ids() - self.used_readable_filenames
-            )
-        ]
+        return sorted(readables_tracker.get_all_ids() - self.used_readable_filenames)
 
 
 class _BookSeriesKey(NamedTuple):
@@ -168,7 +160,7 @@ class _BookSeriesKey(NamedTuple):
 class _BookStandaloneKey(NamedTuple):
     """Renderable key for a single book not grouped into a series."""
 
-    readable_path: str
+    filename: id_types.ReadableFilename
 
 
 _BookKey = _BookSeriesKey | _BookStandaloneKey
@@ -190,8 +182,8 @@ class Books(BaseRenderableType[_BookKey]):
         return [
             *(_BookSeriesKey(suit_id) for suit_id in sorted(series_mapping)),
             *(
-                _BookStandaloneKey(readable_path)
-                for readable_path in _discover_prefixed_readables(
+                _BookStandaloneKey(filename)
+                for filename in _discover_prefixed_readables(
                     data_repo, "Book", excluded=grouped_filenames
                 )
             ),
@@ -207,10 +199,8 @@ class Books(BaseRenderableType[_BookKey]):
                 if series_info is None:
                     return None
                 return book.render_book_series(series_info, data_repo.language)
-            case _BookStandaloneKey(readable_path=readable_path):
-                return _process_single_readable(
-                    readable_path, data_repo, book.render_book
-                )
+            case _BookStandaloneKey(filename=filename):
+                return _process_single_readable(filename, data_repo, book.render_book)
             case _:
                 assert_never(renderable_key)
 
@@ -246,7 +236,7 @@ class Wings(BaseReadables):
 
     text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_WINGS
 
-    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+    def discover(self, data_repo: repo.DataRepo) -> list[id_types.ReadableFilename]:
         """Find all readable files whose filename starts with Wings."""
         return _discover_prefixed_readables(data_repo, "Wings")
 
@@ -258,7 +248,7 @@ class Costumes(BaseReadables):
         text_types.TextCategory.AGD_COSTUME
     )
 
-    def discover(self, data_repo: repo.DataRepo) -> list[str]:
+    def discover(self, data_repo: repo.DataRepo) -> list[id_types.ReadableFilename]:
         """Find all readable files whose filename starts with Costume."""
         return _discover_prefixed_readables(data_repo, "Costume")
 
