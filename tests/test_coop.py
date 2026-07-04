@@ -130,7 +130,8 @@ def test_get_hangout_info_yunjin(data_repo: repo.DataRepo) -> None:
 def test_build_coop_hierarchy_character_chapter_quest(data_repo: repo.DataRepo) -> None:
     """The hierarchy groups hangout quests under character -> chapter -> quest."""
     coop_items = [
-        (quest_id, "") for quest_id in data_repo.build_hangout_quest_to_stories()
+        (quest_id, "")
+        for quest_id in data_repo.build_hangout_quest_to_stories_mapping()
     ]
     hierarchy = coop_hierarchy.build_coop_hierarchy(coop_items, data_repo=data_repo)
 

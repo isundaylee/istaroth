@@ -23,13 +23,15 @@ def get_readable_metadata(
     readable_id = readable_stem.removesuffix(f"_{language_short}")
 
     if (
-        localization_id := data_repo.build_readable_stem_to_localization_id().get(
+        localization_id := data_repo.build_readable_stem_to_localization_id_mapping().get(
             readable_stem
         )
     ) is None:
         raise ValueError(f"Localization ID not found for readable: {readable_id}")
 
-    title_hash = data_repo.build_localization_id_to_title_hash().get(localization_id)
+    title_hash = data_repo.build_localization_id_to_title_hash_mapping().get(
+        localization_id
+    )
     title = (
         None
         if title_hash is None
