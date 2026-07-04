@@ -1,6 +1,7 @@
 import clsx from 'clsx'
 import { useT } from '../contexts/LanguageContext'
 import type { LibraryRetrieveResponse, ProgressStepStart } from '../types/api'
+import type { FloatingPlacement } from '../utils/floatingPanel'
 import { buildLibraryFilePath } from '../utils/library'
 import { AppLink } from './AppLink'
 import CitationRenderer from './CitationRenderer'
@@ -10,13 +11,6 @@ import panelStyles from './FloatingPanel.module.css'
 import queryProgressStyles from './QueryProgress.module.css'
 import selStyles from './SelectionPanel.module.css'
 import QueryProgress from './QueryProgress'
-
-export interface SelectionState {
-  text: string
-  top: number
-  left: number
-  placement: 'above' | 'below'
-}
 
 export type SelectionPanel =
   | {
@@ -40,7 +34,7 @@ export type SelectionPanel =
 
 interface SelectionPanelFrameProps {
   panel: SelectionPanel
-  placement: SelectionState['placement']
+  placement: FloatingPlacement
   top: number
   left: number
   fullscreen: boolean
