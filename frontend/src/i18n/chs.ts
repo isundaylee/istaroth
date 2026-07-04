@@ -156,21 +156,6 @@ export const chs = {
     close: '关闭'
   },
 
-  retrieve: {
-    placeholder: '输入文本以查找相关文档',
-    submitButton: '搜索',
-    submitting: '搜索中...',
-    searchMode: '搜索方式',
-    semantic: '语义搜索',
-    searchModeBm25: '仅关键词',
-    searchModeSemantic: '语义',
-    noResults: '未找到相关文档',
-    errors: {
-      unknown: '发生未知错误',
-      noConnection: '无法连接到服务器'
-    }
-  },
-
   footer: {
     checkpointVersion: '文本数据版本',
     tagline: '基于原神游戏文本的智能知识库'
@@ -186,6 +171,20 @@ export const chs = {
       search: '搜索馆藏',
       continueReading: '继续阅读',
       noRecents: '最近阅读的文本会显示在这里。'
+    },
+    search: {
+      placeholder: '输入文本以查找相关文档',
+      submitButton: '搜索',
+      submitting: '搜索中...',
+      searchMode: '搜索方式',
+      semantic: '语义搜索',
+      searchModeBm25: '仅关键词',
+      searchModeSemantic: '语义',
+      noResults: '未找到相关文档',
+      errors: {
+        unknown: '发生未知错误',
+        noConnection: '无法连接到服务器'
+      }
     },
     selectCategory: '选择分类',
     backToCategories: '返回分类',

@@ -156,21 +156,6 @@ export const eng = {
     close: 'Close'
   },
 
-  retrieve: {
-    placeholder: 'Enter text to find related documents',
-    submitButton: 'Search',
-    submitting: 'Searching...',
-    searchMode: 'Search mode',
-    semantic: 'Semantic search',
-    searchModeBm25: 'Keyword',
-    searchModeSemantic: 'Semantic',
-    noResults: 'No documents found',
-    errors: {
-      unknown: 'An unknown error occurred',
-      noConnection: 'Failed to connect to server'
-    }
-  },
-
   footer: {
     checkpointVersion: 'Text Data Version',
     tagline: 'A knowledge base built from Genshin Impact texts'
@@ -186,6 +171,20 @@ export const eng = {
       search: 'Search the archive',
       continueReading: 'Continue reading',
       noRecents: 'Recently read texts will appear here.'
+    },
+    search: {
+      placeholder: 'Enter text to find related documents',
+      submitButton: 'Search',
+      submitting: 'Searching...',
+      searchMode: 'Search mode',
+      semantic: 'Semantic search',
+      searchModeBm25: 'Keyword',
+      searchModeSemantic: 'Semantic',
+      noResults: 'No documents found',
+      errors: {
+        unknown: 'An unknown error occurred',
+        noConnection: 'Failed to connect to server'
+      }
     },
     selectCategory: 'Select Category',
     backToCategories: 'Back to Categories',
