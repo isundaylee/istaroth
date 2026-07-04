@@ -185,7 +185,7 @@ export const eng = {
       openContents: 'Open contents',
       search: 'Search the archive',
       continueReading: 'Continue reading',
-      noRecents: 'Open a few documents and they will appear here.'
+      noRecents: 'Recently read texts will appear here.'
     },
     selectCategory: 'Select Category',
     backToCategories: 'Back to Categories',
