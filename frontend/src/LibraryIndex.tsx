@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import { useT } from './contexts/LanguageContext'
 import { AppLink } from './components/AppLink'
 import TextInput from './components/TextInput'
+import { useCloseSidebarDrawer } from './components/PageShell'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import {
   categoryLabel,
@@ -30,6 +31,7 @@ interface LibraryIndexProps {
 function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: LibraryIndexProps) {
   const t = useT()
   const navigate = useAppNavigate()
+  const closeDrawer = useCloseSidebarDrawer()
   const [query, setQuery] = React.useState('')
 
   // Only reserve the caret-slot indent for leaves when the category actually has
@@ -63,8 +65,12 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
       return next
     })
 
-  const openLeaf = (fileId: number) =>
+  // Opening a document closes the mobile drawer; descending into a group leaves
+  // it open so you can keep drilling down.
+  const openLeaf = (fileId: number) => {
+    closeDrawer()
     navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(fileId)}`)
+  }
 
   const openGroup = (pathKey: string) => {
     setExpanded((prev) => new Set(prev).add(pathKey))

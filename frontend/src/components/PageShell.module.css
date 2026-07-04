@@ -42,11 +42,66 @@
 
 /* Wide two-pane variant (opt-in via the `sidebar` prop): a persistent sidebar
    column beside the main body, breaking out of the app-wide 800px cap on
-   desktop. Below the breakpoint the split collapses to one column and the rail
-   is hidden, so the page reads exactly like the default single-pane shell (and
-   inherits the phone edge-to-edge treatment from `.panel` above). */
+   desktop. Below the breakpoint the sidebar becomes an off-canvas drawer (opened
+   by `.drawerToggle`, dimmed by `.backdrop`), so the body reads like the default
+   single-pane shell and inherits the phone edge-to-edge treatment from `.panel`. */
 .rail {
-  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 50;
+  width: min(320px, 85vw);
+  padding: 1.25rem 0.9rem 2rem;
+  border-right: 1px solid var(--color-border);
+  background: var(--panel-bg);
+  overflow: auto;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+}
+
+.railOpen {
+  transform: translateX(0);
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 49;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+
+.backdropOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.drawerToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-sm);
+  cursor: pointer;
+}
+
+.drawerToggle:hover {
+  background: var(--color-surface-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail,
+  .backdrop {
+    transition: none;
+  }
 }
 
 @media (min-width: 1000px) {
@@ -72,16 +127,24 @@
   }
 
   .rail {
-    display: block;
-    padding: 1.25rem 0.9rem 2rem;
-    border-right: 1px solid var(--color-border);
-    /* Track the viewport so the sidebar stays put while the body scrolls; the
-       panel is not a scroll container, so sticky resolves against the page. */
+    /* Back to an in-flow grid column: undo the off-canvas drawer positioning. */
     position: sticky;
     top: 15px;
+    z-index: auto;
+    width: auto;
+    background: transparent;
+    transform: none;
+    transition: none;
+    /* Track the viewport so the sidebar stays put while the body scrolls; the
+       panel is not a scroll container, so sticky resolves against the page. */
     align-self: start;
     max-height: calc(100vh - 30px);
     overflow: auto;
+  }
+
+  .backdrop,
+  .drawerToggle {
+    display: none;
   }
 }
 
