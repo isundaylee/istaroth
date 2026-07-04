@@ -1,20 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect } from 'react'
 import { useLoaderData, useRouteLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
-import ReactMarkdown from 'react-markdown'
-import remarkBreaks from 'remark-breaks'
-import remarkGfm from 'remark-gfm'
-import { useTranslation, useT } from './contexts/LanguageContext'
+import { useT } from './contexts/LanguageContext'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import styles from './LibraryFileViewer.module.css'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
 import NavButton from './components/NavButton'
+import Reader from './components/Reader'
 import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
-import { useProperNounSelection } from './hooks/useProperNounSelection'
-import { buildProperNounMatcher } from './utils/properNouns'
-import { rehypeProperNouns } from './utils/rehypeProperNouns'
 import { recordLibraryView } from './utils/libraryRecents'
+import { useLibraryProperNouns } from './hooks/useLibraryProperNouns'
 import {
   categoryLabel,
   findLeafPath,
@@ -25,7 +21,6 @@ import {
 import type {
   HierarchyResponse,
   LibraryFileResponse,
-  ProperNounsResponse,
 } from './types/api'
 
 interface LoaderData {
@@ -62,21 +57,10 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
 
 function LibraryFileViewer() {
   const t = useT()
-  const { language } = useTranslation()
   const navigate = useAppNavigate()
   const { fileContent, fileTitle, fileId, category, currentId } = useLoaderData() as LoaderData
   const { nodes } = useRouteLoaderData('library-category') as HierarchyResponse
-  const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(fileContent)
-  // Static curated list (per language, fast) and the per-file LLM extraction
-  // (null = still in flight). We highlight nothing for the first 2s, then fall
-  // back to the static list; the LLM result replaces it whenever it arrives.
-  const [staticNouns, setStaticNouns] = useState<string[]>([])
-  const [llmNouns, setLlmNouns] = useState<string[] | null>(null)
-  const [fallbackElapsed, setFallbackElapsed] = useState(false)
-  const properNounMatcher = useMemo(() => {
-    const nouns = llmNouns !== null ? llmNouns : fallbackElapsed ? staticNouns : []
-    return nouns.length > 0 ? buildProperNounMatcher(nouns) : null
-  }, [llmNouns, fallbackElapsed, staticNouns])
+  const properNouns = useLibraryProperNouns({ category, fileId })
 
   const catLabel = categoryLabel(category, t)
 
@@ -111,85 +95,33 @@ function LibraryFileViewer() {
   useEffect(() => {
     recordLibraryView({ category, fileId: currentId, title: fileTitle })
   }, [category, currentId, fileTitle])
-
-  // Static curated list: fetched once per language, reused across files.
-  useEffect(() => {
-    let cancelled = false
-    fetch(`/api/library/proper-nouns?language=${encodeURIComponent(language.toUpperCase())}`)
-      .then((res) => (res.ok ? (res.json() as Promise<ProperNounsResponse>) : null))
-      .then((data) => {
-        if (!cancelled) setStaticNouns(data?.nouns ?? [])
-      })
-      .catch(() => {
-        if (!cancelled) setStaticNouns([])
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [language])
-
-  // Per-file LLM extraction: show nothing for 2s, then fall back to the static
-  // list; replace with the LLM result whenever it arrives. On failure we leave
-  // llmNouns null so the static fallback stays.
-  useEffect(() => {
-    let cancelled = false
-    setLlmNouns(null)
-    setFallbackElapsed(false)
-    const timer = window.setTimeout(() => {
-      if (!cancelled) setFallbackElapsed(true)
-    }, 2000)
-    fetch(
-      `/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(fileId)}/proper-nouns?language=${encodeURIComponent(language.toUpperCase())}`
-    )
-      .then((res) => (res.ok ? (res.json() as Promise<ProperNounsResponse>) : null))
-      .then((data) => {
-        if (!cancelled && data) setLlmNouns(data.nouns)
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-      window.clearTimeout(timer)
-    }
-  }, [language, category, fileId])
-
   return (
-    <>
-      <MinimizedPopupRegion className={styles.measure}>
-        <Breadcrumbs crumbs={crumbs} />
-
-          <div ref={answerRef} className="answer" onMouseUp={answerHandlers.onMouseUp} onKeyUp={answerHandlers.onKeyUp} onClick={answerHandlers.onClick}>
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkBreaks]}
-              rehypePlugins={properNounMatcher ? [rehypeProperNouns(properNounMatcher)] : []}
-            >
-              {fileContent}
-            </ReactMarkdown>
-          </div>
-          {previousFile && (
-            <NavButton
-              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(previousFile.file_id!)}`)}
-              label={t('library.previous')}
-              title={previousFile.title || t('library.noFileName')}
-              marginTop="2rem"
-            />
-          )}
-          {nextFile && (
-            <NavButton
-              onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(nextFile.file_id!)}`)}
-              label={t('library.next')}
-              title={nextFile.title || t('library.noFileName')}
-              marginTop={previousFile ? '1rem' : '2rem'}
-            />
-          )}
-          <NavButton
-            onClick={() => navigate(backPath)}
-            label={t('library.backToFiles')}
-            title={backText}
-            marginTop={previousFile || nextFile ? '1rem' : '2rem'}
-          />
-      </MinimizedPopupRegion>
-      {selectionUi}
-    </>
+    <MinimizedPopupRegion className={styles.measure}>
+      <Breadcrumbs crumbs={crumbs} />
+      <Reader content={fileContent} properNouns={properNouns} gfm />
+      {previousFile && (
+        <NavButton
+          onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(previousFile.file_id!)}`)}
+          label={t('library.previous')}
+          title={previousFile.title || t('library.noFileName')}
+          marginTop="2rem"
+        />
+      )}
+      {nextFile && (
+        <NavButton
+          onClick={() => navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(nextFile.file_id!)}`)}
+          label={t('library.next')}
+          title={nextFile.title || t('library.noFileName')}
+          marginTop={previousFile ? '1rem' : '2rem'}
+        />
+      )}
+      <NavButton
+        onClick={() => navigate(backPath)}
+        label={t('library.backToFiles')}
+        title={backText}
+        marginTop={previousFile || nextFile ? '1rem' : '2rem'}
+      />
+    </MinimizedPopupRegion>
   )
 }
 

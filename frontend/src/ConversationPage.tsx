@@ -9,9 +9,8 @@ import { copyToClipboard } from './utils/clipboard'
 import QueryForm from './QueryForm'
 import PageShell, { PageSection } from './components/PageShell'
 import Button from './components/Button'
-import CitationRenderer from './components/CitationRenderer'
+import Reader from './components/Reader'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
-import { useProperNounSelection } from './hooks/useProperNounSelection'
 import type { ConversationResponse } from './types/api'
 import convStyles from './ConversationPage.module.css'
 
@@ -40,7 +39,6 @@ function ConversationPage() {
   const t = useT()
   const { conversation } = useLoaderData() as LoaderData
   const { setExtraContent } = useFooter()
-  const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(conversation.uuid)
   const [submittingNew, setSubmittingNew] = useState(false)
   // The new-question composer is collapsed by default; clicking the question
   // title expands it (saves the vertical space when just reading the answer).
@@ -154,10 +152,10 @@ function ConversationPage() {
         )}
       </PageSection>
 
-        {!submittingNew &&
-        <MinimizedPopupRegion className={convStyles.content} data-conversation-content>
-          <CitationRenderer content={conversation.answer} properNouns={conversation.proper_nouns}>
-            {({ answer, citationList }) => (
+      {!submittingNew &&
+        <MinimizedPopupRegion className={convStyles.content}>
+          <Reader content={conversation.answer} properNouns={conversation.proper_nouns} citations resetKey={conversation.uuid}>
+            {({ answer, citationList, selectionUi, answerRef, answerHandlers }) => (
               <>
                 <PageSection>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -241,11 +239,11 @@ function ConversationPage() {
                     <PageSection>{citationList}</PageSection>
                   </div>
                 )}
+                {selectionUi}
               </>
             )}
-          </CitationRenderer>
+          </Reader>
         </MinimizedPopupRegion>}
-        {selectionUi}
     </PageShell>
   )
 }
