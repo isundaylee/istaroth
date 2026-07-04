@@ -11,11 +11,10 @@ import queryProgressStyles from './QueryProgress.module.css'
 import selStyles from './SelectionPanel.module.css'
 import QueryProgress from './QueryProgress'
 
+import type { FloatingPlacement } from '../utils/floatingPanel'
+
 export interface SelectionState {
   text: string
-  top: number
-  left: number
-  placement: 'above' | 'below'
 }
 
 export type SelectionPanel =
@@ -40,7 +39,7 @@ export type SelectionPanel =
 
 interface SelectionPanelFrameProps {
   panel: SelectionPanel
-  placement: SelectionState['placement']
+  placement: FloatingPlacement
   top: number
   left: number
   fullscreen: boolean

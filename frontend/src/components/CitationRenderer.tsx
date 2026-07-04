@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import type { Components } from 'react-markdown'
 import { useTranslation, useT } from '../contexts/LanguageContext'
 import type { CitationResponse, LibraryFileInfo, LibraryFileResponse } from '../types/api'
@@ -6,7 +6,7 @@ import { buildLibraryFilePath } from '../utils/library'
 import { HighlightedMarkdown } from './HighlightedMarkdown'
 import CitationPopup from './CitationPopup'
 import { preprocessCitationsForDisplay, formatCitationId, parseCitationId } from '../utils/citations'
-import { calculateFloatingPlacement, type FloatingPosition } from '../utils/floatingPanel'
+import { useFloatingPanelState, useOutsideMouseDown } from '../hooks/useFloatingPanelState'
 
 interface CitationRendererProps {
   content: string
@@ -31,9 +31,8 @@ interface CitationContentData {
 function CitationRenderer({ content, properNouns, children }: CitationRendererProps) {
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
   const [stickyCitation, setStickyCitation] = useState<string | null>(null)
-  const [isMinimized, setIsMinimized] = useState<boolean>(false)
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false)
-  const [popupPosition, setPopupPosition] = useState<FloatingPosition>({ top: 0, left: 0, placement: 'below' })
+  const floatingState = useFloatingPanelState()
+  const { minimized, fullscreen, position } = floatingState
   const [citationCache, setCitationCache] = useState<Record<string, CachedCitation>>({})
   const [loadingCitations, setLoadingCitations] = useState<Set<string>>(new Set())
   // Full file text keyed by fileId, fetched on demand to render the whole document around the cited span.
@@ -41,17 +40,12 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
   const [loadingFiles, setLoadingFiles] = useState<Set<string>>(new Set())
   const { language } = useTranslation()
   const t = useT()
-  const popupRef = useRef<HTMLDivElement>(null)
 
   // Preprocess content to convert XML citations to markdown links with document:chunk numbering
   // Also extract unique cited works in the same pass
   const preprocessResult = useMemo(() => preprocessCitationsForDisplay(content), [content])
   const processedContent = preprocessResult.processedText
   const uniqueCitedWorks = preprocessResult.uniqueFileIds
-
-  // Calculate viewport-aware anchor position for the popup from the citation rect.
-  const calculatePopupPosition = useCallback((citationRect: DOMRect): FloatingPosition =>
-    calculateFloatingPlacement(citationRect), [])
 
   // Batch function to fetch multiple citations in a single request
   const fetchCitationsBatch = useCallback(async (citationIds: string[]) => {
@@ -188,17 +182,14 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     // Don't show hover popup if any citation is sticky
     if (stickyCitation) return
 
-    const citationRect = e.currentTarget.getBoundingClientRect()
-
     setHoveredCitation(citationId)
 
     // Fetch citation content if not already cached
     fetchCitationsBatch([citationId])
 
     // Calculate optimal position to avoid going off-screen
-    const position = calculatePopupPosition(citationRect)
-    setPopupPosition(position)
-  }, [stickyCitation, fetchCitationsBatch, calculatePopupPosition])
+    floatingState.openAtRect(e.currentTarget.getBoundingClientRect())
+  }, [stickyCitation, fetchCitationsBatch, floatingState])
 
   // Global mouse move handler to check if mouse has left all instances of the hovered citation
   useEffect(() => {
@@ -229,24 +220,21 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     e.preventDefault()
     e.stopPropagation()
 
-    const citationRect = e.currentTarget.getBoundingClientRect()
-
     // Fetch citation content if not already cached
     fetchCitationsBatch([citationId])
 
     // Calculate optimal position to avoid going off-screen
-    const position = calculatePopupPosition(citationRect)
-    setPopupPosition(position)
+    floatingState.openAtRect(e.currentTarget.getBoundingClientRect())
 
     // Toggle sticky state
-    if (stickyCitation === citationId && !isMinimized) {
+    if (stickyCitation === citationId && !minimized) {
       setStickyCitation(null)
     } else {
       setStickyCitation(citationId)
-      setIsMinimized(false) // Re-open fully when (re)clicking a citation
+      floatingState.restore() // Re-open fully when (re)clicking a citation
       setHoveredCitation(null) // Clear hover when making sticky
     }
-  }, [stickyCitation, isMinimized, fetchCitationsBatch, calculatePopupPosition])
+  }, [stickyCitation, minimized, fetchCitationsBatch, floatingState])
 
   const handleCitationListClick = useCallback((e: React.MouseEvent<HTMLElement>, citationId: string) => {
     e.preventDefault()
@@ -256,39 +244,27 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     fetchCitationsBatch([citationId])
 
     // Always open fullscreen when clicking from citation list
-    // Position doesn't matter for fullscreen popups
     setStickyCitation(citationId)
-    setIsMinimized(false)
-    setIsFullscreen(true)
+    floatingState.openFullscreen()
     setHoveredCitation(null) // Clear hover when making sticky
-  }, [fetchCitationsBatch])
+  }, [fetchCitationsBatch, floatingState])
 
   const handleCloseSticky = useCallback(() => {
     setStickyCitation(null)
-    setIsMinimized(false)
-    setIsFullscreen(false)
-  }, [])
+    floatingState.reset()
+  }, [floatingState])
 
   // Minimize the sticky popup (instead of closing) when clicking outside it. The
   // popup keeps its state and collapses to a card in the side rail; full close
-  // happens via that card. Clicks landing in any floating popup/card are ignored.
-  useEffect(() => {
-    if (!stickyCitation || isMinimized) return
+  // happens via that card. Clicks landing in any floating popup/card are
+  // exempted automatically by useOutsideMouseDown; citation-link elements are
+  // exempted here.
+  const isStickyActive = stickyCitation !== null && !minimized
+  const isExemptTarget = useCallback((target: HTMLElement) =>
+    (target.closest?.('[data-citation-id]') ?? false), [])
+  useOutsideMouseDown(isStickyActive, isExemptTarget, floatingState.minimize)
 
-    const handleMouseDown = (e: MouseEvent) => {
-      if (popupRef.current?.contains(e.target as Node)) return
-      if ((e.target as HTMLElement).closest?.('[data-citation-id]')) return
-      if ((e.target as HTMLElement).closest?.('[data-floating-popup]')) return
-      setIsMinimized(true)
-    }
-
-    document.addEventListener('mousedown', handleMouseDown)
-    return () => document.removeEventListener('mousedown', handleMouseDown)
-  }, [stickyCitation, isMinimized])
-
-  const handleToggleFullscreen = useCallback(() => {
-    setIsFullscreen(!isFullscreen)
-  }, [isFullscreen])
+  const handleToggleFullscreen = floatingState.toggleFullscreen
 
   const getSourceContent = (citationId: string): CitationContentData => {
     const { fileId, chunkIndex } = parseCitationId(citationId)
@@ -410,18 +386,17 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     <>
       {displayedCitation && popupData && (
         <CitationPopup
-          ref={popupRef}
           title={popupData.title}
           content={popupData.content}
           citedChunk={isSticky ? popupData.citedChunk : undefined}
           fullText={isSticky ? popupData.fullText : undefined}
           isSticky={isSticky}
-          isFullscreen={isFullscreen}
-          minimized={isMinimized}
-          onRestore={() => setIsMinimized(false)}
-          placement={popupPosition.placement}
-          top={popupPosition.top}
-          left={popupPosition.left}
+          isFullscreen={fullscreen}
+          minimized={minimized}
+          onRestore={floatingState.restore}
+          placement={position.placement}
+          top={position.top}
+          left={position.left}
           onClose={handleCloseSticky}
           onLoadFullText={isSticky ? () => fetchFileText(popupData.fileId) : undefined}
           isLoadingFullText={isSticky ? loadingFiles.has(popupData.fileId) : false}

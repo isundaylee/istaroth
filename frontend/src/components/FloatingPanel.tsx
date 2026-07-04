@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useT } from '../contexts/LanguageContext'
 import { MinimizedPopupCard } from '../contexts/MinimizedPopupContext'
 import { useDraggableResizable } from '../hooks/useDraggableResizable'
+import { isEditable } from '../utils/keyboard'
 import type { FloatingPlacement } from '../utils/floatingPanel'
 import Button from './Button'
 import styles from './FloatingPanel.module.css'
@@ -84,13 +85,19 @@ export function FloatingPanel({
   })
 
   useEffect(() => {
-    if (!onClose) return
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape' && onClose) {
+        onClose()
+        return
+      }
+      if (e.key === 'f' && onToggleFullscreen && !minimized && !isEditable(e.target) && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault()
+        onToggleFullscreen()
+      }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+  }, [onClose, onToggleFullscreen, minimized])
 
   const panelClass = [
     styles.panel,
