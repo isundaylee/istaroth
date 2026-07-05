@@ -26,6 +26,7 @@
      mix of them in the same row (Composer footer, nav) lines up exactly. */
   --control-height-md: 2.25rem;
   --control-height-sm: 1.5rem;
+  --control-height-xs: 1.35rem;
   --font-xl: 2.5rem;
   --font-hero: 4rem;
 

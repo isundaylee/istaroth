@@ -287,7 +287,7 @@ export function MinimizedPopupCard({ eyebrow, title, onRestore, onClose, expandL
         {eyebrow && <span className={styles.cardEyebrow}>{eyebrow}</span>}
         <span className={styles.cardTitle}>{title}</span>
       </button>
-      <Button type="button" variant="icon" size="sm" onClick={onClose} aria-label={closeLabel} className={styles.cardClose}>
+      <Button type="button" variant="icon" size="xs" onClick={onClose} aria-label={closeLabel} className={styles.cardClose}>
         ×
       </Button>
     </div>,

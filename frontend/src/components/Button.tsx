@@ -5,12 +5,13 @@ interface ButtonProps extends React.ComponentPropsWithoutRef<'button'> {
   // "primary" (default): filled primary button.
   // "secondary": tonal outline button (share, export, load-more).
   // "ghost": transparent toolbar/inline button.
-  // "icon": compact square icon-only button (close, fullscreen toggle).
+  // "icon": square icon-only button (close, fullscreen toggle).
   // "submit": fixed-width composer submit button.
   variant?: 'primary' | 'secondary' | 'ghost' | 'icon' | 'submit'
-  // "md" (default): --control-height-md. "sm": --control-height-sm, layered
-  // on top of any variant ("icon" instead shrinks its fixed square).
-  size?: 'md' | 'sm'
+  // Owns the control height, layered on top of any variant ("icon" stays a
+  // square of that height): "md" (default) --control-height-md, "sm"
+  // --control-height-sm, "xs" --control-height-xs (dense chrome).
+  size?: 'md' | 'sm' | 'xs'
 }
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
