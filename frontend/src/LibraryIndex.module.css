@@ -40,9 +40,23 @@
   word-break: break-word;
 }
 
+/* The filter reads as part of the index, not a form control: no box, just a
+   hairline underline that warms to the gold accent while the field is in use. */
 .search {
-  width: 100%;
-  margin-bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0.3rem 0.85rem;
+  border-bottom: 1px solid var(--color-border-divider);
+  color: var(--color-text-muted);
+}
+
+.search:focus-within {
+  border-bottom-color: var(--color-accent-hairline);
+}
+
+.searchIcon {
+  flex: none;
 }
 
 .list,

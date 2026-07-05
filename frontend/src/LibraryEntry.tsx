@@ -15,7 +15,7 @@ import { useAppNavigate } from './hooks/useAppNavigate'
 import { getLibraryRecents } from './utils/libraryRecents'
 import { categoryLabel } from './utils/hierarchy'
 import styles from './LibraryEntry.module.css'
-import type { LibraryCategoriesResponse, LibraryRetrieveResponse } from './types/api'
+import type { HierarchyResponse, LibraryCategoriesResponse, LibraryRetrieveResponse } from './types/api'
 
 interface _ResultGroup {
   fileInfo: LibraryRetrieveResponse['results'][number]['file_info']
@@ -64,6 +64,26 @@ export async function libraryEntryLoader({ request }: LoaderFunctionArgs): Promi
     throw new Response(translate(language, 'library.errors.loadFailed'), { status: res.status })
   }
   return (await res.json()) as LibraryCategoriesResponse
+}
+
+// Loads a category's whole document tree once for the parent route; the index,
+// browse, and file-viewer children all read it via useRouteLoaderData.
+export async function libraryCategoryLoader({
+  params,
+  request,
+}: LoaderFunctionArgs): Promise<HierarchyResponse> {
+  const { category } = params
+  if (!category) {
+    throw new Response(translate(getLanguageFromUrl(request.url), 'library.errors.invalidCategory'), {
+      status: 400,
+    })
+  }
+  const language = getLanguageFromUrl(request.url)
+  const res = await fetch(`/api/library/hierarchy/${encodeURIComponent(category)}?language=${language}`)
+  if (!res.ok) {
+    throw new Response(translate(language, 'library.errors.loadFailed'), { status: res.status })
+  }
+  return (await res.json()) as HierarchyResponse
 }
 
 function LibraryEntry() {

@@ -46,20 +46,6 @@ export function countLeaves(node: HierarchyNode): number {
   return node.children.reduce((sum, child) => sum + countLeaves(child), 0)
 }
 
-// All leaf nodes under `nodes`, in depth-first order.
-export function flattenLeaves(nodes: HierarchyNode[]): HierarchyNode[] {
-  const leaves: HierarchyNode[] = []
-  const walk = (node: HierarchyNode) => {
-    if (node.children == null) {
-      if (isLeaf(node)) leaves.push(node)
-      return
-    }
-    node.children.forEach(walk)
-  }
-  nodes.forEach(walk)
-  return leaves
-}
-
 export interface LeafSearchEntry {
   fileId: number
   title: string

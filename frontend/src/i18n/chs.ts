@@ -192,7 +192,6 @@ export const chs = {
     selectCategory: '选择分类',
     backToCategories: '返回分类',
     backToFiles: '返回文件列表',
-    noFiles: '该分类下没有文件',
     categories: {
       agd_artifact_set: '圣遗物套装',
       agd_book: '书籍',
@@ -227,10 +226,8 @@ export const chs = {
     collapse: '收起',
     navMenu: '目录',
     questSeriesToc: '本系列任务',
-    questSearchPlaceholder: '搜索所有类型的任务...',
     noSearchResults: '没有匹配的任务',
     hangoutCharacterToc: '本邀约的剧情',
-    hangoutSearchPlaceholder: '搜索所有角色的邀约...',
     selection: {
       keywordSearch: '关键词搜索',
       ask: '提问',
