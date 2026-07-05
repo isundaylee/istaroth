@@ -1,14 +1,96 @@
 import { useEffect, useRef } from 'react'
 import type { CitationResponse } from '../types/api'
 import { useTranslation } from '../contexts/LanguageContext'
+import { useLibraryProperNouns } from '../hooks/useLibraryProperNouns'
 import { buildLibraryFilePath } from '../utils/library'
 import { AppLink } from './AppLink'
 import { FloatingPanel } from './FloatingPanel'
 import type { FloatingPlacement } from '../utils/floatingPanel'
 import Button from './Button'
+import HighlightedMarkdown from './HighlightedMarkdown'
 import SelectableAnswer from './SelectableAnswer'
 import citationStyles from './CitationPopup.module.css'
 import panelStyles from './FloatingPanel.module.css'
+
+interface StickyCitationBodyProps {
+  /** The cited chunk; its start/end offsets locate the cited span within the full text. */
+  citedChunk: CitationResponse
+  /** Full file text; when present the whole document is rendered with the cited span highlighted. */
+  fullText?: string
+  onLoadFullText?: () => void
+  isLoadingFullText: boolean
+}
+
+/**
+ * Sticky popup body: the cited document rendered as markdown (like the library
+ * file viewer) with proper nouns for the cited file highlighted.
+ */
+function StickyCitationBody({ citedChunk, fullText, onLoadFullText, isLoadingFullText }: StickyCitationBodyProps) {
+  const { t } = useTranslation()
+  const citedRef = useRef<HTMLDivElement>(null)
+  const properNouns = useLibraryProperNouns(citedChunk.file_info.category, String(citedChunk.file_info.id))
+
+  // Keep the cited span in view as the cited chunk loads and again once the full text expands.
+  useEffect(() => {
+    if (!citedRef.current) return
+    const el = citedRef.current
+    const timer = setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }), 100)
+    return () => clearTimeout(timer)
+  }, [citedChunk, fullText])
+
+  // The cited region is rendered as a block marked with a left accent bar and a "cited" badge.
+  const citedBlock = (text: string) => (
+    <div ref={citedRef} className={citationStyles.cited}>
+      <div className={citationStyles.citedLabel}>{t.citation.current}</div>
+      <HighlightedMarkdown content={text} properNouns={properNouns} />
+    </div>
+  )
+
+  // Gap button (top/bottom); clicking either loads the entire file text.
+  const loadGap = () => onLoadFullText && (
+    <Button
+      variant="secondary"
+      size="sm"
+      onClick={onLoadFullText}
+      disabled={isLoadingFullText}
+      className={citationStyles.gap}
+    >
+      {isLoadingFullText ? t.citation.loadingButton : t.citation.loadAllChunks}
+    </Button>
+  )
+
+  if (fullText == null) {
+    return (
+      <>
+        {citedChunk.chunk_index > 0 && loadGap()}
+        {citedBlock(citedChunk.content)}
+        {citedChunk.chunk_index < citedChunk.total_chunks - 1 && loadGap()}
+      </>
+    )
+  }
+
+  // Chunk offsets fall on newline boundaries (the splitter cuts at \n\n / \n),
+  // so the three slices render as markdown without cutting through block
+  // constructs. Trim newlines at the cut points so the surrounding context sits
+  // flush against the bar.
+  const before = fullText.slice(0, citedChunk.start_index).replace(/\n+$/, '')
+  const after = fullText.slice(citedChunk.end_index).replace(/^\n+/, '')
+  return (
+    <>
+      {before && (
+        <div className={citationStyles.context}>
+          <HighlightedMarkdown content={before} properNouns={properNouns} />
+        </div>
+      )}
+      {citedBlock(fullText.slice(citedChunk.start_index, citedChunk.end_index).trim())}
+      {after && (
+        <div className={citationStyles.context}>
+          <HighlightedMarkdown content={after} properNouns={properNouns} />
+        </div>
+      )}
+    </>
+  )
+}
 
 interface CitationPopupProps {
   /** File title (the "Source" eyebrow is added by the shared frame). */
@@ -53,58 +135,14 @@ function CitationPopup({
   selectionResetKey
 }: CitationPopupProps) {
   const { t } = useTranslation()
-  const citedRef = useRef<HTMLDivElement>(null)
-
-  // Keep the cited span in view as the cited chunk loads and again once the full text expands.
-  useEffect(() => {
-    if (!isSticky || !citedRef.current) return
-    const el = citedRef.current
-    const timer = setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' }), 100)
-    return () => clearTimeout(timer)
-  }, [isSticky, citedChunk, fullText])
-
-  // The cited region is rendered as a block marked with a left accent bar and a "cited" badge.
-  const citedBlock = (text: string) => (
-    <div ref={citedRef} className={citationStyles.cited}>
-      <div className={citationStyles.citedLabel}>{t.citation.current}</div>
-      {text}
-    </div>
-  )
-
-  // Gap button (top/bottom); clicking either loads the entire file text.
-  const loadGap = () => onLoadFullText && (
-    <Button
-      variant="secondary"
-      size="sm"
-      onClick={onLoadFullText}
-      disabled={isLoadingFullText}
-      className={citationStyles.gap}
-    >
-      {isLoadingFullText ? t.citation.loadingButton : t.citation.loadAllChunks}
-    </Button>
-  )
 
   const body = isSticky && citedChunk ? (
-    <div style={{ whiteSpace: 'pre-wrap' }}>
-      {fullText != null ? (() => {
-        // Trim newlines at the cut points so the surrounding context sits flush against the bar.
-        const before = fullText.slice(0, citedChunk.start_index).replace(/\n+$/, '')
-        const after = fullText.slice(citedChunk.end_index).replace(/^\n+/, '')
-        return (
-          <>
-            {before && <div className={citationStyles.context}>{before}</div>}
-            {citedBlock(fullText.slice(citedChunk.start_index, citedChunk.end_index).trim())}
-            {after && <div className={citationStyles.context}>{after}</div>}
-          </>
-        )
-      })() : (
-        <>
-          {citedChunk.chunk_index > 0 && loadGap()}
-          {citedBlock(citedChunk.content)}
-          {citedChunk.chunk_index < citedChunk.total_chunks - 1 && loadGap()}
-        </>
-      )}
-    </div>
+    <StickyCitationBody
+      citedChunk={citedChunk}
+      fullText={fullText}
+      onLoadFullText={onLoadFullText}
+      isLoadingFullText={isLoadingFullText}
+    />
   ) : (
     <div style={{ whiteSpace: 'pre-wrap' }}>{content}</div>
   )
