@@ -15,13 +15,6 @@ export function useOpenSidebarDrawer() {
   return useContext(OpenSidebarDrawerContext)
 }
 
-interface ConsultationRailConfig {
-  open: boolean
-  onToggle: () => void
-  label: ReactNode
-  content: ReactNode
-}
-
 interface PageShellProps {
   children: ReactNode
   // When true, the body has no padding and its children are full-width sections
@@ -37,19 +30,20 @@ interface PageShellProps {
   // Label for the mobile drawer toggle button (also its accessible name).
   sidebarLabel?: ReactNode
   hideMobileSidebarToggle?: boolean
-  // When provided, render the consultation-surface history ledger rail: a
-  // toggleable left sidebar with a vertical bookmark tab on the left border.
-  // Open = wide two-pane (1140px), closed = centered 800px card with the tab
-  // protruding. On mobile the tab collapses into a drawerToggleBar and the rail
-  // becomes the off-canvas left drawer.
-  consultationRail?: ConsultationRailConfig
+  // When true and sidebar is provided, the sidebar can be toggled on desktop via
+  // a bookmark tab on the left border. Open = wide two-pane (1140px), closed =
+  // centered 800px card. On mobile the tab is hidden and the drawerToggleBar is
+  // always visible. Implies flush body.
+  sidebarCloseable?: boolean
+  sidebarClosed?: boolean
+  onSidebarToggle?: () => void
 }
 
 // The connected one-card page frame: the embedded nav strip and the page content
 // share a single hairline-bordered surface (see the home page). Pages render
 // their content as children instead of their own <Navigation> + card; the
 // enclosing <main> is owned by RootLayout.
-function PageShell({ children, flush = false, sidebar, sidebarLabel, hideMobileSidebarToggle = false, consultationRail }: PageShellProps) {
+function PageShell({ children, flush = false, sidebar, sidebarLabel, hideMobileSidebarToggle = false, sidebarCloseable, sidebarClosed, onSidebarToggle }: PageShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
   const openDrawer = useCallback(() => setDrawerOpen(true), [])
@@ -64,55 +58,19 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel, hideMobileS
     return () => window.removeEventListener('keydown', onKey)
   }, [drawerOpen, closeDrawer])
 
-  if (consultationRail) {
-    const { open, onToggle, label, content } = consultationRail
-    return (
-      <div className={clsx(styles.panel, styles.wide, styles.ledger, !open && styles.ledgerClosed)}>
-        <Navigation embedded />
-        <div className={styles.split}>
-          <div
-            className={clsx(styles.backdrop, drawerOpen && styles.backdropOpen)}
-            onClick={closeDrawer}
-            aria-hidden
-          />
-          <button
-            type="button"
-            className={styles.ledgerTab}
-            onClick={onToggle}
-            aria-label={typeof label === 'string' ? label : undefined}
-          >
-            <span className={styles.ledgerTabGlyph} aria-hidden>{open ? '▶' : '◀'}</span>
-            <span className={styles.ledgerTabLabel}>{label}</span>
-          </button>
-          <aside className={clsx(styles.rail, styles.ledgerRail, drawerOpen && styles.railOpen)}>
-            <CloseSidebarDrawerContext.Provider value={closeDrawer}>
-              {content}
-            </CloseSidebarDrawerContext.Provider>
-          </aside>
-          <div className={clsx(styles.body, styles.bodyFlush)}>
-            <div className={styles.drawerToggleBar}>
-              <button
-                type="button"
-                className={styles.drawerToggle}
-                onClick={openDrawer}
-                aria-expanded={drawerOpen}
-              >
-                <span aria-hidden>☰</span>
-                {label}
-              </button>
-            </div>
-            <OpenSidebarDrawerContext.Provider value={openDrawer}>
-            {children}
-            </OpenSidebarDrawerContext.Provider>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
   if (sidebar) {
+    const closeable = sidebarCloseable && sidebarClosed !== undefined && onSidebarToggle !== undefined
+    const panelClass = clsx(
+      styles.panel,
+      styles.wide,
+      closeable && styles.ledger,
+      closeable && sidebarClosed && styles.ledgerClosed,
+    )
+    const railClass = clsx(styles.rail, closeable && styles.ledgerRail, drawerOpen && styles.railOpen)
+    const bodyClass = clsx(styles.body, closeable && styles.bodyFlush, !closeable && hideMobileSidebarToggle && styles.bodyNoDrawerToggle)
+
     return (
-      <div className={clsx(styles.panel, styles.wide)}>
+      <div className={panelClass}>
         <Navigation embedded />
         <div className={styles.split}>
           <div
@@ -120,13 +78,24 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel, hideMobileS
             onClick={closeDrawer}
             aria-hidden
           />
-          <aside className={clsx(styles.rail, drawerOpen && styles.railOpen)}>
+          {closeable && (
+            <button
+              type="button"
+              className={styles.ledgerTab}
+              onClick={onSidebarToggle}
+              aria-label={typeof sidebarLabel === 'string' ? sidebarLabel : undefined}
+            >
+              <span className={styles.ledgerTabGlyph} aria-hidden>{sidebarClosed ? '◀' : '▶'}</span>
+              <span className={styles.ledgerTabLabel}>{sidebarLabel}</span>
+            </button>
+          )}
+          <aside className={railClass}>
             <CloseSidebarDrawerContext.Provider value={closeDrawer}>
               {sidebar}
             </CloseSidebarDrawerContext.Provider>
           </aside>
-          <div className={clsx(styles.body, hideMobileSidebarToggle && styles.bodyNoDrawerToggle)}>
-            {!hideMobileSidebarToggle && (
+          <div className={bodyClass}>
+            {(!hideMobileSidebarToggle || closeable) && sidebarLabel !== undefined && (
               <div className={styles.drawerToggleBar}>
                 <button
                   type="button"

@@ -3,29 +3,28 @@ import { HistoryRailProvider, useHistoryRail } from './contexts/HistoryRailConte
 import { HistoryRailContent } from './components/HistoryRail'
 import PageShell from './components/PageShell'
 
-function ConsultationRailWrapper() {
+function ConversationLayoutInner() {
   const { open, toggle } = useHistoryRail()
   const { id } = useParams()
 
   return (
     <PageShell
       flush
-      consultationRail={{
-        open,
-        onToggle: toggle,
-        label: '历史记录',
-        content: <HistoryRailContent activeConversationId={id} />,
-      }}
+      sidebar={<HistoryRailContent activeConversationId={id} />}
+      sidebarLabel="历史记录"
+      sidebarCloseable
+      sidebarClosed={!open}
+      onSidebarToggle={toggle}
     >
       <Outlet />
     </PageShell>
   )
 }
 
-export default function ConsultationLayout() {
+export default function ConversationLayout() {
   return (
     <HistoryRailProvider>
-      <ConsultationRailWrapper />
+      <ConversationLayoutInner />
     </HistoryRailProvider>
   )
 }
