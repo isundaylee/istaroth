@@ -1,11 +1,13 @@
 import clsx from 'clsx'
 import type { ReactNode } from 'react'
 import { useProperNounSelection } from '../hooks/useProperNounSelection'
+import styles from './SelectableAnswer.module.css'
 
 interface SelectableAnswerProps {
   /** Content identity (e.g. conversation uuid); the selection clears when it changes. */
   resetKey: unknown
-  className?: string
+  /** Typography scale; 'sm' is the compact variant for panel surfaces. */
+  size?: 'base' | 'sm'
   children: ReactNode
 }
 
@@ -15,12 +17,12 @@ interface SelectableAnswerProps {
  * selection UI portals to body / the minimized rail, so it can be rendered
  * adjacent to the container.
  */
-function SelectableAnswer({ resetKey, className, children }: SelectableAnswerProps) {
+function SelectableAnswer({ resetKey, size = 'base', children }: SelectableAnswerProps) {
   const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(resetKey)
 
   return (
     <>
-      <div ref={answerRef} className={clsx('answer', className)} {...answerHandlers}>
+      <div ref={answerRef} className={clsx(styles.answer, size === 'sm' && styles.sm)} {...answerHandlers}>
         {children}
       </div>
       {selectionUi}

@@ -76,7 +76,7 @@ function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind:
   const t = useT()
 
   return (
-    <>
+    <div className={selStyles.askBody}>
       {panel.loading && panel.activeSteps.length === 0 && (
         <p className={clsx(selStyles.muted, queryProgressStyles.loadingEllipsis)}>{t('query.submitting')}</p>
       )}
@@ -88,7 +88,7 @@ function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind:
           and open their own nested selection panel, exactly like the
           page-level answer. */}
       {panel.answer && (
-        <CitationRenderer content={panel.answer} properNouns={panel.properNouns} answerClassName={selStyles.answer}>
+        <CitationRenderer content={panel.answer} properNouns={panel.properNouns} answerSize="sm">
           {({ answer, citationList }) => (
             <>
               {answer}
@@ -101,7 +101,7 @@ function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind:
           )}
         </CitationRenderer>
       )}
-    </>
+    </div>
   )
 }
 

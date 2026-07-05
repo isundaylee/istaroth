@@ -14,8 +14,8 @@ interface CitationRendererProps {
   content: string
   /** Proper nouns to highlight within the rendered answer (citation links are left untouched). */
   properNouns?: string[]
-  /** Extra class for the selectable answer container. */
-  answerClassName?: string
+  /** Typography scale for the selectable answer container. */
+  answerSize?: 'base' | 'sm'
   children?: (props: { answer: React.ReactNode; citationList: React.ReactNode }) => React.ReactNode
 }
 
@@ -30,7 +30,7 @@ interface CitationContentData {
   fullText?: string
 }
 
-function CitationRenderer({ content, properNouns, answerClassName, children }: CitationRendererProps) {
+function CitationRenderer({ content, properNouns, answerSize, children }: CitationRendererProps) {
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
   const [stickyCitation, setStickyCitation] = useState<string | null>(null)
   const { position, minimized, fullscreen, openAtRect, openFullscreen, minimize, restore, toggleFullscreen, reset } =
@@ -235,7 +235,7 @@ function CitationRenderer({ content, properNouns, answerClassName, children }: C
   // The answer comes pre-wired for selection: selecting text (or clicking a
   // highlighted proper noun) opens the search/ask toolbar on every consumer.
   const answer = (
-    <SelectableAnswer resetKey={content} className={answerClassName}>
+    <SelectableAnswer resetKey={content} size={answerSize}>
       {displayedCitation && popupData && (
         <CitationPopup
           title={popupData.title}

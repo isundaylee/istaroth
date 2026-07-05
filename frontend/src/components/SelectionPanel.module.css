@@ -74,9 +74,19 @@
   margin: 0.5rem 0;
 }
 
-.answer {
-  margin-top: 0.75rem;
-  font-size: var(--font-sm);
+/* Ask-panel body: the gap separates the progress/error block from the answer
+   (spacing that used to live as margin-top on the answer itself). Children keep
+   spacing via the gap, so their standalone margins are dropped here. */
+.askBody {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.askBody .muted,
+.askBody .error,
+.askBody .progress {
+  margin: 0;
 }
 
 .citations {

@@ -89,9 +89,10 @@
   min-width: 0;
 }
 
-/* Prefixed with .panel so these win over .answer p / .answer h3: the
-   citation popup renders inside the .answer subtree, whose typography rules
-   would otherwise clobber the eyebrow/title margins and blow out the spacing. */
+/* Prefixed with .panel so these win over SelectableAnswer's answer p /
+   answer h3 rules: the citation popup renders inside the answer subtree, whose
+   typography rules would otherwise clobber the eyebrow/title margins and blow
+   out the spacing. */
 .panel .eyebrow {
   margin: 0 0 0.35rem;
   color: var(--color-text-muted);
