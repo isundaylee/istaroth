@@ -43,7 +43,7 @@ function LibraryLayout() {
           activeBrowseKeys={activeBrowseKeys}
         />
       }
-      sidebarSizing="natural"
+      sidebarSizing="fit"
       sidebarLabel={t('library.navMenu')}
       hideMobileSidebarToggle={!category}
     >
