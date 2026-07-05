@@ -1,5 +1,6 @@
 import { ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react'
 import clsx from 'clsx'
+import { ChevronLeft, ChevronRight, Menu } from 'lucide-react'
 import Button from './Button'
 import Navigation from './Navigation'
 import styles from './PageShell.module.css'
@@ -85,7 +86,7 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel, sidebarClos
         aria-expanded={drawerOpen}
         aria-label={typeof sidebarLabel === 'string' ? sidebarLabel : undefined}
       >
-        <span className={styles.drawerToggleGlyph} aria-hidden>☰</span>
+        <Menu className={styles.drawerToggleGlyph} aria-hidden />
       </Button>
     )
 
@@ -107,7 +108,9 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel, sidebarClos
               onClick={onSidebarToggle}
               aria-label={typeof sidebarLabel === 'string' ? sidebarLabel : undefined}
             >
-              <span className={styles.ledgerTabGlyph} aria-hidden>{closed ? '◀' : '▶'}</span>
+              {closed
+                ? <ChevronLeft className={styles.ledgerTabGlyph} aria-hidden />
+                : <ChevronRight className={styles.ledgerTabGlyph} aria-hidden />}
               <span className={styles.ledgerTabLabel}>{sidebarLabel}</span>
             </button>
           )}

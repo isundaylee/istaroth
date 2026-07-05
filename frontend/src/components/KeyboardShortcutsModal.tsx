@@ -1,6 +1,6 @@
+import { X } from 'lucide-react'
 import { useT } from '../contexts/LanguageContext'
 import Button from './Button'
-import { CloseIcon } from './icons'
 
 interface KeyboardShortcutsModalProps {
   open: boolean
@@ -98,7 +98,7 @@ function KeyboardShortcutsModal({ open, onClose }: KeyboardShortcutsModalProps) 
             title={t('keyboard.close')}
             style={{ color: 'white' }}
           >
-            <CloseIcon />
+            <X aria-hidden />
           </Button>
         </div>
         <div style={{ padding: '0.25rem 1rem 0.25rem' }}>

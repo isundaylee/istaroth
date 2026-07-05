@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import clsx from 'clsx'
+import { Moon, Sun } from 'lucide-react'
 import { useT } from '../contexts/LanguageContext'
 import { useRailPlacementGuide } from '../contexts/PopupCoordinatorContext'
 import { useTheme } from '../contexts/ThemeContext'
@@ -63,7 +64,7 @@ function Navigation({ embedded = false, leading }: NavigationProps = {}) {
           className={styles.controlButton}
           title={theme === 'light' ? t('theme.toggleDark') : t('theme.toggleLight')}
         >
-          {theme === 'light' ? '☾' : '☀'}
+          {theme === 'light' ? <Moon size={16} aria-hidden /> : <Sun size={16} aria-hidden />}
         </Button>
         <LanguageSwitcher className={styles.controlButton} />
       </div>

@@ -1,11 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { Maximize, Minimize, X } from 'lucide-react'
 import { useT } from '../contexts/LanguageContext'
 import { MinimizedPopupCard, usePopupRegistration } from '../contexts/PopupCoordinatorContext'
 import { useDraggableResizable } from '../hooks/useDraggableResizable'
 import { clampShiftIntoViewport, type FloatingPlacement } from '../utils/floatingPanel'
 import Button from './Button'
-import { CloseIcon, EnterFullscreenIcon, ExitFullscreenIcon } from './icons'
 import styles from './FloatingPanel.module.css'
 
 interface FloatingPanelProps {
@@ -206,7 +206,7 @@ export function FloatingPanel({
                 onClick={onToggleFullscreen}
                 title={fullscreen ? t('citation.exitFullscreen') : t('citation.enterFullscreen')}
               >
-                {fullscreen ? <ExitFullscreenIcon /> : <EnterFullscreenIcon />}
+                {fullscreen ? <Minimize aria-hidden /> : <Maximize aria-hidden />}
               </Button>
             )}
             {onClose && (
@@ -217,7 +217,7 @@ export function FloatingPanel({
                 onClick={onClose}
                 aria-label={t('common.close')}
               >
-                <CloseIcon />
+                <X aria-hidden />
               </Button>
             )}
           </div>
