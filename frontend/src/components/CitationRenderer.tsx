@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import type { Components } from 'react-markdown'
 import { useT } from '../contexts/LanguageContext'
 import { useCitations } from '../hooks/useCitations'
-import { useFloatingPanelState, useOutsideMouseDown } from '../hooks/useFloatingPanelState'
+import { useFloatingPanelState, useOutsidePointerDown } from '../hooks/useFloatingPanelState'
 import type { CitationResponse } from '../types/api'
 import { preprocessCitationsForDisplay, formatCitationId, parseCitationId } from '../utils/citations'
 import CitationList from './CitationList'
@@ -129,7 +129,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     (target: HTMLElement) => Boolean(target.closest?.('[data-citation-id]')),
     []
   )
-  useOutsideMouseDown(stickyCitation !== null && !minimized, isCitationTarget, minimize)
+  useOutsidePointerDown(stickyCitation !== null && !minimized, isCitationTarget, minimize)
 
   const getSourceContent = (citationId: string): CitationContentData => {
     const { fileId, chunkIndex } = parseCitationId(citationId)

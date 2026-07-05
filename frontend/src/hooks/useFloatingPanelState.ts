@@ -47,25 +47,30 @@ export function useFloatingPanelState(): FloatingPanelState {
 }
 
 /**
- * While ``active``, a mousedown outside the caller's exempt area triggers
+ * While ``active``, a pointerdown outside the caller's exempt area triggers
  * ``onOutside``. Clicks in any floating popup/card (incl. nested ones that
  * portal out of the caller's subtree) are always exempt via
  * ``[data-floating-popup]``. ``isExemptTarget`` must be memoized by the caller.
+ *
+ * ``pointerdown`` rather than ``mousedown``: on touch devices the compatibility
+ * mouse events are synthesized only for clean taps on targets the browser deems
+ * clickable (and not at all when a tap drifts into a scroll), so a mousedown
+ * listener silently never fires there; pointerdown fires for every touch.
  */
-export function useOutsideMouseDown(
+export function useOutsidePointerDown(
   active: boolean,
   isExemptTarget: (target: HTMLElement) => boolean,
   onOutside: () => void
 ): void {
   useEffect(() => {
     if (!active) return
-    const handleMouseDown = (event: MouseEvent) => {
+    const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as HTMLElement
       if (target.closest?.('[data-floating-popup]')) return
       if (isExemptTarget(target)) return
       onOutside()
     }
-    document.addEventListener('mousedown', handleMouseDown)
-    return () => document.removeEventListener('mousedown', handleMouseDown)
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [active, isExemptTarget, onOutside])
 }

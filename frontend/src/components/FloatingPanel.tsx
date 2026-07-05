@@ -1,4 +1,4 @@
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useT } from '../contexts/LanguageContext'
 import { MinimizedPopupCard } from '../contexts/MinimizedPopupContext'
@@ -77,6 +77,23 @@ export function FloatingPanel({
     disabled: !movable
   })
 
+  // Horizontal viewport-fit correction. The anchor clamp in
+  // calculateFloatingPlacement assumes a narrow panel, so on small screens the
+  // centered panel can overhang a viewport edge. Measure the rendered width and
+  // shift the panel back inside (the drag hook applies the same containment
+  // while dragging).
+  const [fitX, setFitX] = useState(0)
+  useLayoutEffect(() => {
+    setFitX(0)
+    if (fullscreen || minimized || top == null || left == null) return
+    const width = panelElementRef.current?.getBoundingClientRect().width
+    if (!width) return
+    const margin = 8
+    const minShift = margin - (left - width / 2)
+    const maxShift = window.innerWidth - margin - (left + width / 2)
+    setFitX(Math.min(Math.max(0, minShift), maxShift))
+  }, [top, left, placement, fullscreen, minimized])
+
   useEffect(() => {
     if (!onClose) return
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -127,8 +144,10 @@ export function FloatingPanel({
                   : `calc(100vh - ${top}px - 1rem)`
                 : undefined
             }),
-        // Folded into the centering transform via CSS custom properties so a drag
-        // shifts the panel without overwriting its `translate(-50% ...)` base.
+        // Folded into the centering transform via CSS custom properties so the
+        // fit correction and a drag shift the panel without overwriting its
+        // `translate(-50% ...)` base.
+        ['--fit-x' as string]: `${fitX}px`,
         ['--drag-x' as string]: `${offset.x}px`,
         ['--drag-y' as string]: `${offset.y}px`
       }

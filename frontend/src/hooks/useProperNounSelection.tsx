@@ -4,7 +4,7 @@ import { useT, useTranslation } from '../contexts/LanguageContext'
 import { SelectionPanelFrame, type SelectionPanel } from '../components/SelectionPanel'
 import Button from '../components/Button'
 import selStyles from '../components/SelectionPanel.module.css'
-import { useFloatingPanelState, useOutsideMouseDown } from './useFloatingPanelState'
+import { useFloatingPanelState, useOutsidePointerDown } from './useFloatingPanelState'
 import { getClientId } from '../utils/clientId'
 import { buildUrlWithLanguage } from '../utils/language'
 import { consumeQueryStream } from '../utils/queryStream'
@@ -133,7 +133,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
       // Otherwise it's a plain click in the answer (not on a proper noun). A
       // collapsed selection means no text was selected, so this counts as
       // "clicking outside the popup" and minimizes an open panel to its card.
-      // This lives here rather than in the document mousedown handler because
+      // This lives here rather than in the document pointerdown handler because
       // that handler exempts the answer area (the whole document in the library
       // viewer) so that dragging to select text doesn't dismiss anything.
       const selectedNoText = window.getSelection()?.isCollapsed ?? true
@@ -163,7 +163,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
     }
     closeSelection()
   }, [hasPanel, minimize, closeSelection])
-  useOutsideMouseDown(selectedText !== null, isAnswerTarget, handleOutside)
+  useOutsidePointerDown(selectedText !== null, isAnswerTarget, handleOutside)
 
   // Escape fully closes (matching the panel's own close button), whether or
   // not a panel is open.

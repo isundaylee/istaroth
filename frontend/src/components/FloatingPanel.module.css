@@ -11,12 +11,12 @@
   border-radius: var(--radius-md);
   background: var(--color-surface);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.22);
-  transform: translate(calc(-50% + var(--drag-x, 0px)), var(--drag-y, 0px));
+  transform: translate(calc(-50% + var(--fit-x, 0px) + var(--drag-x, 0px)), var(--drag-y, 0px));
   animation: fadeIn 0.2s ease;
 }
 
 .above {
-  transform: translate(calc(-50% + var(--drag-x, 0px)), calc(-100% + var(--drag-y, 0px)));
+  transform: translate(calc(-50% + var(--fit-x, 0px) + var(--drag-x, 0px)), calc(-100% + var(--drag-y, 0px)));
 }
 
 /* Hover (non-sticky) popups must not participate in hit-testing: otherwise the
