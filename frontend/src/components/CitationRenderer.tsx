@@ -193,7 +193,13 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
           return (
             <sup
               data-citation-id={citationId}
-              onMouseEnter={(e) => handleCitationHover(e, citationId)}
+              // Hover preview only for real mouse pointers. A tap on iOS Safari
+              // first dispatches the compatibility mouseenter, and when that
+              // handler visibly changes content (the hover popup appearing)
+              // Safari treats the tap as hover-only and cancels the click — so
+              // the sticky popup never opened on touch, leaving an
+              // un-minimizable hover popup instead.
+              onPointerEnter={(e) => { if (e.pointerType === 'mouse') handleCitationHover(e, citationId) }}
               onClick={(e) => handleCitationClick(e, citationId)}
               style={{
                 color: 'var(--color-primary-text)',
