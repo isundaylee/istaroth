@@ -1,5 +1,6 @@
 import React from 'react'
 import clsx from 'clsx'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useT } from './contexts/LanguageContext'
 import { AppLink } from './components/AppLink'
 import TextInput from './components/TextInput'
@@ -111,7 +112,7 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
                 onClick={() => toggle(pathKey)}
                 aria-label={open ? t('library.collapse') : t('library.expand')}
               >
-                {open ? '▾' : '▸'}
+                {open ? <ChevronDown size={12} aria-hidden /> : <ChevronRight size={12} aria-hidden />}
               </button>
               <button className={styles.labelBtn} onClick={() => openGroup(pathKey)}>
                 <span className={styles.label}>{nodeLabel(node) || t('library.noFileName')}</span>

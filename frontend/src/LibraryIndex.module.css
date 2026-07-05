@@ -83,11 +83,15 @@
 
 .caret {
   flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 0.85rem;
+  /* Match the row's first text line (line-height 1.4) so the chevron centers
+     on the label's first line in flex-start rows. */
+  height: 1.4em;
   padding: 0;
   color: var(--color-text-muted);
-  font-size: 0.7rem;
-  line-height: 1.7;
 }
 
 .caret:hover {

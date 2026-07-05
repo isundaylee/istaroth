@@ -85,6 +85,14 @@
   border-radius: var(--radius-sm);
 }
 
+/* Lucide icon children scale with the square's per-size font-size (below);
+   the 1em box overrides the SVG's own pixel width/height attributes, so call
+   sites never pass sizes. */
+.icon svg {
+  width: 1em;
+  height: 1em;
+}
+
 /* Re-assert zero padding over the size modifiers below (same specificity as
    `.icon` alone, but later in the file), and scale the glyph with the square. */
 .icon.sm,

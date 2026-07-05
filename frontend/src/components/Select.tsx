@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import styles from './Select.module.css'
 
 export interface SelectOption {
@@ -60,6 +61,7 @@ function Select({ options, value, onChange, disabled, placeholder, ariaLabel, cl
         title={selected ? [selected.label, selected.detail].filter(Boolean).join(' · ') : ariaLabel}
       >
         <span className={styles.triggerLabel}>{selected?.label ?? placeholder ?? ''}</span>
+        <ChevronDown className={styles.chevron} aria-hidden />
       </button>
       {open && (
         <ul className={styles.menu} role="listbox" aria-label={ariaLabel}>
