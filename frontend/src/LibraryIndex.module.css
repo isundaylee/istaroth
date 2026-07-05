@@ -1,6 +1,7 @@
-/* The hierarchical navigator inside the layout rail: category header, filter,
- * and the expandable tree. The current-position marker is an inset box-shadow
- * (not a border) so the gold ribbon never fights the button reset. */
+/* The hierarchical navigator inside the layout rail: the filter and the
+ * expandable unified tree (one top-level group per category). The
+ * current-position marker is an inset box-shadow (not a border) so the gold
+ * ribbon never fights the button reset. */
 
 .tree {
   font-size: var(--font-sm);
@@ -13,31 +14,6 @@
   color: inherit;
   cursor: pointer;
   text-align: left;
-}
-
-.head {
-  padding: 0 0.3rem;
-  margin-bottom: 0.85rem;
-}
-
-.back {
-  display: inline-block;
-  margin-bottom: 0.3rem;
-  font-size: var(--font-xs);
-  color: var(--color-text-muted);
-  text-decoration: none;
-}
-
-.back:hover {
-  color: var(--color-primary-text);
-}
-
-.cat {
-  margin: 0;
-  font-size: var(--font-lg);
-  font-weight: 600;
-  color: var(--color-heading);
-  word-break: break-word;
 }
 
 /* The filter reads as part of the index, not a form control: no box, just a
@@ -89,10 +65,12 @@
 
 /* Leaves have no caret, so indent them by the caret slot (its width + the row
    gap) to align with the group labels above them. Use a margin, not padding, so
-   the empty caret slot stays outside the row's highlight/hover background. */
+   the empty caret slot stays outside the row's highlight/hover background, and
+   subtract the indent from the width so the highlight still runs to the right
+   edge like group rows. */
 .leaf {
   margin-left: calc(0.85rem + 0.35rem);
-  width: auto;
+  width: calc(100% - 0.85rem - 0.35rem);
 }
 
 .caret {
@@ -104,21 +82,15 @@
   /* Match the row's first text line (line-height 1.4) so the chevron centers
      on the label's first line in flex-start rows. */
   height: 1.4em;
-  padding: 0;
   color: var(--color-text-muted);
 }
 
-.caret:hover {
-  color: var(--color-primary-text);
-}
-
-.labelBtn {
+.groupBody {
   flex: 1;
   display: flex;
   align-items: baseline;
   gap: 0.4rem;
   min-width: 0;
-  padding: 0;
 }
 
 .label {

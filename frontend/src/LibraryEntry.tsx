@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { useParams, type LoaderFunctionArgs } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { AppLink } from './components/AppLink'
 import Button from './components/Button'
 import Card from './components/Card'
@@ -9,13 +9,11 @@ import { useOpenSidebarDrawer } from './components/PageShell'
 import Toggle from './components/Toggle'
 import { useT } from './contexts/LanguageContext'
 import { useLibraryRetrieve } from './hooks/useLibraryRetrieve'
-import { translate } from './i18n'
-import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import { getLibraryRecents } from './utils/libraryRecents'
 import { categoryLabel } from './utils/hierarchy'
 import styles from './LibraryEntry.module.css'
-import type { HierarchyResponse, LibraryCategoriesResponse, LibraryRetrieveResponse } from './types/api'
+import type { LibraryRetrieveResponse } from './types/api'
 
 interface _ResultGroup {
   fileInfo: LibraryRetrieveResponse['results'][number]['file_info']
@@ -54,36 +52,6 @@ function _groupByDocument(results: LibraryRetrieveResponse['results']): _ResultG
     group.passages.push(result.snippet)
   }
   return groups
-}
-
-export async function libraryEntryLoader({ request }: LoaderFunctionArgs): Promise<LibraryCategoriesResponse> {
-  const language = getLanguageFromUrl(request.url)
-
-  const res = await fetch(`/api/library/categories?language=${language}`)
-  if (!res.ok) {
-    throw new Response(translate(language, 'library.errors.loadFailed'), { status: res.status })
-  }
-  return (await res.json()) as LibraryCategoriesResponse
-}
-
-// Loads a category's whole document tree once for the parent route; the index,
-// browse, and file-viewer children all read it via useRouteLoaderData.
-export async function libraryCategoryLoader({
-  params,
-  request,
-}: LoaderFunctionArgs): Promise<HierarchyResponse> {
-  const { category } = params
-  if (!category) {
-    throw new Response(translate(getLanguageFromUrl(request.url), 'library.errors.invalidCategory'), {
-      status: 400,
-    })
-  }
-  const language = getLanguageFromUrl(request.url)
-  const res = await fetch(`/api/library/hierarchy/${encodeURIComponent(category)}?language=${language}`)
-  if (!res.ok) {
-    throw new Response(translate(language, 'library.errors.loadFailed'), { status: res.status })
-  }
-  return (await res.json()) as HierarchyResponse
 }
 
 function LibraryEntry() {

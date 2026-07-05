@@ -131,7 +131,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/library/categories": {
+    "/api/library/hierarchy": {
         parameters: {
             query?: never;
             header?: never;
@@ -139,30 +139,15 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Get Categories
-         * @description Get list of all categories for a language.
+         * Get Library Hierarchy
+         * @description Get the full library hierarchy: every category's document tree.
+         *
+         *     Categories with a dedicated builder (quests, hangouts) return their pre-baked
+         *     multi-level tree; any other category returns a flat, depth-1 list of file
+         *     leaves synthesized from the manifest. The corpus is immutable per deployment,
+         *     so the response carries an ETag for free conditional reloads.
          */
-        get: operations["get_categories_api_library_categories_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/library/files/{category}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Files
-         * @description Get list of files in a category for a language.
-         */
-        get: operations["get_files_api_library_files__category__get"];
+        get: operations["get_library_hierarchy_api_library_hierarchy_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -229,50 +214,6 @@ export interface paths {
          *     hash). Only CHS is supported; ENG returns an empty list.
          */
         get: operations["get_file_proper_nouns_api_library_file__category___id__proper_nouns_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/library/hierarchy/{category}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Hierarchy
-         * @description Get the browsable document hierarchy for a category.
-         *
-         *     Categories with a dedicated builder (quests, hangouts) return their pre-baked
-         *     multi-level tree; any other category returns a flat, depth-1 list of file
-         *     leaves synthesized from the manifest.
-         */
-        get: operations["get_hierarchy_api_library_hierarchy__category__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/library/file/{category}/{id}/toc": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get File Toc
-         * @description Get the table of contents for a single file by category and id.
-         */
-        get: operations["get_file_toc_api_library_file__category___id__toc_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -498,20 +439,14 @@ export interface components {
             toc_eligible: boolean;
         };
         /**
-         * HierarchyResponse
-         * @description Response model for the document hierarchy of a single category.
+         * LibraryCategoryHierarchy
+         * @description One category's document tree within the full library hierarchy.
          */
-        HierarchyResponse: {
+        LibraryCategoryHierarchy: {
+            /** Category */
+            category: string;
             /** Nodes */
             nodes: components["schemas"]["HierarchyNode"][];
-        };
-        /**
-         * LibraryCategoriesResponse
-         * @description Response model for library categories endpoint.
-         */
-        LibraryCategoriesResponse: {
-            /** Categories */
-            categories: string[];
         };
         /**
          * LibraryFileInfo
@@ -537,12 +472,12 @@ export interface components {
             content: string;
         };
         /**
-         * LibraryFilesResponse
-         * @description Response model for library files endpoint.
+         * LibraryHierarchyResponse
+         * @description Full library hierarchy: every category's document tree, in display order.
          */
-        LibraryFilesResponse: {
-            /** Files */
-            files: components["schemas"]["LibraryFileInfo"][];
+        LibraryHierarchyResponse: {
+            /** Categories */
+            categories: components["schemas"]["LibraryCategoryHierarchy"][];
         };
         /**
          * LibraryRetrieveRequest
@@ -719,13 +654,6 @@ export interface components {
             slug: string;
             /** Target Path */
             target_path: string;
-        };
-        /**
-         * TocResponse
-         * @description TOC for a single file. toc_root is None when the file has no TOC.
-         */
-        TocResponse: {
-            toc_root: components["schemas"]["HierarchyNode"] | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -940,7 +868,7 @@ export interface operations {
             };
         };
     };
-    get_categories_api_library_categories_get: {
+    get_library_hierarchy_api_library_hierarchy_get: {
         parameters: {
             query: {
                 /** @description Language code (CHS, ENG) */
@@ -958,41 +886,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LibraryCategoriesResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_files_api_library_files__category__get: {
-        parameters: {
-            query: {
-                /** @description Language code (CHS, ENG) */
-                language: string;
-            };
-            header?: never;
-            path: {
-                category: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LibraryFilesResponse"];
+                    "application/json": components["schemas"]["LibraryHierarchyResponse"];
                 };
             };
             /** @description Validation Error */
@@ -1095,75 +989,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProperNounsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_hierarchy_api_library_hierarchy__category__get: {
-        parameters: {
-            query: {
-                /** @description Language code (CHS, ENG) */
-                language: string;
-            };
-            header?: never;
-            path: {
-                category: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HierarchyResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_file_toc_api_library_file__category___id__toc_get: {
-        parameters: {
-            query: {
-                /** @description Language code (CHS, ENG) */
-                language: string;
-            };
-            header?: never;
-            path: {
-                category: string;
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TocResponse"];
                 };
             };
             /** @description Validation Error */

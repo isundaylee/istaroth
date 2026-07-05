@@ -19,7 +19,7 @@ import {
   hierarchyCrumbs,
   nodeLabel,
 } from './utils/hierarchy'
-import type { HierarchyResponse, LibraryFileResponse } from './types/api'
+import type { LibraryHierarchyResponse, LibraryFileResponse } from './types/api'
 
 interface LoaderData {
   fileContent: string
@@ -58,7 +58,8 @@ function LibraryFileViewer() {
   const t = useT()
   const navigate = useAppNavigate()
   const { fileContent, fileTitle, fileId, category, currentId } = useLoaderData() as LoaderData
-  const { nodes } = useRouteLoaderData('library-category') as HierarchyResponse
+  const { categories } = useRouteLoaderData('library-root') as LibraryHierarchyResponse
+  const nodes = categories.find((entry) => entry.category === category)?.nodes ?? []
   const properNouns = useLibraryProperNouns(category, fileId)
 
   const catLabel = categoryLabel(category, t)

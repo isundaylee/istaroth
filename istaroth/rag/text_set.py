@@ -7,6 +7,7 @@ the same underlying text files; a DocumentStoreSet exposes both views.
 """
 
 import functools
+import hashlib
 import pathlib
 from typing import Any
 
@@ -16,6 +17,29 @@ import orjson
 from istaroth.agd import localization
 from istaroth.text import manifest as text_manifest
 from istaroth.text import types as text_types
+
+# Frequently browsed categories lead the library display order; anything not
+# listed follows, sorted by category value.
+_CATEGORY_DISPLAY_ORDER = (
+    text_types.TextCategory.AGD_BOOK,
+    text_types.TextCategory.AGD_QUEST,
+    text_types.TextCategory.AGD_HANGOUT,
+    text_types.TextCategory.AGD_ARTIFACT_SET,
+    text_types.TextCategory.AGD_WEAPON,
+    text_types.TextCategory.AGD_WINGS,
+    text_types.TextCategory.AGD_COSTUME,
+    text_types.TextCategory.AGD_CHARACTER_STORY,
+    text_types.TextCategory.AGD_VOICELINE,
+    text_types.TextCategory.AGD_READABLE,
+)
+
+
+def _category_display_order(category: text_types.TextCategory) -> tuple[int, str]:
+    try:
+        index = _CATEGORY_DISPLAY_ORDER.index(category)
+    except ValueError:
+        index = len(_CATEGORY_DISPLAY_ORDER)
+    return (index, category.value)
 
 
 @attrs.define
@@ -70,8 +94,9 @@ class TextSet:
             return None
         return file_path.read_text(encoding="utf-8")
 
-    def load_hierarchy(self) -> dict[str, Any]:
-        """Load all pre-baked document hierarchies, keyed by category value."""
+    @functools.cached_property
+    def _prebaked_hierarchies(self) -> dict[str, Any]:
+        """All pre-baked document hierarchies, keyed by category value."""
         path = self.text_path / "metadata" / "agd" / "hierarchy.json"
         if not path.exists():
             return {}
@@ -84,4 +109,44 @@ class TextSet:
         flat categories return None and are synthesized from the manifest by the
         caller.
         """
-        return self.load_hierarchy().get(category)
+        return self._prebaked_hierarchies.get(category)
+
+    @functools.cached_property
+    def _library_hierarchies(self) -> dict[str, Any]:
+        """Every category's document tree, keyed by category value in display order.
+
+        Pre-baked trees (quests, hangouts) are used as-is; every other category
+        gets a flat, depth-1 tree of file leaves synthesized from the manifest.
+        """
+        combined: dict[str, Any] = {}
+        for category in sorted(
+            {item.category for item in self._manifest}, key=_category_display_order
+        ):
+            if (prebaked := self._prebaked_hierarchies.get(category.value)) is not None:
+                combined[category.value] = prebaked
+            else:
+                combined[category.value] = {
+                    "nodes": [
+                        {
+                            "key": f"q{item.id}",
+                            "title": item.title,
+                            "children": None,
+                            "file_id": item.id,
+                            "toc_eligible": False,
+                        }
+                        for item in sorted(
+                            (i for i in self._manifest if i.category == category),
+                            key=lambda i: i.id,
+                        )
+                    ]
+                }
+        return combined
+
+    def get_library_hierarchies(self) -> dict[str, Any]:
+        """Get every category's document tree, keyed by category value."""
+        return self._library_hierarchies
+
+    @functools.cached_property
+    def library_hierarchies_content_hash(self) -> str:
+        """Hash of the library hierarchies, usable as an HTTP ETag ingredient."""
+        return hashlib.sha256(orjson.dumps(self._library_hierarchies)).hexdigest()

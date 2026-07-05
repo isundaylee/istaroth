@@ -165,7 +165,6 @@ export const chs = {
 
   library: {
     title: '图书馆',
-    placeholder: '图书馆功能即将推出...',
     frontDesk: {
       title: '提瓦特图书馆',
       subtitle: '这里收藏着提瓦特的任务、书籍、角色故事与传说。',
@@ -180,7 +179,6 @@ export const chs = {
       submitButton: '搜索',
       submitting: '搜索中...',
       searchMode: '搜索方式',
-      semantic: '语义搜索',
       searchModeBm25: '仅关键词',
       searchModeSemantic: '语义',
       noResults: '未找到相关文档',
@@ -189,8 +187,6 @@ export const chs = {
         noConnection: '无法连接到服务器'
       }
     },
-    selectCategory: '选择分类',
-    backToCategories: '返回分类',
     backToFiles: '返回文件列表',
     categories: {
       agd_artifact_set: '圣遗物套装',
@@ -217,17 +213,11 @@ export const chs = {
       invalidCategory: '无效分类'
     },
     noFileName: '未命名',
-    tableOfContents: '目录',
     breadcrumbAriaLabel: '面包屑导航',
     filterPlaceholder: '按标题筛选...',
     noFilterResults: '没有匹配的文档',
-    allCategories: '所有分类',
-    expand: '展开',
-    collapse: '收起',
+    filterMoreHidden: '条结果未显示',
     navMenu: '目录',
-    questSeriesToc: '本系列任务',
-    noSearchResults: '没有匹配的任务',
-    hangoutCharacterToc: '本邀约的剧情',
     selection: {
       keywordSearch: '关键词搜索',
       ask: '提问',

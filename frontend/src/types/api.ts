@@ -26,14 +26,12 @@ export type CitationError = components['schemas']['CitationError']
 export type LibraryRetrieveRequest = components['schemas']['LibraryRetrieveRequest']
 export type LibraryRetrieveResponse = components['schemas']['LibraryRetrieveResponse']
 export type ShortURLResponse = components['schemas']['ShortURLResponse']
-export type LibraryCategoriesResponse = components['schemas']['LibraryCategoriesResponse']
 export type LibraryFileInfo = components['schemas']['LibraryFileInfo']
-export type LibraryFilesResponse = components['schemas']['LibraryFilesResponse']
 export type LibraryFileResponse = components['schemas']['LibraryFileResponse']
 export type ProperNounsResponse = components['schemas']['ProperNounsResponse']
-export type HierarchyResponse = components['schemas']['HierarchyResponse']
+export type LibraryHierarchyResponse = components['schemas']['LibraryHierarchyResponse']
+export type LibraryCategoryHierarchy = components['schemas']['LibraryCategoryHierarchy']
 export type HierarchyNode = components['schemas']['HierarchyNode']
-export type TocResponse = components['schemas']['TocResponse']
 
 // Additional types that may not be in the OpenAPI spec but are used by the frontend
 export interface ErrorResponse {

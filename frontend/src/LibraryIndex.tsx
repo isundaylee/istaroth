@@ -2,7 +2,6 @@ import React from 'react'
 import clsx from 'clsx'
 import { ChevronDown, ChevronRight, Search } from 'lucide-react'
 import { useT } from './contexts/LanguageContext'
-import { AppLink } from './components/AppLink'
 import TextInput from './components/TextInput'
 import { useCloseSidebarDrawer } from './components/PageShell'
 import { useAppNavigate } from './hooks/useAppNavigate'
@@ -15,34 +14,56 @@ import {
   nodeLabel,
 } from './utils/hierarchy'
 import styles from './LibraryIndex.module.css'
-import type { HierarchyNode } from './types/api'
+import type { HierarchyNode, LibraryCategoryHierarchy } from './types/api'
+
+// Broad filter queries can match thousands of leaves; rendering them all makes
+// the rail janky, so cut off and say how many were hidden.
+const MAX_FILTER_RESULTS = 200
 
 interface LibraryIndexProps {
-  category: string
-  nodes: HierarchyNode[]
+  categories: LibraryCategoryHierarchy[]
+  // The category containing the open file / browsed group (null at the root).
+  activeCategory: string | null
   // The file currently open in the Folio (null when browsing a group / the root).
   activeFileId: number | null
   // The key trail of the group currently browsed in the Folio (empty otherwise).
   activeBrowseKeys: string[]
 }
 
-// The persistent hierarchical navigator: the current category's whole tree, with
-// the branch leading to the open file/group auto-expanded and the current leaf
-// marked. Groups expand/collapse in place; a filter flattens to matching leaves.
-function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: LibraryIndexProps) {
+// The persistent hierarchical navigator: one unified tree over the whole
+// library, with a top-level group per category, the branch leading to the open
+// file/group auto-expanded, and the current leaf marked. Groups expand/collapse
+// in place; a filter flattens to matching leaves across all categories.
+function LibraryIndex({ categories, activeCategory, activeFileId, activeBrowseKeys }: LibraryIndexProps) {
   const t = useT()
   const navigate = useAppNavigate()
   const closeDrawer = useCloseSidebarDrawer()
   const [query, setQuery] = React.useState('')
 
-  // Only reserve the caret-slot indent for leaves when the category actually has
-  // groups; a flat leaf list (no carets anywhere) should not be indented.
-  const hasGroups = nodes.some((node) => node.children != null)
+  // Each category renders as a synthetic top-level group node; a node's
+  // category is always the first segment of its tree path.
+  const roots = React.useMemo<HierarchyNode[]>(
+    () =>
+      categories.map((entry) => ({
+        key: entry.category,
+        title: categoryLabel(entry.category, t),
+        children: entry.nodes,
+        file_id: null,
+        toc_eligible: false,
+      })),
+    [categories, t]
+  )
 
-  // The group path-keys that must be open to reveal the current position: every
-  // ancestor of the open file, or the browsed group's own trail.
-  const activePath = activeFileId != null ? findLeafPath(nodes, activeFileId) : null
-  const forcedOpen = (activePath ? activePath.slice(0, -1).map((node) => node.key) : activeBrowseKeys).map(
+  // The group path-keys that must be open to reveal the current position: the
+  // active category, then every ancestor of the open file or the browsed
+  // group's own trail. File ids are only unique within a category, so the leaf
+  // lookup is scoped to the active category's subtree.
+  const activeNodes = activeCategory
+    ? categories.find((entry) => entry.category === activeCategory)?.nodes ?? null
+    : null
+  const activePath = activeFileId != null && activeNodes ? findLeafPath(activeNodes, activeFileId) : null
+  const activeTrail = activePath ? activePath.slice(0, -1).map((node) => node.key) : activeBrowseKeys
+  const forcedOpen = (activeCategory ? [activeCategory, ...activeTrail] : []).map(
     (_, index, keys) => keys.slice(0, index + 1).join('/')
   )
 
@@ -54,7 +75,10 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
   }, [forcedKey])
 
   const currentRef = React.useRef<HTMLElement | null>(null)
-  const activeKey = activeBrowseKeys.join('/')
+  // The browsed group's full tree path (its category root when at the category
+  // index), marked current when no file is open.
+  const activeKey =
+    activeCategory && activeFileId == null ? [activeCategory, ...activeBrowseKeys].join('/') : ''
   React.useEffect(() => {
     currentRef.current?.scrollIntoView({ block: 'nearest' })
   }, [activeFileId, activeKey])
@@ -68,13 +92,9 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
 
   // Opening a document closes the mobile drawer. Groups only expand/collapse the
   // rail; the Folio stays put until a leaf document is selected.
-  const openLeaf = (fileId: number) => {
+  const openLeaf = (category: string, fileId: number) => {
     closeDrawer()
     navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(fileId)}`)
-  }
-
-  const openGroup = (pathKey: string) => {
-    setExpanded((prev) => new Set(prev).add(pathKey))
   }
 
   const renderNodes = (items: HierarchyNode[], parentPath: string): React.ReactNode => (
@@ -86,13 +106,14 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
         // the React key by sibling index. pathKey still drives expand state.
         const rowKey = `${pathKey}#${index}`
         if (isLeaf(node)) {
-          const current = node.file_id === activeFileId
+          const category = pathKey.split('/')[0]
+          const current = node.file_id === activeFileId && category === activeCategory
           return (
             <li key={rowKey}>
               <button
                 ref={current ? (el) => (currentRef.current = el) : undefined}
-                className={clsx(styles.row, hasGroups && styles.leaf, current && styles.current)}
-                onClick={() => openLeaf(node.file_id!)}
+                className={clsx(styles.row, styles.leaf, current && styles.current)}
+                onClick={() => openLeaf(category, node.file_id!)}
               >
                 <span className={styles.label}>{nodeLabel(node) || t('library.noFileName')}</span>
               </button>
@@ -103,22 +124,20 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
         const current = activeKey === pathKey
         return (
           <li key={rowKey}>
-            <div
+            <button
               ref={current ? (el) => (currentRef.current = el) : undefined}
               className={clsx(styles.row, styles.group, current && styles.current)}
+              onClick={() => toggle(pathKey)}
+              aria-expanded={open}
             >
-              <button
-                className={styles.caret}
-                onClick={() => toggle(pathKey)}
-                aria-label={open ? t('library.collapse') : t('library.expand')}
-              >
+              <span className={styles.caret}>
                 {open ? <ChevronDown size={12} aria-hidden /> : <ChevronRight size={12} aria-hidden />}
-              </button>
-              <button className={styles.labelBtn} onClick={() => openGroup(pathKey)}>
+              </span>
+              <span className={styles.groupBody}>
                 <span className={styles.label}>{nodeLabel(node) || t('library.noFileName')}</span>
                 <span className={styles.count}>{countLeaves(node)}</span>
-              </button>
-            </div>
+              </span>
+            </button>
             {open && renderNodes(node.children!, pathKey)}
           </li>
         )
@@ -126,22 +145,31 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
     </ul>
   )
 
+  // Every leaf in the library, with its category label leading the context
+  // trail, so the filter searches across all categories at once.
+  const allEntries = React.useMemo(
+    () =>
+      categories.flatMap((entry) => {
+        const label = categoryLabel(entry.category, t)
+        return flattenLeafEntries(entry.nodes).map((leaf) => ({
+          ...leaf,
+          category: entry.category,
+          context: leaf.context ? `${label} / ${leaf.context}` : label,
+        }))
+      }),
+    [categories, t]
+  )
+
   const trimmed = query.trim().toLowerCase()
   const results = trimmed
-    ? flattenLeafEntries(nodes).filter((entry) =>
+    ? allEntries.filter((entry) =>
         [entry.title, entry.context].join(' ').toLowerCase().includes(trimmed)
       )
     : []
+  const hiddenResults = results.length - MAX_FILTER_RESULTS
 
   return (
     <div className={styles.tree}>
-      <div className={styles.head}>
-        <AppLink to="/library" className={styles.back}>
-          ‹ {t('library.allCategories')}
-        </AppLink>
-        <p className={styles.cat}>{categoryLabel(category, t)}</p>
-      </div>
-
       <div className={styles.search}>
         <Search size={13} aria-hidden className={styles.searchIcon} />
         <TextInput
@@ -155,24 +183,34 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
         results.length === 0 ? (
           <p className={styles.empty}>{t('library.noFilterResults')}</p>
         ) : (
-          <ul className={styles.list}>
-            {results.map((entry, index) => (
-              <li key={`${entry.fileId}#${index}`}>
-                <button
-                  className={clsx(styles.row, entry.fileId === activeFileId && styles.current)}
-                  onClick={() => openLeaf(entry.fileId)}
-                >
-                  <span className={styles.label}>
-                    {entry.title || t('library.noFileName')}
-                    {entry.context && <span className={styles.context}>{entry.context}</span>}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className={styles.list}>
+              {results.slice(0, MAX_FILTER_RESULTS).map((entry, index) => (
+                <li key={`${entry.category}-${entry.fileId}#${index}`}>
+                  <button
+                    className={clsx(
+                      styles.row,
+                      entry.fileId === activeFileId && entry.category === activeCategory && styles.current
+                    )}
+                    onClick={() => openLeaf(entry.category, entry.fileId)}
+                  >
+                    <span className={styles.label}>
+                      {entry.title || t('library.noFileName')}
+                      {entry.context && <span className={styles.context}>{entry.context}</span>}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {hiddenResults > 0 && (
+              <p className={styles.empty}>
+                {hiddenResults} {t('library.filterMoreHidden')}
+              </p>
+            )}
+          </>
         )
       ) : (
-        renderNodes(nodes, '')
+        renderNodes(roots, '')
       )}
     </div>
   )
