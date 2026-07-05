@@ -224,8 +224,6 @@ export const chs = {
     expand: '展开',
     collapse: '收起',
     navMenu: '目录',
-    previous: '上一篇',
-    next: '下一篇',
     questSeriesToc: '本系列任务',
     questSearchPlaceholder: '搜索所有类型的任务...',
     noSearchResults: '没有匹配的任务',

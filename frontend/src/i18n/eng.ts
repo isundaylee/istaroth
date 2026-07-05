@@ -224,8 +224,6 @@ export const eng = {
     expand: 'Expand',
     collapse: 'Collapse',
     navMenu: 'Contents',
-    previous: 'Previous',
-    next: 'Next',
     questSeriesToc: 'Quests in this series',
     questSearchPlaceholder: 'Search quests across all types...',
     noSearchResults: 'No quests match your search',
