@@ -48,6 +48,13 @@ Dialog/talk role *references* (``talkRole.id`` / ``_id``) and the
 ``npc_id_to_name`` map key carry the id as a plain ``str``, not this alias.
 """
 
+ActivityId: TypeAlias = int
+"""Activity id (``ActivityGroup.activityId``); groups an activity's talk files.
+
+Overlaps the ``NpcId`` range (e.g. ``2001`` is both an activity and an NPC), so
+an ActivityGroup rendered file derives its manifest id via
+``talk_parsing.activity_group_metadata_id`` rather than using this id raw."""
+
 GadgetConfigId: TypeAlias = int
 """Gadget config id (``GadgetGroup.configId``); the first half of a GadgetGroup's
 composite ``(configId, groupId)`` key. Multiple GadgetGroup files can share a
