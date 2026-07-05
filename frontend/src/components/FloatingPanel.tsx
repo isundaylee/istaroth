@@ -5,6 +5,7 @@ import { MinimizedPopupCard, usePopupRegistration } from '../contexts/PopupCoord
 import { useDraggableResizable } from '../hooks/useDraggableResizable'
 import { clampShiftIntoViewport, type FloatingPlacement } from '../utils/floatingPanel'
 import Button from './Button'
+import { CloseIcon, EnterFullscreenIcon, ExitFullscreenIcon } from './icons'
 import styles from './FloatingPanel.module.css'
 
 interface FloatingPanelProps {
@@ -204,7 +205,7 @@ export function FloatingPanel({
                 onClick={onToggleFullscreen}
                 title={fullscreen ? t('citation.exitFullscreen') : t('citation.enterFullscreen')}
               >
-                {fullscreen ? '⧉' : '⛶'}
+                {fullscreen ? <ExitFullscreenIcon /> : <EnterFullscreenIcon />}
               </Button>
             )}
             {onClose && (
@@ -215,7 +216,7 @@ export function FloatingPanel({
                 onClick={onClose}
                 aria-label={t('common.close')}
               >
-                ×
+                <CloseIcon />
               </Button>
             )}
           </div>
