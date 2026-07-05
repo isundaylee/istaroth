@@ -2,7 +2,6 @@ import React from 'react'
 import clsx from 'clsx'
 import { ChevronDown, ChevronRight, Search } from 'lucide-react'
 import { useT } from './contexts/LanguageContext'
-import { AppLink } from './components/AppLink'
 import TextInput from './components/TextInput'
 import { useCloseSidebarDrawer } from './components/PageShell'
 import { useAppNavigate } from './hooks/useAppNavigate'
@@ -171,12 +170,6 @@ function LibraryIndex({ categories, activeCategory, activeFileId, activeBrowseKe
 
   return (
     <div className={styles.tree}>
-      <div className={styles.head}>
-        <AppLink to="/library" className={styles.cat}>
-          {t('library.title')}
-        </AppLink>
-      </div>
-
       <div className={styles.search}>
         <Search size={13} aria-hidden className={styles.searchIcon} />
         <TextInput
