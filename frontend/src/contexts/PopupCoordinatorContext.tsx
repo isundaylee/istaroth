@@ -40,6 +40,11 @@ interface PopupCoordinatorValue {
   /** Rail node (provided by the active region) that minimized cards portal into. */
   rail: HTMLElement | null
   setRail: (element: HTMLElement | null) => void
+  /** Placement guides the rail must stick below while they render sticky (see
+   * ``useRailPlacementGuide``). */
+  guides: readonly HTMLElement[]
+  addGuide: (element: HTMLElement) => void
+  removeGuide: (element: HTMLElement) => void
   /** Open popups in stacking order (last = topmost). */
   stack: readonly PopupEntry[]
   register: (data: MutableRefObject<PopupRegistration>) => number
@@ -50,6 +55,9 @@ interface PopupCoordinatorValue {
 const PopupCoordinatorContext = createContext<PopupCoordinatorValue>({
   rail: null,
   setRail: () => {},
+  guides: [],
+  addGuide: () => {},
+  removeGuide: () => {},
   stack: [],
   register: () => -1,
   unregister: () => {},
@@ -69,13 +77,22 @@ const RAIL_MARGIN = 8 // minimum gap from the viewport edge
  * skipped, so a parked card is never dismissed by a key aimed at another
  * popup. Also holds the rail node set by the active ``MinimizedPopupRegion``
  * so minimized cards anywhere in the tree (including nested popups) portal
- * into the same rail. Popup state, content, and outside-click handling stay
- * with each owner.
+ * into the same rail, and the placement-guide elements
+ * (``useRailPlacementGuide``) whose stuck bottoms the rail must clear. Popup
+ * state, content, and outside-click handling stay with each owner.
  */
 export function PopupCoordinatorProvider({ children }: { children: ReactNode }) {
   const [rail, setRail] = useState<HTMLElement | null>(null)
+  const [guides, setGuides] = useState<HTMLElement[]>([])
   const [stack, setStack] = useState<PopupEntry[]>([])
   const nextIdRef = useRef(0)
+
+  const addGuide = useCallback((element: HTMLElement) => {
+    setGuides((prev) => [...prev, element])
+  }, [])
+  const removeGuide = useCallback((element: HTMLElement) => {
+    setGuides((prev) => prev.filter((guide) => guide !== element))
+  }, [])
 
   const register = useCallback((data: MutableRefObject<PopupRegistration>) => {
     const id = nextIdRef.current++
@@ -115,8 +132,8 @@ export function PopupCoordinatorProvider({ children }: { children: ReactNode }) 
   }, [stack])
 
   const value = useMemo(
-    () => ({ rail, setRail, stack, register, unregister, bringToFront }),
-    [rail, stack, register, unregister, bringToFront]
+    () => ({ rail, setRail, guides, addGuide, removeGuide, stack, register, unregister, bringToFront }),
+    [rail, guides, addGuide, removeGuide, stack, register, unregister, bringToFront]
   )
   return <PopupCoordinatorContext.Provider value={value}>{children}</PopupCoordinatorContext.Provider>
 }
@@ -156,21 +173,55 @@ export function usePopupRegistration(registration: PopupRegistration): {
 }
 
 /**
+ * Ref callback registering an element as a vertical placement guide for the
+ * minimized-card rail: while CSS renders the element sticky, the rail sticks
+ * below its stuck bottom edge instead of colliding with it. Register
+ * unconditionally — a guide that is not currently sticky (e.g. the navbar
+ * above the mobile breakpoint) contributes nothing, so the media query in the
+ * guide's own stylesheet stays the single source of truth for when it sticks.
+ */
+export function useRailPlacementGuide(): (element: HTMLElement | null) => void {
+  const { addGuide, removeGuide } = useContext(PopupCoordinatorContext)
+  const currentRef = useRef<HTMLElement | null>(null)
+  return useCallback(
+    (element: HTMLElement | null) => {
+      if (currentRef.current) removeGuide(currentRef.current)
+      currentRef.current = element
+      if (element) addGuide(element)
+    },
+    [addGuide, removeGuide]
+  )
+}
+
+/** Bottom edge of a guide's stuck position (its sticky top offset plus its
+ * height), or 0 while the guide is not rendered sticky. */
+function _stuckBottom(guide: HTMLElement): number {
+  const style = window.getComputedStyle(guide)
+  const top = Number.parseFloat(style.top)
+  return style.position === 'sticky' && !Number.isNaN(top)
+    ? top + guide.getBoundingClientRect().height
+    : 0
+}
+
+/**
  * Wrap the answer/text area the minimized-popup rail should sit beside. The rail
  * is a ``position: sticky`` column inside this region, so it tracks the region's
  * top and sticks to the top of the screen on scroll natively — no scroll
- * handlers. Horizontally it hangs in the page margin just past the right border
+ * handlers. The stuck position clears the strictest registered placement guide
+ * (sticky chrome such as the mobile navbar; see ``useRailPlacementGuide``).
+ * Horizontally it hangs in the page margin just past the right border
  * of the enclosing ``[data-popup-boundary]`` surface (the page card) when there
  * is room — anchored to a visible edge rather than floating mid-gutter, since
  * the region's own right border may end well inside a wider card (the library
  * reading measure). Without room (or a boundary) it falls back to just outside
- * the region, then inset just inside it; only this choice is measured, and only
- * on resize.
+ * the region, then inset just inside it. This choice and the guide clearance
+ * are measured only on resize.
  */
 export function MinimizedPopupRegion({ children, className }: { children: ReactNode; className?: string }) {
-  const { setRail } = useContext(PopupCoordinatorContext)
+  const { setRail, guides } = useContext(PopupCoordinatorContext)
   const regionRef = useRef<HTMLDivElement>(null)
   const [trackLeft, setTrackLeft] = useState<number | null>(null)
+  const [guideBottom, setGuideBottom] = useState(0)
 
   useLayoutEffect(() => {
     const region = regionRef.current
@@ -185,20 +236,23 @@ export function MinimizedPopupRegion({ children, className }: { children: ReactN
           ? null
           : edge - regionRect.left + RAIL_GAP
       )
+      setGuideBottom(Math.max(0, ...guides.map(_stuckBottom)))
     }
     update()
     const observer = new ResizeObserver(update)
     observer.observe(region)
     if (boundary) observer.observe(boundary)
+    guides.forEach((guide) => observer.observe(guide))
     observer.observe(document.documentElement)
     return () => observer.disconnect()
-  }, [])
+  }, [guides])
 
   // Outside: the track's left edge sits a gap past the boundary's right border.
   // Inset (no room): the track's right edge sits a gap inside the region's.
-  const trackStyle: CSSProperties = trackLeft === null
-    ? { right: `${RAIL_GAP}px` }
-    : { left: `${trackLeft}px` }
+  const trackStyle: CSSProperties = {
+    ...(trackLeft === null ? { right: `${RAIL_GAP}px` } : { left: `${trackLeft}px` }),
+    ['--rail-guide-bottom' as string]: `${guideBottom}px`
+  }
 
   return (
     <div ref={regionRef} className={`${styles.region}${className ? ` ${className}` : ''}`}>
@@ -233,7 +287,7 @@ export function MinimizedPopupCard({ eyebrow, title, onRestore, onClose, expandL
         {eyebrow && <span className={styles.cardEyebrow}>{eyebrow}</span>}
         <span className={styles.cardTitle}>{title}</span>
       </button>
-      <Button type="button" variant="icon" onClick={onClose} aria-label={closeLabel} className={styles.cardClose}>
+      <Button type="button" variant="icon" size="sm" onClick={onClose} aria-label={closeLabel} className={styles.cardClose}>
         ×
       </Button>
     </div>,

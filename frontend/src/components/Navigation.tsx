@@ -2,6 +2,7 @@ import { ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import clsx from 'clsx'
 import { useT } from '../contexts/LanguageContext'
+import { useRailPlacementGuide } from '../contexts/PopupCoordinatorContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { AppLink } from './AppLink'
 import Button from './Button'
@@ -23,6 +24,10 @@ function Navigation({ embedded = false, leading }: NavigationProps = {}) {
   const t = useT()
   const location = useLocation()
   const { theme, toggleTheme } = useTheme()
+  // While stuck to the viewport top (the mobile navSticky variant), the nav is
+  // chrome the minimized-card rail must stick below. Registration is
+  // unconditional; a non-sticky nav contributes nothing (see useRailPlacementGuide).
+  const railGuideRef = useRailPlacementGuide()
 
   const isActive = (path: string) => location.pathname === path
 
@@ -32,7 +37,7 @@ function Navigation({ embedded = false, leading }: NavigationProps = {}) {
   ]
 
   return (
-    <nav className={clsx(styles.nav, embedded && styles.navEmbedded, leading != null && styles.navSticky)}>
+    <nav ref={railGuideRef} className={clsx(styles.nav, embedded && styles.navEmbedded, leading != null && styles.navSticky)}>
       <div className={styles.links}>
         {leading != null && (
           <>

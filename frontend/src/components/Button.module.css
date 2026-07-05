@@ -72,8 +72,8 @@
 }
 
 /* Icon: compact square icon-only button (close ×, fullscreen toggle). Fixed
-   square dimensions independent of the `size` scale — it's a shape, not a
-   control-row height. */
+   square dimensions independent of the control-height scale — it's a shape,
+   not a control-row height; `size="sm"` scales the square itself (below). */
 .icon {
   background: transparent;
   border: 0;
@@ -83,6 +83,16 @@
   color: var(--color-text-secondary);
   font-size: 1.25rem;
   border-radius: var(--radius-sm);
+}
+
+/* Small icon: a tighter square for dense chrome (e.g. the minimized card's
+   close button), overriding the control-row height/padding `.sm` composes
+   onto other variants. */
+.icon.sm {
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  font-size: 1rem;
 }
 
 /* Derive the hover tint from the inherited text color rather than a fixed
@@ -109,7 +119,7 @@
 
 /* Compact size modifier: shrinks the control to `--control-height-sm` and
    tightens horizontal padding. Composed on top of any variant (except
-   `icon`, which ignores `size` — see above). */
+   `icon`, where it shrinks the square instead — see above). */
 .sm {
   height: var(--control-height-sm);
   padding: 0 0.6rem;

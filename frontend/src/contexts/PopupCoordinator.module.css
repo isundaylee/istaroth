@@ -19,12 +19,14 @@
 
 .rail {
   position: sticky;
-  /* Top margin so the cards aren't flush against the top edge when stuck. */
-  top: 1.5rem;
+  /* Stuck position: below the strictest registered placement guide (sticky
+     chrome such as the mobile navbar; see useRailPlacementGuide), plus a top
+     margin so the cards aren't flush against the edge above them. */
+  top: calc(var(--rail-guide-bottom, 0px) + 1.5rem);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: calc(100vh - 3rem);
+  max-height: calc(100vh - var(--rail-guide-bottom, 0px) - 3rem);
   overflow-y: auto;
   pointer-events: none;
 }
@@ -77,6 +79,9 @@
 
 .cardClose {
   flex: 0 0 auto;
+  /* Inset from the card's top-right corner so the hover tint doesn't run into
+     the card border. */
+  margin: 0.3rem 0.3rem 0 0;
 }
 
 @keyframes fadeIn {

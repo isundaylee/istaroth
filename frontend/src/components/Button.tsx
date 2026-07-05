@@ -9,7 +9,7 @@ interface ButtonProps extends React.ComponentPropsWithoutRef<'button'> {
   // "submit": fixed-width composer submit button.
   variant?: 'primary' | 'secondary' | 'ghost' | 'icon' | 'submit'
   // "md" (default): --control-height-md. "sm": --control-height-sm, layered
-  // on top of any variant.
+  // on top of any variant ("icon" instead shrinks its fixed square).
   size?: 'md' | 'sm'
 }
 
