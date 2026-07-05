@@ -1,10 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useT } from '../contexts/LanguageContext'
-import { MinimizedPopupCard } from '../contexts/MinimizedPopupContext'
+import { MinimizedPopupCard, usePopupRegistration } from '../contexts/PopupCoordinatorContext'
 import { useDraggableResizable } from '../hooks/useDraggableResizable'
 import { clampShiftIntoViewport, type FloatingPlacement } from '../utils/floatingPanel'
-import { isEditable } from '../utils/keyboard'
 import Button from './Button'
 import styles from './FloatingPanel.module.css'
 
@@ -19,7 +18,8 @@ interface FloatingPanelProps {
   topLink?: ReactNode
   /** Optional action nodes rendered before the close button. */
   actions?: ReactNode
-  /** When provided, a close button is shown and Escape dismisses the panel. */
+  /** When provided, a close button is shown and Escape (routed by the popup
+   * coordinator to the topmost visible popup) dismisses the panel. */
   onClose?: () => void
   /** When true, the panel is hidden and represented by a card in the side rail. */
   minimized?: boolean
@@ -27,8 +27,10 @@ interface FloatingPanelProps {
   onRestore?: () => void
   fullscreen?: boolean
   /** When provided, a fullscreen toggle button is shown in the actions row and
-   * the 'f' shortcut toggles fullscreen while the panel is visible. */
+   * the 'f' shortcut toggles fullscreen while the panel is topmost. */
   onToggleFullscreen?: () => void
+  /** Extra single-key shortcuts delivered while the panel is topmost and visible. */
+  shortcuts?: Record<string, () => void>
   /** When false, the panel is rendered ``pointer-events: none`` so it never
    * intercepts hit-testing (used for non-sticky hover popups). */
   interactive?: boolean
@@ -39,8 +41,9 @@ interface FloatingPanelProps {
 /**
  * Shared floating panel frame used by the citation popup and the proper-noun
  * selection panel. Renders the neutral surface-card look (eyebrow + title +
- * optional link + actions/close) and handles Escape dismissal. Positioning and
- * outside-click detection stay with the caller.
+ * optional link + actions/close) and registers with the popup coordinator,
+ * which stacks the panel and delivers Escape/shortcuts to the topmost visible
+ * popup only. Positioning and outside-click detection stay with the caller.
  */
 export function FloatingPanel({
   placement = 'below',
@@ -55,11 +58,28 @@ export function FloatingPanel({
   onRestore,
   fullscreen = false,
   onToggleFullscreen,
+  shortcuts,
   interactive = true,
   bodyClassName,
   children
 }: FloatingPanelProps) {
   const t = useT()
+
+  // Hover-only popups (interactive=false) skip registration: they have no
+  // close/minimize lifecycle, and their unregistered z-index floats above the
+  // stack, keeping the transient popup visible over open panels.
+  const { zIndex, bringToFront } = usePopupRegistration({
+    enabled: interactive,
+    minimized,
+    onClose,
+    shortcuts: { ...(onToggleFullscreen ? { f: onToggleFullscreen } : {}), ...shortcuts }
+  })
+
+  // Raise above sibling popups when (re-)anchored or restored from a rail card;
+  // pointerdown inside the panel raises it too.
+  useEffect(() => {
+    if (interactive && !minimized) bringToFront()
+  }, [interactive, minimized, top, left, bringToFront])
 
   // Internal ref to the panel element, handed to useDraggableResizable so it can
   // measure/move/resize the panel without reaching for it via a DOM selector.
@@ -91,30 +111,6 @@ export function FloatingPanel({
     setFitX(clampShiftIntoViewport(left - width / 2, width, 0, window.innerWidth))
   }, [top, left, placement, fullscreen, minimized])
 
-  useEffect(() => {
-    if (!onClose) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
-
-  // 'f' toggles fullscreen while the panel is visible (not minimized to a rail
-  // card) and the fullscreen toggle is enabled.
-  useEffect(() => {
-    if (!onToggleFullscreen || minimized) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isEditable(e.target) || e.metaKey || e.ctrlKey || e.altKey) return
-      if (e.key === 'f') {
-        e.preventDefault()
-        onToggleFullscreen()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onToggleFullscreen, minimized])
-
   const panelClass = [
     styles.panel,
     fullscreen ? styles.fullscreen : placement === 'above' ? styles.above : null,
@@ -125,9 +121,10 @@ export function FloatingPanel({
     minimized ? styles.minimized : null
   ].filter(Boolean).join(' ')
 
-  const style: CSSProperties | undefined = fullscreen
-    ? undefined
+  const style: CSSProperties = fullscreen
+    ? { zIndex }
     : {
+        zIndex,
         top: top != null ? `${top}px` : undefined,
         left: left != null ? `${left}px` : undefined,
         // Once resized, an explicit width/height replaces the default size and the
@@ -178,6 +175,14 @@ export function FloatingPanel({
       style={style}
       data-floating-popup
       onMouseDown={(e) => e.stopPropagation()}
+      // stopPropagation: a nested popup is a React descendant of its opener's
+      // panel (portals don't break synthetic-event propagation), so without it
+      // a pointerdown in the nested popup would also raise the ancestor panel
+      // right back above it.
+      onPointerDown={(e) => {
+        e.stopPropagation()
+        bringToFront()
+      }}
     >
       <div
         className={headerClass}

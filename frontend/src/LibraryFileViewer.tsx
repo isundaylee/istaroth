@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useLoaderData, useRouteLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import { useT } from './contexts/LanguageContext'
-import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
+import { MinimizedPopupRegion } from './contexts/PopupCoordinatorContext'
 import styles from './LibraryFileViewer.module.css'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
 import HighlightedMarkdown from './components/HighlightedMarkdown'

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useT, useTranslation } from '../contexts/LanguageContext'
+import { usePopupRegistration } from '../contexts/PopupCoordinatorContext'
 import { SelectionPanelFrame, type SelectionPanel } from '../components/SelectionPanel'
 import Button from '../components/Button'
 import selStyles from '../components/SelectionPanel.module.css'
@@ -136,8 +137,12 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
       // This lives here rather than in the document pointerdown handler because
       // that handler exempts the answer area (the whole document in the library
       // viewer) so that dragging to select text doesn't dismiss anything.
+      // Guard on DOM containment: popups and rail cards rendered by React
+      // children of the answer (e.g. a citation popup's card) portal out of its
+      // DOM but still bubble synthetic clicks here through the React tree, and
+      // restoring such a card must not minimize this panel.
       const selectedNoText = window.getSelection()?.isCollapsed ?? true
-      if (hasPanel && selectedNoText) {
+      if (hasPanel && selectedNoText && answerRef.current?.contains(event.target as HTMLElement)) {
         minimize()
       }
     },
@@ -165,16 +170,15 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   }, [hasPanel, minimize, closeSelection])
   useOutsidePointerDown(selectedText !== null, isAnswerTarget, handleOutside)
 
-  // Escape fully closes (matching the panel's own close button), whether or
-  // not a panel is open.
-  useEffect(() => {
-    if (selectedText === null) return
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeSelection()
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [selectedText, closeSelection])
+  // The bare toolbar registers itself with the popup coordinator so Escape
+  // dismisses it when topmost; once a panel opens, its FloatingPanel takes over
+  // the registration (Escape then fully closes, matching the panel's own close
+  // button, but only while the panel is visible — a minimized card is skipped).
+  const { zIndex: toolbarZIndex } = usePopupRegistration({
+    enabled: selectedText !== null && !hasPanel,
+    minimized: false,
+    onClose: closeSelection
+  })
 
   const runKeywordSearch = async () => {
     if (!selectedText) return
@@ -317,7 +321,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
       createPortal(
         <div
           className={`${selStyles.toolbar} ${selStyles[`toolbar${position.placement === 'above' ? 'Above' : 'Below'}`] || ''}`}
-          style={{ top: `${position.top}px`, left: `${position.left}px` }}
+          style={{ top: `${position.top}px`, left: `${position.left}px`, zIndex: toolbarZIndex }}
           data-floating-popup
           onMouseDown={(event) => event.preventDefault()}
         >
