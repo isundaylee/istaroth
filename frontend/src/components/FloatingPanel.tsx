@@ -169,6 +169,7 @@ export function FloatingPanel({
           closeLabel={t('common.close')}
         />
       )}
+    {fullscreen && !minimized && <div className={styles.backdrop} style={{ zIndex }} aria-hidden="true" />}
     <div
       ref={panelElementRef}
       className={panelClass}
