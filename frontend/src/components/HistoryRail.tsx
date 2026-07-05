@@ -126,7 +126,7 @@ export function HistoryRailContent({ activeConversationId }: HistoryRailContentP
   }
 
   return (
-    <div className={styles.railScroll}>
+    <div>
       <AppLink to="/" className={styles.newQuestion} onClick={closeDrawer}>
         <Pencil size={14} className={styles.newQuestionIcon} aria-hidden />
         {t('history.newQuestion')}

@@ -29,6 +29,11 @@ interface PageShellProps {
   // off-canvas drawer opened by a toggle button, so narrow screens can still
   // reach it while the body reads like the default shell.
   sidebar?: ReactNode
+  // How the desktop rail sizes against the main column: 'fit' clamps the rail
+  // to the main column's height (scrolling internally), so the sidebar never
+  // extends the page; 'natural' keeps the rail's full content height, letting
+  // a tall sidebar extend the page. Pass explicitly whenever `sidebar` is set.
+  sidebarSizing?: 'fit' | 'natural'
   // Accessible name for the mobile drawer toggle button (and visible label for
   // the desktop bookmark tab).
   sidebarLabel?: ReactNode
@@ -51,7 +56,7 @@ const noop = () => {}
 // share a single hairline-bordered surface (see the home page). Pages render
 // their content as children instead of their own <Navigation> + card; the
 // enclosing <main> is owned by RootLayout.
-function PageShell({ children, flush = false, sidebar, sidebarLabel, sidebarCloseable, sidebarClosed = false, onSidebarToggle = noop, hideMobileSidebarToggle = false }: PageShellProps) {
+function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLabel, sidebarCloseable, sidebarClosed = false, onSidebarToggle = noop, hideMobileSidebarToggle = false }: PageShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
   const openDrawer = useCallback(() => setDrawerOpen(true), [])
@@ -75,7 +80,12 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel, sidebarClos
       closeable && styles.ledger,
       closed && styles.ledgerClosed,
     )
-    const railClass = clsx(styles.rail, closeable && styles.ledgerRail, drawerOpen && styles.railOpen)
+    const railClass = clsx(
+      styles.rail,
+      sidebarSizing === 'fit' && styles.railFit,
+      closeable && styles.ledgerRail,
+      drawerOpen && styles.railOpen,
+    )
     const bodyClass = clsx(styles.body, closeable && styles.bodyFlush)
     const drawerToggle = (!hideMobileSidebarToggle || closeable) && sidebarLabel !== undefined && (
       <Button
@@ -115,9 +125,11 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel, sidebarClos
             </button>
           )}
           <aside className={railClass}>
-            <CloseSidebarDrawerContext.Provider value={closeDrawer}>
-              {sidebar}
-            </CloseSidebarDrawerContext.Provider>
+            <div className={styles.railInner}>
+              <CloseSidebarDrawerContext.Provider value={closeDrawer}>
+                {sidebar}
+              </CloseSidebarDrawerContext.Provider>
+            </div>
           </aside>
           <div className={bodyClass}>
             <OpenSidebarDrawerContext.Provider value={openDrawer}>

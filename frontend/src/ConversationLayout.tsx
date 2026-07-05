@@ -11,6 +11,7 @@ function ConversationLayoutInner() {
     <PageShell
       flush
       sidebar={<HistoryRailContent activeConversationId={id} />}
+      sidebarSizing="fit"
       sidebarLabel="历史记录"
       sidebarCloseable
       sidebarClosed={!open}
