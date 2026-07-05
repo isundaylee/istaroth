@@ -426,8 +426,15 @@ def get_talk_info(
         role_type = talk_role.get("type")
         match role_type:
             case "TALK_ROLE_NPC":
+                # Wire role ids ship as strs and occasionally hold non-numeric
+                # placeholders (e.g. {QuestNpcID}, PLAYER, empty string); treat
+                # those as unresolvable and fall through to the hash fallback.
                 npc_id = talk_role.get("_id", talk_role.get("id"))
-                return npc_id_to_name.get(npc_id) if npc_id is not None else None
+                return (
+                    npc_id_to_name.get(int(npc_id))
+                    if npc_id is not None and npc_id.isdigit()
+                    else None
+                )
             case "TALK_ROLE_PLAYER":
                 return localized_roles.player
             case "TALK_ROLE_MATE_AVATAR":

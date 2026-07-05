@@ -941,23 +941,23 @@ class DataRepo:
             duplicate_name="chapter ID",
         )
 
-    def _build_npc_id_to_name(self, text_map: TextMapTracker) -> dict[str, str]:
+    def _build_npc_id_to_name(
+        self, text_map: TextMapTracker
+    ) -> dict[id_types.NpcId, str]:
         """Build NPC ID -> name using the given text map."""
-        npc_id_to_name: dict[str, str] = {}
-        for npc in self.load_npc_excel_config_data():
-            npc_id = str(npc["id"])
-            if (name := text_map.get_optional(npc["nameTextMapHash"])) is not None:
-                npc_id_to_name[npc_id] = name
-
-        return npc_id_to_name
+        return {
+            npc["id"]: name
+            for npc in self.load_npc_excel_config_data()
+            if (name := text_map.get_optional(npc["nameTextMapHash"])) is not None
+        }
 
     @_warm_on_fork
-    def build_npc_id_to_name_mapping(self) -> dict[str, str]:
+    def build_npc_id_to_name_mapping(self) -> dict[id_types.NpcId, str]:
         """Get cached mapping from NPC ID to name."""
         return self._build_npc_id_to_name(self.build_text_map_tracker())
 
     @_warm_on_fork
-    def build_npc_id_to_source_name_mapping(self) -> dict[str, str]:
+    def build_npc_id_to_source_name_mapping(self) -> dict[id_types.NpcId, str]:
         """NPC ID -> CHS (source) name, for language-independent test/hidden filtering.
 
         Dev markers like ``$HIDDEN``/``(test)`` only exist in the CHS name text.
