@@ -29,21 +29,26 @@ interface PageShellProps {
   sidebar?: ReactNode
   // Label for the mobile drawer toggle button (also its accessible name).
   sidebarLabel?: ReactNode
-  hideMobileSidebarToggle?: boolean
-  // When true and sidebar is provided, the sidebar can be toggled on desktop via
-  // a bookmark tab on the left border. Open = wide two-pane (1140px), closed =
-  // centered 800px card. On mobile the tab is hidden and the drawerToggleBar is
-  // always visible. Implies flush body.
+  // When true, the sidebar can be toggled on desktop via a bookmark tab on the
+  // left border. Open = wide two-pane (1140px), closed = centered 800px card.
+  // On mobile the tab is hidden and the drawerToggleBar is always visible.
+  // Requires `onSidebarToggle`. Implies flush body.
   sidebarCloseable?: boolean
+  // Whether the sidebar is currently closed (desktop). Defaults to false.
   sidebarClosed?: boolean
+  // Called when the bookmark tab is clicked. Required when sidebarCloseable is
+  // true; default no-op otherwise.
   onSidebarToggle?: () => void
+  hideMobileSidebarToggle?: boolean
 }
+
+const noop = () => {}
 
 // The connected one-card page frame: the embedded nav strip and the page content
 // share a single hairline-bordered surface (see the home page). Pages render
 // their content as children instead of their own <Navigation> + card; the
 // enclosing <main> is owned by RootLayout.
-function PageShell({ children, flush = false, sidebar, sidebarLabel, hideMobileSidebarToggle = false, sidebarCloseable, sidebarClosed, onSidebarToggle }: PageShellProps) {
+function PageShell({ children, flush = false, sidebar, sidebarLabel, sidebarCloseable, sidebarClosed = false, onSidebarToggle = noop, hideMobileSidebarToggle = false }: PageShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
   const openDrawer = useCallback(() => setDrawerOpen(true), [])
@@ -59,12 +64,13 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel, hideMobileS
   }, [drawerOpen, closeDrawer])
 
   if (sidebar) {
-    const closeable = sidebarCloseable && sidebarClosed !== undefined && onSidebarToggle !== undefined
+    const closeable = sidebarCloseable === true
+    const closed = closeable && sidebarClosed
     const panelClass = clsx(
       styles.panel,
       styles.wide,
       closeable && styles.ledger,
-      closeable && sidebarClosed && styles.ledgerClosed,
+      closed && styles.ledgerClosed,
     )
     const railClass = clsx(styles.rail, closeable && styles.ledgerRail, drawerOpen && styles.railOpen)
     const bodyClass = clsx(styles.body, closeable && styles.bodyFlush, !closeable && hideMobileSidebarToggle && styles.bodyNoDrawerToggle)
@@ -85,7 +91,7 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel, hideMobileS
               onClick={onSidebarToggle}
               aria-label={typeof sidebarLabel === 'string' ? sidebarLabel : undefined}
             >
-              <span className={styles.ledgerTabGlyph} aria-hidden>{sidebarClosed ? '◀' : '▶'}</span>
+              <span className={styles.ledgerTabGlyph} aria-hidden>{closed ? '◀' : '▶'}</span>
               <span className={styles.ledgerTabLabel}>{sidebarLabel}</span>
             </button>
           )}
