@@ -137,8 +137,12 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
       // This lives here rather than in the document pointerdown handler because
       // that handler exempts the answer area (the whole document in the library
       // viewer) so that dragging to select text doesn't dismiss anything.
+      // Guard on DOM containment: popups and rail cards rendered by React
+      // children of the answer (e.g. a citation popup's card) portal out of its
+      // DOM but still bubble synthetic clicks here through the React tree, and
+      // restoring such a card must not minimize this panel.
       const selectedNoText = window.getSelection()?.isCollapsed ?? true
-      if (hasPanel && selectedNoText) {
+      if (hasPanel && selectedNoText && answerRef.current?.contains(event.target as HTMLElement)) {
         minimize()
       }
     },
