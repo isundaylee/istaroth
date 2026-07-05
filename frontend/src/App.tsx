@@ -9,7 +9,7 @@ import Footer from './components/Footer'
 import ErrorBoundary from './components/ErrorBoundary'
 import QueryPage from './QueryPage'
 import ConversationPage, { conversationPageLoader } from './ConversationPage'
-import HistoryPage, { historyPageLoader } from './HistoryPage'
+import ConversationLayout from './ConversationLayout'
 import ShortURLRedirect, { shortURLLoader } from './ShortURLRedirect'
 import LibraryLayout from './LibraryLayout'
 import LibraryEntry, { libraryEntryLoader } from './LibraryEntry'
@@ -44,10 +44,14 @@ const router = createBrowserRouter([
   {
     element: <RootLayout />,
     children: [
-      { path: "/", element: <QueryPage /> },
+      {
+        element: <ConversationLayout />,
+        children: [
+          { path: "/", element: <QueryPage /> },
+          { path: "/conversation/:id", element: <ConversationPage />, loader: conversationPageLoader, errorElement: <ErrorBoundary /> },
+        ],
+      },
       { path: "/s/:slug", element: <ShortURLRedirect />, loader: shortURLLoader, errorElement: <ErrorBoundary /> },
-      { path: "/conversation/:id", element: <ConversationPage />, loader: conversationPageLoader, errorElement: <ErrorBoundary /> },
-      { path: "/history", element: <HistoryPage />, loader: historyPageLoader, errorElement: <ErrorBoundary /> },
       {
         path: "/library",
         id: "library-root",

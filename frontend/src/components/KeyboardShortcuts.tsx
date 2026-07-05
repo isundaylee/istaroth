@@ -7,8 +7,7 @@ const G_CHORD_TIMEOUT_MS = 1500
 
 const G_CHORD_ROUTES: Record<string, string> = {
   q: '/',
-  l: '/library',
-  h: '/history'
+  l: '/library'
 }
 
 function KeyboardShortcuts() {

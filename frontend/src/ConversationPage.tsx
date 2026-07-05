@@ -7,7 +7,7 @@ import { translate } from './i18n'
 import { getLanguageFromUrl } from './utils/language'
 import { copyToClipboard } from './utils/clipboard'
 import QueryForm from './QueryForm'
-import PageShell, { PageSection } from './components/PageShell'
+import { PageSection } from './components/PageShell'
 import Button from './components/Button'
 import CitationRenderer from './components/CitationRenderer'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
@@ -134,8 +134,7 @@ function ConversationPage() {
   }
 
   return (
-    <PageShell flush>
-
+    <>
       <PageSection>
         {editing ? (
           <div onKeyDown={(e) => { if (e.key === 'Escape') setEditing(false) }}>
@@ -246,7 +245,7 @@ function ConversationPage() {
           </CitationRenderer>
         </MinimizedPopupRegion>}
         {selectionUi}
-    </PageShell>
+    </>
   )
 }
 

@@ -131,11 +131,13 @@ export const chs = {
 
   navigation: {
     home: '问答',
-    library: '图书馆',
-    history: '问答历史'
+    library: '图书馆'
   },
 
   history: {
+    newQuestion: '新问题',
+    today: '今天',
+    yesterday: '昨天',
     empty: '暂无对话。你提过的问题会显示在这里。',
     loadMore: '加载更多',
     errors: {
@@ -149,7 +151,6 @@ export const chs = {
     deselect: '取消聚焦输入框',
     goQuery: '前往问答',
     goLibrary: '前往图书馆',
-    goHistory: '前往问答历史',
     citationFullscreen: '切换引用弹窗全屏',
     citationLoadContext: '在引用弹窗中载入全文',
     help: '显示/隐藏此帮助',
