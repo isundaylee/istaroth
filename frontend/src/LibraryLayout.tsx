@@ -49,7 +49,7 @@ function LibraryLayout() {
     )
 
   return (
-    <PageShell sidebar={sidebar} sidebarLabel={t('library.navMenu')} hideMobileSidebarToggle={!category}>
+    <PageShell sidebar={sidebar} sidebarSizing="natural" sidebarLabel={t('library.navMenu')} hideMobileSidebarToggle={!category}>
       <Outlet />
     </PageShell>
   )

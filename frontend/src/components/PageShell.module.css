@@ -186,7 +186,13 @@
   }
 
   .rail {
-    /* Back to an in-flow grid column: undo the off-canvas drawer positioning. */
+    /* Back to an in-flow grid column: undo the off-canvas drawer positioning.
+       Natural sizing (`sidebarSizing="natural"`): the rail keeps its full
+       content height and participates in the row, so a tall sidebar (the
+       library tree) extends the page. Sticky is inert once the rail is taller
+       than the viewport, and keeps a short rail in view beside a long body;
+       the panel is not a scroll container, so sticky resolves against the
+       page. */
     position: sticky;
     top: 15px;
     z-index: auto;
@@ -197,11 +203,29 @@
     background: transparent;
     transform: none;
     transition: none;
-    /* Track the viewport so the sidebar stays put while the body scrolls; the
-       panel is not a scroll container, so sticky resolves against the page. */
     align-self: start;
-    max-height: calc(100vh - 30px);
+    overflow: visible;
+  }
+
+  /* Fit sizing (`sidebarSizing="fit"`): the main column alone decides the row
+     height. Absolutely positioning the rail into its grid area (an abspos grid
+     child's containing block is its grid area) takes it out of track sizing
+     while keeping the template's column width. The padding moves to the inner
+     wrapper, which carries the sticky viewport-tracking scroller, capped by
+     both the viewport and the row. */
+  .railFit {
+    position: absolute;
+    inset: 0;
+    align-self: stretch;
+    padding: 0;
+  }
+
+  .railFit .railInner {
+    position: sticky;
+    top: 15px;
+    max-height: min(100%, 100vh - 30px);
     overflow: auto;
+    padding: 1.25rem 0.9rem 2rem;
   }
 
   .backdrop,
