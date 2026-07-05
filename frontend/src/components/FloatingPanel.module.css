@@ -59,6 +59,18 @@
   padding: 1rem;
 }
 
+/* Fullscreen keeps the panel capped at reading width, so on wide screens the
+   page stays visible on either side; this scrim dims it so the capped panel
+   reads as an intentional modal rather than an undersized overlay. It
+   deliberately lacks data-floating-popup: a click on it counts as an outside
+   pointerdown, minimizing the panel like any other outside click. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.2s ease;
+}
+
 .header {
   flex-shrink: 0;
   display: flex;
