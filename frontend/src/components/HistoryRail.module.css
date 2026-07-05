@@ -1,0 +1,139 @@
+.railScroll {
+  height: 100%;
+  overflow: auto;
+}
+
+.railStatus {
+  padding: 1.5rem 0.5rem;
+  font-size: var(--font-sm);
+  color: var(--color-text-muted);
+}
+
+.railEmpty {
+  padding: 1.5rem 0.5rem;
+  font-size: var(--font-sm);
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.group {
+  margin-bottom: 1rem;
+}
+
+.groupHeader {
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0 0.25rem 0.25rem 1.75rem;
+}
+
+.timeline {
+  position: relative;
+}
+
+.entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  position: relative;
+}
+
+.entry:last-child .spine {
+  display: none;
+}
+
+.marker {
+  flex-shrink: 0;
+  width: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 0.35rem;
+}
+
+.sparkle {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.entryActive .sparkle {
+  width: 12px;
+  height: 12px;
+  filter: drop-shadow(0 0 3px var(--color-primary-fill));
+}
+
+.spine {
+  width: 1px;
+  flex: 1;
+  min-height: 0.5rem;
+  background: var(--color-accent-hairline);
+  margin-top: 3px;
+}
+
+.entryLink {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  padding: 0.25rem 0.5rem 0.5rem 0.25rem;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--radius-sm);
+}
+
+.entryLink:hover {
+  background: var(--color-surface-hover);
+}
+
+.entryActive .entryLink {
+  background: var(--color-primary-tint);
+}
+
+.entryQuestion {
+  display: block;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.entryMeta {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
+  line-height: 1.3;
+}
+
+.newQuestion {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  margin-bottom: 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--color-primary-text);
+  text-decoration: none;
+}
+
+.newQuestion:hover {
+  background: var(--color-primary-tint);
+}
+
+.newQuestionIcon {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.loadMore {
+  padding: 0.5rem 0.25rem 1rem 1.75rem;
+}

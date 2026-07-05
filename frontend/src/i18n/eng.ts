@@ -131,11 +131,13 @@ export const eng = {
 
   navigation: {
     home: 'Q&A',
-    library: 'Library',
-    history: 'Q&A History'
+    library: 'Library'
   },
 
   history: {
+    newQuestion: 'New question',
+    today: 'Today',
+    yesterday: 'Yesterday',
     empty: 'No conversations yet. Your past questions will appear here.',
     loadMore: 'Load more',
     errors: {
@@ -149,7 +151,6 @@ export const eng = {
     deselect: 'Blur the focused input',
     goQuery: 'Go to Q&A',
     goLibrary: 'Go to Library',
-    goHistory: 'Go to Q&A History',
     citationFullscreen: 'Toggle fullscreen for the open citation popup',
     citationLoadContext: 'Load full context in the open citation popup',
     help: 'Toggle this help',

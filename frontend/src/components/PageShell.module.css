@@ -40,11 +40,61 @@
   margin-bottom: 0;
 }
 
-/* Wide two-pane variant (opt-in via the `sidebar` prop): a persistent sidebar
-   column beside the main body, breaking out of the app-wide 800px cap on
-   desktop. Below the breakpoint the sidebar becomes an off-canvas drawer (opened
-   by `.drawerToggle`, dimmed by `.backdrop`), so the body reads like the default
-   single-pane shell and inherits the phone edge-to-edge treatment from `.panel`. */
+/* ── Ledger bookmark tab ──
+ * A vertical bookmark tab attached to the panel's left border. On mobile the tab
+ * is hidden and replaced by the drawerToggleBar. */
+.ledgerTab {
+  position: absolute;
+  top: 8rem;
+  left: -29px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  width: 30px;
+  padding: 0.45rem 0.25rem;
+  border: 1px solid var(--color-border);
+  border-right: 0;
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1;
+  box-shadow: -1px 0 4px rgba(0, 0, 0, 0.1);
+}
+
+.ledgerTab:hover {
+  background: var(--color-surface-hover);
+}
+
+.ledgerTabGlyph {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
+.ledgerTabLabel {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+/* Ledger rail — same sizing as the library rail but with the tab riding its
+   outer edge. On mobile this is the off-canvas drawer. */
+.ledgerRail {
+  padding-top: 1.25rem;
+}
+
+/* ── Wide two-pane variant (opt-in via the `sidebar` prop): a persistent sidebar
+ * column beside the main body, breaking out of the app-wide 800px cap on
+ * desktop. Below the breakpoint the sidebar becomes an off-canvas drawer (opened
+ * by `.drawerToggle`, dimmed by `.backdrop`), so the body reads like the default
+ * single-pane shell and inherits the phone edge-to-edge treatment from `.panel`. */
 .rail {
   position: fixed;
   top: 0;
@@ -132,6 +182,7 @@
     display: grid;
     grid-template-columns: minmax(280px, 320px) 1fr;
     align-items: start;
+    position: relative;
   }
 
   .split::before {
@@ -174,6 +225,49 @@
   .drawerToggleBar {
     display: none;
   }
+
+  /* ── Ledger desktop adjustments ── */
+
+  /* When closed on desktop, collapse the rail and keep the panel at 800px. */
+  .ledgerClosed {
+    position: static;
+    left: auto;
+    width: auto;
+    transform: none;
+  }
+
+  .ledgerClosed .split {
+    grid-template-columns: 1fr;
+  }
+
+  .ledgerClosed .split::before {
+    display: none;
+  }
+
+  .ledgerClosed .rail {
+    display: none;
+  }
+
+  .ledgerClosed .split > .body {
+    grid-column: 1;
+  }
+
+}
+
+/* ── Mobile: hide the tab, show the drawerToggleBar ── */
+@media (max-width: 999px) {
+  .ledgerTab {
+    display: none;
+  }
+
+  /* When the consultation rail is present, always show the drawerToggleBar on
+     mobile — the ledger column switches to the off-canvas drawer. The ledger
+     body uses bodyFlush (no padding), so the negative cancel-margins aren't
+     needed. */
+  .ledger .drawerToggleBar {
+    display: block;
+    margin: 0 0 1rem;
+  }
 }
 
 /* Phones: run the card fully edge-to-edge (negative margins cancel .app's 10px
@@ -197,6 +291,16 @@
   .drawerToggleBar {
     margin: -1rem -1rem 1rem;
     padding: 0.75rem 1rem;
+  }
+
+  .ledger .drawerToggleBar {
+    margin: 0 0 1rem;
+  }
+
+  /* The phone breakpoint sets .body { padding: 1rem } which would override the
+     global .bodyFlush { padding: 0 } for the ledger. Keep it flush. */
+  .ledger .bodyFlush {
+    padding: 0;
   }
 
   .section {

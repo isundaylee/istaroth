@@ -23,8 +23,7 @@ function Navigation({ embedded = false }: NavigationProps = {}) {
 
   const navLinks = [
     { path: '/', key: 'home' },
-    { path: '/library', key: 'library' },
-    { path: '/history', key: 'history' }
+    { path: '/library', key: 'library' }
   ]
 
   return (

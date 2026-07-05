@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import QueryForm, { type QueryFormHandle } from './QueryForm'
-import PageShell, { PageSection } from './components/PageShell'
+import { PageSection } from './components/PageShell'
 import IstarothFigure from './components/IstarothFigure'
 import QueryProgress from './components/QueryProgress'
 import type { ProgressStepStart } from './types/api'
@@ -92,60 +92,58 @@ function QueryPage() {
   }, [language])
 
   return (
-    <PageShell flush>
-      <div className={styles.stage}>
-      <PageSection className={styles.hero}>
-        <StarField />
-        <IstarothFigure
-          pose={loading ? 'think' : 'greet'}
-          label={t('query.hero.figureAlt')}
-          className={styles.figure}
-          bubble={
-            <button
-              type="button"
-              className={styles.bubble}
-              disabled={loading || !exampleQuestion}
-              onClick={() => {
-                setQuestion(exampleQuestion)
-                formRef.current?.submit()
-              }}
-            >
-              <span className={styles.bubbleGreeting}>{t('query.hero.greeting')}</span>
-              <span className={styles.bubbleQuestion}>
-                {exampleQuestion
-                  ? `${t('query.hero.tryAsking')}${exampleQuestion}`
-                  : t('query.exampleLoading')}
+    <div className={styles.stage}>
+    <PageSection className={styles.hero}>
+      <StarField />
+      <IstarothFigure
+        pose={loading ? 'think' : 'greet'}
+        label={t('query.hero.figureAlt')}
+        className={styles.figure}
+        bubble={
+          <button
+            type="button"
+            className={styles.bubble}
+            disabled={loading || !exampleQuestion}
+            onClick={() => {
+              setQuestion(exampleQuestion)
+              formRef.current?.submit()
+            }}
+          >
+            <span className={styles.bubbleGreeting}>{t('query.hero.greeting')}</span>
+            <span className={styles.bubbleQuestion}>
+              {exampleQuestion
+                ? `${t('query.hero.tryAsking')}${exampleQuestion}`
+                : t('query.exampleLoading')}
+            </span>
+          </button>
+        }
+        status={
+          loading ? (
+            <div className={styles.thinkingStatus}>
+              <span className={styles.thinkingCaption}>
+                {t('query.hero.thinking')}
               </span>
-            </button>
-          }
-          status={
-            loading ? (
-              <div className={styles.thinkingStatus}>
-                <span className={styles.thinkingCaption}>
-                  {t('query.hero.thinking')}
-                </span>
-                {activeSteps.length > 0 && (
-                  <QueryProgress steps={activeSteps} className={styles.thinkingSteps} />
-                )}
-              </div>
-            ) : undefined
-          }
-        />
-      </PageSection>
+              {activeSteps.length > 0 && (
+                <QueryProgress steps={activeSteps} className={styles.thinkingSteps} />
+              )}
+            </div>
+          ) : undefined
+        }
+      />
+    </PageSection>
 
-      <PageSection>
-        <QueryForm
-          ref={formRef}
-          question={question}
-          onQuestionChange={setQuestion}
-          onExampleChange={setExampleQuestion}
-          onLoadingChange={setLoading}
-          onActiveStepsChange={setActiveSteps}
-          hideProgress
-        />
-      </PageSection>
-      </div>
-    </PageShell>
+    <PageSection>
+      <QueryForm
+        ref={formRef}
+        question={question}
+        onQuestionChange={setQuestion}
+        onExampleChange={setExampleQuestion}
+        onLoadingChange={setLoading}
+        onActiveStepsChange={setActiveSteps}
+        hideProgress
+      />
+    </PageSection>
+    </div>
   )
 }
 
