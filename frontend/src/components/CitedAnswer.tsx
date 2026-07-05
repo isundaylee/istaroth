@@ -10,7 +10,7 @@ import CitationPopup from './CitationPopup'
 import HighlightedMarkdown from './HighlightedMarkdown'
 import SelectableAnswer from './SelectableAnswer'
 
-interface CitationRendererProps {
+interface CitedAnswerProps {
   content: string
   /** Proper nouns to highlight within the rendered answer (citation links are left untouched). */
   properNouns?: string[]
@@ -30,7 +30,7 @@ interface CitationContentData {
   fullText?: string
 }
 
-function CitationRenderer({ content, properNouns, answerSize, children }: CitationRendererProps) {
+function CitedAnswer({ content, properNouns, answerSize, children }: CitedAnswerProps) {
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
   const [stickyCitation, setStickyCitation] = useState<string | null>(null)
   const { position, minimized, fullscreen, openAtRect, openFullscreen, minimize, restore, toggleFullscreen, reset } =
@@ -289,4 +289,4 @@ function CitationRenderer({ content, properNouns, answerSize, children }: Citati
   )
 }
 
-export default CitationRenderer
+export default CitedAnswer

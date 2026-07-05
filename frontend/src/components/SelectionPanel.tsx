@@ -4,7 +4,7 @@ import type { LibraryRetrieveResponse, ProgressStepStart } from '../types/api'
 import type { FloatingPlacement } from '../utils/floatingPanel'
 import { buildLibraryFilePath } from '../utils/library'
 import { AppLink } from './AppLink'
-import CitationRenderer from './CitationRenderer'
+import CitedAnswer from './CitedAnswer'
 import { FloatingPanel } from './FloatingPanel'
 import panelStyles from './FloatingPanel.module.css'
 import queryProgressStyles from './QueryProgress.module.css'
@@ -88,7 +88,7 @@ function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind:
           and open their own nested selection panel, exactly like the
           page-level answer. */}
       {panel.answer && (
-        <CitationRenderer content={panel.answer} properNouns={panel.properNouns} answerSize="sm">
+        <CitedAnswer content={panel.answer} properNouns={panel.properNouns} answerSize="sm">
           {({ answer, citationList }) => (
             <>
               {answer}
@@ -99,7 +99,7 @@ function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind:
               )}
             </>
           )}
-        </CitationRenderer>
+        </CitedAnswer>
       )}
     </div>
   )
