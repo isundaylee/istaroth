@@ -35,6 +35,12 @@ from istaroth.text import proper_nouns
 logger = logging.getLogger(__name__)
 _tracer = trace.get_tracer(__name__)
 
+# Per-searcher candidate fetch depth. Decoupled from k (the final file count) so
+# the reranker judges a deep candidate pool instead of only ~2k chunks; deepening
+# is nearly free for the searchers (BM25 scores the whole corpus regardless) and
+# the Cohere rerank window is billed per 100 documents.
+_FETCH_DEPTH = 100
+
 
 def _chinese_tokenizer(text: str) -> list[str]:
     """Tokenize Chinese text using jieba."""
@@ -434,13 +440,14 @@ class DocumentStore:
         logger.info("Transformed query '%s' into: %r", query, queries)
 
         _all_results: dict[int, list[types.ScoredChunk]] = {}
+        fetch_k = max(_FETCH_DEPTH, k * 2)
 
         async def _run_vector(i: int, q: str) -> None:
             with _tracer.start_as_current_span("vector_search") as span:
                 span.set_attribute("query", q)
-                span.set_attribute("k", k * 2)
+                span.set_attribute("k", fetch_k)
                 results = await anyio.to_thread.run_sync(
-                    lambda: self._vector_store.search(q, k * 2)
+                    lambda: self._vector_store.search(q, fetch_k)
                 )
                 span.set_attribute("num_results", len(results))
                 _all_results[i] = results
@@ -448,9 +455,9 @@ class DocumentStore:
         async def _run_bm25(i: int, q: str) -> None:
             with _tracer.start_as_current_span("bm25_search") as span:
                 span.set_attribute("query", q)
-                span.set_attribute("k", k * 2)
+                span.set_attribute("k", fetch_k)
                 results = await anyio.to_thread.run_sync(
-                    lambda: self._bm25_store.search(q, k * 2)
+                    lambda: self._bm25_store.search(q, fetch_k)
                 )
                 span.set_attribute("num_results", len(results))
                 _all_results[i] = results
@@ -491,7 +498,7 @@ class DocumentStore:
         self, query: str, *, k: int, chunk_context: int
     ) -> types.RetrieveOutput:
         """Search using BM25 keyword retrieval only."""
-        scored_chunks = self._bm25_store.search(query, k * 2)
+        scored_chunks = self._bm25_store.search(query, max(_FETCH_DEPTH, k * 2))
         scored_docs = self._resolve_chunks(scored_chunks)
         return self._select_scored_documents(
             query, scored_docs, k=k, chunk_context=chunk_context
