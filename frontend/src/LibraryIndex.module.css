@@ -98,21 +98,15 @@
   /* Match the row's first text line (line-height 1.4) so the chevron centers
      on the label's first line in flex-start rows. */
   height: 1.4em;
-  padding: 0;
   color: var(--color-text-muted);
 }
 
-.caret:hover {
-  color: var(--color-primary-text);
-}
-
-.labelBtn {
+.groupBody {
   flex: 1;
   display: flex;
   align-items: baseline;
   gap: 0.4rem;
   min-width: 0;
-  padding: 0;
 }
 
 .label {

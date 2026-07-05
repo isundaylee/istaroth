@@ -98,10 +98,6 @@ function LibraryIndex({ categories, activeCategory, activeFileId, activeBrowseKe
     navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(fileId)}`)
   }
 
-  const openGroup = (pathKey: string) => {
-    setExpanded((prev) => new Set(prev).add(pathKey))
-  }
-
   const renderNodes = (items: HierarchyNode[], parentPath: string): React.ReactNode => (
     <ul className={parentPath ? styles.children : styles.list}>
       {items.map((node, index) => {
@@ -129,22 +125,20 @@ function LibraryIndex({ categories, activeCategory, activeFileId, activeBrowseKe
         const current = activeKey === pathKey
         return (
           <li key={rowKey}>
-            <div
+            <button
               ref={current ? (el) => (currentRef.current = el) : undefined}
               className={clsx(styles.row, styles.group, current && styles.current)}
+              onClick={() => toggle(pathKey)}
+              aria-expanded={open}
             >
-              <button
-                className={styles.caret}
-                onClick={() => toggle(pathKey)}
-                aria-label={open ? t('library.collapse') : t('library.expand')}
-              >
+              <span className={styles.caret}>
                 {open ? <ChevronDown size={12} aria-hidden /> : <ChevronRight size={12} aria-hidden />}
-              </button>
-              <button className={styles.labelBtn} onClick={() => openGroup(pathKey)}>
+              </span>
+              <span className={styles.groupBody}>
                 <span className={styles.label}>{nodeLabel(node) || t('library.noFileName')}</span>
                 <span className={styles.count}>{countLeaves(node)}</span>
-              </button>
-            </div>
+              </span>
+            </button>
             {open && renderNodes(node.children!, pathKey)}
           </li>
         )

@@ -217,8 +217,6 @@ export const eng = {
     filterPlaceholder: 'Filter by title...',
     noFilterResults: 'No documents match your filter',
     filterMoreHidden: 'more matches not shown',
-    expand: 'Expand',
-    collapse: 'Collapse',
     navMenu: 'Contents',
     selection: {
       keywordSearch: 'Keyword search',

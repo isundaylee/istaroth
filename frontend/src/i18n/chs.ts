@@ -217,8 +217,6 @@ export const chs = {
     filterPlaceholder: '按标题筛选...',
     noFilterResults: '没有匹配的文档',
     filterMoreHidden: '条结果未显示',
-    expand: '展开',
-    collapse: '收起',
     navMenu: '目录',
     selection: {
       keywordSearch: '关键词搜索',
