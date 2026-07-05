@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { CitationResponse } from '../types/api'
 import { useTranslation } from '../contexts/LanguageContext'
-import { isEditable } from '../utils/keyboard'
 import { buildLibraryFilePath } from '../utils/library'
 import { AppLink } from './AppLink'
 import { FloatingPanel } from './FloatingPanel'
@@ -64,22 +63,6 @@ function CitationPopup({
     return () => clearTimeout(timer)
   }, [isSticky, citedChunk, fullText])
 
-  // 'e' loads the full context, scoped to this popup while it's sticky and
-  // visible (not minimized to a rail card). 'f' (fullscreen) lives in the
-  // shared FloatingPanel frame.
-  useEffect(() => {
-    if (!isSticky || minimized) return
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isEditable(e.target) || e.metaKey || e.ctrlKey || e.altKey) return
-      if (e.key === 'e' && onLoadFullText && !isLoadingFullText) {
-        e.preventDefault()
-        onLoadFullText()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [isSticky, minimized, onLoadFullText, isLoadingFullText])
-
   // The cited region is rendered as a block marked with a left accent bar and a "cited" badge.
   const citedBlock = (text: string) => (
     <div ref={citedRef} className={citationStyles.cited}>
@@ -133,6 +116,9 @@ function CitationPopup({
       left={left}
       fullscreen={isFullscreen}
       onToggleFullscreen={isSticky ? onToggleFullscreen : undefined}
+      // 'e' loads the full context; the coordinator delivers it only while this
+      // popup is the topmost visible one ('f'/Escape route the same way).
+      shortcuts={isSticky && onLoadFullText ? { e: () => { if (!isLoadingFullText) onLoadFullText() } } : undefined}
       interactive={isSticky}
       minimized={isSticky ? minimized : false}
       onRestore={isSticky ? onRestore : undefined}

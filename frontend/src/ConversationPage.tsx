@@ -10,7 +10,7 @@ import QueryForm from './QueryForm'
 import { PageSection } from './components/PageShell'
 import Button from './components/Button'
 import CitationRenderer from './components/CitationRenderer'
-import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
+import { MinimizedPopupRegion } from './contexts/PopupCoordinatorContext'
 import type { ConversationResponse } from './types/api'
 import convStyles from './ConversationPage.module.css'
 
