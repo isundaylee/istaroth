@@ -218,6 +218,7 @@ CLAUDE.local.md
 istaroth.code-workspace
 
 /tmp
+/tmp-local
 /claude-prompts
 
 # Playwright MCP session artifacts (console logs / snapshots) written to repo root

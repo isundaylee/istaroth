@@ -1,3 +1,4 @@
+import { ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import clsx from 'clsx'
 import { useT } from '../contexts/LanguageContext'
@@ -12,9 +13,13 @@ interface NavigationProps {
   // (border/radius/margin/shadow) and sit as the panel's top section, divided
   // from the rest by a single bottom hairline.
   embedded?: boolean
+  // Optional leading control (PageShell's mobile drawer toggle) rendered before
+  // the nav links. When present, the nav sticks to the viewport top on mobile
+  // so the toggle stays reachable while scrolling.
+  leading?: ReactNode
 }
 
-function Navigation({ embedded = false }: NavigationProps = {}) {
+function Navigation({ embedded = false, leading }: NavigationProps = {}) {
   const t = useT()
   const location = useLocation()
   const { theme, toggleTheme } = useTheme()
@@ -27,8 +32,14 @@ function Navigation({ embedded = false }: NavigationProps = {}) {
   ]
 
   return (
-    <nav className={clsx(styles.nav, embedded && styles.navEmbedded)}>
+    <nav className={clsx(styles.nav, embedded && styles.navEmbedded, leading != null && styles.navSticky)}>
       <div className={styles.links}>
+        {leading != null && (
+          <>
+            {leading}
+            <span className={styles.leadingDivider} aria-hidden />
+          </>
+        )}
         {navLinks.map(({ path, key }) => (
           <AppLink
             key={path}

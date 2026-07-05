@@ -1,5 +1,6 @@
 import { ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react'
 import clsx from 'clsx'
+import Button from './Button'
 import Navigation from './Navigation'
 import styles from './PageShell.module.css'
 
@@ -27,11 +28,12 @@ interface PageShellProps {
   // off-canvas drawer opened by a toggle button, so narrow screens can still
   // reach it while the body reads like the default shell.
   sidebar?: ReactNode
-  // Label for the mobile drawer toggle button (also its accessible name).
+  // Accessible name for the mobile drawer toggle button (and visible label for
+  // the desktop bookmark tab).
   sidebarLabel?: ReactNode
   // When true, the sidebar can be toggled on desktop via a bookmark tab on the
   // left border. Open = wide two-pane (1140px), closed = centered 800px card.
-  // On mobile the tab is hidden and the drawerToggleBar is always visible.
+  // On mobile the tab is hidden and the nav's drawer toggle is always visible.
   // Requires `onSidebarToggle`. Implies flush body.
   sidebarCloseable?: boolean
   // Whether the sidebar is currently closed (desktop). Defaults to false.
@@ -73,13 +75,25 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel, sidebarClos
       closed && styles.ledgerClosed,
     )
     const railClass = clsx(styles.rail, closeable && styles.ledgerRail, drawerOpen && styles.railOpen)
-    const bodyClass = clsx(styles.body, closeable && styles.bodyFlush, !closeable && hideMobileSidebarToggle && styles.bodyNoDrawerToggle)
+    const bodyClass = clsx(styles.body, closeable && styles.bodyFlush)
+    const drawerToggle = (!hideMobileSidebarToggle || closeable) && sidebarLabel !== undefined && (
+      <Button
+        variant="ghost"
+        size="sm"
+        className={styles.drawerToggle}
+        onClick={openDrawer}
+        aria-expanded={drawerOpen}
+        aria-label={typeof sidebarLabel === 'string' ? sidebarLabel : undefined}
+      >
+        <span className={styles.drawerToggleGlyph} aria-hidden>☰</span>
+      </Button>
+    )
 
     return (
       // data-popup-boundary: the minimized-popup rail anchors to this surface's
       // right edge (see MinimizedPopupRegion).
       <div className={panelClass} data-popup-boundary>
-        <Navigation embedded />
+        <Navigation embedded leading={drawerToggle || undefined} />
         <div className={styles.split}>
           <div
             className={clsx(styles.backdrop, drawerOpen && styles.backdropOpen)}
@@ -103,19 +117,6 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel, sidebarClos
             </CloseSidebarDrawerContext.Provider>
           </aside>
           <div className={bodyClass}>
-            {(!hideMobileSidebarToggle || closeable) && sidebarLabel !== undefined && (
-              <div className={styles.drawerToggleBar}>
-                <button
-                  type="button"
-                  className={styles.drawerToggle}
-                  onClick={openDrawer}
-                  aria-expanded={drawerOpen}
-                >
-                  <span aria-hidden>☰</span>
-                  {sidebarLabel}
-                </button>
-              </div>
-            )}
             <OpenSidebarDrawerContext.Provider value={openDrawer}>
             {children}
             </OpenSidebarDrawerContext.Provider>
