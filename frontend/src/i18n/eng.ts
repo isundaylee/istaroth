@@ -165,7 +165,6 @@ export const eng = {
 
   library: {
     title: 'Library',
-    placeholder: 'Library feature coming soon...',
     frontDesk: {
       title: 'Teyvat Library',
       subtitle: 'The quests, books, character stories, and legends of Teyvat, gathered here.',
@@ -180,7 +179,6 @@ export const eng = {
       submitButton: 'Search',
       submitting: 'Searching...',
       searchMode: 'Search mode',
-      semantic: 'Semantic search',
       searchModeBm25: 'Keyword',
       searchModeSemantic: 'Semantic',
       noResults: 'No documents found',
@@ -189,8 +187,6 @@ export const eng = {
         noConnection: 'Failed to connect to server'
       }
     },
-    selectCategory: 'Select Category',
-    backToCategories: 'Back to Categories',
     backToFiles: 'Back to Files',
     categories: {
       agd_artifact_set: 'Artifact Sets',
@@ -217,17 +213,13 @@ export const eng = {
       invalidCategory: 'Invalid category'
     },
     noFileName: 'Untitled',
-    tableOfContents: 'Contents',
     breadcrumbAriaLabel: 'Breadcrumb',
     filterPlaceholder: 'Filter by title...',
     noFilterResults: 'No documents match your filter',
-    allCategories: 'All categories',
+    filterMoreHidden: 'more matches not shown',
     expand: 'Expand',
     collapse: 'Collapse',
     navMenu: 'Contents',
-    questSeriesToc: 'Quests in this series',
-    noSearchResults: 'No quests match your search',
-    hangoutCharacterToc: 'Acts in this hangout',
     selection: {
       keywordSearch: 'Keyword search',
       ask: 'Ask',

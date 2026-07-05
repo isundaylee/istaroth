@@ -203,12 +203,6 @@ class CitationBatchResponse(BaseModel):
     errors: list[CitationError]
 
 
-class LibraryCategoriesResponse(BaseModel):
-    """Response model for library categories endpoint."""
-
-    categories: list[str]
-
-
 class LibraryFileInfo(BaseModel):
     """File information with parsed components."""
 
@@ -216,12 +210,6 @@ class LibraryFileInfo(BaseModel):
     title: str
     id: int
     relative_path: str
-
-
-class LibraryFilesResponse(BaseModel):
-    """Response model for library files endpoint."""
-
-    files: list[LibraryFileInfo]
 
 
 class LibraryFileResponse(BaseModel):
@@ -295,16 +283,17 @@ class HierarchyNode(BaseModel):
     toc_eligible: bool
 
 
-class HierarchyResponse(BaseModel):
-    """Response model for the document hierarchy of a single category."""
+class LibraryCategoryHierarchy(BaseModel):
+    """One category's document tree within the full library hierarchy."""
 
+    category: str
     nodes: list[HierarchyNode]
 
 
-class TocResponse(BaseModel):
-    """TOC for a single file. toc_root is None when the file has no TOC."""
+class LibraryHierarchyResponse(BaseModel):
+    """Full library hierarchy: every category's document tree, in display order."""
 
-    toc_root: HierarchyNode | None
+    categories: list[LibraryCategoryHierarchy]
 
 
 class VersionResponse(BaseModel):

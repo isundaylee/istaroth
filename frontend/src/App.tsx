@@ -11,8 +11,8 @@ import QueryPage from './QueryPage'
 import ConversationPage, { conversationPageLoader } from './ConversationPage'
 import ConversationLayout from './ConversationLayout'
 import ShortURLRedirect, { shortURLLoader } from './ShortURLRedirect'
-import LibraryLayout from './LibraryLayout'
-import LibraryEntry, { libraryCategoryLoader, libraryEntryLoader } from './LibraryEntry'
+import LibraryLayout, { libraryHierarchyLoader } from './LibraryLayout'
+import LibraryEntry from './LibraryEntry'
 import LibraryFileViewer, { libraryFileViewerLoader } from './LibraryFileViewer'
 import NotFoundPage from './NotFoundPage'
 import styles from './RootLayout.module.css'
@@ -55,14 +55,12 @@ const router = createBrowserRouter([
         path: "/library",
         id: "library-root",
         element: <LibraryLayout />,
-        loader: libraryEntryLoader,
+        loader: libraryHierarchyLoader,
         errorElement: <ErrorBoundary />,
         children: [
           { index: true, element: <LibraryEntry /> },
           {
             path: ":category",
-            id: "library-category",
-            loader: libraryCategoryLoader,
             errorElement: <ErrorBoundary />,
             children: [
               { index: true, element: <LibraryEntry /> },

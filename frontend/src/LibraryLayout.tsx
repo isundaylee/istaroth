@@ -1,55 +1,52 @@
-import { Outlet, useParams, useRouteLoaderData } from 'react-router-dom'
-import clsx from 'clsx'
+import { Outlet, useParams, useRouteLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import PageShell from './components/PageShell'
-import { AppLink } from './components/AppLink'
 import LibraryIndex from './LibraryIndex'
 import { useT } from './contexts/LanguageContext'
-import { categoryLabel } from './utils/hierarchy'
-import styles from './LibraryLayout.module.css'
-import type { HierarchyResponse, LibraryCategoriesResponse } from './types/api'
+import { translate } from './i18n'
+import { getLanguageFromUrl } from './utils/language'
+import type { LibraryHierarchyResponse } from './types/api'
+
+// Loads the whole library once at the root route: every category's document
+// tree in a single response. The rail, browse, and file-viewer descendants all
+// read it via useRouteLoaderData('library-root').
+export async function libraryHierarchyLoader({
+  request,
+}: LoaderFunctionArgs): Promise<LibraryHierarchyResponse> {
+  const language = getLanguageFromUrl(request.url)
+  const res = await fetch(`/api/library/hierarchy?language=${language}`)
+  if (!res.ok) {
+    throw new Response(translate(language, 'library.errors.loadFailed'), { status: res.status })
+  }
+  return (await res.json()) as LibraryHierarchyResponse
+}
 
 // Supplies the library's navigation rail to PageShell's wide two-pane variant:
-// the current category's tree inside a category, or the category list at the
-// bare /library root. The frame, split, and responsive behavior live in
-// PageShell; only the rail content here is library-specific.
+// one unified tree with a top-level group per category. The frame, split, and
+// responsive behavior live in PageShell; only the rail content here is
+// library-specific.
 function LibraryLayout() {
   const t = useT()
   const params = useParams()
-  const { categories } = useRouteLoaderData('library-root') as LibraryCategoriesResponse
-  // Present only inside a category (its route loads the whole tree once).
-  const tree = useRouteLoaderData('library-category') as HierarchyResponse | undefined
+  const { categories } = useRouteLoaderData('library-root') as LibraryHierarchyResponse
 
-  const category = params.category
+  const category = params.category ?? null
   const activeFileId = params.id ? parseInt(params.id, 10) : null
   const activeBrowseKeys = (params['*'] ?? '').split('/').filter(Boolean)
 
-  const sidebar =
-    category && tree ? (
-      <LibraryIndex
-        category={category}
-        nodes={tree.nodes}
-        activeFileId={activeFileId}
-        activeBrowseKeys={activeBrowseKeys}
-      />
-    ) : (
-      <>
-        <p className={styles.railHead}>{t('library.title')}</p>
-        <nav className={styles.railNav}>
-          {categories.map((value) => (
-            <AppLink
-              key={value}
-              to={`/library/${encodeURIComponent(value)}`}
-              className={clsx(styles.railItem, value === category && styles.railItemActive)}
-            >
-              {categoryLabel(value, t)}
-            </AppLink>
-          ))}
-        </nav>
-      </>
-    )
-
   return (
-    <PageShell sidebar={sidebar} sidebarSizing="natural" sidebarLabel={t('library.navMenu')} hideMobileSidebarToggle={!category}>
+    <PageShell
+      sidebar={
+        <LibraryIndex
+          categories={categories}
+          activeCategory={category}
+          activeFileId={activeFileId}
+          activeBrowseKeys={activeBrowseKeys}
+        />
+      }
+      sidebarSizing="natural"
+      sidebarLabel={t('library.navMenu')}
+      hideMobileSidebarToggle={!category}
+    >
       <Outlet />
     </PageShell>
   )

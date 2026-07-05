@@ -1,6 +1,7 @@
-/* The hierarchical navigator inside the layout rail: category header, filter,
- * and the expandable tree. The current-position marker is an inset box-shadow
- * (not a border) so the gold ribbon never fights the button reset. */
+/* The hierarchical navigator inside the layout rail: library title, filter,
+ * and the expandable unified tree (one top-level group per category). The
+ * current-position marker is an inset box-shadow (not a border) so the gold
+ * ribbon never fights the button reset. */
 
 .tree {
   font-size: var(--font-sm);
@@ -20,24 +21,17 @@
   margin-bottom: 0.85rem;
 }
 
-.back {
-  display: inline-block;
-  margin-bottom: 0.3rem;
-  font-size: var(--font-xs);
-  color: var(--color-text-muted);
-  text-decoration: none;
-}
-
-.back:hover {
-  color: var(--color-primary-text);
-}
-
 .cat {
   margin: 0;
   font-size: var(--font-lg);
   font-weight: 600;
   color: var(--color-heading);
   word-break: break-word;
+  text-decoration: none;
+}
+
+.cat:hover {
+  color: var(--color-primary-text);
 }
 
 /* The filter reads as part of the index, not a form control: no box, just a

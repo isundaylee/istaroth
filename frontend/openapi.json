@@ -282,14 +282,14 @@
         }
       }
     },
-    "/api/library/categories": {
+    "/api/library/hierarchy": {
       "get": {
         "tags": [
           "library"
         ],
-        "summary": "Get Categories",
-        "description": "Get list of all categories for a language.",
-        "operationId": "get_categories_api_library_categories_get",
+        "summary": "Get Library Hierarchy",
+        "description": "Get the full library hierarchy: every category's document tree.\n\nCategories with a dedicated builder (quests, hangouts) return their pre-baked\nmulti-level tree; any other category returns a flat, depth-1 list of file\nleaves synthesized from the manifest. The corpus is immutable per deployment,\nso the response carries an ETag for free conditional reloads.",
+        "operationId": "get_library_hierarchy_api_library_hierarchy_get",
         "parameters": [
           {
             "name": "language",
@@ -309,61 +309,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LibraryCategoriesResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/library/files/{category}": {
-      "get": {
-        "tags": [
-          "library"
-        ],
-        "summary": "Get Files",
-        "description": "Get list of files in a category for a language.",
-        "operationId": "get_files_api_library_files__category__get",
-        "parameters": [
-          {
-            "name": "category",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Category"
-            }
-          },
-          {
-            "name": "language",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Language code (CHS, ENG)",
-              "title": "Language"
-            },
-            "description": "Language code (CHS, ENG)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LibraryFilesResponse"
+                  "$ref": "#/components/schemas/LibraryHierarchyResponse"
                 }
               }
             }
@@ -535,123 +481,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ProperNounsResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/library/hierarchy/{category}": {
-      "get": {
-        "tags": [
-          "library"
-        ],
-        "summary": "Get Hierarchy",
-        "description": "Get the browsable document hierarchy for a category.\n\nCategories with a dedicated builder (quests, hangouts) return their pre-baked\nmulti-level tree; any other category returns a flat, depth-1 list of file\nleaves synthesized from the manifest.",
-        "operationId": "get_hierarchy_api_library_hierarchy__category__get",
-        "parameters": [
-          {
-            "name": "category",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Category"
-            }
-          },
-          {
-            "name": "language",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Language code (CHS, ENG)",
-              "title": "Language"
-            },
-            "description": "Language code (CHS, ENG)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HierarchyResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/library/file/{category}/{id}/toc": {
-      "get": {
-        "tags": [
-          "library"
-        ],
-        "summary": "Get File Toc",
-        "description": "Get the table of contents for a single file by category and id.",
-        "operationId": "get_file_toc_api_library_file__category___id__toc_get",
-        "parameters": [
-          {
-            "name": "category",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Category"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Id"
-            }
-          },
-          {
-            "name": "language",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Language code (CHS, ENG)",
-              "title": "Language"
-            },
-            "description": "Language code (CHS, ENG)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TocResponse"
                 }
               }
             }
@@ -1143,8 +972,12 @@
         "title": "HierarchyNode",
         "description": "One node in a browsable document hierarchy.\n\nA node is either a group (``children`` set) or a leaf (``file_id`` set, a\nviewable file). ``title`` is the resolved display label."
       },
-      "HierarchyResponse": {
+      "LibraryCategoryHierarchy": {
         "properties": {
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
           "nodes": {
             "items": {
               "$ref": "#/components/schemas/HierarchyNode"
@@ -1155,27 +988,11 @@
         },
         "type": "object",
         "required": [
+          "category",
           "nodes"
         ],
-        "title": "HierarchyResponse",
-        "description": "Response model for the document hierarchy of a single category."
-      },
-      "LibraryCategoriesResponse": {
-        "properties": {
-          "categories": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Categories"
-          }
-        },
-        "type": "object",
-        "required": [
-          "categories"
-        ],
-        "title": "LibraryCategoriesResponse",
-        "description": "Response model for library categories endpoint."
+        "title": "LibraryCategoryHierarchy",
+        "description": "One category's document tree within the full library hierarchy."
       },
       "LibraryFileInfo": {
         "properties": {
@@ -1224,22 +1041,22 @@
         "title": "LibraryFileResponse",
         "description": "Response model for library file content endpoint."
       },
-      "LibraryFilesResponse": {
+      "LibraryHierarchyResponse": {
         "properties": {
-          "files": {
+          "categories": {
             "items": {
-              "$ref": "#/components/schemas/LibraryFileInfo"
+              "$ref": "#/components/schemas/LibraryCategoryHierarchy"
             },
             "type": "array",
-            "title": "Files"
+            "title": "Categories"
           }
         },
         "type": "object",
         "required": [
-          "files"
+          "categories"
         ],
-        "title": "LibraryFilesResponse",
-        "description": "Response model for library files endpoint."
+        "title": "LibraryHierarchyResponse",
+        "description": "Full library hierarchy: every category's document tree, in display order."
       },
       "LibraryRetrieveRequest": {
         "properties": {
@@ -1581,26 +1398,6 @@
         ],
         "title": "ShortURLResponse",
         "description": "Response model for short URL resolution."
-      },
-      "TocResponse": {
-        "properties": {
-          "toc_root": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/HierarchyNode"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "type": "object",
-        "required": [
-          "toc_root"
-        ],
-        "title": "TocResponse",
-        "description": "TOC for a single file. toc_root is None when the file has no TOC."
       },
       "ValidationError": {
         "properties": {
