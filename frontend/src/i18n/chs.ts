@@ -135,6 +135,7 @@ export const chs = {
   },
 
   history: {
+    title: '历史记录',
     newQuestion: '新问题',
     today: '今天',
     yesterday: '昨天',

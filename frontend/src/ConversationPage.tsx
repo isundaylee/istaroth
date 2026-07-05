@@ -125,7 +125,7 @@ function ConversationPage() {
       const dataURL = canvas.toDataURL()
       setExportedImage(dataURL)
     } catch (error) {
-      console.error('导出PNG失败:', error)
+      console.error('PNG export failed:', error)
       alert(t('conversation.errors.exportFailed'))
     } finally {
       setExporting(false)
