@@ -5,7 +5,6 @@ import type { FloatingPlacement } from '../utils/floatingPanel'
 import { buildLibraryFilePath } from '../utils/library'
 import { AppLink } from './AppLink'
 import CitationRenderer from './CitationRenderer'
-import SelectableAnswer from './SelectableAnswer'
 import { FloatingPanel } from './FloatingPanel'
 import panelStyles from './FloatingPanel.module.css'
 import queryProgressStyles from './QueryProgress.module.css'
@@ -85,16 +84,14 @@ function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind:
         <QueryProgress steps={panel.activeSteps} className={selStyles.progress} />
       )}
       {panel.error && <p className={selStyles.error}>{panel.error}</p>}
+      {/* Recurse: proper nouns highlighted inside this answer become clickable
+          and open their own nested selection panel, exactly like the
+          page-level answer. */}
       {panel.answer && (
-        <CitationRenderer content={panel.answer} properNouns={panel.properNouns}>
+        <CitationRenderer content={panel.answer} properNouns={panel.properNouns} answerClassName={selStyles.answer}>
           {({ answer, citationList }) => (
             <>
-              {/* Recurse: proper nouns highlighted inside this answer become clickable
-                  and open their own nested selection panel, exactly like the
-                  page-level answer. */}
-              <SelectableAnswer resetKey={panel.answer} className={selStyles.answer}>
-                {answer}
-              </SelectableAnswer>
+              {answer}
               {citationList && (
                 <div className={selStyles.citations} data-citation-container>
                   {citationList}

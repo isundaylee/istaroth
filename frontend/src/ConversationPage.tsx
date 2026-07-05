@@ -10,7 +10,6 @@ import QueryForm from './QueryForm'
 import { PageSection } from './components/PageShell'
 import Button from './components/Button'
 import CitationRenderer from './components/CitationRenderer'
-import SelectableAnswer from './components/SelectableAnswer'
 import { MinimizedPopupRegion } from './contexts/MinimizedPopupContext'
 import type { ConversationResponse } from './types/api'
 import convStyles from './ConversationPage.module.css'
@@ -225,7 +224,7 @@ function ConversationPage() {
                     </div>
                   )}
 
-                  <SelectableAnswer resetKey={conversation.uuid}>{answer}</SelectableAnswer>
+                  {answer}
                 </PageSection>
 
                 {citationList && (

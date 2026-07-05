@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useT } from '../contexts/LanguageContext'
 import { MinimizedPopupCard } from '../contexts/MinimizedPopupContext'
 import { useDraggableResizable } from '../hooks/useDraggableResizable'
-import type { FloatingPlacement } from '../utils/floatingPanel'
+import { clampShiftIntoViewport, type FloatingPlacement } from '../utils/floatingPanel'
 import { isEditable } from '../utils/keyboard'
 import Button from './Button'
 import styles from './FloatingPanel.module.css'
@@ -80,7 +80,7 @@ export function FloatingPanel({
   // Horizontal viewport-fit correction. The anchor clamp in
   // calculateFloatingPlacement assumes a narrow panel, so on small screens the
   // centered panel can overhang a viewport edge. Measure the rendered width and
-  // shift the panel back inside (the drag hook applies the same containment
+  // shift the panel back inside (the same containment the drag hook applies
   // while dragging).
   const [fitX, setFitX] = useState(0)
   useLayoutEffect(() => {
@@ -88,10 +88,7 @@ export function FloatingPanel({
     if (fullscreen || minimized || top == null || left == null) return
     const width = panelElementRef.current?.getBoundingClientRect().width
     if (!width) return
-    const margin = 8
-    const minShift = margin - (left - width / 2)
-    const maxShift = window.innerWidth - margin - (left + width / 2)
-    setFitX(Math.min(Math.max(0, minShift), maxShift))
+    setFitX(clampShiftIntoViewport(left - width / 2, width, 0, window.innerWidth))
   }, [top, left, placement, fullscreen, minimized])
 
   useEffect(() => {

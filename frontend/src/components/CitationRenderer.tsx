@@ -8,11 +8,14 @@ import { preprocessCitationsForDisplay, formatCitationId, parseCitationId } from
 import CitationList from './CitationList'
 import CitationPopup from './CitationPopup'
 import HighlightedMarkdown from './HighlightedMarkdown'
+import SelectableAnswer from './SelectableAnswer'
 
 interface CitationRendererProps {
   content: string
   /** Proper nouns to highlight within the rendered answer (citation links are left untouched). */
   properNouns?: string[]
+  /** Extra class for the selectable answer container. */
+  answerClassName?: string
   children?: (props: { answer: React.ReactNode; citationList: React.ReactNode }) => React.ReactNode
 }
 
@@ -27,7 +30,7 @@ interface CitationContentData {
   fullText?: string
 }
 
-function CitationRenderer({ content, properNouns, children }: CitationRendererProps) {
+function CitationRenderer({ content, properNouns, answerClassName, children }: CitationRendererProps) {
   const [hoveredCitation, setHoveredCitation] = useState<string | null>(null)
   const [stickyCitation, setStickyCitation] = useState<string | null>(null)
   const { position, minimized, fullscreen, openAtRect, openFullscreen, minimize, restore, toggleFullscreen, reset } =
@@ -229,8 +232,10 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
     ? (isSticky ? getStickyContent(displayedCitation) : getSourceContent(displayedCitation))
     : null
 
+  // The answer comes pre-wired for selection: selecting text (or clicking a
+  // highlighted proper noun) opens the search/ask toolbar on every consumer.
   const answer = (
-    <>
+    <SelectableAnswer resetKey={content} className={answerClassName}>
       {displayedCitation && popupData && (
         <CitationPopup
           title={popupData.title}
@@ -252,7 +257,7 @@ function CitationRenderer({ content, properNouns, children }: CitationRendererPr
         />
       )}
       <HighlightedMarkdown content={processedContent} properNouns={properNouns} components={components} />
-    </>
+    </SelectableAnswer>
   )
 
   const citationList = uniqueCitedWorks.length > 0 && (
