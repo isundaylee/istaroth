@@ -13,6 +13,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import Button from '../components/Button'
+import { CloseIcon } from '../components/icons'
 import { isEditable } from '../utils/keyboard'
 import styles from './PopupCoordinator.module.css'
 
@@ -287,8 +288,8 @@ export function MinimizedPopupCard({ eyebrow, title, onRestore, onClose, expandL
         {eyebrow && <span className={styles.cardEyebrow}>{eyebrow}</span>}
         <span className={styles.cardTitle}>{title}</span>
       </button>
-      <Button type="button" variant="icon" size="sm" onClick={onClose} aria-label={closeLabel} className={styles.cardClose}>
-        ×
+      <Button type="button" variant="icon" size="xs" onClick={onClose} aria-label={closeLabel} className={styles.cardClose}>
+        <CloseIcon />
       </Button>
     </div>,
     rail

@@ -1,5 +1,6 @@
 import { useT } from '../contexts/LanguageContext'
 import Button from './Button'
+import { CloseIcon } from './icons'
 
 interface KeyboardShortcutsModalProps {
   open: boolean
@@ -92,11 +93,12 @@ function KeyboardShortcutsModal({ open, onClose }: KeyboardShortcutsModalProps) 
           <Button
             type="button"
             variant="icon"
+            size="xs"
             onClick={onClose}
             title={t('keyboard.close')}
-            style={{ color: 'white', width: '22px', height: '22px' }}
+            style={{ color: 'white' }}
           >
-            ×
+            <CloseIcon />
           </Button>
         </div>
         <div style={{ padding: '0.25rem 1rem 0.25rem' }}>

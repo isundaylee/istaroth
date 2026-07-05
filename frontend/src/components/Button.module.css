@@ -2,12 +2,13 @@
    `.submit` is the fixed-width composer submit variant. `.secondary`,
    `.ghost`, and `.icon` are additional variants. All LOCAL (hashed).
 
-   Height is owned by `size` (`--control-height-md` by default, `.sm` for
-   `--control-height-sm`), not by any variant: every variant centers its
-   content via flex instead of padding/line-height, so swapping variants at
-   the same size never changes height. Variants only control horizontal
-   padding, color, border, and font-size. This is what lets a <Button> line
-   up with a <Toggle> or <Select> of the same size. */
+   Height is owned by `size` (`--control-height-md` by default, `.sm`/`.xs`
+   for `--control-height-sm`/`--control-height-xs`), not by any variant:
+   every variant centers its content via flex instead of padding/line-height,
+   so swapping variants at the same size never changes height. Variants only
+   control horizontal padding, color, border, and font-size (`icon` also
+   transfers the height to its width to stay square). This is what lets a
+   <Button> line up with a <Toggle> or <Select> of the same size. */
 
 .button {
   display: inline-flex;
@@ -71,27 +72,31 @@
   opacity: 0.6;
 }
 
-/* Icon: compact square icon-only button (close ×, fullscreen toggle). Fixed
-   square dimensions independent of the control-height scale — it's a shape,
-   not a control-row height; `size="sm"` scales the square itself (below). */
+/* Icon: square icon-only button (close ×, fullscreen toggle). Height comes
+   from the size axis like every other variant; aspect-ratio transfers it to
+   the width so the button stays a square on the shared control scale. */
 .icon {
   background: transparent;
   border: 0;
   padding: 0;
-  width: 1.8rem;
-  height: 1.8rem;
+  aspect-ratio: 1;
   color: var(--color-text-secondary);
   font-size: 1.25rem;
   border-radius: var(--radius-sm);
 }
 
-/* Small icon: a tighter square for dense chrome (e.g. the minimized card's
-   close button), overriding the control-row height/padding `.sm` composes
-   onto other variants. */
-.icon.sm {
-  width: 1.35rem;
-  height: 1.35rem;
+/* Re-assert zero padding over the size modifiers below (same specificity as
+   `.icon` alone, but later in the file), and scale the glyph with the square. */
+.icon.sm,
+.icon.xs {
   padding: 0;
+}
+
+.icon.sm {
+  font-size: 1.1rem;
+}
+
+.icon.xs {
   font-size: 1rem;
 }
 
@@ -117,10 +122,17 @@
   font-size: var(--font-sm);
 }
 
-/* Compact size modifier: shrinks the control to `--control-height-sm` and
-   tightens horizontal padding. Composed on top of any variant (except
-   `icon`, where it shrinks the square instead — see above). */
+/* Size modifiers: shrink the control height and tighten horizontal padding.
+   Composed on top of any variant; `icon` keeps its square shape at every
+   size. `xs` is for dense chrome (e.g. the minimized card's close button)
+   where even the sm control height is too tall. */
 .sm {
   height: var(--control-height-sm);
   padding: 0 0.6rem;
+}
+
+.xs {
+  height: var(--control-height-xs);
+  padding: 0 0.4rem;
+  font-size: var(--font-sm);
 }
