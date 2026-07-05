@@ -44,8 +44,9 @@ equals the local talk id (the ``_<localTalkId>`` suffix of the talk filename).""
 NpcId: TypeAlias = int
 """NPC id, as it ships in the master table (``NpcExcelConfigDataItem.id``).
 
-Dialog/talk role *references* (``talkRole.id`` / ``_id``) and the
-``npc_id_to_name`` map key carry the id as a plain ``str``, not this alias.
+Dialog/talk role *references* (``talkRole.id`` / ``_id``) ship as plain ``str``
+on the wire (sometimes non-numeric placeholders) and are parsed to this alias
+at the lookup boundary.
 """
 
 ActivityId: TypeAlias = int

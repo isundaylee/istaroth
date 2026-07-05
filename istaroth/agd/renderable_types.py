@@ -524,7 +524,7 @@ class TalkGroups(
 
         group_name: str | None = None
         if renderable_key[0] == "NpcGroup":
-            npc_id = renderable_key[1]
+            npc_id = int(renderable_key[1])
             source_name = data_repo.build_npc_id_to_source_name_mapping().get(npc_id)
             if source_name is not None:
                 if text_utils.should_skip_text(source_name, localization.Language.CHS):
