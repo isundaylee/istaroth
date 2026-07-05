@@ -145,17 +145,6 @@
   transform: scaleX(1.4);
 }
 
-/* Hairline between the toggle and the nav links: the toggle is a page-level
-   control, not a third navigation destination, and the divider keeps it from
-   crowding the active link's highlight pill. */
-.drawerToggleDivider {
-  align-self: center;
-  width: 1px;
-  height: 1.35rem;
-  margin: 0 0.35rem;
-  background: var(--color-border);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .rail,
   .backdrop {
@@ -218,8 +207,7 @@
   }
 
   .backdrop,
-  .drawerToggle,
-  .drawerToggleDivider {
+  .drawerToggle {
     display: none;
   }
 

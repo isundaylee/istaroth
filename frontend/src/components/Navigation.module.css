@@ -45,6 +45,25 @@
   }
 }
 
+/* Hairline after the leading control: it's a page-level control, not a third
+   navigation destination, and the divider keeps it from crowding the active
+   link's highlight pill. Shown only below the drawer breakpoint, where the
+   leading toggle itself is visible. */
+.leadingDivider {
+  display: none;
+}
+
+@media (max-width: 999px) {
+  .leadingDivider {
+    display: block;
+    align-self: center;
+    width: 1px;
+    height: 1.35rem;
+    margin: 0 0.35rem;
+    background: var(--color-border);
+  }
+}
+
 .links {
   display: flex;
   align-items: center;

@@ -34,7 +34,12 @@ function Navigation({ embedded = false, leading }: NavigationProps = {}) {
   return (
     <nav className={clsx(styles.nav, embedded && styles.navEmbedded, leading != null && styles.navSticky)}>
       <div className={styles.links}>
-        {leading}
+        {leading != null && (
+          <>
+            {leading}
+            <span className={styles.leadingDivider} aria-hidden />
+          </>
+        )}
         {navLinks.map(({ path, key }) => (
           <AppLink
             key={path}

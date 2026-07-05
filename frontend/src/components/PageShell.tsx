@@ -77,19 +77,16 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel, sidebarClos
     const railClass = clsx(styles.rail, closeable && styles.ledgerRail, drawerOpen && styles.railOpen)
     const bodyClass = clsx(styles.body, closeable && styles.bodyFlush)
     const drawerToggle = (!hideMobileSidebarToggle || closeable) && sidebarLabel !== undefined && (
-      <>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={styles.drawerToggle}
-          onClick={openDrawer}
-          aria-expanded={drawerOpen}
-          aria-label={typeof sidebarLabel === 'string' ? sidebarLabel : undefined}
-        >
-          <span className={styles.drawerToggleGlyph} aria-hidden>☰</span>
-        </Button>
-        <span className={styles.drawerToggleDivider} aria-hidden />
-      </>
+      <Button
+        variant="ghost"
+        size="sm"
+        className={styles.drawerToggle}
+        onClick={openDrawer}
+        aria-expanded={drawerOpen}
+        aria-label={typeof sidebarLabel === 'string' ? sidebarLabel : undefined}
+      >
+        <span className={styles.drawerToggleGlyph} aria-hidden>☰</span>
+      </Button>
     )
 
     return (
