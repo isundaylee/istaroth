@@ -18,6 +18,29 @@ from istaroth.agd import localization
 from istaroth.text import manifest as text_manifest
 from istaroth.text import types as text_types
 
+# Frequently browsed categories lead the library display order; anything not
+# listed follows, sorted by category value.
+_CATEGORY_DISPLAY_ORDER = (
+    text_types.TextCategory.AGD_BOOK,
+    text_types.TextCategory.AGD_QUEST,
+    text_types.TextCategory.AGD_HANGOUT,
+    text_types.TextCategory.AGD_ARTIFACT_SET,
+    text_types.TextCategory.AGD_WEAPON,
+    text_types.TextCategory.AGD_WINGS,
+    text_types.TextCategory.AGD_COSTUME,
+    text_types.TextCategory.AGD_CHARACTER_STORY,
+    text_types.TextCategory.AGD_VOICELINE,
+    text_types.TextCategory.AGD_READABLE,
+)
+
+
+def _category_display_order(category: text_types.TextCategory) -> tuple[int, str]:
+    try:
+        index = _CATEGORY_DISPLAY_ORDER.index(category)
+    except ValueError:
+        index = len(_CATEGORY_DISPLAY_ORDER)
+    return (index, category.value)
+
 
 @attrs.define
 class TextSet:
@@ -90,14 +113,14 @@ class TextSet:
 
     @functools.cached_property
     def _library_hierarchies(self) -> dict[str, Any]:
-        """Every category's document tree, keyed by category value in sorted order.
+        """Every category's document tree, keyed by category value in display order.
 
         Pre-baked trees (quests, hangouts) are used as-is; every other category
         gets a flat, depth-1 tree of file leaves synthesized from the manifest.
         """
         combined: dict[str, Any] = {}
         for category in sorted(
-            {item.category for item in self._manifest}, key=lambda c: c.value
+            {item.category for item in self._manifest}, key=_category_display_order
         ):
             if (prebaked := self._prebaked_hierarchies.get(category.value)) is not None:
                 combined[category.value] = prebaked

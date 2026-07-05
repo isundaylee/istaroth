@@ -24,6 +24,7 @@ def test_library_hierarchies(tmp_path: pathlib.Path) -> None:
         [
             _item(types.TextCategory.AGD_READABLE, 20, "Scroll"),
             _item(types.TextCategory.AGD_READABLE, 10, "Tablet"),
+            _item(types.TextCategory.AGD_ACHIEVEMENT, 1, "Trophy"),
             _item(types.TextCategory.AGD_QUEST, 100, "Placed Quest"),
         ],
         name="agd",
@@ -56,9 +57,10 @@ def test_library_hierarchies(tmp_path: pathlib.Path) -> None:
     )
     hierarchies = text_set_obj.get_library_hierarchies()
 
-    # Sorted category order; pre-baked tree used as-is; flat category
+    # Curated display order (unlisted agd_achievement trails despite sorting
+    # first alphabetically); pre-baked tree used as-is; flat category
     # synthesized as id-sorted depth-1 leaves.
-    assert list(hierarchies) == ["agd_quest", "agd_readable"]
+    assert list(hierarchies) == ["agd_quest", "agd_readable", "agd_achievement"]
     assert hierarchies["agd_quest"] == quest_tree
     assert hierarchies["agd_readable"] == {
         "nodes": [
