@@ -9,7 +9,7 @@ import { copyToClipboard } from './utils/clipboard'
 import QueryForm from './QueryForm'
 import { PageSection } from './components/PageShell'
 import Button from './components/Button'
-import CitationRenderer from './components/CitationRenderer'
+import CitedAnswer from './components/CitedAnswer'
 import { MinimizedPopupRegion } from './contexts/PopupCoordinatorContext'
 import type { ConversationResponse } from './types/api'
 import convStyles from './ConversationPage.module.css'
@@ -153,7 +153,7 @@ function ConversationPage() {
 
         {!submittingNew &&
         <MinimizedPopupRegion className={convStyles.content} data-conversation-content>
-          <CitationRenderer content={conversation.answer} properNouns={conversation.proper_nouns}>
+          <CitedAnswer content={conversation.answer} properNouns={conversation.proper_nouns}>
             {({ answer, citationList }) => (
               <>
                 <PageSection>
@@ -234,7 +234,7 @@ function ConversationPage() {
                 )}
               </>
             )}
-          </CitationRenderer>
+          </CitedAnswer>
         </MinimizedPopupRegion>}
     </>
   )
