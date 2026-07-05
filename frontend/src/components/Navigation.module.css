@@ -31,6 +31,20 @@
   box-shadow: none;
 }
 
+/* When the nav hosts PageShell's drawer toggle, stick it to the viewport top on
+   mobile so the toggle stays reachable while scrolling long content (replacing
+   the old sticky toggle bar). Needs an opaque background once stuck; the top
+   radius matches the enclosing panel's rounded corners at rest. */
+@media (max-width: 999px) {
+  .navSticky {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background-color: var(--color-surface);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+  }
+}
+
 .links {
   display: flex;
   align-items: center;
@@ -76,8 +90,8 @@
 
 @media (max-width: 600px) {
   /* With the language switcher collapsed to a single compact button, links and
-     controls fit on one row: links share the leftover width evenly, controls
-     keep their natural size on the right. */
+     controls fit on one row: links hug their labels on the left (matching
+     desktop), controls keep their natural size on the right. */
   .nav {
     flex-wrap: nowrap;
     gap: 0.5rem;
@@ -85,17 +99,18 @@
   }
 
   .links {
-    flex: 1;
     flex-wrap: nowrap;
     gap: 0.25rem;
   }
 
   .link {
-    /* basis auto: each link sizes to its own label and only the leftover
-       space is split evenly, instead of forcing equal-width boxes. */
-    flex: 1 1 auto;
-    text-align: center;
-    padding: 0.4rem 0.15rem;
+    padding: 0.4rem 0.75rem;
     font-size: var(--font-sm);
+  }
+
+  /* The phone panel runs edge-to-edge with no radius, so the sticky nav drops
+     its top rounding too. */
+  .navSticky {
+    border-radius: 0;
   }
 }

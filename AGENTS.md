@@ -171,15 +171,23 @@ use (deferred tools list only by name until then).
 
 ### Presenting images / screenshots
 - Inline images do NOT render for the user in this terminal. When you produce or
-  reference an image (e.g. a Playwright screenshot), ALWAYS print its full path
-  so the user can open it themselves — don't rely on the image showing up.
+  reference an image (e.g. a Playwright screenshot), ALWAYS print its path so
+  the user can open it themselves — don't rely on the image showing up.
+- ALWAYS print each screenshot path on its own line, with nothing else on that
+  line (no surrounding prose, bullet text, or punctuation), and as a path
+  RELATIVE to the repo root (e.g. `tmp-local/screenshots/frontpage.png`), not an
+  absolute path — the user's UI can only open relative links.
 - Playwright's `browser_take_screenshot` saves to the path in its `filename`
   arg, resolved relative to the **repo root** (not the `.playwright-mcp/`
-  directory). ALWAYS save screenshots under `tmp/screenshots/` (e.g.
-  `filename: "tmp/screenshots/frontpage.png"`) — `tmp/` is git-ignored, so they
-  can't be accidentally committed. Don't drop them at the repo root.
+  directory). ALWAYS save screenshots under `tmp-local/screenshots/` (e.g.
+  `filename: "tmp-local/screenshots/frontpage.png"`) — `tmp-local/` is
+  git-ignored, so they can't be accidentally committed. Don't drop them at the
+  repo root, and don't use `tmp/` for screenshots: `tmp/` is a symlink into the
+  main checkout, which the user's UI can't open files through. Create
+  `tmp-local/screenshots/` if it doesn't exist yet (it's per-worktree and not
+  checked in).
 - If a saved screenshot isn't where expected (e.g. after `cd`ing into a
-  subdirectory like `frontend/`), look under `<repo root>/tmp/screenshots/`
+  subdirectory like `frontend/`), look under `<repo root>/tmp-local/screenshots/`
   first. NEVER `find /` (or otherwise search the whole filesystem) to locate
   it — it's always resolved relative to the repo root, not cwd.
 

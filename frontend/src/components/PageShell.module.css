@@ -129,35 +129,31 @@
   pointer-events: auto;
 }
 
-.drawerToggleBar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  margin: -1.5rem -1.5rem 1rem;
-  padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid var(--color-border-light);
-  background: var(--color-surface);
-}
-
+/* Mobile drawer toggle (hamburger): a ghost/sm <Button> leading the embedded
+   nav strip, with the same border chrome and size as the nav's theme/language
+   controls so the bar reads as compact controls at both ends. Hidden on
+   desktop, where the rail is either in-flow or toggled by the ledger tab. */
 .drawerToggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.4rem 0.8rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
-  font-size: var(--font-sm);
-  cursor: pointer;
 }
 
-.drawerToggle:hover {
-  background: var(--color-surface-hover);
+/* Stretch the ☰ glyph a touch wider than its glyph box so the button doesn't
+   read as a narrow sliver; scaleX keeps the bar thickness unchanged. */
+.drawerToggleGlyph {
+  display: inline-block;
+  transform: scaleX(1.4);
 }
 
-.bodyNoDrawerToggle {
-  padding-top: 1.5rem;
+/* Hairline between the toggle and the nav links: the toggle is a page-level
+   control, not a third navigation destination, and the divider keeps it from
+   crowding the active link's highlight pill. */
+.drawerToggleDivider {
+  align-self: center;
+  width: 1px;
+  height: 1.35rem;
+  margin: 0 0.35rem;
+  background: var(--color-border);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -222,7 +218,8 @@
   }
 
   .backdrop,
-  .drawerToggleBar {
+  .drawerToggle,
+  .drawerToggleDivider {
     display: none;
   }
 
@@ -254,19 +251,10 @@
 
 }
 
-/* ── Mobile: hide the tab, show the drawerToggleBar ── */
+/* ── Mobile: hide the tab; the nav's drawer toggle takes over ── */
 @media (max-width: 999px) {
   .ledgerTab {
     display: none;
-  }
-
-  /* When the consultation rail is present, always show the drawerToggleBar on
-     mobile — the ledger column switches to the off-canvas drawer. The ledger
-     body uses bodyFlush (no padding), so the negative cancel-margins aren't
-     needed. */
-  .ledger .drawerToggleBar {
-    display: block;
-    margin: 0 0 1rem;
   }
 }
 
@@ -282,19 +270,6 @@
 
   .body {
     padding: 1rem;
-  }
-
-  .bodyNoDrawerToggle {
-    padding-top: 1rem;
-  }
-
-  .drawerToggleBar {
-    margin: -1rem -1rem 1rem;
-    padding: 0.75rem 1rem;
-  }
-
-  .ledger .drawerToggleBar {
-    margin: 0 0 1rem;
   }
 
   /* The phone breakpoint sets .body { padding: 1rem } which would override the
