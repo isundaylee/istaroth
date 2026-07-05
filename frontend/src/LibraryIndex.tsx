@@ -1,6 +1,6 @@
 import React from 'react'
 import clsx from 'clsx'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, Search } from 'lucide-react'
 import { useT } from './contexts/LanguageContext'
 import { AppLink } from './components/AppLink'
 import TextInput from './components/TextInput'
@@ -142,12 +142,14 @@ function LibraryIndex({ category, nodes, activeFileId, activeBrowseKeys }: Libra
         <p className={styles.cat}>{categoryLabel(category, t)}</p>
       </div>
 
-      <TextInput
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder={t('library.filterPlaceholder')}
-        className={styles.search}
-      />
+      <div className={styles.search}>
+        <Search size={13} aria-hidden className={styles.searchIcon} />
+        <TextInput
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t('library.filterPlaceholder')}
+        />
+      </div>
 
       {trimmed ? (
         results.length === 0 ? (

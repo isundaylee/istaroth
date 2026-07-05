@@ -1,5 +1,20 @@
 # Frontend Development Guide
 
+## Component Styling Variants
+
+Shared components (`src/components/`) own their visual appearance. When a call
+site needs a different look, add a named `variant` prop to the component,
+styled in the component's own `*.module.css` (e.g. a
+`variant: 'boxed' | 'quiet'` union) — do NOT override the component's internals
+from the call site's stylesheet by out-specifying its classes. This is the
+general pattern we choose and prefer:
+
+- Make `variant` a required prop so every call site states its choice
+  explicitly; don't add a default value just to avoid touching call sites.
+- The call site still owns the layout AROUND the component — wrappers, icons,
+  margins/width, and any affordance those carry (e.g. `LibraryIndex`'s
+  underline lives on its wrapper, not in `TextInput`).
+
 ## Localization System
 
 React context-based i18n supporting Chinese (CHS) and English (ENG).

@@ -192,7 +192,6 @@ export const eng = {
     selectCategory: 'Select Category',
     backToCategories: 'Back to Categories',
     backToFiles: 'Back to Files',
-    noFiles: 'No files in this category',
     categories: {
       agd_artifact_set: 'Artifact Sets',
       agd_book: 'Books',
@@ -227,10 +226,8 @@ export const eng = {
     collapse: 'Collapse',
     navMenu: 'Contents',
     questSeriesToc: 'Quests in this series',
-    questSearchPlaceholder: 'Search quests across all types...',
     noSearchResults: 'No quests match your search',
     hangoutCharacterToc: 'Acts in this hangout',
-    hangoutSearchPlaceholder: 'Search hangouts across all characters...',
     selection: {
       keywordSearch: 'Keyword search',
       ask: 'Ask',
