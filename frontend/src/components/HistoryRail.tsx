@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pencil } from 'lucide-react'
-import { useT } from '../contexts/LanguageContext'
+import { useT, useTranslation } from '../contexts/LanguageContext'
 import { useCloseSidebarDrawer } from './PageShell'
 import { getClientId } from '../utils/clientId'
+import { LANGUAGE_LOCALES } from '../utils/language'
 import { AppLink } from './AppLink'
 import Button from './Button'
 import type { ConversationListResponse, ConversationSummary } from '../types/api'
@@ -21,7 +22,7 @@ async function fetchConversations(beforeId?: number): Promise<{ conversations: C
 
 const TODAY = new Date()
 
-function dayLabel(ts: number, t: ReturnType<typeof useT>): string {
+function dayLabel(ts: number, locale: string, t: ReturnType<typeof useT>): string {
   const d = new Date(ts * 1000)
   if (d.getFullYear() === TODAY.getFullYear() && d.getMonth() === TODAY.getMonth() && d.getDate() === TODAY.getDate()) {
     return t('history.today')
@@ -31,11 +32,11 @@ function dayLabel(ts: number, t: ReturnType<typeof useT>): string {
   if (d.getFullYear() === yesterday.getFullYear() && d.getMonth() === yesterday.getMonth() && d.getDate() === yesterday.getDate()) {
     return t('history.yesterday')
   }
-  return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+  return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
 }
 
-function formatTime(ts: number): string {
-  return new Date(ts * 1000).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+function formatTime(ts: number, locale: string): string {
+  return new Date(ts * 1000).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }
 
 interface HistoryRailContentProps {
@@ -44,6 +45,7 @@ interface HistoryRailContentProps {
 
 export function HistoryRailContent({ activeConversationId }: HistoryRailContentProps) {
   const t = useT()
+  const locale = LANGUAGE_LOCALES[useTranslation().language]
   const closeDrawer = useCloseSidebarDrawer()
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [hasMore, setHasMore] = useState(false)
@@ -100,7 +102,7 @@ export function HistoryRailContent({ activeConversationId }: HistoryRailContentP
   const groups = useMemo(() => {
     const map = new Map<string, ConversationSummary[]>()
     for (const c of conversations) {
-      const key = dayLabel(c.created_at, t)
+      const key = dayLabel(c.created_at, locale, t)
       const group = map.get(key)
       if (group) {
         group.push(c)
@@ -109,7 +111,7 @@ export function HistoryRailContent({ activeConversationId }: HistoryRailContentP
       }
     }
     return [...map.entries()]
-  }, [conversations, t])
+  }, [conversations, locale, t])
 
   if (loading) {
     return <div className={styles.railStatus}>{t('common.loading')}</div>
@@ -156,7 +158,7 @@ export function HistoryRailContent({ activeConversationId }: HistoryRailContentP
                 >
                   <span className={styles.entryQuestion}>{entry.question}</span>
                   <span className={styles.entryMeta}>
-                    {formatTime(entry.created_at)}
+                    {formatTime(entry.created_at, locale)}
                     {' · '}
                     {entry.language}
                     {' · '}

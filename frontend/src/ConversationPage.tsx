@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react'
 import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import html2canvas from 'html2canvas'
 import { Pencil } from 'lucide-react'
-import { useT } from './contexts/LanguageContext'
+import { useT, useTranslation } from './contexts/LanguageContext'
 import { useFooter } from './contexts/FooterContext'
 import { translate } from './i18n'
-import { getLanguageFromUrl } from './utils/language'
+import { LANGUAGE_LOCALES, getLanguageFromUrl } from './utils/language'
 import { copyToClipboard } from './utils/clipboard'
 import QueryForm from './QueryForm'
 import { PageSection } from './components/PageShell'
@@ -38,6 +38,7 @@ export async function conversationPageLoader({ params, request }: LoaderFunction
 
 function ConversationPage() {
   const t = useT()
+  const locale = LANGUAGE_LOCALES[useTranslation().language]
   const { conversation } = useLoaderData() as LoaderData
   const { setExtraContent } = useFooter()
   const [submittingNew, setSubmittingNew] = useState(false)
@@ -59,7 +60,7 @@ function ConversationPage() {
       return
     }
     const formatDate = (timestamp: number) =>
-      new Date(timestamp * 1000).toLocaleString('zh-CN', {
+      new Date(timestamp * 1000).toLocaleString(locale, {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
@@ -84,7 +85,7 @@ function ConversationPage() {
     )
     setExtraContent(content)
     return () => setExtraContent(null)
-  }, [conversation, setExtraContent, t, submittingNew])
+  }, [conversation, setExtraContent, t, locale, submittingNew])
 
   useEffect(() => {
     setCopyButtonText(t('conversation.shareLink'))

@@ -2,6 +2,7 @@ import type { Language } from '../i18n'
 
 export const LANGUAGE_PARAM = 'lang'
 export const DEFAULT_LANGUAGE: Language = 'chs'
+export const LANGUAGE_LOCALES: Record<Language, string> = { chs: 'zh-CN', eng: 'en-US' }
 
 export function getLanguageFromUrl(url: string): Language {
   const searchParams = new URL(url).searchParams

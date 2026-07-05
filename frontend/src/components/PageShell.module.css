@@ -75,13 +75,14 @@
 }
 
 .ledgerTabLabel {
+  /* Book-spine treatment: default `mixed` orientation rotates Latin to read
+     top-to-bottom while CJK glyphs stay upright. */
   writing-mode: vertical-rl;
-  text-orientation: upright;
   font-size: 0.65rem;
   font-weight: 500;
   color: var(--color-text-secondary);
   line-height: 1;
-  letter-spacing: 0;
+  letter-spacing: 0.08em;
 }
 
 /* Ledger rail — same sizing as the library rail but with the tab riding its
