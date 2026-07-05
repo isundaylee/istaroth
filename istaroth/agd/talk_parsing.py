@@ -55,6 +55,18 @@ def parse_gadget_group_composite_id(
     return int(config_str), int(group_str)
 
 
+# ActivityGroup activity ids overlap NpcGroup npc ids (issue #294) — e.g. 2001
+# is both an activity and an NPC — so ActivityGroup rendered files offset their
+# metadata id above the NpcGroup range (max ~2e6) and below the GadgetGroup
+# composite range (min ~1e12). NpcGroup, the vast majority, keeps the raw id.
+_ACTIVITY_GROUP_METADATA_ID_OFFSET = 10**9
+
+
+def activity_group_metadata_id(activity_id: id_types.ActivityId) -> int:
+    """Stable int id for an ActivityGroup rendered file, disjoint from npc ids."""
+    return _ACTIVITY_GROUP_METADATA_ID_OFFSET + activity_id
+
+
 def _free_group_quest_id(talk_id: str) -> id_types.QuestId | None:
     """Owning quest id for a FreeGroup talk, inferred from its talkId numbering.
 

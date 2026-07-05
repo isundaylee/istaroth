@@ -1,5 +1,7 @@
 """Talk group processing and rendering."""
 
+from typing import assert_never
+
 from istaroth import utils
 from istaroth.agd import (
     issues,
@@ -84,13 +86,18 @@ def render_talk_group(
 
     rendered_content = "\n".join(content_lines).rstrip()
 
-    if talk_group_type == "GadgetGroup":
-        config_id, group_id = talk_parsing.parse_gadget_group_composite_id(
-            talk_group_id
-        )
-        metadata_id = talk_parsing.gadget_group_composite_id(config_id, group_id)
-    else:
-        metadata_id = int(talk_group_id)
+    match talk_group_type:
+        case "GadgetGroup":
+            config_id, group_id = talk_parsing.parse_gadget_group_composite_id(
+                talk_group_id
+            )
+            metadata_id = talk_parsing.gadget_group_composite_id(config_id, group_id)
+        case "ActivityGroup":
+            metadata_id = talk_parsing.activity_group_metadata_id(int(talk_group_id))
+        case "NpcGroup":
+            metadata_id = int(talk_group_id)
+        case _:
+            assert_never(talk_group_type)
 
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
