@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useRef, type CSSProperties, type ReactNode, type Ref } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useT } from '../contexts/LanguageContext'
 import { MinimizedPopupCard } from '../contexts/MinimizedPopupContext'
 import { useDraggableResizable } from '../hooks/useDraggableResizable'
-import type { FloatingPlacement } from '../utils/floatingPanel'
+import { clampShiftIntoViewport, type FloatingPlacement } from '../utils/floatingPanel'
+import { isEditable } from '../utils/keyboard'
 import Button from './Button'
 import styles from './FloatingPanel.module.css'
 
@@ -25,14 +26,14 @@ interface FloatingPanelProps {
   /** Re-open the full panel from its minimized card. */
   onRestore?: () => void
   fullscreen?: boolean
-  /** When provided, a fullscreen toggle button is shown in the actions row. */
+  /** When provided, a fullscreen toggle button is shown in the actions row and
+   * the 'f' shortcut toggles fullscreen while the panel is visible. */
   onToggleFullscreen?: () => void
   /** When false, the panel is rendered ``pointer-events: none`` so it never
    * intercepts hit-testing (used for non-sticky hover popups). */
   interactive?: boolean
   bodyClassName?: string
   children: ReactNode
-  panelRef?: Ref<HTMLDivElement>
 }
 
 /**
@@ -56,20 +57,13 @@ export function FloatingPanel({
   onToggleFullscreen,
   interactive = true,
   bodyClassName,
-  children,
-  panelRef
+  children
 }: FloatingPanelProps) {
   const t = useT()
 
-  // Internal ref to the panel element, forwarded to the caller's `panelRef` and
-  // handed to useDraggableResizable so it can measure/move/resize the panel
-  // without reaching for it via a DOM selector.
+  // Internal ref to the panel element, handed to useDraggableResizable so it can
+  // measure/move/resize the panel without reaching for it via a DOM selector.
   const panelElementRef = useRef<HTMLDivElement | null>(null)
-  const setPanelRef = useCallback((node: HTMLDivElement | null) => {
-    panelElementRef.current = node
-    if (typeof panelRef === 'function') panelRef(node)
-    else if (panelRef) (panelRef as { current: HTMLDivElement | null }).current = node
-  }, [panelRef])
 
   // The header acts as a drag handle and the bottom-right grip resizes the panel,
   // for anchored (non-fullscreen, interactive) panels. Hover-only popups
@@ -83,6 +77,20 @@ export function FloatingPanel({
     disabled: !movable
   })
 
+  // Horizontal viewport-fit correction. The anchor clamp in
+  // calculateFloatingPlacement assumes a narrow panel, so on small screens the
+  // centered panel can overhang a viewport edge. Measure the rendered width and
+  // shift the panel back inside (the same containment the drag hook applies
+  // while dragging).
+  const [fitX, setFitX] = useState(0)
+  useLayoutEffect(() => {
+    setFitX(0)
+    if (fullscreen || minimized || top == null || left == null) return
+    const width = panelElementRef.current?.getBoundingClientRect().width
+    if (!width) return
+    setFitX(clampShiftIntoViewport(left - width / 2, width, 0, window.innerWidth))
+  }, [top, left, placement, fullscreen, minimized])
+
   useEffect(() => {
     if (!onClose) return
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -91,6 +99,21 @@ export function FloatingPanel({
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [onClose])
+
+  // 'f' toggles fullscreen while the panel is visible (not minimized to a rail
+  // card) and the fullscreen toggle is enabled.
+  useEffect(() => {
+    if (!onToggleFullscreen || minimized) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isEditable(e.target) || e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key === 'f') {
+        e.preventDefault()
+        onToggleFullscreen()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [onToggleFullscreen, minimized])
 
   const panelClass = [
     styles.panel,
@@ -118,8 +141,10 @@ export function FloatingPanel({
                   : `calc(100vh - ${top}px - 1rem)`
                 : undefined
             }),
-        // Folded into the centering transform via CSS custom properties so a drag
-        // shifts the panel without overwriting its `translate(-50% ...)` base.
+        // Folded into the centering transform via CSS custom properties so the
+        // fit correction and a drag shift the panel without overwriting its
+        // `translate(-50% ...)` base.
+        ['--fit-x' as string]: `${fitX}px`,
         ['--drag-x' as string]: `${offset.x}px`,
         ['--drag-y' as string]: `${offset.y}px`
       }
@@ -148,7 +173,7 @@ export function FloatingPanel({
         />
       )}
     <div
-      ref={setPanelRef}
+      ref={panelElementRef}
       className={panelClass}
       style={style}
       data-floating-popup

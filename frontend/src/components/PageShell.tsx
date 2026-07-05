@@ -76,7 +76,9 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel, sidebarClos
     const bodyClass = clsx(styles.body, closeable && styles.bodyFlush, !closeable && hideMobileSidebarToggle && styles.bodyNoDrawerToggle)
 
     return (
-      <div className={panelClass}>
+      // data-popup-boundary: the minimized-popup rail anchors to this surface's
+      // right edge (see MinimizedPopupRegion).
+      <div className={panelClass} data-popup-boundary>
         <Navigation embedded />
         <div className={styles.split}>
           <div
@@ -123,7 +125,7 @@ function PageShell({ children, flush = false, sidebar, sidebarLabel, sidebarClos
     )
   }
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} data-popup-boundary>
       <Navigation embedded />
       <div className={flush ? styles.bodyFlush : styles.body}>{children}</div>
     </div>

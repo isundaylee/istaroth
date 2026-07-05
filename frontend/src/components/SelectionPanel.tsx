@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { useT } from '../contexts/LanguageContext'
-import { useProperNounSelection } from '../hooks/useProperNounSelection'
 import type { LibraryRetrieveResponse, ProgressStepStart } from '../types/api'
+import type { FloatingPlacement } from '../utils/floatingPanel'
 import { buildLibraryFilePath } from '../utils/library'
 import { AppLink } from './AppLink'
 import CitationRenderer from './CitationRenderer'
@@ -10,13 +10,6 @@ import panelStyles from './FloatingPanel.module.css'
 import queryProgressStyles from './QueryProgress.module.css'
 import selStyles from './SelectionPanel.module.css'
 import QueryProgress from './QueryProgress'
-
-export interface SelectionState {
-  text: string
-  top: number
-  left: number
-  placement: 'above' | 'below'
-}
 
 export type SelectionPanel =
   | {
@@ -40,7 +33,7 @@ export type SelectionPanel =
 
 interface SelectionPanelFrameProps {
   panel: SelectionPanel
-  placement: SelectionState['placement']
+  placement: FloatingPlacement
   top: number
   left: number
   fullscreen: boolean
@@ -81,9 +74,6 @@ function RetrievalSelectionPanel({ panel }: { panel: Extract<SelectionPanel, { k
 
 function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind: 'ask' }> }) {
   const t = useT()
-  // Recurse: proper nouns highlighted inside this answer become clickable and
-  // open their own nested selection panel, exactly like the page-level answer.
-  const { answerRef, answerHandlers, selectionUi } = useProperNounSelection(panel.answer)
 
   return (
     <>
@@ -94,25 +84,19 @@ function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind:
         <QueryProgress steps={panel.activeSteps} className={selStyles.progress} />
       )}
       {panel.error && <p className={selStyles.error}>{panel.error}</p>}
+      {/* Recurse: proper nouns highlighted inside this answer become clickable
+          and open their own nested selection panel, exactly like the
+          page-level answer. */}
       {panel.answer && (
-        <CitationRenderer content={panel.answer} properNouns={panel.properNouns}>
+        <CitationRenderer content={panel.answer} properNouns={panel.properNouns} answerClassName={selStyles.answer}>
           {({ answer, citationList }) => (
             <>
-              <div
-                ref={answerRef}
-                className={clsx('answer', selStyles.answer)}
-                onMouseUp={answerHandlers.onMouseUp}
-                onKeyUp={answerHandlers.onKeyUp}
-                onClick={answerHandlers.onClick}
-              >
-                {answer}
-              </div>
+              {answer}
               {citationList && (
                 <div className={selStyles.citations} data-citation-container>
                   {citationList}
                 </div>
               )}
-              {selectionUi}
             </>
           )}
         </CitationRenderer>

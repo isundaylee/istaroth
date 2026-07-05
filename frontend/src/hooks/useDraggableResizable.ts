@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
-import type { FloatingPlacement } from '../utils/floatingPanel'
+import { clampShiftIntoViewport, FLOATING_PANEL_MARGIN, type FloatingPlacement } from '../utils/floatingPanel'
 
 interface DragOffset {
   x: number
@@ -30,7 +30,6 @@ interface UseDraggableResizableResult {
   resizeHandleProps: PointerHandleProps
 }
 
-const MARGIN = 16
 const MIN_WIDTH = 240
 const MIN_HEIGHT = 160
 
@@ -86,11 +85,9 @@ export function useDraggableResizable(
     setDragging(true)
 
     const handleMove = (move: PointerEvent) => {
-      const maxLeft = Math.max(MARGIN, window.innerWidth - rect.width - MARGIN)
-      const maxTop = Math.max(MARGIN, window.innerHeight - rect.height - MARGIN)
       setOffset({
-        x: clamp(start.x + move.clientX - startX, MARGIN - baseLeft, maxLeft - baseLeft),
-        y: clamp(start.y + move.clientY - startY, MARGIN - baseTop, maxTop - baseTop)
+        x: clampShiftIntoViewport(baseLeft, rect.width, start.x + move.clientX - startX, window.innerWidth),
+        y: clampShiftIntoViewport(baseTop, rect.height, start.y + move.clientY - startY, window.innerHeight)
       })
     }
     const handleUp = () => {
@@ -124,8 +121,8 @@ export function useDraggableResizable(
     setResizing(true)
 
     const handleMove = (move: PointerEvent) => {
-      const maxWidth = Math.max(MIN_WIDTH, 2 * Math.min(centerX - MARGIN, window.innerWidth - MARGIN - centerX))
-      const maxHeight = Math.max(MIN_HEIGHT, window.innerHeight - MARGIN - topY)
+      const maxWidth = Math.max(MIN_WIDTH, 2 * Math.min(centerX - FLOATING_PANEL_MARGIN, window.innerWidth - FLOATING_PANEL_MARGIN - centerX))
+      const maxHeight = Math.max(MIN_HEIGHT, window.innerHeight - FLOATING_PANEL_MARGIN - topY)
       // Size tracks the cursor delta (not its absolute position) so the panel
       // doesn't jump when the grab point isn't exactly the corner. Width grows
       // symmetrically about centerX, so the right edge moves by half the width

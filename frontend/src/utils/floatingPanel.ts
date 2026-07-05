@@ -1,5 +1,19 @@
 export type FloatingPlacement = 'above' | 'below'
 
+/** Minimum gap kept between a floating panel and the viewport edges. */
+export const FLOATING_PANEL_MARGIN = 16
+
+/**
+ * Clamp a shift so the span ``[edge + shift, edge + size + shift]`` stays within
+ * ``[margin, extent - margin]`` (spans wider than that hug the leading edge).
+ * Shared by the drag containment and the panel's initial viewport-fit shift.
+ */
+export function clampShiftIntoViewport(edge: number, size: number, desiredShift: number, extent: number): number {
+  const min = FLOATING_PANEL_MARGIN - edge
+  const max = Math.max(FLOATING_PANEL_MARGIN, extent - size - FLOATING_PANEL_MARGIN) - edge
+  return Math.min(Math.max(desiredShift, min), max)
+}
+
 export interface FloatingPosition {
   top: number
   left: number

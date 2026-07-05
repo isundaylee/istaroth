@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useT, useTranslation } from '../contexts/LanguageContext'
-import { SelectionPanelFrame, type SelectionPanel, type SelectionState } from '../components/SelectionPanel'
+import { SelectionPanelFrame, type SelectionPanel } from '../components/SelectionPanel'
 import Button from '../components/Button'
 import selStyles from '../components/SelectionPanel.module.css'
-import { calculateFloatingPlacement } from '../utils/floatingPanel'
+import { useFloatingPanelState, useOutsidePointerDown } from './useFloatingPanelState'
 import { getClientId } from '../utils/clientId'
 import { buildUrlWithLanguage } from '../utils/language'
 import { consumeQueryStream } from '../utils/queryStream'
@@ -47,10 +47,10 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   const answerRef = useRef<HTMLDivElement>(null)
   const activeRequestIdRef = useRef(0)
   const defaultModelRef = useRef<string | null>(null)
-  const [selection, setSelection] = useState<SelectionState | null>(null)
+  const [selectedText, setSelectedText] = useState<string | null>(null)
   const [panel, setPanel] = useState<SelectionPanel | null>(null)
-  const [isMinimized, setIsMinimized] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const { position, minimized, fullscreen, openAtRect, minimize, restore, toggleFullscreen, reset } =
+    useFloatingPanelState()
   // Whether a panel (search/ask result) is open vs just a bare selection
   // toolbar. Only flips on open/close, so handlers below can depend on it
   // directly (no re-subscribe churn during answer streaming, which leaves it
@@ -61,12 +61,11 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   // a selection is torn down (reset, outside-click with no panel, Escape, the
   // panel's close button).
   const closeSelection = useCallback(() => {
-    setSelection(null)
+    setSelectedText(null)
     setPanel(null)
-    setIsMinimized(false)
-    setIsFullscreen(false)
+    reset()
     activeRequestIdRef.current += 1
-  }, [])
+  }, [reset])
 
   const normalizeSelectionText = (text: string) => text.replace(/\s+/g, ' ').trim()
   const isEntityLikeSelection = (text: string) =>
@@ -81,13 +80,11 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
 
   const openSelectionAtRect = useCallback((text: string, rect: DOMRect): boolean => {
     if (rect.width === 0 && rect.height === 0) return false
-    const { top, left, placement } = calculateFloatingPlacement(rect)
-    setSelection({ text, top, left, placement })
+    openAtRect(rect)
+    setSelectedText(text)
     setPanel(null)
-    setIsMinimized(false)
-    setIsFullscreen(false)
     return true
-  }, [])
+  }, [openAtRect])
 
   const captureSelection = useCallback(() => {
     // A bare click (collapsed/invalid selection) should dismiss only an
@@ -95,7 +92,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
     // side-rail card must survive clicks in the answer area.
     const clearToolbar = () => {
       if (hasPanel) return
-      setSelection(null)
+      setSelectedText(null)
       setPanel(null)
     }
     const currentSelection = window.getSelection()
@@ -114,13 +111,13 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
       return
     }
 
-    const selectedText = normalizeSelectionText(currentSelection.toString())
-    if (!isEntityLikeSelection(selectedText)) {
+    const text = normalizeSelectionText(currentSelection.toString())
+    if (!isEntityLikeSelection(text)) {
       clearToolbar()
       return
     }
 
-    if (!openSelectionAtRect(selectedText, range.getBoundingClientRect())) {
+    if (!openSelectionAtRect(text, range.getBoundingClientRect())) {
       clearToolbar()
     }
   }, [openSelectionAtRect, hasPanel])
@@ -136,52 +133,52 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
       // Otherwise it's a plain click in the answer (not on a proper noun). A
       // collapsed selection means no text was selected, so this counts as
       // "clicking outside the popup" and minimizes an open panel to its card.
-      // This lives here rather than in the document mousedown handler because
+      // This lives here rather than in the document pointerdown handler because
       // that handler exempts the answer area (the whole document in the library
       // viewer) so that dragging to select text doesn't dismiss anything.
       const selectedNoText = window.getSelection()?.isCollapsed ?? true
       if (hasPanel && selectedNoText) {
-        setIsMinimized(true)
+        minimize()
       }
     },
-    [openSelectionAtRect, hasPanel]
+    [openSelectionAtRect, hasPanel, minimize]
   )
 
   useEffect(() => {
     closeSelection()
   }, [resetKey, closeSelection])
 
-  useEffect(() => {
-    const handleMouseDown = (event: MouseEvent) => {
-      const target = event.target as HTMLElement
-      // Ignore clicks in any floating popup/card (incl. nested ones that portal
-      // out of this subtree) and in this answer area — the latter is exempt so
-      // text selection works; plain answer clicks minimize via the click handler.
-      if (answerRef.current?.contains(target) || target.closest?.('[data-floating-popup]')) return
-      // With a panel open, an outside click minimizes it to a side-rail card
-      // (kept open, full close happens via the card); a bare toolbar just closes.
-      if (hasPanel) {
-        setIsMinimized(true)
-        return
-      }
-      closeSelection()
+  // The answer area is exempt so text selection works; plain answer clicks
+  // minimize via the click handler above. With a panel open, an outside click
+  // minimizes it to a side-rail card (kept open, full close happens via the
+  // card); a bare toolbar just closes.
+  const isAnswerTarget = useCallback(
+    (target: HTMLElement) => answerRef.current?.contains(target) ?? false,
+    []
+  )
+  const handleOutside = useCallback(() => {
+    if (hasPanel) {
+      minimize()
+      return
     }
-    // Escape fully closes (matching the panel's own close button), whether or
-    // not a panel is open.
+    closeSelection()
+  }, [hasPanel, minimize, closeSelection])
+  useOutsidePointerDown(selectedText !== null, isAnswerTarget, handleOutside)
+
+  // Escape fully closes (matching the panel's own close button), whether or
+  // not a panel is open.
+  useEffect(() => {
+    if (selectedText === null) return
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') closeSelection()
     }
-    document.addEventListener('mousedown', handleMouseDown)
     document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('mousedown', handleMouseDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [hasPanel, closeSelection])
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [selectedText, closeSelection])
 
   const runKeywordSearch = async () => {
-    if (!selection) return
-    const query = selection.text
+    if (!selectedText) return
+    const query = selectedText
     const requestId = activeRequestIdRef.current + 1
     activeRequestIdRef.current = requestId
     setPanel({ kind: 'search', query, loading: true, results: [], error: null })
@@ -237,8 +234,8 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
     buildUrlWithLanguage('/library', `?q=${encodeURIComponent(query)}&semantic=0`, language)
 
   const runAsk = async () => {
-    if (!selection) return
-    const query = selection.text
+    if (!selectedText) return
+    const query = selectedText
     const question = language === 'chs' ? `“${query}”是什么？` : `What is “${query}”?`
     const requestId = activeRequestIdRef.current + 1
     activeRequestIdRef.current = requestId
@@ -300,27 +297,27 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
     }
   }
 
-  const selectionUi = selection ? (
+  const selectionUi = selectedText ? (
     panel ? (
       <SelectionPanelFrame
         panel={panel}
-        placement={selection.placement}
-        top={selection.top}
-        left={selection.left}
-        fullscreen={isFullscreen}
-        minimized={isMinimized}
+        placement={position.placement}
+        top={position.top}
+        left={position.left}
+        fullscreen={fullscreen}
+        minimized={minimized}
         librarySearchPath={librarySearchPath}
         onClose={closeSelection}
-        onRestore={() => setIsMinimized(false)}
-        onToggleFullscreen={() => setIsFullscreen((value) => !value)}
+        onRestore={restore}
+        onToggleFullscreen={toggleFullscreen}
       />
     ) : (
       // Portalled to body (like FloatingPanel) so the fixed toolbar escapes any
       // transformed/clipping ancestor when this panel is itself nested.
       createPortal(
         <div
-          className={`${selStyles.toolbar} ${selStyles[`toolbar${selection.placement === 'above' ? 'Above' : 'Below'}`] || ''}`}
-          style={{ top: `${selection.top}px`, left: `${selection.left}px` }}
+          className={`${selStyles.toolbar} ${selStyles[`toolbar${position.placement === 'above' ? 'Above' : 'Below'}`] || ''}`}
+          style={{ top: `${position.top}px`, left: `${position.left}px` }}
           data-floating-popup
           onMouseDown={(event) => event.preventDefault()}
         >

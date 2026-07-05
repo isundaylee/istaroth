@@ -35,35 +35,46 @@ export function MinimizedPopupProvider({ children }: { children: ReactNode }) {
  * Wrap the answer/text area the minimized-popup rail should sit beside. The rail
  * is a ``position: sticky`` column inside this region, so it tracks the region's
  * top and sticks to the top of the screen on scroll natively — no scroll
- * handlers. Horizontally it sits just outside the region's right border when
- * there is room, otherwise inset just inside it (e.g. the wide library viewer);
- * that one choice is the only thing measured, and only on resize.
+ * handlers. Horizontally it hangs in the page margin just past the right border
+ * of the enclosing ``[data-popup-boundary]`` surface (the page card) when there
+ * is room — anchored to a visible edge rather than floating mid-gutter, since
+ * the region's own right border may end well inside a wider card (the library
+ * reading measure). Without room (or a boundary) it falls back to just outside
+ * the region, then inset just inside it; only this choice is measured, and only
+ * on resize.
  */
 export function MinimizedPopupRegion({ children, className }: { children: ReactNode; className?: string }) {
   const { setRail } = useContext(MinimizedPopupContext)
   const regionRef = useRef<HTMLDivElement>(null)
-  const [inset, setInset] = useState(false)
+  const [trackLeft, setTrackLeft] = useState<number | null>(null)
 
   useLayoutEffect(() => {
     const region = regionRef.current
     if (!region) return
+    const boundary = region.closest('[data-popup-boundary]')
     const update = () => {
-      const right = region.getBoundingClientRect().right
       const railWidth = Math.min(RAIL_MAX_WIDTH, window.innerWidth - 2 * RAIL_MARGIN)
-      setInset(right + RAIL_GAP + railWidth > window.innerWidth - RAIL_MARGIN)
+      const regionRect = region.getBoundingClientRect()
+      const edge = boundary ? boundary.getBoundingClientRect().right : regionRect.right
+      setTrackLeft(
+        edge + RAIL_GAP + railWidth > window.innerWidth - RAIL_MARGIN
+          ? null
+          : edge - regionRect.left + RAIL_GAP
+      )
     }
     update()
     const observer = new ResizeObserver(update)
     observer.observe(region)
+    if (boundary) observer.observe(boundary)
     observer.observe(document.documentElement)
     return () => observer.disconnect()
   }, [])
 
-  // Outside: the track's left edge sits a gap past the region's right border.
-  // Inset: the track's right edge sits a gap inside it.
-  const trackStyle: CSSProperties = inset
+  // Outside: the track's left edge sits a gap past the boundary's right border.
+  // Inset (no room): the track's right edge sits a gap inside the region's.
+  const trackStyle: CSSProperties = trackLeft === null
     ? { right: `${RAIL_GAP}px` }
-    : { left: '100%', marginLeft: `${RAIL_GAP}px` }
+    : { left: `${trackLeft}px` }
 
   return (
     <div ref={regionRef} className={`${styles.region}${className ? ` ${className}` : ''}`}>
