@@ -135,6 +135,7 @@ export const eng = {
   },
 
   history: {
+    title: 'History',
     newQuestion: 'New question',
     today: 'Today',
     yesterday: 'Yesterday',
