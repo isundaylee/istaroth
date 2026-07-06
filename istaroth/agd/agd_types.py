@@ -490,6 +490,58 @@ class AchievementGoalExcelConfigDataItem(TypedDict):
 AchievementGoalExcelConfigData: TypeAlias = list[AchievementGoalExcelConfigDataItem]
 
 
+class NewActivityExcelConfigDataItem(TypedDict):
+    """An activity/event entry (only fields we use).
+
+    Example file: ExcelBinOutput/NewActivityExcelConfigData.json
+    """
+
+    activityId: id_types.ActivityId
+    nameTextMapHash: id_types.TextMapHash
+
+
+NewActivityExcelConfigData: TypeAlias = list[NewActivityExcelConfigDataItem]
+
+
+class HomeWorldNPCExcelConfigDataItem(TypedDict):
+    """A Serenitea Pot companion entry (only fields we use).
+
+    ``npcID`` is the companion's dedicated NPC variant whose NpcGroup talks are
+    the Serenitea Pot dialogue.
+    """
+
+    npcID: id_types.NpcId
+
+
+HomeWorldNPCExcelConfigData: TypeAlias = list[HomeWorldNPCExcelConfigDataItem]
+
+
+class RoleCombatTarotAvatarExcelConfigDataItem(TypedDict):
+    """An Imaginarium Theater cast entry (only fields we use).
+
+    ``npcId`` is the avatar's dedicated theater NPC variant.
+    """
+
+    npcId: id_types.NpcId
+
+
+RoleCombatTarotAvatarExcelConfigData: TypeAlias = list[
+    RoleCombatTarotAvatarExcelConfigDataItem
+]
+
+
+class GCGWeekLevelExcelConfigDataItem(TypedDict):
+    """A Genius Invokation TCG week-level opponent entry (only fields we use).
+
+    ``npcId`` is the opponent's dedicated TCG NPC variant.
+    """
+
+    npcId: id_types.NpcId
+
+
+GCGWeekLevelExcelConfigData: TypeAlias = list[GCGWeekLevelExcelConfigDataItem]
+
+
 class ReliquarySetExcelConfigDataItem(TypedDict):
     """Type definition for artifact set configuration entries."""
 

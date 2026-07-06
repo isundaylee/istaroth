@@ -404,7 +404,9 @@ def get_talk_info(
 
     # Get cached mappings
     npc_id_to_name = data_repo.build_npc_id_to_name_mapping()
+    npc_id_to_source_name = data_repo.build_npc_id_to_source_name_mapping()
     dialog_id_to_role_hash = data_repo.build_dialog_id_to_role_name_hash_mapping()
+    source_text_map = data_repo.build_source_text_map_tracker()
 
     # Get localized role names for fallbacks
     localized_roles = localization.get_localized_role_names(data_repo.language)
@@ -470,6 +472,32 @@ def get_talk_info(
         )
         return f"{localized_roles.unknown_role} ({role_type})"
 
+    def _get_role_skip(dialog_item: agd_types.TalkDialogItem) -> bool:
+        """Whether the role's CHS source name carries a dev/test marker.
+
+        Decided against the source text like the message-level check below, so
+        the answer is the same for every output language.
+        """
+        talk_role = dialog_item["talkRole"]
+        npc_id = talk_role.get("_id", talk_role.get("id"))
+        if (
+            talk_role.get("type") == "TALK_ROLE_NPC"
+            and npc_id is not None
+            and npc_id.isdigit()
+            and (source_name := npc_id_to_source_name.get(int(npc_id))) is not None
+            and text_utils.should_skip_text(source_name, localization.Language.CHS)
+        ):
+            return True
+        role_name_hash = dialog_item.get(
+            "talkRoleNameTextMapHash"
+        ) or dialog_id_to_role_hash.get(dialog_item["id"])
+        return (
+            role_name_hash is not None
+            and (source_name := source_text_map.get_current_optional(role_name_hash))
+            is not None
+            and text_utils.should_skip_text(source_name, localization.Language.CHS)
+        )
+
     # Process dialog items
     talk_texts = []
     for dialog_item in dialog_list:
@@ -499,6 +527,7 @@ def get_talk_info(
                 next_dialog_ids=next_dialog_ids,
                 dialog_id=dialog_item["id"],
                 skip=skip,
+                role_skip=_get_role_skip(dialog_item),
             )
         )
 
@@ -540,6 +569,7 @@ def resolve_authoritative_talk(
                     next_dialog_ids=[],
                     dialog_id=0,
                     skip=False,
+                    role_skip=True,
                 )
             ]
         )

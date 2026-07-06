@@ -964,6 +964,88 @@ class DataRepo:
         """
         return self._build_npc_id_to_name(self.build_source_text_map_tracker())
 
+    @functools.lru_cache(maxsize=None)
+    def load_new_activity_excel_config_data(
+        self,
+    ) -> dict[id_types.ActivityId, agd_types.NewActivityExcelConfigDataItem]:
+        """Load NewActivityExcelConfigData.json keyed by activity id."""
+        return self._index_unique(
+            self._load_excel("NewActivityExcelConfigData.json"),
+            lambda entry: entry["activityId"],
+            duplicate_name="activity ID",
+        )
+
+    @_warm_on_fork
+    def build_activity_id_to_name_mapping(self) -> dict[id_types.ActivityId, str]:
+        """Activity id -> localized activity name (unresolvable names omitted)."""
+        text_map = self.build_text_map_tracker()
+        return {
+            activity_id: name
+            for activity_id, entry in self.load_new_activity_excel_config_data().items()
+            if (name := text_map.get_optional(entry["nameTextMapHash"])) is not None
+        }
+
+    @functools.lru_cache(maxsize=None)
+    def load_home_world_npc_excel_config_data(
+        self,
+    ) -> agd_types.HomeWorldNPCExcelConfigData:
+        """Load HomeWorldNPCExcelConfigData.json."""
+        return self._load_excel("HomeWorldNPCExcelConfigData.json")
+
+    @functools.lru_cache(maxsize=None)
+    def load_role_combat_tarot_avatar_excel_config_data(
+        self,
+    ) -> agd_types.RoleCombatTarotAvatarExcelConfigData:
+        """Load RoleCombatTarotAvatarExcelConfigData.json."""
+        return self._load_excel("RoleCombatTarotAvatarExcelConfigData.json")
+
+    @functools.lru_cache(maxsize=None)
+    def load_gcg_week_level_excel_config_data(
+        self,
+    ) -> agd_types.GCGWeekLevelExcelConfigData:
+        """Load GCGWeekLevelExcelConfigData.json."""
+        return self._load_excel("GCGWeekLevelExcelConfigData.json")
+
+    @_warm_on_fork
+    def build_npc_id_to_game_mode_mapping(
+        self,
+    ) -> dict[id_types.NpcId, localization.GameMode]:
+        """NPC id -> game mode, for mode-dedicated NPC variants.
+
+        Serenitea Pot companions, Imaginarium Theater cast, and TCG week-level
+        opponents each get a dedicated NPC id whose NpcGroup talks hold that
+        mode's dialogue. The master NPC table carries no mode marker; membership
+        in the per-mode excel is the marker.
+        """
+        mode_npc_ids: list[tuple[localization.GameMode, Iterable[id_types.NpcId]]] = [
+            (
+                localization.GameMode.SERENITEA_POT,
+                (e["npcID"] for e in self.load_home_world_npc_excel_config_data()),
+            ),
+            (
+                localization.GameMode.IMAGINARIUM_THEATER,
+                (
+                    e["npcId"]
+                    for e in self.load_role_combat_tarot_avatar_excel_config_data()
+                ),
+            ),
+            (
+                localization.GameMode.GENIUS_INVOKATION_TCG,
+                (e["npcId"] for e in self.load_gcg_week_level_excel_config_data()),
+            ),
+        ]
+        mapping: dict[id_types.NpcId, localization.GameMode] = {}
+        for mode, npc_ids in mode_npc_ids:
+            for npc_id in npc_ids:
+                if npc_id == 0:
+                    continue
+                if (existing := mapping.get(npc_id)) is not None and existing != mode:
+                    raise ValueError(
+                        f"NPC {npc_id} claimed by both {existing} and {mode}"
+                    )
+                mapping[npc_id] = mode
+        return mapping
+
     @_warm_on_fork
     def build_dialog_id_to_role_name_hash_mapping(
         self,

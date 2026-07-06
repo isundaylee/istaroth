@@ -63,6 +63,13 @@ class TalkText:
     dialog_id: id_types.DialogId
     skip: bool
     """Whether this line is a dev/test placeholder to always drop at render time."""
+    role_skip: bool
+    """Whether the role's CHS source name is a dev/test placeholder.
+
+    Like ``skip``, decided against the source text (markers such as ``(test)``
+    exist only in CHS), so it holds for every output language. The line still
+    renders; the role just never contributes to a derived talk-group title.
+    """
 
 
 @attrs.define
