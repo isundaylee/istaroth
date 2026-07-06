@@ -143,19 +143,19 @@ def build_quest_hierarchy(
         if (main_quest := main_quests.get(quest_id)) is None:
             continue
         quest_type = main_quest["type"]
-        quest = _quest_leaf(quest_id, title)
+        leaf = _quest_leaf(quest_id, title)
 
         chapter_id = main_quest["chapterId"]
         if not chapter_id:
-            standalone_buckets[quest_type].append(quest)
+            standalone_buckets[quest_type].append(leaf)
             continue
 
         if (chapter := chapters.get(chapter_id)) is not None and (
             series_id := chapter["groupId"]
         ):
-            series_buckets[quest_type][series_id][chapter_id].append(quest)
+            series_buckets[quest_type][series_id][chapter_id].append(leaf)
         else:
-            chapter_buckets[quest_type][chapter_id].append(quest)
+            chapter_buckets[quest_type][chapter_id].append(leaf)
 
     all_types = set(series_buckets) | set(chapter_buckets) | set(standalone_buckets)
     ordered_types = [t for t in _TYPE_ORDER if t in all_types] + sorted(
@@ -166,17 +166,17 @@ def build_quest_hierarchy(
     for quest_type in ordered_types:
         series_nodes = []
         for series_id in sorted(series_buckets.get(quest_type, {})):
+            bucket = series_buckets[quest_type][series_id]
             series_chapters = _make_chapters(
-                series_buckets[quest_type][series_id],
-                main_quests=main_quests,
-                data_repo=data_repo,
+                bucket, main_quests=main_quests, data_repo=data_repo
             )
-            # No dedicated series-name field exists, so label the series with its
-            # first chapter's title (falling back to its first quest's title).
+            # No dedicated series-name field exists, so label the series with the
+            # common prefix of its chapters' titles, falling back to its first
+            # chapter's title (or that chapter's first quest's title).
             assert series_chapters[0].children is not None
-            series_title = (
-                series_chapters[0].title or series_chapters[0].children[0].title
-            )
+            series_title = quest.get_quest_group_name(
+                min(bucket), data_repo=data_repo
+            ) or (series_chapters[0].title or series_chapters[0].children[0].title)
             series_nodes.append(
                 processed_types.HierarchyNode(
                     key=f"s{series_id}",

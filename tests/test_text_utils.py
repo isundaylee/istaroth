@@ -22,3 +22,17 @@ def test_should_skip_readable_content_keeps_real_text(content):
     assert not text_utils.should_skip_readable_content(
         content, localization.Language.CHS
     )
+
+
+@pytest.mark.parametrize(
+    "text,skip",
+    [
+        ("(test)一阶段结束$HIDDEN", True),
+        ("夏活beta测试任务", True),
+        ("山中好长日·第一章", False),
+    ],
+)
+def test_should_skip_text_markers(text, skip):
+    """Dev/test markers (incl. the 夏活 beta chapter) skip only in CHS."""
+    assert text_utils.should_skip_text(text, localization.Language.CHS) == skip
+    assert not text_utils.should_skip_text(text, localization.Language.ENG)

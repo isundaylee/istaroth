@@ -17,9 +17,24 @@ def test_build_quest_hierarchy_places_74078(data_repo: repo.DataRepo) -> None:
     assert chapter.children is not None
 
     assert [leaf.file_id for leaf in chapter.children] == [74078]
-    # Series is labeled with its first chapter's title.
-    assert series.title == series.children[0].title
-    assert series.title
+    # The series is titled by the common prefix of its chapters' titles
+    # (水仙的追迹·第N幕 ...), not the first-chapter-title fallback.
+    assert series.title == "水仙的追迹"
+
+
+def test_build_quest_hierarchy_groupless_chapter_stays_loose(
+    data_repo: repo.DataRepo,
+) -> None:
+    """A groupId-less chapter (山中好长日) sits directly under its type, no series."""
+    hierarchy = quest_hierarchy.build_quest_hierarchy(
+        [(76095, "天堂")], data_repo=data_repo
+    )
+
+    wq = next(t for t in hierarchy.nodes if t.key == "WQ")
+    assert wq.children is not None
+    chapter = next(c for c in wq.children if c.key == "c10094")
+    assert chapter.children is not None
+    assert [leaf.file_id for leaf in chapter.children] == [76095]
 
 
 def test_build_quest_hierarchy_orders_chapter_10130_by_narrative(
