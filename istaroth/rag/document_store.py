@@ -397,7 +397,7 @@ class DocumentStore:
             all_documents,
         )
 
-    @langsmith_utils.traceable(name="hybrid_search")
+    @langsmith_utils.traceable(name="retrieve")
     def retrieve(
         self, query: str, *, k: int, chunk_context: int
     ) -> types.RetrieveOutput:
@@ -424,7 +424,7 @@ class DocumentStore:
         self, query: str, *, k: int, chunk_context: int
     ) -> types.RetrieveOutput:
         """Async hybrid vector + BM25 retrieval with parallel search execution."""
-        with _tracer.start_as_current_span("hybrid_search") as root_span:
+        with _tracer.start_as_current_span("aretrieve") as root_span:
             root_span.set_attribute("query", query)
             root_span.set_attribute("k", k)
             root_span.set_attribute("chunk_context", chunk_context)
@@ -512,12 +512,12 @@ class DocumentStore:
             )
         return result
 
-    @langsmith_utils.traceable(name="bm25_search")
+    @langsmith_utils.traceable(name="retrieve_bm25")
     def retrieve_bm25(
         self, query: str, *, k: int, chunk_context: int
     ) -> types.RetrieveOutput:
         """Search using BM25 keyword retrieval only."""
-        with _tracer.start_as_current_span("bm25_search") as span:
+        with _tracer.start_as_current_span("retrieve_bm25") as span:
             span.set_attribute("query", query)
             span.set_attribute("k", k)
             span.set_attribute("chunk_context", chunk_context)
