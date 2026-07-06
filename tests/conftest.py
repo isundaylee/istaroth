@@ -8,6 +8,10 @@ import sys
 
 import orjson
 import pytest
+from opentelemetry import trace
+from opentelemetry.sdk import trace as sdk_trace
+from opentelemetry.sdk.trace import export as sdk_trace_export
+from opentelemetry.sdk.trace.export import in_memory_span_exporter
 
 from istaroth import utils
 from istaroth.agd import localization, repo
@@ -31,6 +35,22 @@ def pytest_collection_modifyitems(
     for item in items:
         if "llm" in item.keywords:
             item.add_marker(skip_llm)
+
+
+_SPAN_EXPORTER = in_memory_span_exporter.InMemorySpanExporter()
+
+
+@pytest.fixture
+def span_exporter() -> in_memory_span_exporter.InMemorySpanExporter:
+    """In-memory OTel span exporter, installed once (global provider is set-once)."""
+    if not isinstance(trace.get_tracer_provider(), sdk_trace.TracerProvider):
+        provider = sdk_trace.TracerProvider()
+        provider.add_span_processor(
+            sdk_trace_export.SimpleSpanProcessor(_SPAN_EXPORTER)
+        )
+        trace.set_tracer_provider(provider)
+    _SPAN_EXPORTER.clear()
+    return _SPAN_EXPORTER
 
 
 @pytest.fixture

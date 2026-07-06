@@ -17,6 +17,8 @@ import pypinyin
 from langchain_core import language_models
 from langchain_google_genai import llms as google_llms
 
+from istaroth import otel_utils
+
 logger = logging.getLogger(__name__)
 
 # A vocabulary term is a candidate if it shares at least this many tone-less
@@ -192,7 +194,10 @@ class LLMQueryNormalizer(QueryNormalizer):
             query=query, vocabulary_section=vocabulary_section
         )
         try:
-            response = self._llm.invoke(prompt)
+            with otel_utils.llm_span(
+                "normalize_query", llm=self._llm, prompt=prompt
+            ) as gen_span:
+                response = gen_span.record_response(self._llm.invoke(prompt))
         except Exception as e:
             logger.warning("Failed to normalize query %r: %s", query, e)
             return query

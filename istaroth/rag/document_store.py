@@ -19,7 +19,6 @@ from typing import cast
 import anyio
 import attrs
 import jieba
-import langsmith as ls
 import orjson
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -28,7 +27,6 @@ from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
 from istaroth import langsmith_utils, utils
-from istaroth.langsmith_utils import traceable
 from istaroth.rag import query_transform, rerank, types, vector_store
 from istaroth.text import proper_nouns
 
@@ -45,6 +43,14 @@ _FETCH_DEPTH = 100
 def _chinese_tokenizer(text: str) -> list[str]:
     """Tokenize Chinese text using jieba."""
     return list(jieba.cut(text))
+
+
+def _scored_chunks_json(chunks: list[types.ScoredChunk]) -> str:
+    return orjson.dumps([sc.to_trace_output() for sc in chunks]).decode()
+
+
+def _scored_docs_json(docs: list[types.ScoredDocument]) -> str:
+    return orjson.dumps([sd.to_trace_output() for sd in docs]).decode()
 
 
 def _merge_small_chunks(
@@ -129,39 +135,28 @@ class _BM25Store:
 
     def search(self, query: str, k: int) -> list[types.ScoredChunk]:
         """BM25 keyword search."""
-        with ls.trace(
-            "bm25_search",
-            "retriever",
-            inputs={"query": query, "k": k},
-        ) as rt:
-            # Tokenize the query
-            tokenized_query = _chinese_tokenizer(query)
+        # Tokenize the query
+        tokenized_query = _chinese_tokenizer(query)
 
-            # Get BM25 scores for all documents
-            scores = self._bm25.get_scores(tokenized_query)
+        # Get BM25 scores for all documents
+        scores = self._bm25.get_scores(tokenized_query)
 
-            # Create list of (score, document) pairs
-            score_doc_pairs = list(zip(scores, self._documents))
+        # Create list of (score, document) pairs
+        score_doc_pairs = list(zip(scores, self._documents))
 
-            # Sort by score (descending) and take top k
-            score_doc_pairs.sort(key=lambda x: x[0], reverse=True)
-            top_docs = score_doc_pairs[:k]
+        # Sort by score (descending) and take top k
+        score_doc_pairs.sort(key=lambda x: x[0], reverse=True)
+        top_docs = score_doc_pairs[:k]
 
-            # Return as ScoredChunk objects
-            scored_chunks = [
-                types.ScoredChunk(
-                    score=float(score),
-                    file_id=doc.metadata["file_id"],
-                    chunk_index=doc.metadata["chunk_index"],
-                )
-                for score, doc in top_docs
-            ]
-            rt.end(
-                outputs={
-                    "documents": [sc.to_langsmith_output() for sc in scored_chunks]
-                }
+        # Return as ScoredChunk objects
+        return [
+            types.ScoredChunk(
+                score=float(score),
+                file_id=doc.metadata["file_id"],
+                chunk_index=doc.metadata["chunk_index"],
             )
-            return scored_chunks
+            for score, doc in top_docs
+        ]
 
 
 def chunk_documents(
@@ -402,7 +397,7 @@ class DocumentStore:
             all_documents,
         )
 
-    @traceable(name="hybrid_search")
+    @langsmith_utils.traceable(name="hybrid_search")
     def retrieve(
         self, query: str, *, k: int, chunk_context: int
     ) -> types.RetrieveOutput:
@@ -429,6 +424,19 @@ class DocumentStore:
         self, query: str, *, k: int, chunk_context: int
     ) -> types.RetrieveOutput:
         """Async hybrid vector + BM25 retrieval with parallel search execution."""
+        with _tracer.start_as_current_span("hybrid_search") as root_span:
+            root_span.set_attribute("query", query)
+            root_span.set_attribute("k", k)
+            root_span.set_attribute("chunk_context", chunk_context)
+            result = await self._aretrieve_inner(
+                query, k=k, chunk_context=chunk_context
+            )
+            root_span.set_attribute("num_results", len(result.results))
+            return result
+
+    async def _aretrieve_inner(
+        self, query: str, *, k: int, chunk_context: int
+    ) -> types.RetrieveOutput:
         with _tracer.start_as_current_span("query_transform") as span:
             span.set_attribute("query", query)
             queries = await anyio.to_thread.run_sync(
@@ -450,6 +458,7 @@ class DocumentStore:
                     lambda: self._vector_store.search(q, fetch_k)
                 )
                 span.set_attribute("num_results", len(results))
+                span.set_attribute("retrieval.documents", _scored_chunks_json(results))
                 _all_results[i] = results
 
         async def _run_bm25(i: int, q: str) -> None:
@@ -460,6 +469,7 @@ class DocumentStore:
                     lambda: self._bm25_store.search(q, fetch_k)
                 )
                 span.set_attribute("num_results", len(results))
+                span.set_attribute("retrieval.documents", _scored_chunks_json(results))
                 _all_results[i] = results
 
         async with anyio.create_task_group() as tg:
@@ -482,7 +492,7 @@ class DocumentStore:
                 lambda: self._reranker.rerank(query, resolved_results, weights)
             )
             span.set_attribute("num_fused_results", len(fused_results))
-        langsmith_utils.log_scored_docs("reranked_docs", fused_results)
+            span.set_attribute("retrieval.documents", _scored_docs_json(fused_results))
 
         with _tracer.start_as_current_span("select_documents") as span:
             span.set_attribute("k", k)
@@ -491,18 +501,36 @@ class DocumentStore:
                 query, fused_results, k=k, chunk_context=chunk_context
             )
             span.set_attribute("num_results", len(result.results))
+            span.set_attribute(
+                "retrieval.selected_files",
+                orjson.dumps(
+                    [
+                        {"file_id": docs[0].metadata["file_id"], "score": score}
+                        for score, docs in result.results
+                    ]
+                ).decode(),
+            )
         return result
 
-    @traceable(name="bm25_search")
+    @langsmith_utils.traceable(name="bm25_search")
     def retrieve_bm25(
         self, query: str, *, k: int, chunk_context: int
     ) -> types.RetrieveOutput:
         """Search using BM25 keyword retrieval only."""
-        scored_chunks = self._bm25_store.search(query, max(_FETCH_DEPTH, k * 2))
-        scored_docs = self._resolve_chunks(scored_chunks)
-        return self._select_scored_documents(
-            query, scored_docs, k=k, chunk_context=chunk_context
-        )
+        with _tracer.start_as_current_span("bm25_search") as span:
+            span.set_attribute("query", query)
+            span.set_attribute("k", k)
+            span.set_attribute("chunk_context", chunk_context)
+            scored_chunks = self._bm25_store.search(query, max(_FETCH_DEPTH, k * 2))
+            span.set_attribute(
+                "retrieval.documents", _scored_chunks_json(scored_chunks)
+            )
+            scored_docs = self._resolve_chunks(scored_chunks)
+            result = self._select_scored_documents(
+                query, scored_docs, k=k, chunk_context=chunk_context
+            )
+            span.set_attribute("num_results", len(result.results))
+            return result
 
     def save(self, path: pathlib.Path) -> None:
         """Save the document store to a directory."""

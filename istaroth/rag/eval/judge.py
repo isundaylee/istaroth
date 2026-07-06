@@ -28,7 +28,7 @@ import attrs
 import pydantic
 from langchain_core import messages
 
-from istaroth import llm_manager
+from istaroth import llm_manager, otel_utils
 
 DEFAULT_JUDGE_MODEL = "deepseek-ai/DeepSeek-V4-Flash"
 
@@ -169,15 +169,18 @@ def make_judge(
     ) -> tuple[dict[str, str], JudgeUsage]:
         if not facets or not ranked_texts:
             return {}, JudgeUsage.zero()
-        result = finder.invoke(
-            [
-                messages.SystemMessage(content=_SYSTEM_PROMPT),
-                messages.HumanMessage(
-                    content=_build_user_message(query, ranked_texts, facets)
-                ),
-            ]
-        )
-        assert isinstance(result, dict)  # include_raw=True returns raw/parsed/error
+        finder_messages = [
+            messages.SystemMessage(content=_SYSTEM_PROMPT),
+            messages.HumanMessage(
+                content=_build_user_message(query, ranked_texts, facets)
+            ),
+        ]
+        with otel_utils.llm_span(
+            "judge_facets", llm=llm, prompt=finder_messages
+        ) as gen_span:
+            result = finder.invoke(finder_messages)
+            assert isinstance(result, dict)  # include_raw=True returns raw/parsed/error
+            gen_span.record_response(result["raw"])
         parsed = result["parsed"]
         assert isinstance(parsed, _JudgeOutput)
         usage = _usage_of(result["raw"])
@@ -190,15 +193,18 @@ def make_judge(
             return {}, usage
 
         # Pass 2: adversarially re-check each candidate span in isolation.
-        vresult = verifier.invoke(
-            [
-                messages.SystemMessage(content=_VERIFY_SYSTEM_PROMPT),
-                messages.HumanMessage(
-                    content=_build_verify_message(query, facets, candidates)
-                ),
-            ]
-        )
-        assert isinstance(vresult, dict)
+        verify_messages = [
+            messages.SystemMessage(content=_VERIFY_SYSTEM_PROMPT),
+            messages.HumanMessage(
+                content=_build_verify_message(query, facets, candidates)
+            ),
+        ]
+        with otel_utils.llm_span(
+            "verify_facets", llm=llm, prompt=verify_messages
+        ) as gen_span:
+            vresult = verifier.invoke(verify_messages)
+            assert isinstance(vresult, dict)
+            gen_span.record_response(vresult["raw"])
         vparsed = vresult["parsed"]
         assert isinstance(vparsed, _VerifyOutput)
         usage = usage + _usage_of(vresult["raw"])

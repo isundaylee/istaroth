@@ -34,14 +34,12 @@ class ScoredDocument:
     document: Document
     score: float
 
-    def to_langsmith_output(self) -> dict[str, Any]:
+    def to_trace_output(self) -> dict[str, Any]:
+        """Compact span-attribute form; page_content is too large for spans."""
         return {
-            "page_content": self.document.page_content,
-            "type": "Document",
-            "metadata": {
-                **self.document.metadata,
-                "score": self.score,
-            },
+            "score": self.score,
+            "file_id": self.document.metadata["file_id"],
+            "chunk_index": self.document.metadata["chunk_index"],
         }
 
 
@@ -53,12 +51,11 @@ class ScoredChunk:
     file_id: str
     chunk_index: int
 
-    def to_langsmith_output(self) -> dict[str, Any]:
+    def to_trace_output(self) -> dict[str, Any]:
         return {
             "score": self.score,
             "file_id": self.file_id,
             "chunk_index": self.chunk_index,
-            "type": "ScoredChunk",
         }
 
 

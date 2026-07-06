@@ -11,7 +11,6 @@ from typing import Any, ClassVar, Self, cast
 
 import attrs
 import chromadb
-import langsmith as ls
 from langchain_core import embeddings as lc_embeddings
 from langchain_core.documents import Document
 from opentelemetry import trace
@@ -87,48 +86,38 @@ class ChromaBaseVectorStore(VectorStore):
 
     def search(self, query: str, k: int) -> list[types.ScoredChunk]:
         """Vector similarity search using ChromaDB."""
-        with ls.trace(
-            "vector_search",
-            "retriever",
-            inputs={"query": query, "k": k},
-        ) as rt:
-            # Compute query embedding
-            with _tracer.start_as_current_span("embed_query") as span:
-                span.set_attribute("query", query)
-                query_embedding = self._embeddings.embed_query(query)
+        # Compute query embedding
+        with _tracer.start_as_current_span("embed_query") as span:
+            span.set_attribute("query", query)
+            query_embedding = self._embeddings.embed_query(query)
 
-            # Search in Chroma
-            with _tracer.start_as_current_span("chroma_query") as span:
-                span.set_attribute("k", k)
-                results = self._collection.query(
-                    query_embeddings=cast(Any, [query_embedding]),
-                    n_results=k,
-                )
-
-            # Build ScoredChunk references from Chroma results. Chroma stores
-            # empty strings as documents (see build()), so we discard the
-            # documents field entirely and reconstruct from metadata + distance.
-            # Invert L2 distance (0 = identical) to a similarity score (1 = most similar)
-            # so higher scores consistently mean better matches across all backends.
-            scored_chunks = []
-            metadatas = cast(list[list[Any]], results["metadatas"])[0]
-            distances = cast(list[list[float]], results["distances"])[0]
-            for i in range(len(metadatas)):
-                score = 1.0 - distances[i]
-                scored_chunks.append(
-                    types.ScoredChunk(
-                        score=score,
-                        file_id=metadatas[i]["file_id"],
-                        chunk_index=metadatas[i]["chunk_index"],
-                    )
-                )
-
-            rt.end(
-                outputs={
-                    "documents": [sc.to_langsmith_output() for sc in scored_chunks]
-                }
+        # Search in Chroma
+        with _tracer.start_as_current_span("chroma_query") as span:
+            span.set_attribute("k", k)
+            results = self._collection.query(
+                query_embeddings=cast(Any, [query_embedding]),
+                n_results=k,
             )
-            return scored_chunks
+
+        # Build ScoredChunk references from Chroma results. Chroma stores
+        # empty strings as documents (see build()), so we discard the
+        # documents field entirely and reconstruct from metadata + distance.
+        # Invert L2 distance (0 = identical) to a similarity score (1 = most similar)
+        # so higher scores consistently mean better matches across all backends.
+        scored_chunks = []
+        metadatas = cast(list[list[Any]], results["metadatas"])[0]
+        distances = cast(list[list[float]], results["distances"])[0]
+        for i in range(len(metadatas)):
+            score = 1.0 - distances[i]
+            scored_chunks.append(
+                types.ScoredChunk(
+                    score=score,
+                    file_id=metadatas[i]["file_id"],
+                    chunk_index=metadatas[i]["chunk_index"],
+                )
+            )
+
+        return scored_chunks
 
 
 @attrs.define
