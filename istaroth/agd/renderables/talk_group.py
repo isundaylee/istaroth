@@ -1,5 +1,7 @@
 """Talk group processing and rendering."""
 
+import collections
+import re
 from typing import assert_never
 
 from istaroth import utils
@@ -12,6 +14,8 @@ from istaroth.agd import (
 )
 from istaroth.agd.renderables import _talk as _talk
 from istaroth.text import types as text_types
+
+_SPEAKER_TITLE_LIMIT = 3
 
 
 def get_talk_group_info(
@@ -52,6 +56,51 @@ def get_talk_group_info(
             talks.append((talk_info, next_talks))
 
     return processed_types.TalkGroupInfo(talks=talks)
+
+
+def derive_speaker_group_name(
+    talk_group_info: processed_types.TalkGroupInfo,
+    language: localization.Language,
+) -> str | None:
+    """Title from the group's most talkative named speakers, or None if none.
+
+    Generic speakers (player, Paimon, black-screen text, ``???``,
+    unresolved-role and missing-talk placeholders) carry no title signal and
+    are dropped; dev/test-named roles arrive already ``skip``-flagged. The top
+    ``_SPEAKER_TITLE_LIMIT`` names by line count are joined with `` / ``, with
+    a trailing ``...`` when more named speakers exist.
+    """
+    roles = localization.get_localized_role_names(language)
+    generic = {
+        roles.player,
+        roles.mate_avatar,
+        roles.black_screen,
+        roles.paimon,
+        _talk.MISSING_TALK_ROLE,
+        "???",
+        "？？？",
+    }
+    speakers = collections.Counter[str]()
+    for talk, next_talks in talk_group_info.talks:
+        for talk_info in (talk, *next_talks):
+            for talk_text in talk_info.text:
+                if talk_text.skip or (name := talk_text.role) is None:
+                    continue
+                # A role rendered as "X (Y)" is _talk's by-role/by-name-hash
+                # mismatch composite; count its more specific half so e.g.
+                # "旅行者 (观察花卉)" titles as "观察花卉" and "遗迹的铭文 (铭文)"
+                # dedups with a plain "遗迹的铭文".
+                if (m := re.fullmatch(r"(.+) \((.+)\)", name)) is not None:
+                    name = m.group(2) if m.group(1) in generic else m.group(1)
+                if name in generic or name.startswith(roles.unknown_role):
+                    continue
+                speakers[name] += 1
+    if not speakers:
+        return None
+    top = [name for name, _ in speakers.most_common(_SPEAKER_TITLE_LIMIT)]
+    if len(speakers) > _SPEAKER_TITLE_LIMIT:
+        top.append("...")
+    return " / ".join(top)
 
 
 def render_talk_group(

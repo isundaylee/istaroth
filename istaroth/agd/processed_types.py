@@ -23,6 +23,7 @@ class LocalizedRoleNames:
 
     player: str
     mate_avatar: str
+    paimon: str
     black_screen: str
     unknown_npc: str
     unknown_role: str
@@ -62,7 +63,12 @@ class TalkText:
     next_dialog_ids: list[id_types.DialogId]
     dialog_id: id_types.DialogId
     skip: bool
-    """Whether this line is a dev/test placeholder to always drop at render time."""
+    """Whether this line is a dev/test placeholder to always drop at render time.
+
+    Set when the message or the role's name is dev/test-marked, decided against
+    the CHS source text (markers such as ``(test)`` exist only in CHS), so it
+    holds for every output language.
+    """
 
 
 @attrs.define

@@ -16,6 +16,10 @@ from istaroth.agd import (
 )
 from istaroth.text import types as text_types
 
+MISSING_TALK_ROLE = "[Missing Talk]"
+"""Placeholder role for a talk that could not be retrieved; rendered inline as a
+visible data gap, but never a speaker for title-derivation purposes."""
+
 
 class _TalkTextGraph:
     """Graph structure for talk dialog items with nextDialogs relationships."""
@@ -404,7 +408,9 @@ def get_talk_info(
 
     # Get cached mappings
     npc_id_to_name = data_repo.build_npc_id_to_name_mapping()
+    npc_id_to_source_name = data_repo.build_npc_id_to_source_name_mapping()
     dialog_id_to_role_hash = data_repo.build_dialog_id_to_role_name_hash_mapping()
+    source_text_map = data_repo.build_source_text_map_tracker()
 
     # Get localized role names for fallbacks
     localized_roles = localization.get_localized_role_names(data_repo.language)
@@ -444,6 +450,17 @@ def get_talk_info(
             case _:
                 return None
 
+    def _npc_source_name(talk_role: agd_types.TalkRole) -> str | None:
+        """The role NPC's CHS source name, or None when not an NPC/unresolvable."""
+        npc_id = talk_role.get("_id", talk_role.get("id"))
+        return (
+            npc_id_to_source_name.get(int(npc_id))
+            if talk_role.get("type") == "TALK_ROLE_NPC"
+            and npc_id is not None
+            and npc_id.isdigit()
+            else None
+        )
+
     def _get_role_name(dialog_item: agd_types.TalkDialogItem) -> str | None:
         talk_role = dialog_item["talkRole"]
         role_type = talk_role.get("type")
@@ -455,8 +472,15 @@ def get_talk_info(
         if (by_role is not None) and (by_name_hash is not None):
             if by_role == by_name_hash:
                 return by_role
-            else:
-                return f"{by_role} ({by_name_hash})"
+            # Real scene elements are often implemented as dev-named NPC
+            # entities fronting a clean per-dialog display name (e.g.
+            # (test)阿圆 displaying as 阿圆); render just the display name
+            # rather than leaking the internal dev name into the composite.
+            if (src := _npc_source_name(talk_role)) is not None and (
+                text_utils.should_skip_text(src, localization.Language.CHS)
+            ):
+                return by_name_hash
+            return f"{by_role} ({by_name_hash})"
         if (resolved := by_name_hash or by_role) is not None:
             return resolved
 
@@ -469,6 +493,31 @@ def get_talk_info(
             f"dialog {dialog_item['id']} role {role_type}",
         )
         return f"{localized_roles.unknown_role} ({role_type})"
+
+    def _role_is_dev(dialog_item: agd_types.TalkDialogItem) -> bool:
+        """Whether the role's effective displayed CHS name is dev/test-marked.
+
+        Judged on the name the player actually sees: the per-dialog role-name
+        hash when it resolves, the NPC's source name otherwise. Dev-named NPC
+        entities regularly deliver real dialogue under a clean display hash
+        (e.g. (test)阿圆 displaying as 阿圆 for the Serenitea Pot tutorial), so
+        the backing entity's name alone must not condemn a line. Decided
+        against CHS source text like the message-level check below, so the
+        answer is the same for every output language.
+        """
+        role_name_hash = dialog_item.get(
+            "talkRoleNameTextMapHash"
+        ) or dialog_id_to_role_hash.get(dialog_item["id"])
+        if role_name_hash is not None and (
+            (hash_name := source_text_map.get_current_optional(role_name_hash))
+            is not None
+        ):
+            return text_utils.should_skip_text(hash_name, localization.Language.CHS)
+        return (
+            source_name := _npc_source_name(dialog_item["talkRole"])
+        ) is not None and text_utils.should_skip_text(
+            source_name, localization.Language.CHS
+        )
 
     # Process dialog items
     talk_texts = []
@@ -498,7 +547,7 @@ def get_talk_info(
                 message=message,
                 next_dialog_ids=next_dialog_ids,
                 dialog_id=dialog_item["id"],
-                skip=skip,
+                skip=skip or _role_is_dev(dialog_item),
             )
         )
 
@@ -535,7 +584,7 @@ def resolve_authoritative_talk(
         return processed_types.TalkInfo(
             text=[
                 processed_types.TalkText(
-                    role="[Missing Talk]",
+                    role=MISSING_TALK_ROLE,
                     message=f"Talk {talk_id} could not be retrieved",
                     next_dialog_ids=[],
                     dialog_id=0,

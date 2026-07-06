@@ -515,25 +515,49 @@ class TalkGroups(
         data_repo: repo.DataRepo,
     ) -> processed_types.RenderedItem | None:
         """Process talk activity group into rendered content."""
+        talk_group_type, talk_group_id = renderable_key
         talk_group_info = talk_group.get_talk_group_info(
-            renderable_key[0], renderable_key[1], data_repo=data_repo
+            talk_group_type, talk_group_id, data_repo=data_repo
         )
 
         if not talk_group_info.talks:
             return None
 
         group_name: str | None = None
-        if renderable_key[0] == "NpcGroup":
-            npc_id = int(renderable_key[1])
-            source_name = data_repo.build_npc_id_to_source_name_mapping().get(npc_id)
-            if source_name is not None:
-                if text_utils.should_skip_text(source_name, localization.Language.CHS):
-                    return None
-                group_name = data_repo.build_npc_id_to_name_mapping()[npc_id]
+        match talk_group_type:
+            case "NpcGroup":
+                # An NpcGroup's TalkGroupId is the file's own npcId field (see
+                # TalkParser._handle_talk_group_file), so it is a genuine NpcId.
+                npc_id = int(talk_group_id)
+                source_name = data_repo.build_npc_id_to_source_name_mapping().get(
+                    npc_id
+                )
+                if source_name is not None:
+                    if text_utils.should_skip_text(
+                        source_name, localization.Language.CHS
+                    ):
+                        return None
+                    group_name = data_repo.build_npc_id_to_name_mapping()[npc_id]
+                    if (
+                        mode := data_repo.build_npc_id_to_game_mode_mapping().get(
+                            npc_id
+                        )
+                    ) is not None:
+                        group_name = f"{group_name} - {localization.get_game_mode_label(mode, language=data_repo.language)}"
+            case "ActivityGroup":
+                group_name = data_repo.build_activity_id_to_name_mapping().get(
+                    int(talk_group_id)
+                )
+            case "GadgetGroup":
+                group_name = talk_group.derive_speaker_group_name(
+                    talk_group_info, data_repo.language
+                )
+            case _:
+                assert_never(talk_group_type)
 
         return talk_group.render_talk_group(
-            renderable_key[0],
-            renderable_key[1],
+            talk_group_type,
+            talk_group_id,
             talk_group_info,
             data_repo.language,
             group_name=group_name,

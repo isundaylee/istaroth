@@ -129,12 +129,38 @@ def get_creature_subtype_label(codex_subtype: str, *, language: Language) -> str
     return _CREATURE_SUBTYPE_LABELS[codex_subtype][language]
 
 
+class GameMode(Enum):
+    """Game modes whose dedicated NPC variants get their own NpcGroup talks."""
+
+    SERENITEA_POT = "SERENITEA_POT"
+    IMAGINARIUM_THEATER = "IMAGINARIUM_THEATER"
+    GENIUS_INVOKATION_TCG = "GENIUS_INVOKATION_TCG"
+
+
+_GAME_MODE_LABELS: dict[GameMode, dict[Language, str]] = {
+    GameMode.SERENITEA_POT: {Language.CHS: "尘歌壶", Language.ENG: "Serenitea Pot"},
+    GameMode.IMAGINARIUM_THEATER: {
+        Language.CHS: "幻想真境剧诗",
+        Language.ENG: "Imaginarium Theater",
+    },
+    GameMode.GENIUS_INVOKATION_TCG: {
+        Language.CHS: "七圣召唤",
+        Language.ENG: "Genius Invokation TCG",
+    },
+}
+
+
+def get_game_mode_label(mode: GameMode, *, language: Language) -> str:
+    return _GAME_MODE_LABELS[mode][language]
+
+
 def get_localized_role_names(language: Language) -> processed_types.LocalizedRoleNames:
     """Get localized role names based on language."""
     role_names = {
         Language.CHS: processed_types.LocalizedRoleNames(
             player="旅行者",
             mate_avatar="旅行者血亲",
+            paimon="派蒙",
             black_screen="黑屏文本",
             unknown_npc="Unknown NPC",
             unknown_role="Unknown Role",
@@ -142,6 +168,7 @@ def get_localized_role_names(language: Language) -> processed_types.LocalizedRol
         Language.ENG: processed_types.LocalizedRoleNames(
             player="Traveler",
             mate_avatar="Traveler's Sibling",
+            paimon="Paimon",
             black_screen="Black Screen Text",
             unknown_npc="Unknown NPC",
             unknown_role="Unknown Role",
