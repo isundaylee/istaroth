@@ -7,6 +7,7 @@ from collections import defaultdict
 from istaroth import utils
 from istaroth.agd import (
     agd_types,
+    first_seen,
     id_types,
     issues,
     localization,
@@ -462,7 +463,10 @@ def get_quest_info(
 
 
 def render_quest(
-    quest: processed_types.QuestInfo, language: localization.Language
+    quest: processed_types.QuestInfo,
+    language: localization.Language,
+    *,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render quest information into RAG-suitable format."""
     # Generate filename based on quest title
@@ -532,12 +536,17 @@ def render_quest(
 
     rendered_content = "\n".join(content_lines)
 
+    min_version, max_version = first_seen_index.resolve(
+        [first_seen.SourceId(first_seen.SourceDomain.MAIN_QUEST, quest.quest_id)]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_QUEST,
             title=quest.title,
             id=quest.quest_id,
             relative_path=f"{text_types.TextCategory.AGD_QUEST.value}/{filename}",
+            min_version=min_version,
+            max_version=max_version,
         ),
         content=rendered_content,
     )

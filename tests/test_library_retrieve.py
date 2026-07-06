@@ -22,6 +22,8 @@ def _create_text_set(tmp_path: pathlib.Path) -> text_set.TextSet:
         title="Test Book",
         id=1,
         relative_path="agd_book/book_1.txt",
+        min_version="1.4",
+        max_version="2.0",
     )
     manifest_dir = text_path / "manifest"
     manifest_dir.mkdir()

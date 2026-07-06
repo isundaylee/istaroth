@@ -2,6 +2,7 @@
 
 from istaroth import utils
 from istaroth.agd import (
+    first_seen,
     id_types,
     issues,
     processed_types,
@@ -49,6 +50,8 @@ def get_achievement_section_info(
 
 def render_achievement_section(
     section_info: processed_types.AchievementSectionInfo,
+    *,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render one achievement section into a single text file."""
     filename = (
@@ -61,6 +64,14 @@ def render_achievement_section(
             [f"## {achievement.name}", "", achievement.description, ""]
         )
 
+    min_version, max_version = first_seen_index.resolve(
+        [
+            first_seen.SourceId(
+                first_seen.SourceDomain.ACHIEVEMENT, achievement.achievement_id
+            )
+            for achievement in section_info.achievements
+        ]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_ACHIEVEMENT,
@@ -69,6 +80,8 @@ def render_achievement_section(
             relative_path=(
                 f"{text_types.TextCategory.AGD_ACHIEVEMENT.value}/{filename}"
             ),
+            min_version=min_version,
+            max_version=max_version,
         ),
         content="\n".join(content_lines).rstrip(),
     )

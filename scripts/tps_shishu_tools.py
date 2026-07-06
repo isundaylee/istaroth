@@ -62,6 +62,8 @@ def generate(output_dir: pathlib.Path, force: bool) -> None:
                     title=title,
                     id=idx,
                     relative_path=relative_path,
+                    min_version=None,
+                    max_version=None,
                 )
             )
 

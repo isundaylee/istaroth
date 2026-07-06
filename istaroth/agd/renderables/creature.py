@@ -5,6 +5,7 @@ import hashlib
 from istaroth import utils
 from istaroth.agd import (
     agd_types,
+    first_seen,
     id_types,
     issues,
     localization,
@@ -109,6 +110,8 @@ def get_creature_group_info(
 
 def render_creature_group(
     group_info: processed_types.CreatureGroupInfo,
+    *,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render one codex subType group of creatures into a single RAG-suitable file."""
     group_id = int(
@@ -128,12 +131,20 @@ def render_creature_group(
         content_lines.append(creature.description)
         content_lines.append("")
 
+    min_version, max_version = first_seen_index.resolve(
+        [
+            first_seen.SourceId(first_seen.SourceDomain.ANIMAL_CODEX, c.codex_id)
+            for c in group_info.creatures
+        ]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_CREATURE,
             title=title,
             id=group_id,
             relative_path=f"{text_types.TextCategory.AGD_CREATURE.value}/{filename}",
+            min_version=min_version,
+            max_version=max_version,
         ),
         content="\n".join(content_lines).rstrip(),
     )

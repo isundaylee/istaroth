@@ -161,6 +161,8 @@ def test_text_dir(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
             "title": filename.replace(".txt", "").replace("_", " ").title(),
             "id": idx,
             "relative_path": f"agd_readable/{filename}",
+            "min_version": "1.4",
+            "max_version": "1.4",
         }
         for idx, filename in enumerate(documents.keys())
     ]

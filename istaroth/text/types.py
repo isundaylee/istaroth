@@ -81,20 +81,40 @@ def _validate_relative_path(
 
 @attrs.define
 class TextMetadata:
-    """Metadata for a text file."""
+    """Metadata for a text file.
+
+    ``min_version``/``max_version`` bound the game versions in which the file's
+    source items first appeared (equal for single-source files); required for
+    AGD content, and ``None`` for non-AGD content that has no game version.
+    """
 
     category: TextCategory
     title: str
     id: int
     relative_path: str = attrs.field(validator=_validate_relative_path)
+    min_version: str | None
+    max_version: str | None
 
-    def to_dict(self) -> dict[str, str | int]:
+    def __attrs_post_init__(self) -> None:
+        if self.category.is_agd:
+            if self.min_version is None or self.max_version is None:
+                raise ValueError(
+                    f"min_version/max_version are required for {self.category.name}"
+                )
+        elif self.min_version is not None or self.max_version is not None:
+            raise ValueError(
+                f"min_version/max_version must be None for {self.category.name}"
+            )
+
+    def to_dict(self) -> dict[str, str | int | None]:
         """Convert to dictionary for JSON serialization."""
         return {
             "category": self.category.value,
             "title": self.title,
             "id": self.id,
             "relative_path": self.relative_path,
+            "min_version": self.min_version,
+            "max_version": self.max_version,
         }
 
     @classmethod
@@ -112,4 +132,6 @@ class TextMetadata:
             title=str(data["title"]),
             id=id_int,
             relative_path=str(data["relative_path"]),
+            min_version=data["min_version"],
+            max_version=data["max_version"],
         )

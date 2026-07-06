@@ -3,6 +3,7 @@
 from istaroth import utils
 from istaroth.agd import (
     agd_types,
+    first_seen,
     id_types,
     issues,
     localization,
@@ -145,6 +146,8 @@ def get_character_story_info(
 
 def render_character_story(
     story_info: processed_types.CharacterStoryInfo,
+    *,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render all character stories into RAG-suitable format."""
     # Generate filename based on character name with collision safeguards
@@ -183,12 +186,17 @@ def render_character_story(
 
     rendered_content = "\n".join(content_lines)
 
+    min_version, max_version = first_seen_index.resolve(
+        [first_seen.SourceId(first_seen.SourceDomain.AVATAR, story_info.avatar_id)]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_CHARACTER_STORY,
             title=story_info.character_name,
             id=story_info.avatar_id,
             relative_path=f"{text_types.TextCategory.AGD_CHARACTER_STORY.value}/{filename}",
+            min_version=min_version,
+            max_version=max_version,
         ),
         content=rendered_content,
     )
@@ -229,6 +237,8 @@ def get_voiceline_info(
 
 def render_voiceline(
     voiceline_info: processed_types.VoicelineInfo,
+    *,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render voiceline content into RAG-suitable format."""
     safe_name = utils.make_safe_filename_part(voiceline_info.character_name)
@@ -243,12 +253,17 @@ def render_voiceline(
 
     rendered_content = "\n".join(content_lines).rstrip()
 
+    min_version, max_version = first_seen_index.resolve(
+        [first_seen.SourceId(first_seen.SourceDomain.AVATAR, voiceline_info.avatar_id)]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_VOICELINE,
             title=voiceline_info.character_name,
             id=voiceline_info.avatar_id,
             relative_path=f"{text_types.TextCategory.AGD_VOICELINE.value}/{filename}",
+            min_version=min_version,
+            max_version=max_version,
         ),
         content=rendered_content,
     )

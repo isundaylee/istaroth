@@ -5,6 +5,7 @@ from collections import Counter
 from typing import Callable, ClassVar, Generic, NamedTuple, TypeVar, assert_never
 
 from istaroth.agd import (
+    first_seen,
     id_types,
     localization,
     processed_types,
@@ -69,7 +70,11 @@ class BaseRenderableType(ABC, Generic[TKey]):
 
     @abstractmethod
     def process(
-        self, renderable_key: TKey, data_repo: repo.DataRepo
+        self,
+        renderable_key: TKey,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem | None:
         """Process renderable key into rendered content."""
         pass
@@ -79,13 +84,21 @@ def _process_single_readable(
     renderable_key: id_types.ReadableFilename,
     data_repo: repo.DataRepo,
     render: Callable[
-        [str, processed_types.ReadableMetadata], processed_types.RenderedItem
+        [
+            str,
+            processed_types.ReadableMetadata,
+            id_types.ReadableFilename,
+            first_seen.FirstSeenIndex,
+        ],
+        processed_types.RenderedItem,
     ],
+    *,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem | None:
     """Render a single readable file, or skip empty/placeholder ones."""
     if (loaded := readable.load_readable(renderable_key, data_repo=data_repo)) is None:
         return None
-    return render(*loaded)
+    return render(*loaded, renderable_key, first_seen_index)
 
 
 def _discover_prefixed_readables(
@@ -114,18 +127,32 @@ class BaseReadables(BaseRenderableType[id_types.ReadableFilename]):
     error_limit_non_chinese: ClassVar[int] = 200
 
     def _render(
-        self, content: str, metadata: processed_types.ReadableMetadata
+        self,
+        content: str,
+        metadata: processed_types.ReadableMetadata,
+        readable_filename: id_types.ReadableFilename,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem:
         """Render readable content into a rendered item."""
         return readable.render_readable_like(
-            content, metadata, category=self.text_category
+            content,
+            metadata,
+            readable_filename,
+            category=self.text_category,
+            first_seen_index=first_seen_index,
         )
 
     def process(
-        self, renderable_key: id_types.ReadableFilename, data_repo: repo.DataRepo
+        self,
+        renderable_key: id_types.ReadableFilename,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem | None:
         """Process readable file into rendered content."""
-        return _process_single_readable(renderable_key, data_repo, self._render)
+        return _process_single_readable(
+            renderable_key, data_repo, self._render, first_seen_index=first_seen_index
+        )
 
 
 class Readables(BaseReadables):
@@ -190,7 +217,11 @@ class Books(BaseRenderableType[_BookKey]):
         ]
 
     def process(
-        self, renderable_key: _BookKey, data_repo: repo.DataRepo
+        self,
+        renderable_key: _BookKey,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem | None:
         """Render a book series into one file, or a standalone book on its own."""
         match renderable_key:
@@ -198,9 +229,16 @@ class Books(BaseRenderableType[_BookKey]):
                 series_info = book.get_book_series_info(suit_id, data_repo=data_repo)
                 if series_info is None:
                     return None
-                return book.render_book_series(series_info, data_repo.language)
+                return book.render_book_series(
+                    series_info, data_repo.language, first_seen_index=first_seen_index
+                )
             case _BookStandaloneKey(filename=filename):
-                return _process_single_readable(filename, data_repo, book.render_book)
+                return _process_single_readable(
+                    filename,
+                    data_repo,
+                    book.render_book,
+                    first_seen_index=first_seen_index,
+                )
             case _:
                 assert_never(renderable_key)
 
@@ -221,14 +259,18 @@ class Weapons(BaseRenderableType[str]):
         )
 
     def process(
-        self, renderable_key: str, data_repo: repo.DataRepo
+        self,
+        renderable_key: str,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem | None:
         """Assemble and render a weapon's story document, or skip if it has none."""
         if (
             weapon_info := weapon.get_weapon_info(renderable_key, data_repo=data_repo)
         ) is None:
             return None
-        return weapon.render_weapon(weapon_info)
+        return weapon.render_weapon(weapon_info, first_seen_index=first_seen_index)
 
 
 class Wings(BaseReadables):
@@ -265,7 +307,11 @@ class Quests(BaseRenderableType[id_types.QuestId]):
         return sorted(data_repo.load_main_quest_excel_config_data(), key=str)
 
     def process(
-        self, renderable_key: id_types.QuestId, data_repo: repo.DataRepo
+        self,
+        renderable_key: id_types.QuestId,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem | None:
         """Process quest file into rendered content."""
         if (
@@ -279,7 +325,9 @@ class Quests(BaseRenderableType[id_types.QuestId]):
         ):
             return None
 
-        return quest.render_quest(quest_info, language=data_repo.language)
+        return quest.render_quest(
+            quest_info, language=data_repo.language, first_seen_index=first_seen_index
+        )
 
 
 class CharacterStories(BaseRenderableType[id_types.AvatarId]):
@@ -300,13 +348,19 @@ class CharacterStories(BaseRenderableType[id_types.AvatarId]):
         return sorted(avatar_ids)
 
     def process(
-        self, renderable_key: id_types.AvatarId, data_repo: repo.DataRepo
+        self,
+        renderable_key: id_types.AvatarId,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem | None:
         """Process character story into rendered content."""
         story_info = character.get_character_story_info(
             renderable_key, data_repo=data_repo
         )
-        return character.render_character_story(story_info)
+        return character.render_character_story(
+            story_info, first_seen_index=first_seen_index
+        )
 
 
 class Subtitles(BaseRenderableType[str]):
@@ -318,20 +372,24 @@ class Subtitles(BaseRenderableType[str]):
 
     def discover(self, data_repo: repo.DataRepo) -> list[str]:
         """Find all subtitle files."""
-        subtitle_dir = data_repo.agd_path / "Subtitle" / data_repo.language_short
-        if subtitle_dir.exists():
-            return [
-                f"Subtitle/{data_repo.language_short}/{srt_file.name}"
-                for srt_file in sorted(subtitle_dir.glob("*.srt"))
-            ]
-        return []
+        return [
+            f"Subtitle/{data_repo.language_short}/{name}"
+            for name in data_repo.list_subtitle_names()
+            if name.endswith(".srt")
+        ]
 
     def process(
-        self, renderable_key: str, data_repo: repo.DataRepo
+        self,
+        renderable_key: str,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem | None:
         """Process subtitle file into rendered content."""
         subtitle_info = subtitle.get_subtitle_info(renderable_key, data_repo=data_repo)
-        return subtitle.render_subtitle(subtitle_info, renderable_key)
+        return subtitle.render_subtitle(
+            subtitle_info, renderable_key, first_seen_index=first_seen_index
+        )
 
 
 class MaterialTypes(BaseRenderableType[str]):
@@ -349,7 +407,11 @@ class MaterialTypes(BaseRenderableType[str]):
         )
 
     def process(
-        self, renderable_key: str, data_repo: repo.DataRepo
+        self,
+        renderable_key: str,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem | None:
         """Process all materials of a given type into rendered content."""
         materials_data = data_repo.build_material_tracker().get_all()
@@ -374,7 +436,9 @@ class MaterialTypes(BaseRenderableType[str]):
         if not materials_of_type:
             return None
 
-        return material.render_materials_by_type(renderable_key, materials_of_type)
+        return material.render_materials_by_type(
+            renderable_key, materials_of_type, first_seen_index=first_seen_index
+        )
 
 
 class Achievements(BaseRenderableType[id_types.AchievementGoalId]):
@@ -398,13 +462,18 @@ class Achievements(BaseRenderableType[id_types.AchievementGoalId]):
         ]
 
     def process(
-        self, renderable_key: id_types.AchievementGoalId, data_repo: repo.DataRepo
+        self,
+        renderable_key: id_types.AchievementGoalId,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem:
         """Process one achievement section into rendered content."""
         return achievement.render_achievement_section(
             achievement.get_achievement_section_info(
                 renderable_key, data_repo=data_repo
-            )
+            ),
+            first_seen_index=first_seen_index,
         )
 
 
@@ -425,7 +494,11 @@ class Voicelines(BaseRenderableType[id_types.AvatarId]):
         )
 
     def process(
-        self, renderable_key: id_types.AvatarId, data_repo: repo.DataRepo
+        self,
+        renderable_key: id_types.AvatarId,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem | None:
         """Process voiceline into rendered content."""
         voiceline_info = character.get_voiceline_info(
@@ -435,7 +508,9 @@ class Voicelines(BaseRenderableType[id_types.AvatarId]):
         if not voiceline_info.voicelines:
             return None
 
-        return character.render_voiceline(voiceline_info)
+        return character.render_voiceline(
+            voiceline_info, first_seen_index=first_seen_index
+        )
 
 
 class ArtifactSets(BaseRenderableType[id_types.ArtifactSetId]):
@@ -451,7 +526,11 @@ class ArtifactSets(BaseRenderableType[id_types.ArtifactSetId]):
         return [set_entry["setId"] for set_entry in set_data]
 
     def process(
-        self, renderable_key: id_types.ArtifactSetId, data_repo: repo.DataRepo
+        self,
+        renderable_key: id_types.ArtifactSetId,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem | None:
         """Process artifact set into rendered content."""
         if (
@@ -461,7 +540,9 @@ class ArtifactSets(BaseRenderableType[id_types.ArtifactSetId]):
         ) is None:
             return None
 
-        return artifact.render_artifact_set(artifact_set_info)
+        return artifact.render_artifact_set(
+            artifact_set_info, first_seen_index=first_seen_index
+        )
 
 
 class Creatures(BaseRenderableType[str]):
@@ -484,11 +565,16 @@ class Creatures(BaseRenderableType[str]):
         )
 
     def process(
-        self, renderable_key: str, data_repo: repo.DataRepo
+        self,
+        renderable_key: str,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem | None:
         """Process a codex subType group into a single rendered file."""
         return creature.render_creature_group(
-            creature.get_creature_group_info(renderable_key, data_repo=data_repo)
+            creature.get_creature_group_info(renderable_key, data_repo=data_repo),
+            first_seen_index=first_seen_index,
         )
 
 
@@ -513,6 +599,8 @@ class TalkGroups(
         self,
         renderable_key: tuple[talk_parsing.TalkGroupType, talk_parsing.TalkGroupId],
         data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem | None:
         """Process talk activity group into rendered content."""
         talk_group_type, talk_group_id = renderable_key
@@ -561,6 +649,7 @@ class TalkGroups(
             talk_group_info,
             data_repo.language,
             group_name=group_name,
+            first_seen_index=first_seen_index,
         )
 
 
@@ -578,7 +667,11 @@ class Hangouts(BaseRenderableType[id_types.QuestId]):
         return sorted(data_repo.build_hangout_quest_to_stories_mapping())
 
     def process(
-        self, renderable_key: id_types.QuestId, data_repo: repo.DataRepo
+        self,
+        renderable_key: id_types.QuestId,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem | None:
         """Render a hangout quest's Coop dialogue, or skip if it has no content."""
         if (
@@ -587,7 +680,11 @@ class Hangouts(BaseRenderableType[id_types.QuestId]):
             )
         ) is None:
             return None
-        return hangout.render_hangout(hangout_info, language=data_repo.language)
+        return hangout.render_hangout(
+            hangout_info,
+            language=data_repo.language,
+            first_seen_index=first_seen_index,
+        )
 
 
 class Talks(BaseRenderableType[id_types.TalkId]):
@@ -611,7 +708,11 @@ class Talks(BaseRenderableType[id_types.TalkId]):
         return sorted(talk_tracker.get_all_ids() - self.used_talk_ids)
 
     def process(
-        self, renderable_key: id_types.TalkId, data_repo: repo.DataRepo
+        self,
+        renderable_key: id_types.TalkId,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
     ) -> processed_types.RenderedItem | None:
         """Process talk into rendered content."""
         talk_tracker = data_repo.build_talk_tracker()
@@ -630,6 +731,7 @@ class Talks(BaseRenderableType[id_types.TalkId]):
             talk_id=renderable_key,
             language=data_repo.language,
             talk_file_path=talk_file_path,
+            first_seen_index=first_seen_index,
         )
 
 

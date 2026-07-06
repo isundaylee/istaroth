@@ -4,6 +4,7 @@ import pathlib
 
 from istaroth import utils
 from istaroth.agd import (
+    first_seen,
     id_types,
     issues,
     processed_types,
@@ -125,6 +126,8 @@ def get_artifact_set_info(
 
 def render_artifact_set(
     artifact_set_info: processed_types.ArtifactSetInfo,
+    *,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render artifact set content into RAG-suitable format."""
     safe_name = utils.make_safe_filename_part(artifact_set_info.set_name)
@@ -145,12 +148,21 @@ def render_artifact_set(
 
     rendered_content = "\n".join(content_lines).rstrip()
 
+    min_version, max_version = first_seen_index.resolve(
+        [
+            first_seen.SourceId(
+                first_seen.SourceDomain.ARTIFACT_SET, artifact_set_info.set_id
+            )
+        ]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_ARTIFACT_SET,
             title=artifact_set_info.set_name,
             id=artifact_set_info.set_id,
             relative_path=f"{text_types.TextCategory.AGD_ARTIFACT_SET.value}/{filename}",
+            min_version=min_version,
+            max_version=max_version,
         ),
         content=rendered_content,
     )

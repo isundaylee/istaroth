@@ -43,6 +43,7 @@ class BookVolumeInfo:
 
     title: str
     content: str
+    filename: id_types.ReadableFilename
 
 
 @attrs.define
@@ -82,6 +83,9 @@ class TalkInfo:
 class TalkGroupInfo:
     talks: list[tuple[TalkInfo, list[TalkInfo]]]
     """List of (talk, next_talks)."""
+
+    talk_ids: list[id_types.TalkId]
+    """Ids of every talk included in ``talks`` (next talks included)."""
 
 
 @attrs.define

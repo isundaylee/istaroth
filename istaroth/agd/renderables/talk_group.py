@@ -6,6 +6,8 @@ from typing import assert_never
 
 from istaroth import utils
 from istaroth.agd import (
+    first_seen,
+    id_types,
     issues,
     localization,
     processed_types,
@@ -31,6 +33,7 @@ def get_talk_group_info(
     talk_group_data = data_repo.load_talk_group_data(talk_group_path)
 
     talks = []
+    talk_ids = list[id_types.TalkId]()
     for talk_entry in talk_group_data["talks"]:
         talk_id = int(talk_entry["id"])
 
@@ -41,6 +44,7 @@ def get_talk_group_info(
             continue
 
         next_talks = list[processed_types.TalkInfo]()
+        next_talk_ids = list[id_types.TalkId]()
         for next_talk_id in talk_entry.get("nextTalks", []):
             try:
                 next_talk_info = _talk.get_talk_info_by_id(
@@ -51,11 +55,13 @@ def get_talk_group_info(
                 continue
             if next_talk_info.text:
                 next_talks.append(next_talk_info)
+                next_talk_ids.append(int(next_talk_id))
 
         if talk_info.text:
             talks.append((talk_info, next_talks))
+            talk_ids.extend([talk_id, *next_talk_ids])
 
-    return processed_types.TalkGroupInfo(talks=talks)
+    return processed_types.TalkGroupInfo(talks=talks, talk_ids=talk_ids)
 
 
 def derive_speaker_group_name(
@@ -110,6 +116,7 @@ def render_talk_group(
     language: localization.Language,
     *,
     group_name: str | None = None,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render multiple talks from an activity group into a single file."""
     safe_type = utils.make_safe_filename_part(str(talk_group_type))
@@ -148,12 +155,20 @@ def render_talk_group(
         case _:
             assert_never(talk_group_type)
 
+    min_version, max_version = first_seen_index.resolve(
+        [
+            first_seen.SourceId(first_seen.SourceDomain.TALK, talk_id)
+            for talk_id in talk_group_info.talk_ids
+        ]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_TALK_GROUP,
             title=title,
             id=metadata_id,
             relative_path=f"{text_types.TextCategory.AGD_TALK_GROUP.value}/{filename}",
+            min_version=min_version,
+            max_version=max_version,
         ),
         content=rendered_content,
     )

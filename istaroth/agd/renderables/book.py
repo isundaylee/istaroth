@@ -4,6 +4,7 @@ from typing import assert_never
 
 from istaroth import utils
 from istaroth.agd import (
+    first_seen,
     id_types,
     localization,
     processed_types,
@@ -27,26 +28,37 @@ def _render_volume_annotation(
 
 
 def render_book(
-    content: str, metadata: processed_types.ReadableMetadata
+    content: str,
+    metadata: processed_types.ReadableMetadata,
+    readable_filename: id_types.ReadableFilename,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render book content into RAG-suitable format."""
     safe_title = utils.make_safe_filename_part(metadata.title)
     filename = f"{metadata.localization_id}_{safe_title}.txt"
     rendered_content = f"# {metadata.title}\n\n{content}"
 
+    min_version, max_version = first_seen_index.resolve(
+        [first_seen.readable_source_id(readable_filename)]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_BOOK,
             title=metadata.title,
             id=metadata.localization_id,
             relative_path=f"{text_types.TextCategory.AGD_BOOK.value}/{filename}",
+            min_version=min_version,
+            max_version=max_version,
         ),
         content=rendered_content,
     )
 
 
 def render_book_series(
-    series_info: processed_types.BookSeriesInfo, language: localization.Language
+    series_info: processed_types.BookSeriesInfo,
+    language: localization.Language,
+    *,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render a multi-volume book series into a single RAG-suitable file.
 
@@ -65,12 +77,20 @@ def render_book_series(
         )
         content_parts.append(f"## {volume.title}\n\n{annotation}\n\n{volume.content}")
 
+    min_version, max_version = first_seen_index.resolve(
+        [
+            first_seen.readable_source_id(volume.filename)
+            for volume in series_info.volumes
+        ]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_BOOK,
             title=series_info.series_name,
             id=series_info.suit_id,
             relative_path=f"{text_types.TextCategory.AGD_BOOK.value}/{filename}",
+            min_version=min_version,
+            max_version=max_version,
         ),
         content="\n\n".join(content_parts),
     )
@@ -104,7 +124,9 @@ def get_book_series_info(
             continue
         content, metadata = loaded
         volumes.append(
-            processed_types.BookVolumeInfo(title=metadata.title, content=content)
+            processed_types.BookVolumeInfo(
+                title=metadata.title, content=content, filename=filename
+            )
         )
     if not volumes:
         return None

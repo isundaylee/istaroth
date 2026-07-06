@@ -4,6 +4,7 @@ import hashlib
 
 from istaroth import utils
 from istaroth.agd import (
+    first_seen,
     id_types,
     issues,
     processed_types,
@@ -45,7 +46,10 @@ def _humanize_material_type(material_type: str) -> str:
 
 
 def render_materials_by_type(
-    material_type: str, materials: list[processed_types.MaterialInfo]
+    material_type: str,
+    materials: list[processed_types.MaterialInfo],
+    *,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render multiple materials of the same type into a single RAG-suitable file."""
     material_type_id = int(
@@ -69,12 +73,20 @@ def render_materials_by_type(
 
     rendered_content = "\n".join(content_lines).rstrip()
 
+    min_version, max_version = first_seen_index.resolve(
+        [
+            first_seen.SourceId(first_seen.SourceDomain.MATERIAL, m.material_id)
+            for m in sorted_materials
+        ]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_MATERIAL_TYPE,
             title=material_type_name,
             id=material_type_id,
             relative_path=f"{text_types.TextCategory.AGD_MATERIAL_TYPE.value}/{filename}",
+            min_version=min_version,
+            max_version=max_version,
         ),
         content=rendered_content,
     )

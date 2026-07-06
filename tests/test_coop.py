@@ -1,17 +1,25 @@
 """Tests for hangout (Coop) extraction: graph walk, processing, and hierarchy."""
 
 import re
-from typing import Any
+from typing import Any, Iterable
 
 import pytest
 
 from istaroth.agd import (
     coop_graph,
     coop_hierarchy,
+    first_seen,
     localization,
     repo,
 )
 from istaroth.agd.renderables import hangout
+
+
+class _StubFirstSeenIndex(first_seen.FirstSeenIndex):
+    """Resolves every source id to a fixed version for rendering tests."""
+
+    def resolve(self, source_ids: Iterable[first_seen.SourceId]) -> tuple[str, str]:
+        return ("1.0", "1.0")
 
 
 def test_walk_play_order_branches_and_convergence() -> None:
@@ -238,7 +246,11 @@ def test_yunjin_rendered_structure(data_repo: repo.DataRepo) -> None:
     """Hangout 19017 (Yunjin) rendered output has the expected section structure."""
     raw_info = hangout.get_hangout_info(19017, data_repo=data_repo)
     assert raw_info is not None, "Hangout 19017 expected to exist"
-    rendered = hangout.render_hangout(raw_info, localization.Language.CHS)
+    rendered = hangout.render_hangout(
+        raw_info,
+        localization.Language.CHS,
+        first_seen_index=_StubFirstSeenIndex(versions={}),
+    )
     content = rendered.content
     lines = content.split("\n")
 

@@ -4,6 +4,7 @@ import pathlib
 
 from istaroth import utils
 from istaroth.agd import (
+    first_seen,
     id_types,
     issues,
     localization,
@@ -73,19 +74,26 @@ def load_readable(
 def render_readable_like(
     content: str,
     metadata: processed_types.ReadableMetadata,
+    readable_filename: id_types.ReadableFilename,
     *,
     category: text_types.TextCategory,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render readable-style content (readable/wings/costume) into RAG-suitable format."""
     safe_title = utils.make_safe_filename_part(metadata.title)
     filename = f"{metadata.localization_id}_{safe_title}.txt"
 
+    min_version, max_version = first_seen_index.resolve(
+        [first_seen.readable_source_id(readable_filename)]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=category,
             title=metadata.title,
             id=metadata.localization_id,
             relative_path=f"{category.value}/{filename}",
+            min_version=min_version,
+            max_version=max_version,
         ),
         content=f"# {metadata.title}\n\n{content}",
     )

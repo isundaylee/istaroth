@@ -5,6 +5,7 @@ import pathlib
 
 from istaroth import text_cleanup, utils
 from istaroth.agd import (
+    first_seen,
     processed_types,
     repo,
 )
@@ -28,7 +29,10 @@ def get_subtitle_info(
 
 
 def render_subtitle(
-    subtitle_info: processed_types.SubtitleInfo, subtitle_path: str
+    subtitle_info: processed_types.SubtitleInfo,
+    subtitle_path: str,
+    *,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render subtitle content into RAG-suitable format."""
     subtitle_id = int(
@@ -44,12 +48,17 @@ def render_subtitle(
 
     rendered_content = "\n".join(content_lines)
 
+    min_version, max_version = first_seen_index.resolve(
+        [first_seen.subtitle_source_id(subtitle_path)]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_SUBTITLE,
             title=path_obj.stem,
             id=subtitle_id,
             relative_path=f"{text_types.TextCategory.AGD_SUBTITLE.value}/{filename}",
+            min_version=min_version,
+            max_version=max_version,
         ),
         content=rendered_content,
     )
