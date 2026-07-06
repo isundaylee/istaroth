@@ -17,6 +17,30 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Default keyboard-focus ring for everything without its own :focus-visible
+   treatment (buttons, nav links, toggles, …). Low specificity on purpose:
+   component rules (e.g. Select's border accent) override it. */
+:focus-visible {
+  outline: 2px solid var(--color-primary-fill);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Collapse all animations/transitions to a single instant frame rather than
+     `none`, so keyframe end states still apply and transition events still
+     fire. !important is required: `*` has zero specificity, so any component
+     rule would override it otherwise. */
+  /* stylelint-disable declaration-no-important */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  /* stylelint-enable declaration-no-important */
+}
+
 @media (max-width: 600px) {
   /* Citation list mobile styles */
   [data-citation-container] li {
