@@ -19,6 +19,7 @@ def should_skip_text(text: str, language: localization.Language) -> bool:
         lower_text.startswith(("test", "(test", "（test"))
         or "$hidden" in lower_text
         or "$unreleased" in lower_text
+        or "beta测试任务" in lower_text
     )
 
 

@@ -1,5 +1,6 @@
 """Quest processing and rendering."""
 
+import os
 import typing
 from collections import defaultdict
 
@@ -27,6 +28,120 @@ class _PlacementHint(typing.NamedTuple):
 
     order: int
     priority: int
+
+
+# Separators that mark the boundary between a questline name and the chapter
+# ordinal inside chapter titles (e.g. 山中好长日·第一章, "Aranyaka: Part I",
+# "Fabulous Fungus Frenzy - Act I").
+_GROUP_NAME_SEPARATORS = "·:：-"
+
+
+def _common_prefix_name(titles: list[str]) -> str | None:
+    """Questline name shared by a group's chapter titles, or None when there is none.
+
+    The longest common prefix of the titles, trimmed so a divergence inside an
+    ordinal doesn't leak scaffolding into the name: when any title continues the
+    prefix with a word character (e.g. "Part I" / "Part II" agreeing up to
+    "Part I"), cut back to the last strong separator, or failing that the last
+    non-alphanumeric character. Trailing whitespace/separators are stripped.
+    """
+    prefix = os.path.commonprefix(titles)
+    if any((rest := t[len(prefix) :]) and rest[0].isalnum() for t in titles):
+        if (cut := max(prefix.rfind(s) for s in _GROUP_NAME_SEPARATORS)) == -1:
+            cut = max(
+                (i + 1 for i, ch in enumerate(prefix) if not ch.isalnum()), default=0
+            )
+        prefix = prefix[:cut]
+    return prefix.rstrip(" " + _GROUP_NAME_SEPARATORS) or None
+
+
+def _is_test_or_hidden_chapter(
+    chapter: agd_types.ChapterExcelConfigDataItem, *, data_repo: repo.DataRepo
+) -> bool:
+    """Whether a chapter is dev/test content (e.g. the 夏活beta测试任务 chapter).
+
+    Like quest titles, the markers live only in the CHS (source) text, so both
+    chapter text fields are checked against the CHS text map.
+    """
+    source_text_map = data_repo.build_source_text_map_tracker()
+    return any(
+        text_utils.should_skip_text(text, localization.Language.CHS)
+        for text_hash in (
+            chapter["chapterNumTextMapHash"],
+            chapter["chapterTitleTextMapHash"],
+        )
+        if (text := source_text_map.get_optional_untracked(text_hash)) is not None
+    )
+
+
+def _group_member_chapters(
+    chapter: agd_types.ChapterExcelConfigDataItem, *, data_repo: repo.DataRepo
+) -> list[agd_types.ChapterExcelConfigDataItem]:
+    """All chapters in the same quest group (questline) as ``chapter``.
+
+    Grouping is the chapter ``groupId`` when set. Some questlines (e.g.
+    山中好长日) are not groupId-linked — their chapters carry ``groupId`` 0 and
+    encode the questline only as a ``<name>·<ordinal>`` prefix in the CHS
+    chapter-number text — so those cluster by that source-language prefix.
+    Dev/test chapters are excluded so they can't poison the group's common
+    prefix.
+    """
+    chapters = data_repo.load_chapter_excel_config_data()
+    if group_id := chapter["groupId"]:
+        return [
+            c
+            for c in chapters.values()
+            if c["groupId"] == group_id
+            and not _is_test_or_hidden_chapter(c, data_repo=data_repo)
+        ]
+
+    source_text_map = data_repo.build_source_text_map_tracker()
+
+    def _prefix(c: agd_types.ChapterExcelConfigDataItem) -> str | None:
+        num = source_text_map.get_optional_untracked(c["chapterNumTextMapHash"])
+        return num.split("·")[0] if num is not None and "·" in num else None
+
+    if (prefix := _prefix(chapter)) is None:
+        return [chapter]
+    return [
+        c
+        for c in chapters.values()
+        if not c["groupId"]
+        and _prefix(c) == prefix
+        and not _is_test_or_hidden_chapter(c, data_repo=data_repo)
+    ]
+
+
+def get_prefix_series_id(
+    chapter_id: id_types.ChapterId, *, data_repo: repo.DataRepo
+) -> id_types.ChapterId | None:
+    """Synthetic series id (lowest member chapter id) for a groupId-less questline.
+
+    None for chapters that have a real ``groupId`` or no prefix-linked siblings.
+    """
+    chapters = data_repo.load_chapter_excel_config_data()
+    if (chapter := chapters[chapter_id])["groupId"]:
+        return None
+    members = _group_member_chapters(chapter, data_repo=data_repo)
+    return min(c["id"] for c in members) if len(members) >= 2 else None
+
+
+def get_quest_group_name(
+    chapter_id: id_types.ChapterId, *, data_repo: repo.DataRepo
+) -> str | None:
+    """Resolve a chapter's questline (quest group) name, or None when it has none.
+
+    AGD has no group-level name field (issue #239), so the name is derived as
+    the common prefix of the group's chapter titles. Single-chapter groups get
+    None: their "group name" would just repeat the chapter title.
+    """
+    chapters = data_repo.load_chapter_excel_config_data()
+    members = _group_member_chapters(chapters[chapter_id], data_repo=data_repo)
+    if len(members) < 2:
+        return None
+    return _common_prefix_name(
+        [get_chapter_title(c, data_repo=data_repo) for c in members]
+    )
 
 
 def get_chapter_title(
@@ -174,6 +289,8 @@ def get_quest_info(
 
     # Get chapter information
     chapter_title = None
+    group_name = None
+    hidden_chapter = False
     chapter_id = quest_data["chapterId"]
     if chapter_id:
         chapter_data = data_repo.load_chapter_excel_config_data()
@@ -181,6 +298,8 @@ def get_quest_info(
         if (chapter := chapter_data.get(chapter_id)) is None:
             raise ValueError(f"Unknown chapter {chapter_id} for quest {quest_path}")
         chapter_title = get_chapter_title(chapter, data_repo=data_repo)
+        group_name = get_quest_group_name(chapter_id, data_repo=data_repo)
+        hidden_chapter = _is_test_or_hidden_chapter(chapter, data_repo=data_repo)
 
     # Resolve where each talk a quest declares actually plays. A talk's
     # `beginCond` names the subQuest it starts on (its true playback location);
@@ -346,10 +465,11 @@ def get_quest_info(
         )
     ]
 
-    # Exclude dev/test/hidden quests. Checked after the talks above are resolved
-    # (which marks them accessed) so this quest's dialogue is also kept out of
-    # the standalone agd_talk pass, not just out of agd_quest.
-    if _is_test_or_hidden_title(title_hash, data_repo=data_repo):
+    # Exclude dev/test/hidden quests (by their own title, or by belonging to a
+    # dev/test chapter). Checked after the talks above are resolved (which marks
+    # them accessed) so this quest's dialogue is also kept out of the standalone
+    # agd_talk pass, not just out of agd_quest.
+    if _is_test_or_hidden_title(title_hash, data_repo=data_repo) or hidden_chapter:
         return None
 
     # FreeGroup "free talks" attached to this quest by talkId numbering (paths
@@ -364,6 +484,7 @@ def get_quest_info(
         quest_id=quest_id,
         title=quest_title,
         chapter_title=chapter_title,
+        group_name=group_name,
         description=description,
         steps=steps,
         non_subquest_talks=non_subquest_talk_infos,
@@ -381,6 +502,8 @@ def render_quest(
 
     # Format content with chapter title (if available) and quest title
     content_lines = []
+    if quest.group_name:
+        content_lines.append(f"(Quest is part of group: {quest.group_name})\n")
     if quest.chapter_title:
         content_lines.append(f"(Quest is part of chapter: {quest.chapter_title})\n")
     content_lines.append(f"# {quest.title}\n")

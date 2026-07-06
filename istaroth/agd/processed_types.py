@@ -180,6 +180,8 @@ class QuestInfo:
     quest_id: id_types.QuestId
     title: str
     chapter_title: str | None
+    group_name: str | None
+    """Questline (quest group) name, when one is known for the quest's chapter."""
     description: str | None
     steps: list[QuestStep]
     """Talk and objective steps interleaved by subQuest ``order``."""

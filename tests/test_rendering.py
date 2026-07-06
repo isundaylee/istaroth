@@ -866,6 +866,7 @@ def test_render_quest_numbers_variant_talks() -> None:
         quest_id=73000,
         title="Test Quest",
         chapter_title=None,
+        group_name=None,
         description=None,
         steps=[
             _quest_talk_step(1, "First branch"),
@@ -886,6 +887,69 @@ def test_render_quest_numbers_variant_talks() -> None:
     assert "(variant" not in content.split("## Talk 2")[1]
     assert "## Talk 3 (alternative/additional)" in content
     assert "## Talk 3\n" in content
+
+
+@pytest.mark.parametrize(
+    "titles,expected",
+    [
+        # CHS ·-separated ordinals
+        (["山中好长日·序章 魔山", "山中好长日·第一章 天堂"], "山中好长日"),
+        # Space-separated CHS ordinals
+        (["森林书 第一章 林中奇遇", "森林书 第二章 梦中的苗圃"], "森林书"),
+        # Roman numerals are prefix-closed (I/II); cut at the strong separator
+        (
+            ["Aranyaka: Part I Woodland Encounter", "Aranyaka: Part II Dream Nursery"],
+            "Aranyaka",
+        ),
+        # Divergence right at the separator (with/without colon) needs no cut
+        (
+            [
+                "Canticles of Harmony Prelude Petrichorror Dream",
+                "Canticles of Harmony: Finale Requiem",
+            ],
+            "Canticles of Harmony",
+        ),
+        # No strong separator: cut back to the last non-alphanumeric character
+        (
+            ["欢夏！邪龙？童话国！第一页 A", "欢夏！邪龙？童话国！第二页 B"],
+            "欢夏！邪龙？童话国！",
+        ),
+        # Hyphen works as a strong separator too
+        (
+            [
+                "Fabulous Fungus Frenzy - Act I X",
+                "Fabulous Fungus Frenzy - Act II Y",
+            ],
+            "Fabulous Fungus Frenzy",
+        ),
+        # Nothing in common
+        (["夏活 夏活beta测试任务", "绘夏！烈日？度假村！其一 C"], None),
+    ],
+)
+def test_common_prefix_name(titles: list[str], expected: str | None) -> None:
+    assert quest._common_prefix_name(titles) == expected
+
+
+def test_render_quest_group_line() -> None:
+    """A quest with a group name renders it above the chapter line."""
+    quest_info = processed_types.QuestInfo(
+        quest_id=76095,
+        title="Paradise",
+        chapter_title="A Long Day in the Mountains: Chapter 1 Paradise",
+        group_name="A Long Day in the Mountains",
+        description=None,
+        steps=[_quest_talk_step(1, "Hello")],
+        non_subquest_talks=[],
+        associated_free_talks=[],
+    )
+
+    content = quest.render_quest(quest_info, localization.Language.ENG).content
+
+    assert content.index(
+        "(Quest is part of group: A Long Day in the Mountains)"
+    ) < content.index(
+        "(Quest is part of chapter: A Long Day in the Mountains: Chapter 1 Paradise)"
+    )
 
 
 def test_render_character_story_constellations() -> None:
