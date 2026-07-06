@@ -1,4 +1,5 @@
-import { ReactNode, createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import clsx from 'clsx'
 import { ChevronLeft, ChevronRight, Menu } from 'lucide-react'
 import Button from './Button'
@@ -31,9 +32,12 @@ interface PageShellProps {
   sidebar?: ReactNode
   // How the desktop rail sizes against the main column: 'fit' clamps the rail
   // to the main column's height (scrolling internally), so the sidebar never
-  // extends the page; 'natural' keeps the rail's full content height, letting
-  // a tall sidebar extend the page. Pass explicitly whenever `sidebar` is set.
-  sidebarSizing?: 'fit' | 'natural'
+  // extends the page; 'fill' pins the whole page to the viewport on desktop —
+  // the document never scrolls, the rail spans the full height, and the main
+  // column scrolls internally instead (below the breakpoint it behaves like
+  // 'fit'); 'natural' keeps the rail's full content height, letting a tall
+  // sidebar extend the page. Pass explicitly whenever `sidebar` is set.
+  sidebarSizing?: 'fit' | 'fill' | 'natural'
   // Accessible name for the mobile drawer toggle button (and visible label for
   // the desktop bookmark tab).
   sidebarLabel?: ReactNode
@@ -61,6 +65,16 @@ function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLab
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
   const openDrawer = useCallback(() => setDrawerOpen(true), [])
 
+  // In 'fill' sizing the body, not the window, is the page scroller, so
+  // ScrollRestoration doesn't reach it; reset it to the top on navigation the
+  // way ScrollRestoration resets the window. A no-op when the body doesn't
+  // scroll.
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const { pathname } = useLocation()
+  useEffect(() => {
+    bodyRef.current?.scrollTo(0, 0)
+  }, [pathname])
+
   // Close the drawer on Escape while open.
   useEffect(() => {
     if (!drawerOpen) return
@@ -77,12 +91,15 @@ function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLab
     const panelClass = clsx(
       styles.panel,
       styles.wide,
+      // pageShellFill is a global marker so RootLayout's .app can pin the
+      // frame to the viewport via :has() (CSS modules hash cross-file names).
+      sidebarSizing === 'fill' && [styles.panelFill, 'pageShellFill'],
       closeable && styles.ledger,
       closed && styles.ledgerClosed,
     )
     const railClass = clsx(
       styles.rail,
-      sidebarSizing === 'fit' && styles.railFit,
+      (sidebarSizing === 'fit' || sidebarSizing === 'fill') && styles.railFit,
       closeable && styles.ledgerRail,
       drawerOpen && styles.railOpen,
     )
@@ -112,17 +129,19 @@ function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLab
             aria-hidden
           />
           {closeable && (
-            <button
-              type="button"
-              className={styles.ledgerTab}
-              onClick={onSidebarToggle}
-              aria-label={typeof sidebarLabel === 'string' ? sidebarLabel : undefined}
-            >
-              {closed
-                ? <ChevronLeft className={styles.ledgerTabGlyph} aria-hidden />
-                : <ChevronRight className={styles.ledgerTabGlyph} aria-hidden />}
-              <span className={styles.ledgerTabLabel}>{sidebarLabel}</span>
-            </button>
+            <div className={styles.ledgerTabTrack}>
+              <button
+                type="button"
+                className={styles.ledgerTab}
+                onClick={onSidebarToggle}
+                aria-label={typeof sidebarLabel === 'string' ? sidebarLabel : undefined}
+              >
+                {closed
+                  ? <ChevronLeft className={styles.ledgerTabGlyph} aria-hidden />
+                  : <ChevronRight className={styles.ledgerTabGlyph} aria-hidden />}
+                <span className={styles.ledgerTabLabel}>{sidebarLabel}</span>
+              </button>
+            </div>
           )}
           <aside className={railClass}>
             <div className={styles.railInner}>
@@ -131,7 +150,7 @@ function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLab
               </CloseSidebarDrawerContext.Provider>
             </div>
           </aside>
-          <div className={bodyClass}>
+          <div className={bodyClass} ref={bodyRef}>
             <OpenSidebarDrawerContext.Provider value={openDrawer}>
             {children}
             </OpenSidebarDrawerContext.Provider>

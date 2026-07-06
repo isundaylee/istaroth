@@ -3,5 +3,8 @@
  * rail then sits just outside its right edge in the leftover gutter. */
 
 .measure {
-  max-width: 760px;
+  /* 730px (not the classic 760px): a slightly tighter line keeps more gutter
+     for the inset minimized-popup cards and loses less measure on narrow
+     desktops (tablet landscape), where the column squeezes below this cap. */
+  max-width: 730px;
 }

@@ -194,6 +194,16 @@ export function useRailPlacementGuide(): (element: HTMLElement | null) => void {
   )
 }
 
+/** Nearest ancestor that clips or scrolls its overflow, or null when only the
+ * document scrolls. */
+function _scrollParent(el: HTMLElement): HTMLElement | null {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const style = window.getComputedStyle(p)
+    if (style.overflowX !== 'visible' || style.overflowY !== 'visible') return p
+  }
+  return null
+}
+
 /** Bottom edge of a guide's stuck position (its sticky top offset plus its
  * height), or 0 while the guide is not rendered sticky. */
 function _stuckBottom(guide: HTMLElement): number {
@@ -215,8 +225,12 @@ function _stuckBottom(guide: HTMLElement): number {
  * is room — anchored to a visible edge rather than floating mid-gutter, since
  * the region's own right border may end well inside a wider card (the library
  * reading measure). Without room (or a boundary) it falls back to just outside
- * the region, then inset just inside it. This choice and the guide clearance
- * are measured only on resize.
+ * the region, then inset just inside it. The outside spot also only exists when
+ * the region scrolls with the document: inside a scroll container (the
+ * library's viewport-pinned main column), anything past the container's border
+ * would become scrollable overflow — a stray horizontal scrollbar and clipped
+ * cards — so the rail stays inset. This choice and the guide clearance are
+ * measured only on resize.
  */
 export function MinimizedPopupRegion({ children, className }: { children: ReactNode; className?: string }) {
   const { setRail, guides } = useContext(PopupCoordinatorContext)
@@ -233,7 +247,8 @@ export function MinimizedPopupRegion({ children, className }: { children: ReactN
       const regionRect = region.getBoundingClientRect()
       const edge = boundary ? boundary.getBoundingClientRect().right : regionRect.right
       setTrackLeft(
-        edge + RAIL_GAP + railWidth > window.innerWidth - RAIL_MARGIN
+        _scrollParent(region) !== null ||
+          edge + RAIL_GAP + railWidth > window.innerWidth - RAIL_MARGIN
           ? null
           : edge - regionRect.left + RAIL_GAP
       )

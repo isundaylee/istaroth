@@ -42,12 +42,25 @@
 
 /* ── Ledger bookmark tab ──
  * A vertical bookmark tab attached to the panel's left border. On mobile the tab
- * is hidden and replaced by the drawerToggleBar. */
-.ledgerTab {
+ * is hidden and replaced by the drawerToggleBar. The track is a full-height
+ * strip along the border; the tab sticks to the viewport inside it, so it stays
+ * reachable while the main column scrolls. */
+.ledgerTabTrack {
   position: absolute;
-  top: 8rem;
+  top: 0;
+  bottom: 0;
   left: -29px;
   z-index: 10;
+  width: 30px;
+  /* Only the tab itself should catch clicks, not the whole strip. */
+  pointer-events: none;
+}
+
+.ledgerTab {
+  position: sticky;
+  top: 15px;
+  margin-top: 8rem;
+  pointer-events: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -158,7 +171,12 @@
   .wide {
     position: relative;
     left: 50%;
-    width: min(1140px, calc(100vw - 30px));
+    /* 40px page margin per side — enough for the ledger's bookmark tab, which
+       hangs 29px off the left border, not to be clipped by the screen edge on
+       narrow desktops (e.g. iPad mini landscape). Applied to every wide frame,
+       not just the ledger, so the rail and main column line up identically
+       across pages at the cost of a slightly narrower reading column. */
+    width: min(1140px, calc(100vw - 80px));
     transform: translateX(-50%);
   }
 
@@ -234,6 +252,33 @@
     padding: 1.25rem 0.9rem 2rem;
   }
 
+  /* Fill sizing (`sidebarSizing="fill"`): fit's rail behavior inside a
+     viewport-pinned page. RootLayout spots the global `pageShellFill` marker
+     and turns the app frame into an exact viewport-height column, so the
+     document never scrolls: the panel flexes to the space above the footer,
+     the split's row is capped to it, and the main column scrolls internally
+     instead of the page. The body being the scroller (not the panel) keeps
+     the minimized-popup rail working — it sticks against the body scrollport. */
+  .panelFill {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .panelFill .split {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .panelFill .split > .body {
+    /* The page scroller: overflow keeps the grid's auto row from growing past
+       the split, and stretch (overriding the split's align-items: start) makes
+       the scrollport span the full row height. */
+    overflow-y: auto;
+    align-self: stretch;
+  }
+
   .backdrop,
   .drawerToggle {
     display: none;
@@ -269,7 +314,7 @@
 
 /* ── Mobile: hide the tab; the nav's drawer toggle takes over ── */
 @media (max-width: 999px) {
-  .ledgerTab {
+  .ledgerTabTrack {
     display: none;
   }
 }
