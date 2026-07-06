@@ -104,6 +104,19 @@
   color: var(--color-text-muted);
 }
 
+/* Marks nodes whose subtree holds content added in the latest game version;
+   sits inline right after the title text so it follows a wrapped last line. */
+.newBadge {
+  margin-left: 0.35rem;
+  padding: 0 0.28rem;
+  border: 1px solid var(--color-accent-hairline);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  color: var(--color-primary-text);
+  white-space: nowrap;
+}
+
 .context {
   display: block;
   margin-top: 0.1rem;

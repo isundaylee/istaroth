@@ -424,7 +424,9 @@ export interface components {
          * @description One node in a browsable document hierarchy.
          *
          *     A node is either a group (``children`` set) or a leaf (``file_id`` set, a
-         *     viewable file). ``title`` is the resolved display label.
+         *     viewable file). ``title`` is the resolved display label. ``max_version`` is
+         *     the newest first-seen game version in the node's subtree (the file's own for
+         *     a leaf); ``None`` for versionless (non-AGD) content.
          */
         HierarchyNode: {
             /** Key */
@@ -437,6 +439,8 @@ export interface components {
             file_id: number | null;
             /** Toc Eligible */
             toc_eligible: boolean;
+            /** Max Version */
+            max_version: string | null;
         };
         /**
          * LibraryCategoryHierarchy
@@ -481,10 +485,15 @@ export interface components {
         /**
          * LibraryHierarchyResponse
          * @description Full library hierarchy: every category's document tree, in display order.
+         *
+         *     ``latest_version`` is the newest first-seen game version anywhere in the
+         *     corpus, letting clients badge content added in the latest version.
          */
         LibraryHierarchyResponse: {
             /** Categories */
             categories: components["schemas"]["LibraryCategoryHierarchy"][];
+            /** Latest Version */
+            latest_version: string | null;
         };
         /**
          * LibraryRetrieveRequest

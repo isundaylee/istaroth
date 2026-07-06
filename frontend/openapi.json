@@ -959,6 +959,17 @@
           "toc_eligible": {
             "type": "boolean",
             "title": "Toc Eligible"
+          },
+          "max_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Version"
           }
         },
         "type": "object",
@@ -967,10 +978,11 @@
           "title",
           "children",
           "file_id",
-          "toc_eligible"
+          "toc_eligible",
+          "max_version"
         ],
         "title": "HierarchyNode",
-        "description": "One node in a browsable document hierarchy.\n\nA node is either a group (``children`` set) or a leaf (``file_id`` set, a\nviewable file). ``title`` is the resolved display label."
+        "description": "One node in a browsable document hierarchy.\n\nA node is either a group (``children`` set) or a leaf (``file_id`` set, a\nviewable file). ``title`` is the resolved display label. ``max_version`` is\nthe newest first-seen game version in the node's subtree (the file's own for\na leaf); ``None`` for versionless (non-AGD) content."
       },
       "LibraryCategoryHierarchy": {
         "properties": {
@@ -1073,14 +1085,26 @@
             },
             "type": "array",
             "title": "Categories"
+          },
+          "latest_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Version"
           }
         },
         "type": "object",
         "required": [
-          "categories"
+          "categories",
+          "latest_version"
         ],
         "title": "LibraryHierarchyResponse",
-        "description": "Full library hierarchy: every category's document tree, in display order."
+        "description": "Full library hierarchy: every category's document tree, in display order.\n\n``latest_version`` is the newest first-seen game version anywhere in the\ncorpus, letting clients badge content added in the latest version."
       },
       "LibraryRetrieveRequest": {
         "properties": {

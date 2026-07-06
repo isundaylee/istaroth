@@ -189,6 +189,8 @@ export const chs = {
     },
     backToFiles: '返回文件列表',
     versionBadge: '(于 {version} 版本加入)',
+    versionBadgeRange: '(于 {version} 版本陆续加入)',
+    newBadge: 'NEW',
     categories: {
       agd_artifact_set: '圣遗物套装',
       agd_book: '书籍',

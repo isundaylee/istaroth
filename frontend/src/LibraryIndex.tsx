@@ -22,6 +22,9 @@ const MAX_FILTER_RESULTS = 200
 
 interface LibraryIndexProps {
   categories: LibraryCategoryHierarchy[]
+  // The newest first-seen game version in the corpus; nodes whose subtree
+  // max_version matches it get a NEW badge (null when the corpus has none).
+  latestVersion: string | null
   // The category containing the open file / browsed group (null at the root).
   activeCategory: string | null
   // The file currently open in the Folio (null when browsing a group / the root).
@@ -34,7 +37,7 @@ interface LibraryIndexProps {
 // library, with a top-level group per category, the branch leading to the open
 // file/group auto-expanded, and the current leaf marked. Groups expand/collapse
 // in place; a filter flattens to matching leaves across all categories.
-function LibraryIndex({ categories, activeCategory, activeFileId, activeBrowseKeys }: LibraryIndexProps) {
+function LibraryIndex({ categories, latestVersion, activeCategory, activeFileId, activeBrowseKeys }: LibraryIndexProps) {
   const t = useT()
   const navigate = useAppNavigate()
   const closeDrawer = useCloseSidebarDrawer()
@@ -50,6 +53,9 @@ function LibraryIndex({ categories, activeCategory, activeFileId, activeBrowseKe
         children: entry.nodes,
         file_id: null,
         toc_eligible: false,
+        // Siblings arrive sorted newest subtree max_version first (versionless
+        // trailing), so the first child carries the category's max.
+        max_version: entry.nodes[0]?.max_version ?? null,
       })),
     [categories, t]
   )
@@ -97,6 +103,14 @@ function LibraryIndex({ categories, activeCategory, activeFileId, activeBrowseKe
     navigate(`/library/${encodeURIComponent(category)}/${encodeURIComponent(fileId)}`)
   }
 
+  // Inline NEW badge for nodes whose subtree holds content added in the
+  // latest game version; rendered right after the title text.
+  const newBadge = (node: HierarchyNode) =>
+    latestVersion != null &&
+    node.max_version === latestVersion && (
+      <span className={styles.newBadge}>{t('library.newBadge')}</span>
+    )
+
   const renderNodes = (items: HierarchyNode[], parentPath: string): React.ReactNode => (
     <ul className={parentPath ? styles.children : styles.list}>
       {items.map((node, index) => {
@@ -115,7 +129,10 @@ function LibraryIndex({ categories, activeCategory, activeFileId, activeBrowseKe
                 className={clsx(styles.row, styles.leaf, current && styles.current)}
                 onClick={() => openLeaf(category, node.file_id!)}
               >
-                <span className={styles.label}>{nodeLabel(node) || t('library.noFileName')}</span>
+                <span className={styles.label}>
+                  {nodeLabel(node) || t('library.noFileName')}
+                  {newBadge(node)}
+                </span>
               </button>
             </li>
           )
@@ -134,7 +151,10 @@ function LibraryIndex({ categories, activeCategory, activeFileId, activeBrowseKe
                 {open ? <ChevronDown size={12} aria-hidden /> : <ChevronRight size={12} aria-hidden />}
               </span>
               <span className={styles.groupBody}>
-                <span className={styles.label}>{nodeLabel(node) || t('library.noFileName')}</span>
+                <span className={styles.label}>
+                  {nodeLabel(node) || t('library.noFileName')}
+                  {newBadge(node)}
+                </span>
                 <span className={styles.count}>{countLeaves(node)}</span>
               </span>
             </button>

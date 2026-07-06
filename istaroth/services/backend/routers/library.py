@@ -105,9 +105,9 @@ async def get_library_hierarchy(
     """
     text_set_obj = _get_text_set(document_store_set, _parse_language(language))
 
-    # The "v1" prefix versions the response shape: the hash covers only the
+    # The "v2" prefix versions the response shape: the hash covers only the
     # corpus data, so it must be bumped if the payload structure ever changes.
-    etag = f'"v1-{text_set_obj.library_hierarchies_content_hash}"'
+    etag = f'"v2-{text_set_obj.library_hierarchies_content_hash}"'
     if request.headers.get("if-none-match") == etag:
         return fastapi.Response(status_code=304, headers={"ETag": etag})
     response.headers["ETag"] = etag
@@ -119,7 +119,8 @@ async def get_library_hierarchy(
                 {"category": category, **hierarchy}
             )
             for category, hierarchy in text_set_obj.get_library_hierarchies().items()
-        ]
+        ],
+        latest_version=text_set_obj.latest_version,
     )
 
 

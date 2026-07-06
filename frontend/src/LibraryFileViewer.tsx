@@ -108,7 +108,13 @@ function LibraryFileViewer() {
           crumbs={crumbs}
           trailing={
             minVersion !== null && maxVersion !== null
-              ? t('library.versionBadge').replace(
+              ? t(
+                  // A min/max spread means the file's content accrued across
+                  // versions, so phrase it as "added over" rather than "added in".
+                  minVersion === maxVersion
+                    ? 'library.versionBadge'
+                    : 'library.versionBadgeRange'
+                ).replace(
                   '{version}',
                   formatVersionRange(minVersion, maxVersion)
                 )
