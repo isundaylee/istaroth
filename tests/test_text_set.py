@@ -56,23 +56,26 @@ def test_library_hierarchies(tmp_path: pathlib.Path) -> None:
         name="agd",
     )
 
-    def _leaf(id: int, title: str) -> dict:
-        return {
+    def _leaf(id: int, title: str, version: str | None = None) -> dict:
+        node = {
             "key": f"q{id}",
             "title": title,
             "children": None,
             "file_id": id,
             "toc_eligible": True,
         }
+        # Input prebaked nodes carry no version; expected outputs are annotated.
+        return node | {"max_version": version} if version is not None else node
 
-    def _chapter(key: str, *leaves: dict) -> dict:
-        return {
+    def _chapter(key: str, *leaves: dict, version: str | None = None) -> dict:
+        node = {
             "key": key,
             "title": key,
             "children": list(leaves),
             "file_id": None,
             "toc_eligible": False,
         }
+        return node | {"max_version": version} if version is not None else node
 
     quest_tree = {
         "nodes": [
@@ -101,11 +104,17 @@ def test_library_hierarchies(tmp_path: pathlib.Path) -> None:
     ]
     # Pre-baked tree keeps its structure but sorts every sibling level by the
     # newest subtree max_version: chapter1 leads via its 5.0 leaf (despite also
-    # holding the oldest one), and its leaves reorder newest-first.
+    # holding the oldest one), and its leaves reorder newest-first. Every node
+    # is annotated with its subtree max_version.
     assert hierarchies["agd_quest"] == {
         "nodes": [
-            _chapter("chapter1", _leaf(101, "New Act"), _leaf(100, "Old Act")),
-            _chapter("chapter2", _leaf(102, "Mid Act")),
+            _chapter(
+                "chapter1",
+                _leaf(101, "New Act", version="5.0"),
+                _leaf(100, "Old Act", version="1.4"),
+                version="5.0",
+            ),
+            _chapter("chapter2", _leaf(102, "Mid Act", version="3.1"), version="3.1"),
         ]
     }
     assert hierarchies["agd_readable"] == {
@@ -116,6 +125,7 @@ def test_library_hierarchies(tmp_path: pathlib.Path) -> None:
                 "children": None,
                 "file_id": 10,
                 "toc_eligible": False,
+                "max_version": "4.10",
             },
             {
                 "key": "q20",
@@ -123,6 +133,7 @@ def test_library_hierarchies(tmp_path: pathlib.Path) -> None:
                 "children": None,
                 "file_id": 20,
                 "toc_eligible": False,
+                "max_version": "4.2",
             },
             {
                 "key": "q30",
@@ -130,9 +141,15 @@ def test_library_hierarchies(tmp_path: pathlib.Path) -> None:
                 "children": None,
                 "file_id": 30,
                 "toc_eligible": False,
+                "max_version": "4.2",
             },
         ]
     }
-    # Versionless (non-AGD) items fall back to id order.
+    # Versionless (non-AGD) items fall back to id order and carry no version.
     assert [n["file_id"] for n in hierarchies["tps_shishu"]["nodes"]] == [1, 2]
+    assert [n["max_version"] for n in hierarchies["tps_shishu"]["nodes"]] == [
+        None,
+        None,
+    ]
+    assert text_set_obj.latest_version == "5.0"
     assert text_set_obj.library_hierarchies_content_hash

@@ -189,6 +189,8 @@ export const eng = {
     },
     backToFiles: 'Back to Files',
     versionBadge: '(Added in {version})',
+    versionBadgeRange: '(Added across {version})',
+    newBadge: 'NEW',
     categories: {
       agd_artifact_set: 'Artifact Sets',
       agd_book: 'Books',

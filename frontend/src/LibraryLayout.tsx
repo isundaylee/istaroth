@@ -27,7 +27,9 @@ export async function libraryHierarchyLoader({
 function LibraryLayout() {
   const t = useT()
   const params = useParams()
-  const { categories } = useRouteLoaderData('library-root') as LibraryHierarchyResponse
+  const { categories, latest_version: latestVersion } = useRouteLoaderData(
+    'library-root'
+  ) as LibraryHierarchyResponse
 
   const category = params.category ?? null
   const activeFileId = params.id ? parseInt(params.id, 10) : null
@@ -38,6 +40,7 @@ function LibraryLayout() {
       sidebar={
         <LibraryIndex
           categories={categories}
+          latestVersion={latestVersion}
           activeCategory={category}
           activeFileId={activeFileId}
           activeBrowseKeys={activeBrowseKeys}

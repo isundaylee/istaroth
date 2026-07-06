@@ -44,28 +44,31 @@ def _category_display_order(category: text_types.TextCategory) -> tuple[int, str
 
 def _sort_nodes_by_version(
     nodes: list[dict[str, Any]], max_versions: dict[int, str | None]
-) -> tuple[list[dict[str, Any]], tuple[int, ...] | None]:
+) -> tuple[list[dict[str, Any]], str | None]:
     """Sort sibling nodes newest subtree max_version first, recursively.
 
     Group nodes order by the newest version among their descendant leaves, so
     recently updated content bubbles to the top at every level. The sort is
     stable: ties and versionless nodes (which trail) keep their original
-    relative order. Returns sorted copies plus the subtree's newest version key.
+    relative order. Each node copy is annotated with its subtree max_version;
+    returns sorted copies plus the subtree's newest version.
     """
     keyed = []
     for node in nodes:
         if (children := node["children"]) is not None:
-            children, key = _sort_nodes_by_version(children, max_versions)
-            node = node | {"children": children}
+            children, version = _sort_nodes_by_version(children, max_versions)
+            node = node | {"children": children, "max_version": version}
         else:
             version = max_versions[node["file_id"]]
-            key = first_seen.version_sort_key(version) if version is not None else None
-        keyed.append((key, node))
+            node = node | {"max_version": version}
+        key = first_seen.version_sort_key(version) if version is not None else None
+        keyed.append((key, version, node))
     keyed.sort(
-        key=lambda kn: (1, ()) if kn[0] is None else (0, tuple(-p for p in kn[0]))
+        key=lambda kvn: (1, ()) if kvn[0] is None else (0, tuple(-p for p in kvn[0]))
     )
-    return [node for _, node in keyed], max(
-        (key for key, _ in keyed if key is not None), default=None
+    # Versioned entries sort first (newest first), so the head holds the max.
+    return [node for *_, node in keyed], (
+        keyed[0][1] if keyed and keyed[0][0] is not None else None
     )
 
 
@@ -182,6 +185,15 @@ class TextSet:
     def get_library_hierarchies(self) -> dict[str, Any]:
         """Get every category's document tree, keyed by category value."""
         return self._library_hierarchies
+
+    @functools.cached_property
+    def latest_version(self) -> str | None:
+        """Newest first-seen game version across the manifest; None if all versionless."""
+        return max(
+            (v for item in self._manifest if (v := item.max_version) is not None),
+            key=first_seen.version_sort_key,
+            default=None,
+        )
 
     @functools.cached_property
     def library_hierarchies_content_hash(self) -> str:
