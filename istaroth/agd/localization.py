@@ -160,6 +160,7 @@ def get_localized_role_names(language: Language) -> processed_types.LocalizedRol
         Language.CHS: processed_types.LocalizedRoleNames(
             player="旅行者",
             mate_avatar="旅行者血亲",
+            paimon="派蒙",
             black_screen="黑屏文本",
             unknown_npc="Unknown NPC",
             unknown_role="Unknown Role",
@@ -167,6 +168,7 @@ def get_localized_role_names(language: Language) -> processed_types.LocalizedRol
         Language.ENG: processed_types.LocalizedRoleNames(
             player="Traveler",
             mate_avatar="Traveler's Sibling",
+            paimon="Paimon",
             black_screen="Black Screen Text",
             unknown_npc="Unknown NPC",
             unknown_role="Unknown Role",

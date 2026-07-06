@@ -141,7 +141,6 @@ def test_render_talk_basic() -> None:
             next_dialog_ids=[2],
             dialog_id=1,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="旅行者",
@@ -149,7 +148,6 @@ def test_render_talk_basic() -> None:
             next_dialog_ids=[3],
             dialog_id=2,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="神秘声音",
@@ -157,7 +155,6 @@ def test_render_talk_basic() -> None:
             next_dialog_ids=[],
             dialog_id=3,
             skip=False,
-            role_skip=False,
         ),
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
@@ -194,7 +191,6 @@ def test_render_talk_long_message() -> None:
             next_dialog_ids=[],
             dialog_id=1,
             skip=False,
-            role_skip=False,
         )
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
@@ -242,7 +238,6 @@ def test_render_talk_special_characters() -> None:
             next_dialog_ids=[],
             dialog_id=1,
             skip=False,
-            role_skip=False,
         )
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
@@ -275,7 +270,6 @@ def test_render_talk_branching_convergence() -> None:
             next_dialog_ids=[2, 5],
             dialog_id=1,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -283,7 +277,6 @@ def test_render_talk_branching_convergence() -> None:
             next_dialog_ids=[3],
             dialog_id=2,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -291,7 +284,6 @@ def test_render_talk_branching_convergence() -> None:
             next_dialog_ids=[4],
             dialog_id=3,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -299,7 +291,6 @@ def test_render_talk_branching_convergence() -> None:
             next_dialog_ids=[],
             dialog_id=4,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -307,7 +298,6 @@ def test_render_talk_branching_convergence() -> None:
             next_dialog_ids=[6],
             dialog_id=5,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -315,7 +305,6 @@ def test_render_talk_branching_convergence() -> None:
             next_dialog_ids=[4],
             dialog_id=6,
             skip=False,
-            role_skip=False,
         ),
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
@@ -365,7 +354,6 @@ def test_render_talk_nested_branches() -> None:
             next_dialog_ids=[2, 3],
             dialog_id=1,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -373,7 +361,6 @@ def test_render_talk_nested_branches() -> None:
             next_dialog_ids=[4, 5],
             dialog_id=2,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -381,7 +368,6 @@ def test_render_talk_nested_branches() -> None:
             next_dialog_ids=[6],
             dialog_id=3,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -389,7 +375,6 @@ def test_render_talk_nested_branches() -> None:
             next_dialog_ids=[6],
             dialog_id=4,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -397,7 +382,6 @@ def test_render_talk_nested_branches() -> None:
             next_dialog_ids=[6],
             dialog_id=5,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -405,7 +389,6 @@ def test_render_talk_nested_branches() -> None:
             next_dialog_ids=[],
             dialog_id=6,
             skip=False,
-            role_skip=False,
         ),
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
@@ -460,7 +443,6 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
             next_dialog_ids=[2, 3],
             dialog_id=1,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -468,7 +450,6 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
             next_dialog_ids=[7],
             dialog_id=2,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -476,7 +457,6 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
             next_dialog_ids=[4, 5],
             dialog_id=3,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -484,7 +464,6 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
             next_dialog_ids=[6],
             dialog_id=4,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -492,7 +471,6 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
             next_dialog_ids=[6],
             dialog_id=5,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -500,7 +478,6 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
             next_dialog_ids=[7],
             dialog_id=6,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -508,7 +485,6 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
             next_dialog_ids=[],
             dialog_id=7,
             skip=False,
-            role_skip=False,
         ),
     ]
     talk_info = processed_types.TalkInfo(text=talk_texts)
@@ -568,7 +544,6 @@ def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
             next_dialog_ids=[2, 4],
             dialog_id=1,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -576,7 +551,6 @@ def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
             next_dialog_ids=[6],
             dialog_id=2,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -584,7 +558,6 @@ def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
             next_dialog_ids=[5],
             dialog_id=4,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -592,7 +565,6 @@ def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
             next_dialog_ids=[6],
             dialog_id=5,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -600,7 +572,6 @@ def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
             next_dialog_ids=[7, 8],
             dialog_id=6,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -608,7 +579,6 @@ def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
             next_dialog_ids=[9],
             dialog_id=7,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -616,7 +586,6 @@ def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
             next_dialog_ids=[9],
             dialog_id=8,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -624,7 +593,6 @@ def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
             next_dialog_ids=[],
             dialog_id=9,
             skip=False,
-            role_skip=False,
         ),
     ]
 
@@ -665,7 +633,6 @@ def test_render_talk_menu_hub_no_blowup() -> None:
             next_dialog_ids=[2, 4],
             dialog_id=1,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -673,7 +640,6 @@ def test_render_talk_menu_hub_no_blowup() -> None:
             next_dialog_ids=[3],
             dialog_id=2,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -681,7 +647,6 @@ def test_render_talk_menu_hub_no_blowup() -> None:
             next_dialog_ids=[7],
             dialog_id=3,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -689,7 +654,6 @@ def test_render_talk_menu_hub_no_blowup() -> None:
             next_dialog_ids=[5],
             dialog_id=4,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -697,7 +661,6 @@ def test_render_talk_menu_hub_no_blowup() -> None:
             next_dialog_ids=[8],
             dialog_id=5,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -705,7 +668,6 @@ def test_render_talk_menu_hub_no_blowup() -> None:
             next_dialog_ids=[9],
             dialog_id=6,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -713,7 +675,6 @@ def test_render_talk_menu_hub_no_blowup() -> None:
             next_dialog_ids=[],
             dialog_id=9,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -721,7 +682,6 @@ def test_render_talk_menu_hub_no_blowup() -> None:
             next_dialog_ids=[2, 4, 6],
             dialog_id=7,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -729,7 +689,6 @@ def test_render_talk_menu_hub_no_blowup() -> None:
             next_dialog_ids=[2, 4, 6],
             dialog_id=8,
             skip=False,
-            role_skip=False,
         ),
     ]
     rendered = _talk.render_talk(
@@ -766,7 +725,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[12, 13, 14],
             dialog_id=11,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -774,7 +732,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[15],
             dialog_id=12,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -782,7 +739,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[16],
             dialog_id=13,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -790,7 +746,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[16],
             dialog_id=14,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -798,7 +753,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[17],
             dialog_id=15,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -806,7 +760,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[12, 13, 14],
             dialog_id=16,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -814,7 +767,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[18],
             dialog_id=17,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -822,7 +774,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[22],
             dialog_id=18,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -830,7 +781,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[23, 24, 25],
             dialog_id=22,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -838,7 +788,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[26],
             dialog_id=23,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -846,7 +795,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[27],
             dialog_id=24,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="Player",
@@ -854,7 +802,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[27],
             dialog_id=25,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -862,7 +809,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[28],
             dialog_id=26,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -870,7 +816,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[23, 24, 25],
             dialog_id=27,
             skip=False,
-            role_skip=False,
         ),
         processed_types.TalkText(
             role="NPC",
@@ -878,7 +823,6 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
             next_dialog_ids=[],
             dialog_id=28,
             skip=False,
-            role_skip=False,
         ),
     ]
     rendered = _talk.render_talk(
@@ -910,7 +854,6 @@ def _quest_talk_step(
                     next_dialog_ids=[],
                     dialog_id=1,
                     skip=False,
-                    role_skip=False,
                 )
             ]
         ),
@@ -1114,7 +1057,7 @@ def test_render_book_series_chinese_annotation() -> None:
 
 
 def _talk_group_info(
-    *roles: str | None, dev_roles: frozenset[str]
+    *roles: str | None, skip_roles: frozenset[str]
 ) -> processed_types.TalkGroupInfo:
     """One-line-per-role TalkGroupInfo for speaker-name derivation tests."""
     texts = [
@@ -1123,8 +1066,7 @@ def _talk_group_info(
             message="msg",
             next_dialog_ids=[],
             dialog_id=i,
-            skip=False,
-            role_skip=role in dev_roles,
+            skip=role in skip_roles,
         )
         for i, role in enumerate(roles)
     ]
@@ -1134,7 +1076,7 @@ def _talk_group_info(
 
 
 @pytest.mark.parametrize(
-    "roles,dev_roles,expected",
+    "roles,skip_roles,expected",
     [
         # Generic-only speakers give no name.
         (("旅行者", "派蒙", "???", None), frozenset(), None),
@@ -1145,8 +1087,9 @@ def _talk_group_info(
         # composite dedups with the plain name.
         (("旅行者 (观察花卉)",), frozenset(), "观察花卉"),
         (("遗迹的铭文 (铭文)", "遗迹的铭文"), frozenset(), "遗迹的铭文"),
-        # Placeholder roles and roles source-flagged as dev/test are dropped.
+        # Placeholder roles and skip-flagged (dev/test) lines are dropped.
         (("Unknown Role (TALK_ROLE_GADGET)",), frozenset(), None),
+        (("[Missing Talk]",), frozenset(), None),
         (
             ("（test）阿圆 (阿圆)", "阿圆"),
             frozenset({"（test）阿圆 (阿圆)"}),
@@ -1155,11 +1098,11 @@ def _talk_group_info(
     ],
 )
 def test_derive_speaker_group_name(
-    roles: tuple[str | None, ...], dev_roles: frozenset[str], expected: str | None
+    roles: tuple[str | None, ...], skip_roles: frozenset[str], expected: str | None
 ) -> None:
     assert (
         talk_group.derive_speaker_group_name(
-            _talk_group_info(*roles, dev_roles=dev_roles), localization.Language.CHS
+            _talk_group_info(*roles, skip_roles=skip_roles), localization.Language.CHS
         )
         == expected
     )

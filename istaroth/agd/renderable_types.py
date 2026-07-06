@@ -526,6 +526,8 @@ class TalkGroups(
         group_name: str | None = None
         match talk_group_type:
             case "NpcGroup":
+                # An NpcGroup's TalkGroupId is the file's own npcId field (see
+                # TalkParser._handle_talk_group_file), so it is a genuine NpcId.
                 npc_id = int(talk_group_id)
                 source_name = data_repo.build_npc_id_to_source_name_mapping().get(
                     npc_id

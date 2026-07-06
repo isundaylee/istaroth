@@ -17,11 +17,6 @@ from istaroth.text import types as text_types
 
 _SPEAKER_TITLE_LIMIT = 3
 
-_PAIMON_NAMES: dict[localization.Language, str] = {
-    localization.Language.CHS: "派蒙",
-    localization.Language.ENG: "Paimon",
-}
-
 
 def get_talk_group_info(
     talk_group_type: talk_parsing.TalkGroupType,
@@ -70,8 +65,8 @@ def derive_speaker_group_name(
     """Title from the group's most talkative named speakers, or None if none.
 
     Generic speakers (player, Paimon, black-screen text, ``???``,
-    unresolved-role placeholders, roles whose CHS source name is a dev/test
-    placeholder) carry no title signal and are dropped. The top
+    unresolved-role and missing-talk placeholders) carry no title signal and
+    are dropped; dev/test-named roles arrive already ``skip``-flagged. The top
     ``_SPEAKER_TITLE_LIMIT`` names by line count are joined with `` / ``, with
     a trailing ``...`` when more named speakers exist.
     """
@@ -80,7 +75,8 @@ def derive_speaker_group_name(
         roles.player,
         roles.mate_avatar,
         roles.black_screen,
-        _PAIMON_NAMES[language],
+        roles.paimon,
+        _talk.MISSING_TALK_ROLE,
         "???",
         "？？？",
     }
@@ -88,11 +84,7 @@ def derive_speaker_group_name(
     for talk, next_talks in talk_group_info.talks:
         for talk_info in (talk, *next_talks):
             for talk_text in talk_info.text:
-                if (
-                    talk_text.skip
-                    or talk_text.role_skip
-                    or (name := talk_text.role) is None
-                ):
+                if talk_text.skip or (name := talk_text.role) is None:
                     continue
                 # A role rendered as "X (Y)" is _talk's by-role/by-name-hash
                 # mismatch composite; count its more specific half so e.g.

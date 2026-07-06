@@ -16,6 +16,10 @@ from istaroth.agd import (
 )
 from istaroth.text import types as text_types
 
+MISSING_TALK_ROLE = "[Missing Talk]"
+"""Placeholder role for a talk that could not be retrieved; rendered inline as a
+visible data gap, but never a speaker for title-derivation purposes."""
+
 
 class _TalkTextGraph:
     """Graph structure for talk dialog items with nextDialogs relationships."""
@@ -472,7 +476,7 @@ def get_talk_info(
         )
         return f"{localized_roles.unknown_role} ({role_type})"
 
-    def _get_role_skip(dialog_item: agd_types.TalkDialogItem) -> bool:
+    def _role_is_dev(dialog_item: agd_types.TalkDialogItem) -> bool:
         """Whether the role's CHS source name carries a dev/test marker.
 
         Decided against the source text like the message-level check below, so
@@ -526,8 +530,7 @@ def get_talk_info(
                 message=message,
                 next_dialog_ids=next_dialog_ids,
                 dialog_id=dialog_item["id"],
-                skip=skip,
-                role_skip=_get_role_skip(dialog_item),
+                skip=skip or _role_is_dev(dialog_item),
             )
         )
 
@@ -564,12 +567,11 @@ def resolve_authoritative_talk(
         return processed_types.TalkInfo(
             text=[
                 processed_types.TalkText(
-                    role="[Missing Talk]",
+                    role=MISSING_TALK_ROLE,
                     message=f"Talk {talk_id} could not be retrieved",
                     next_dialog_ids=[],
                     dialog_id=0,
                     skip=False,
-                    role_skip=True,
                 )
             ]
         )
