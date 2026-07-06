@@ -2,7 +2,6 @@ import { useEffect } from 'react'
 import { useLoaderData, useRouteLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import { useT } from './contexts/LanguageContext'
 import { MinimizedPopupRegion } from './contexts/PopupCoordinatorContext'
-import styles from './LibraryFileViewer.module.css'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
 import HighlightedMarkdown from './components/HighlightedMarkdown'
 import NavButton from './components/NavButton'
@@ -91,7 +90,7 @@ function LibraryFileViewer() {
 
   return (
     <>
-      <MinimizedPopupRegion className={styles.measure}>
+      <MinimizedPopupRegion>
         <Breadcrumbs crumbs={crumbs} />
 
           <SelectableAnswer resetKey={fileContent}>
