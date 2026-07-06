@@ -4,7 +4,7 @@ import textwrap
 
 import pytest
 
-from istaroth.agd import localization, processed_types
+from istaroth.agd import first_seen, localization, processed_types
 from istaroth.agd.renderables import (
     _talk,
     achievement,
@@ -27,9 +27,12 @@ def test_render_readable_basic() -> None:
     )
 
     rendered = readable.render_readable_like(
-        content, metadata, category=text_types.TextCategory.AGD_READABLE
+        content, metadata, "Test_EN.txt", category=text_types.TextCategory.AGD_READABLE
     )
 
+    assert rendered.source_ids == [
+        first_seen.SourceId(first_seen.SourceDomain.READABLE, "Test")
+    ]
     assert rendered.text_metadata.relative_path == "agd_readable/0_Test_Book_Title.txt"
     assert (
         rendered.content
@@ -46,7 +49,7 @@ def test_render_readable_special_characters() -> None:
     )
 
     rendered = readable.render_readable_like(
-        content, metadata, category=text_types.TextCategory.AGD_READABLE
+        content, metadata, "Book999.txt", category=text_types.TextCategory.AGD_READABLE
     )
 
     assert rendered.text_metadata.relative_path == "agd_readable/0_神霄折戟录第六卷.txt"
@@ -62,7 +65,7 @@ def test_render_readable_whitespace() -> None:
     )
 
     rendered = readable.render_readable_like(
-        content, metadata, category=text_types.TextCategory.AGD_READABLE
+        content, metadata, "Book998.txt", category=text_types.TextCategory.AGD_READABLE
     )
 
     assert (
@@ -1081,10 +1084,12 @@ def test_render_book_series_english() -> None:
         series_name="A Drunkard's Tale",
         volumes=[
             processed_types.BookVolumeInfo(
-                title="A Drunkard's Tale (I)", content="First."
+                title="A Drunkard's Tale (I)", content="First.", filename="Book119.txt"
             ),
             processed_types.BookVolumeInfo(
-                title="A Drunkard's Tale (II)", content="Second."
+                title="A Drunkard's Tale (II)",
+                content="Second.",
+                filename="Book120.txt",
             ),
         ],
     )
@@ -1111,7 +1116,9 @@ def test_render_book_series_chinese_annotation() -> None:
         suit_id=3,
         series_name="维莉的忧郁",
         volumes=[
-            processed_types.BookVolumeInfo(title="维莉的忧郁·一", content="正文。")
+            processed_types.BookVolumeInfo(
+                title="维莉的忧郁·一", content="正文。", filename="Book50.txt"
+            )
         ],
     )
 
@@ -1135,7 +1142,7 @@ def _talk_group_info(
         for i, role in enumerate(roles)
     ]
     return processed_types.TalkGroupInfo(
-        talks=[(processed_types.TalkInfo(text=texts), [])]
+        talks=[(processed_types.TalkInfo(text=texts), [])], talk_ids=[1]
     )
 
 

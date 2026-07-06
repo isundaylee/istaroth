@@ -6,6 +6,7 @@ import typing
 from istaroth import utils
 from istaroth.agd import (
     coop_graph,
+    first_seen,
     id_types,
     issues,
     localization,
@@ -337,6 +338,11 @@ def render_hangout(
             title=title,
             id=hangout.quest_id,
             relative_path=f"{text_types.TextCategory.AGD_HANGOUT.value}/{filename}",
+            min_version=None,
+            max_version=None,
         ),
         content="\n".join(content_lines).rstrip(),
+        source_ids=[
+            first_seen.SourceId(first_seen.SourceDomain.MAIN_QUEST, hangout.quest_id)
+        ],
     )

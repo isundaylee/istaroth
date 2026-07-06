@@ -2,6 +2,7 @@
 
 from istaroth import utils
 from istaroth.agd import (
+    first_seen,
     id_types,
     processed_types,
     repo,
@@ -81,6 +82,13 @@ def render_weapon(
             title=weapon_info.name,
             id=int(weapon_info.weapon_id),
             relative_path=f"{text_types.TextCategory.AGD_WEAPON.value}/{filename}",
+            min_version=None,
+            max_version=None,
         ),
         content="\n".join(content_lines),
+        source_ids=[
+            first_seen.SourceId(
+                first_seen.SourceDomain.WEAPON, int(weapon_info.weapon_id)
+            )
+        ],
     )

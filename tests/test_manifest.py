@@ -13,6 +13,8 @@ def _item(id: int, filename: str) -> types.TextMetadata:
         title=f"Talk Group {id}",
         id=id,
         relative_path=f"{types.TextCategory.AGD_TALK_GROUP.value}/{filename}",
+        min_version=None,
+        max_version=None,
     )
 
 

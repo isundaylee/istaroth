@@ -4,6 +4,7 @@ from typing import assert_never
 
 from istaroth import utils
 from istaroth.agd import (
+    first_seen,
     id_types,
     localization,
     processed_types,
@@ -27,7 +28,9 @@ def _render_volume_annotation(
 
 
 def render_book(
-    content: str, metadata: processed_types.ReadableMetadata
+    content: str,
+    metadata: processed_types.ReadableMetadata,
+    readable_filename: id_types.ReadableFilename,
 ) -> processed_types.RenderedItem:
     """Render book content into RAG-suitable format."""
     safe_title = utils.make_safe_filename_part(metadata.title)
@@ -40,8 +43,11 @@ def render_book(
             title=metadata.title,
             id=metadata.localization_id,
             relative_path=f"{text_types.TextCategory.AGD_BOOK.value}/{filename}",
+            min_version=None,
+            max_version=None,
         ),
         content=rendered_content,
+        source_ids=[first_seen.readable_source_id(readable_filename)],
     )
 
 
@@ -71,8 +77,14 @@ def render_book_series(
             title=series_info.series_name,
             id=series_info.suit_id,
             relative_path=f"{text_types.TextCategory.AGD_BOOK.value}/{filename}",
+            min_version=None,
+            max_version=None,
         ),
         content="\n\n".join(content_parts),
+        source_ids=[
+            first_seen.readable_source_id(volume.filename)
+            for volume in series_info.volumes
+        ],
     )
 
 
@@ -104,7 +116,9 @@ def get_book_series_info(
             continue
         content, metadata = loaded
         volumes.append(
-            processed_types.BookVolumeInfo(title=metadata.title, content=content)
+            processed_types.BookVolumeInfo(
+                title=metadata.title, content=content, filename=filename
+            )
         )
     if not volumes:
         return None

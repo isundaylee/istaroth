@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 import attrs
 
-from istaroth.agd import id_types
+from istaroth.agd import first_seen, id_types
 
 if TYPE_CHECKING:
     from istaroth.text import types as text_types
@@ -43,6 +43,7 @@ class BookVolumeInfo:
 
     title: str
     content: str
+    filename: id_types.ReadableFilename
 
 
 @attrs.define
@@ -82,6 +83,9 @@ class TalkInfo:
 class TalkGroupInfo:
     talks: list[tuple[TalkInfo, list[TalkInfo]]]
     """List of (talk, next_talks)."""
+
+    talk_ids: list[id_types.TalkId]
+    """Ids of every talk included in ``talks`` (next talks included)."""
 
 
 @attrs.define
@@ -394,3 +398,5 @@ class RenderedItem:
 
     text_metadata: text_types.TextMetadata
     content: str
+    source_ids: list[first_seen.SourceId]
+    """Raw AGD source ids the content was rendered from (for version stamping)."""

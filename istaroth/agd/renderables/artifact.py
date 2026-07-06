@@ -4,6 +4,7 @@ import pathlib
 
 from istaroth import utils
 from istaroth.agd import (
+    first_seen,
     id_types,
     issues,
     processed_types,
@@ -151,6 +152,13 @@ def render_artifact_set(
             title=artifact_set_info.set_name,
             id=artifact_set_info.set_id,
             relative_path=f"{text_types.TextCategory.AGD_ARTIFACT_SET.value}/{filename}",
+            min_version=None,
+            max_version=None,
         ),
         content=rendered_content,
+        source_ids=[
+            first_seen.SourceId(
+                first_seen.SourceDomain.ARTIFACT_SET, artifact_set_info.set_id
+            )
+        ],
     )

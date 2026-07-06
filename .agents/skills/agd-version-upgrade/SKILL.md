@@ -1,14 +1,15 @@
 ---
 name: agd-version-upgrade
-description: Ingest a new AnimeGameData (AGD) build end-to-end — deobfuscation mappings, TextMap fallback-list audit, and corpus regen. Use when bumping AGD_PATH / AGD to a new game version.
+description: Ingest a new AnimeGameData (AGD) build end-to-end — deobfuscation mappings, TextMap fallback-list audit, first-seen version index, and corpus regen. Use when bumping AGD_PATH / AGD to a new game version.
 ---
 
 # Ingest a New AGD Version
 
-Orchestrates the three steps needed whenever `<AGD>` moves to a new build: new
-deobfuscation mappings, an audit of the TextMap fallback list, then a corpus
-regen. Each step has its own skill; this one sequences them and adds the
-fallback-audit step that doesn't otherwise have a home.
+Orchestrates the steps needed whenever `<AGD>` moves to a new build: new
+deobfuscation mappings, an audit of the TextMap fallback list, an update of
+the first-seen version index, then a corpus regen. Some steps have their own
+skill; this one sequences them and adds the steps that don't otherwise have
+a home.
 
 ## 1. Add deobfuscation mappings
 
@@ -68,7 +69,24 @@ lacks a hash.
    fallback-ordering tests still pass — they're sensitive to
    `_TEXT_MAP_FALLBACK_REFS` changes.
 
-## 3. Regenerate and commit the corpus
+## 3. Update the first-seen version index
+
+Corpus items carry `min_version`/`max_version` metadata resolved from the
+per-version delta files in `text/first_seen/` in the `text/` submodule (see
+`istaroth/agd/first_seen.py`). Ingesting a new build must extend the index,
+or `generate-all` fails on the new build's ids:
+
+1. Append the new version's `(version, commit)` entry to `_SNAPSHOTS` in
+   `scripts/build_first_seen.py`. Use the new build's snapshot commit in
+   `<AGD>`'s git history; normalize hotfix versions to `major.minor`.
+2. Run `uv run python scripts/build_first_seen.py --agd-path <AGD>` — it
+   scans only the new snapshot and writes
+   `text/first_seen/<version>.json` with the ids not seen in any earlier
+   version. The new data file is committed to the `text/` submodule as part
+   of the corpus regen commit (step 4); the `_SNAPSHOTS` entry is committed
+   in the main repo.
+
+## 4. Regenerate and commit the corpus
 
 Run the `regen-text` skill (`.agents/skills/regen-text/SKILL.md`) for the
 full committed regeneration, diff audit, and commit — never commit the ad

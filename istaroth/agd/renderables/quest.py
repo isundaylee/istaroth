@@ -7,6 +7,7 @@ from collections import defaultdict
 from istaroth import utils
 from istaroth.agd import (
     agd_types,
+    first_seen,
     id_types,
     issues,
     localization,
@@ -538,6 +539,11 @@ def render_quest(
             title=quest.title,
             id=quest.quest_id,
             relative_path=f"{text_types.TextCategory.AGD_QUEST.value}/{filename}",
+            min_version=None,
+            max_version=None,
         ),
         content=rendered_content,
+        source_ids=[
+            first_seen.SourceId(first_seen.SourceDomain.MAIN_QUEST, quest.quest_id)
+        ],
     )

@@ -79,13 +79,14 @@ def _process_single_readable(
     renderable_key: id_types.ReadableFilename,
     data_repo: repo.DataRepo,
     render: Callable[
-        [str, processed_types.ReadableMetadata], processed_types.RenderedItem
+        [str, processed_types.ReadableMetadata, id_types.ReadableFilename],
+        processed_types.RenderedItem,
     ],
 ) -> processed_types.RenderedItem | None:
     """Render a single readable file, or skip empty/placeholder ones."""
     if (loaded := readable.load_readable(renderable_key, data_repo=data_repo)) is None:
         return None
-    return render(*loaded)
+    return render(*loaded, renderable_key)
 
 
 def _discover_prefixed_readables(
@@ -114,11 +115,14 @@ class BaseReadables(BaseRenderableType[id_types.ReadableFilename]):
     error_limit_non_chinese: ClassVar[int] = 200
 
     def _render(
-        self, content: str, metadata: processed_types.ReadableMetadata
+        self,
+        content: str,
+        metadata: processed_types.ReadableMetadata,
+        readable_filename: id_types.ReadableFilename,
     ) -> processed_types.RenderedItem:
         """Render readable content into a rendered item."""
         return readable.render_readable_like(
-            content, metadata, category=self.text_category
+            content, metadata, readable_filename, category=self.text_category
         )
 
     def process(

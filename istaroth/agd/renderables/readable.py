@@ -4,6 +4,7 @@ import pathlib
 
 from istaroth import utils
 from istaroth.agd import (
+    first_seen,
     id_types,
     issues,
     localization,
@@ -73,6 +74,7 @@ def load_readable(
 def render_readable_like(
     content: str,
     metadata: processed_types.ReadableMetadata,
+    readable_filename: id_types.ReadableFilename,
     *,
     category: text_types.TextCategory,
 ) -> processed_types.RenderedItem:
@@ -86,6 +88,9 @@ def render_readable_like(
             title=metadata.title,
             id=metadata.localization_id,
             relative_path=f"{category.value}/{filename}",
+            min_version=None,
+            max_version=None,
         ),
         content=f"# {metadata.title}\n\n{content}",
+        source_ids=[first_seen.readable_source_id(readable_filename)],
     )

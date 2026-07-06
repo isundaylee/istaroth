@@ -2,6 +2,7 @@
 
 from istaroth import utils
 from istaroth.agd import (
+    first_seen,
     id_types,
     issues,
     processed_types,
@@ -69,6 +70,14 @@ def render_achievement_section(
             relative_path=(
                 f"{text_types.TextCategory.AGD_ACHIEVEMENT.value}/{filename}"
             ),
+            min_version=None,
+            max_version=None,
         ),
         content="\n".join(content_lines).rstrip(),
+        source_ids=[
+            first_seen.SourceId(
+                first_seen.SourceDomain.ACHIEVEMENT, achievement.achievement_id
+            )
+            for achievement in section_info.achievements
+        ],
     )

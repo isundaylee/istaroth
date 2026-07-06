@@ -5,6 +5,7 @@ import pathlib
 
 from istaroth import text_cleanup, utils
 from istaroth.agd import (
+    first_seen,
     processed_types,
     repo,
 )
@@ -50,6 +51,9 @@ def render_subtitle(
             title=path_obj.stem,
             id=subtitle_id,
             relative_path=f"{text_types.TextCategory.AGD_SUBTITLE.value}/{filename}",
+            min_version=None,
+            max_version=None,
         ),
         content=rendered_content,
+        source_ids=[first_seen.subtitle_source_id(subtitle_path)],
     )

@@ -15,6 +15,8 @@ def _item(category: types.TextCategory, id: int, title: str) -> types.TextMetada
         title=title,
         id=id,
         relative_path=f"{category.value}/{id}_{title}.txt",
+        min_version=None,
+        max_version=None,
     )
 
 

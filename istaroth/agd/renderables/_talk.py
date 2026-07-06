@@ -7,6 +7,7 @@ from typing import Iterator
 from istaroth import utils
 from istaroth.agd import (
     agd_types,
+    first_seen,
     id_types,
     issues,
     localization,
@@ -388,8 +389,11 @@ def render_talk(
             title=title,
             id=talk_id,
             relative_path=f"{text_types.TextCategory.AGD_TALK.value}/{filename}",
+            min_version=None,
+            max_version=None,
         ),
         content=rendered_content,
+        source_ids=[first_seen.SourceId(first_seen.SourceDomain.TALK, talk_id)],
     )
 
 

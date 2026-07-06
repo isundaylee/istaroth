@@ -3,6 +3,7 @@
 from istaroth import utils
 from istaroth.agd import (
     agd_types,
+    first_seen,
     id_types,
     issues,
     localization,
@@ -189,8 +190,13 @@ def render_character_story(
             title=story_info.character_name,
             id=story_info.avatar_id,
             relative_path=f"{text_types.TextCategory.AGD_CHARACTER_STORY.value}/{filename}",
+            min_version=None,
+            max_version=None,
         ),
         content=rendered_content,
+        source_ids=[
+            first_seen.SourceId(first_seen.SourceDomain.AVATAR, story_info.avatar_id)
+        ],
     )
 
 
@@ -249,6 +255,13 @@ def render_voiceline(
             title=voiceline_info.character_name,
             id=voiceline_info.avatar_id,
             relative_path=f"{text_types.TextCategory.AGD_VOICELINE.value}/{filename}",
+            min_version=None,
+            max_version=None,
         ),
         content=rendered_content,
+        source_ids=[
+            first_seen.SourceId(
+                first_seen.SourceDomain.AVATAR, voiceline_info.avatar_id
+            )
+        ],
     )

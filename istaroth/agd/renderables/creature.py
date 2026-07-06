@@ -5,6 +5,7 @@ import hashlib
 from istaroth import utils
 from istaroth.agd import (
     agd_types,
+    first_seen,
     id_types,
     issues,
     localization,
@@ -134,6 +135,12 @@ def render_creature_group(
             title=title,
             id=group_id,
             relative_path=f"{text_types.TextCategory.AGD_CREATURE.value}/{filename}",
+            min_version=None,
+            max_version=None,
         ),
         content="\n".join(content_lines).rstrip(),
+        source_ids=[
+            first_seen.SourceId(first_seen.SourceDomain.ANIMAL_CODEX, c.codex_id)
+            for c in group_info.creatures
+        ],
     )

@@ -25,6 +25,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 from istaroth.agd import (
     coop_hierarchy,
+    first_seen,
     issues,
     localization,
     processed_types,
@@ -167,6 +168,7 @@ def _generate_content(
     strict: bool = False,
     manifest_list: list[text_types.TextMetadata],
     parsing_issues: list[issues.ParsingIssue],
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> tuple[_GenerationStats, tracking.TrackerStats]:
     """Generate content files using renderable type."""
     stats = _GenerationStats(success=0, error=0, skipped=0, issues=0)
@@ -242,8 +244,16 @@ def _generate_content(
                 stats.skipped += 1
                 continue
 
-            # Get TextMetadata from RenderedItem
-            text_metadata = result.rendered_item.text_metadata
+            # Get TextMetadata from RenderedItem, stamping the first-seen
+            # game-version range of the content's source ids.
+            min_version, max_version = first_seen_index.resolve(
+                result.rendered_item.source_ids
+            )
+            text_metadata = attrs.evolve(
+                result.rendered_item.text_metadata,
+                min_version=min_version,
+                max_version=max_version,
+            )
 
             # Check for path collision
             if text_metadata.relative_path in used_paths:
@@ -331,6 +341,8 @@ def generate_all(
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
+    first_seen_index = first_seen.FirstSeenIndex.load()
+
     # Create output directory, deleting only AGD-owned content on --force
     # to avoid wiping unrelated folders (e.g. tps_shishu).
     if force and output_dir.exists():
@@ -385,6 +397,7 @@ def generate_all(
             strict=strict,
             manifest_list=manifest_list,
             parsing_issues=all_parsing_issues,
+            first_seen_index=first_seen_index,
         )
         total_stats.update(stats)
         issue_counts[renderable.text_category.value] = stats.issues
@@ -590,7 +603,10 @@ def render_readable(readable_path: str) -> None:
 
         # Render the content
         rendered = readable.render_readable_like(
-            content, metadata, category=text_types.TextCategory.AGD_READABLE
+            content,
+            metadata,
+            pathlib.Path(readable_path).name,
+            category=text_types.TextCategory.AGD_READABLE,
         )
 
         # Output only the content

@@ -4,6 +4,7 @@ import hashlib
 
 from istaroth import utils
 from istaroth.agd import (
+    first_seen,
     id_types,
     issues,
     processed_types,
@@ -75,6 +76,12 @@ def render_materials_by_type(
             title=material_type_name,
             id=material_type_id,
             relative_path=f"{text_types.TextCategory.AGD_MATERIAL_TYPE.value}/{filename}",
+            min_version=None,
+            max_version=None,
         ),
         content=rendered_content,
+        source_ids=[
+            first_seen.SourceId(first_seen.SourceDomain.MATERIAL, m.material_id)
+            for m in sorted_materials
+        ],
     )
