@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
 """HTTP/WebSocket MCP server for Istaroth RAG functionality."""
 
+import functools
 import hashlib
+import inspect
 import os
 import pathlib
 import sys
 import traceback
+from typing import Any, Callable
 
 from fastmcp import FastMCP
+from opentelemetry import trace
 
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
@@ -16,9 +20,35 @@ import langsmith as ls
 
 from istaroth.agd import hierarchy_nav, localization, processed_types
 from istaroth.rag import document_store_set, output_rendering
+from istaroth.services.common import tracing
 from istaroth.text import types as text_types
 
 mcp: FastMCP = FastMCP("istaroth")
+
+_tracer = trace.get_tracer(__name__)
+
+# At import time (not under `if __name__ == "__main__"`): production runs this
+# module via `fastmcp run`, which imports it and never executes the main block.
+tracing.setup_tracing("istaroth-mcp")
+
+
+def _traced_tool(f: Callable[..., str]) -> Callable[..., str]:
+    """Wrap a tool in a root OTel span named after it, recording inputs and output."""
+    signature = inspect.signature(f)
+
+    @functools.wraps(f)
+    def wrapper(*args: Any, **kwargs: Any) -> str:
+        with _tracer.start_as_current_span(f.__name__) as span:
+            bound = signature.bind(*args, **kwargs)
+            bound.apply_defaults()
+            for name, value in bound.arguments.items():
+                span.set_attribute(name, value)
+            output = f(*args, **kwargs)
+            span.set_attribute("output", output)
+            return output
+
+    return wrapper
+
 
 _HINT_GET_FILE_CONTENT = "\n".join(
     [
@@ -53,6 +83,7 @@ def _compute_file_id(relative_path: str) -> str:
 
 
 @mcp.tool()
+@_traced_tool
 def get_file_content(file_id: str, max_chunks: int = 50, start_index: int = 0) -> str:
     """获取指定文件的内容块
 
@@ -142,6 +173,7 @@ def get_file_content(file_id: str, max_chunks: int = 50, start_index: int = 0) -
 
 
 @mcp.tool()
+@_traced_tool
 def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
     """从Istaroth原神知识库中检索相关文档
 
@@ -202,6 +234,7 @@ def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
 
 
 @mcp.tool()
+@_traced_tool
 def retrieve_bm25(query: str, k: int = 10, chunk_context: int = 5) -> str:
     """从Istaroth原神知识库中检索相关文档（BM25关键词精确匹配）
 
@@ -264,6 +297,7 @@ def retrieve_bm25(query: str, k: int = 10, chunk_context: int = 5) -> str:
 
 
 @mcp.tool()
+@_traced_tool
 def get_document_hierarchy(file_id: str) -> str:
     """获取指定文档的层级归属与目录
 
@@ -385,6 +419,7 @@ def get_document_hierarchy(file_id: str) -> str:
 
 
 @mcp.tool()
+@_traced_tool
 def list_categories() -> str:
     """列出语料库中的所有分类及其文件数量
 
@@ -432,6 +467,7 @@ def list_categories() -> str:
 
 
 @mcp.tool()
+@_traced_tool
 def get_category_hierarchy(category: str) -> str:
     """获取指定分类的层级结构
 
