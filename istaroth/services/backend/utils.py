@@ -59,4 +59,6 @@ def text_metadata_to_library_file_info(
         title=metadata.title,
         id=metadata.id,
         relative_path=metadata.relative_path,
+        min_version=metadata.min_version,
+        max_version=metadata.max_version,
     )

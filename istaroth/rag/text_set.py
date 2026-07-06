@@ -14,7 +14,7 @@ from typing import Any
 import attrs
 import orjson
 
-from istaroth.agd import localization
+from istaroth.agd import first_seen, localization
 from istaroth.text import manifest as text_manifest
 from istaroth.text import types as text_types
 
@@ -40,6 +40,33 @@ def _category_display_order(category: text_types.TextCategory) -> tuple[int, str
     except ValueError:
         index = len(_CATEGORY_DISPLAY_ORDER)
     return (index, category.value)
+
+
+def _sort_nodes_by_version(
+    nodes: list[dict[str, Any]], max_versions: dict[int, str | None]
+) -> tuple[list[dict[str, Any]], tuple[int, ...] | None]:
+    """Sort sibling nodes newest subtree max_version first, recursively.
+
+    Group nodes order by the newest version among their descendant leaves, so
+    recently updated content bubbles to the top at every level. The sort is
+    stable: ties and versionless nodes (which trail) keep their original
+    relative order. Returns sorted copies plus the subtree's newest version key.
+    """
+    keyed = []
+    for node in nodes:
+        if (children := node["children"]) is not None:
+            children, key = _sort_nodes_by_version(children, max_versions)
+            node = node | {"children": children}
+        else:
+            version = max_versions[node["file_id"]]
+            key = first_seen.version_sort_key(version) if version is not None else None
+        keyed.append((key, node))
+    keyed.sort(
+        key=lambda kn: (1, ()) if kn[0] is None else (0, tuple(-p for p in kn[0]))
+    )
+    return [node for _, node in keyed], max(
+        (key for key, _ in keyed if key is not None), default=None
+    )
 
 
 @attrs.define
@@ -115,31 +142,41 @@ class TextSet:
     def _library_hierarchies(self) -> dict[str, Any]:
         """Every category's document tree, keyed by category value in display order.
 
-        Pre-baked trees (quests, hangouts) are used as-is; every other category
-        gets a flat, depth-1 tree of file leaves synthesized from the manifest.
+        Pre-baked trees (quests, hangouts) are used for structure; every other
+        category gets a flat, depth-1 tree of file leaves synthesized from the
+        manifest. Either way, sibling nodes at every level are ordered newest
+        subtree max_version first.
         """
         combined: dict[str, Any] = {}
         for category in sorted(
             {item.category for item in self._manifest}, key=_category_display_order
         ):
             if (prebaked := self._prebaked_hierarchies.get(category.value)) is not None:
-                combined[category.value] = prebaked
+                nodes = prebaked["nodes"]
             else:
-                combined[category.value] = {
-                    "nodes": [
-                        {
-                            "key": f"q{item.id}",
-                            "title": item.title,
-                            "children": None,
-                            "file_id": item.id,
-                            "toc_eligible": False,
-                        }
-                        for item in sorted(
-                            (i for i in self._manifest if i.category == category),
-                            key=lambda i: i.id,
-                        )
-                    ]
-                }
+                nodes = [
+                    {
+                        "key": f"q{item.id}",
+                        "title": item.title,
+                        "children": None,
+                        "file_id": item.id,
+                        "toc_eligible": False,
+                    }
+                    for item in sorted(
+                        (i for i in self._manifest if i.category == category),
+                        key=lambda i: i.id,
+                    )
+                ]
+            combined[category.value] = {
+                "nodes": _sort_nodes_by_version(
+                    nodes,
+                    {
+                        i.id: i.max_version
+                        for i in self._manifest
+                        if i.category == category
+                    },
+                )[0]
+            }
         return combined
 
     def get_library_hierarchies(self) -> dict[str, Any]:

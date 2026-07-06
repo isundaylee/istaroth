@@ -26,6 +26,16 @@ interface LoaderData {
   fileId: string
   category: string
   currentId: number
+  minVersion: string | null
+  maxVersion: string | null
+}
+
+// AGD history starts at 1.4, so a 1.4 bound means "1.4 or earlier".
+const AGD_HISTORY_FLOOR = '1.4'
+
+function formatVersionRange(min: string, max: string): string {
+  const minLabel = min === AGD_HISTORY_FLOOR ? `≤${min}` : min
+  return min === max ? minLabel : `${minLabel}–${max}`
 }
 
 export async function libraryFileViewerLoader({ params, request }: LoaderFunctionArgs): Promise<LoaderData> {
@@ -50,13 +60,16 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
     fileId: id,
     category,
     currentId: parseInt(id, 10),
+    minVersion: fileData.file_info.min_version,
+    maxVersion: fileData.file_info.max_version,
   }
 }
 
 function LibraryFileViewer() {
   const t = useT()
   const navigate = useAppNavigate()
-  const { fileContent, fileTitle, fileId, category, currentId } = useLoaderData() as LoaderData
+  const { fileContent, fileTitle, fileId, category, currentId, minVersion, maxVersion } =
+    useLoaderData() as LoaderData
   const { categories } = useRouteLoaderData('library-root') as LibraryHierarchyResponse
   const nodes = categories.find((entry) => entry.category === category)?.nodes ?? []
   const properNouns = useLibraryProperNouns(category, fileId)
@@ -91,7 +104,17 @@ function LibraryFileViewer() {
   return (
     <>
       <MinimizedPopupRegion>
-        <Breadcrumbs crumbs={crumbs} />
+        <Breadcrumbs
+          crumbs={crumbs}
+          trailing={
+            minVersion !== null && maxVersion !== null
+              ? t('library.versionBadge').replace(
+                  '{version}',
+                  formatVersionRange(minVersion, maxVersion)
+                )
+              : undefined
+          }
+        />
 
           <SelectableAnswer resetKey={fileContent}>
             <HighlightedMarkdown content={fileContent} properNouns={properNouns} />
