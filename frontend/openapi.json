@@ -1011,6 +1011,28 @@
           "relative_path": {
             "type": "string",
             "title": "Relative Path"
+          },
+          "min_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Version"
+          },
+          "max_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Version"
           }
         },
         "type": "object",
@@ -1018,10 +1040,12 @@
           "category",
           "title",
           "id",
-          "relative_path"
+          "relative_path",
+          "min_version",
+          "max_version"
         ],
         "title": "LibraryFileInfo",
-        "description": "File information with parsed components."
+        "description": "File information with parsed components.\n\n``min_version``/``max_version`` bound the game versions in which the file's\nsource content first appeared; ``None`` for non-AGD content."
       },
       "LibraryFileResponse": {
         "properties": {

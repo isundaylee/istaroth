@@ -188,6 +188,7 @@ export const eng = {
       }
     },
     backToFiles: 'Back to Files',
+    versionBadge: '(Added in {version})',
     categories: {
       agd_artifact_set: 'Artifact Sets',
       agd_book: 'Books',

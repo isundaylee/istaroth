@@ -451,6 +451,9 @@ export interface components {
         /**
          * LibraryFileInfo
          * @description File information with parsed components.
+         *
+         *     ``min_version``/``max_version`` bound the game versions in which the file's
+         *     source content first appeared; ``None`` for non-AGD content.
          */
         LibraryFileInfo: {
             /** Category */
@@ -461,6 +464,10 @@ export interface components {
             id: number;
             /** Relative Path */
             relative_path: string;
+            /** Min Version */
+            min_version: string | null;
+            /** Max Version */
+            max_version: string | null;
         };
         /**
          * LibraryFileResponse

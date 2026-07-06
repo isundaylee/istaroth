@@ -204,12 +204,18 @@ class CitationBatchResponse(BaseModel):
 
 
 class LibraryFileInfo(BaseModel):
-    """File information with parsed components."""
+    """File information with parsed components.
+
+    ``min_version``/``max_version`` bound the game versions in which the file's
+    source content first appeared; ``None`` for non-AGD content.
+    """
 
     category: str
     title: str
     id: int
     relative_path: str
+    min_version: str | None
+    max_version: str | None
 
 
 class LibraryFileResponse(BaseModel):

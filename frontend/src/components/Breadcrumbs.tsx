@@ -11,8 +11,15 @@ export interface Crumb {
 }
 
 // A clickable breadcrumb trail. Every crumb but the last navigates to its `to`;
-// the last marks the current location and is plain text.
-export default function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
+// the last marks the current location and is plain text. `trailing` renders as
+// a muted annotation after the trail (e.g. a version tip).
+export default function Breadcrumbs({
+  crumbs,
+  trailing,
+}: {
+  crumbs: Crumb[]
+  trailing?: React.ReactNode
+}) {
   const t = useT()
   if (crumbs.length === 0) return null
   return (
@@ -49,6 +56,11 @@ export default function Breadcrumbs({ crumbs }: { crumbs: Crumb[] }) {
           </React.Fragment>
         )
       })}
+      {trailing && (
+        <span style={{ fontSize: 'var(--font-sm)', color: 'var(--color-text-muted)' }}>
+          {trailing}
+        </span>
+      )}
     </nav>
   )
 }
