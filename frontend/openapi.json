@@ -1076,11 +1076,6 @@
             "type": "boolean",
             "title": "Semantic",
             "default": false
-          },
-          "chunk_context": {
-            "type": "integer",
-            "title": "Chunk Context",
-            "default": 0
           }
         },
         "type": "object",

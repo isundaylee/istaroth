@@ -196,8 +196,7 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
         language: language.toUpperCase(),
         query,
         k: 10,
-        semantic: false,
-        chunk_context: 0
+        semantic: false
       }
       const res = await fetch('/api/library/retrieve', {
         method: 'POST',

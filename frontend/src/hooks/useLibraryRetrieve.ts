@@ -69,7 +69,6 @@ export function useLibraryRetrieve() {
         query: trimmed,
         k: 10,
         semantic: params.semantic,
-        chunk_context: 0,
       }
       const res = await fetch('/api/library/retrieve', {
         method: 'POST',

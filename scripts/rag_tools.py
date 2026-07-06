@@ -24,7 +24,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 import langsmith as ls
 from opentelemetry import trace
 
-from istaroth import llm_manager, logging_utils, utils
+from istaroth import llm_manager, logging_utils
 from istaroth.agd import localization
 from istaroth.rag import budget as _budget
 from istaroth.rag import (
@@ -33,7 +33,6 @@ from istaroth.rag import (
     output_rendering,
     pipeline,
     prompt_set,
-    retrieval_diff,
     text_set,
     types,
 )
@@ -163,18 +162,21 @@ def build(
 
 @cli.command()
 @click.argument("query", type=str)
-@click.option("-k", "--k", default=5, help="Number of results to return")
-@click.option("-c", "--chunk-context", default=5, help="Context size for each chunk")
-@click.option("--save", type=pathlib.Path)
-def retrieve(
-    query: str, *, k: int, chunk_context: int, save: pathlib.Path | None
-) -> None:
+@click.option("-b", "--budget", default=55, help="Context budget (total chunks)")
+@click.option(
+    "-i",
+    "--intent",
+    default="balanced",
+    type=click.Choice([v.value for v in _budget.QueryIntent]),
+    help="Retrieval intent (budget shape)",
+)
+def retrieve(query: str, *, budget: int, intent: str) -> None:
     """Retrieve similar documents from the document store."""
 
     with ls.trace(
         "rag_tools_retrieve",
         "chain",
-        inputs={"query": query, "k": k, "chunk_context": chunk_context},
+        inputs={"query": query, "budget": budget, "intent": intent},
     ) as rt:
         store, _, ts = _load_store()
 
@@ -183,7 +185,9 @@ def retrieve(
             sys.exit(1)
 
         logger.info("Searching for: '%s'", query)
-        retrieve_output = store.retrieve(query, k=k, chunk_context=chunk_context)
+        retrieve_output = store.retrieve(
+            query, budget=budget, intent=_budget.QueryIntent(intent)
+        )
 
         if not retrieve_output.results:
             logger.info("No results found.")
@@ -196,18 +200,6 @@ def retrieve(
             outputs=retrieve_output.to_langsmith_output(formatted_output, text_set=ts)
         )
 
-        if save is not None:
-            save_path = save / (
-                datetime.datetime.now().strftime("%Y%m%d_%H%M%S_")
-                + utils.make_safe_filename_part(query, max_length=50)
-                + ".txt"
-            )
-            data = retrieve_output.to_dict()
-            data["env"] = {
-                k: v for k, v in os.environ.items() if k.startswith("ISTAROTH_")
-            }
-            save_path.write_bytes(orjson.dumps(data))
-
         print(formatted_output)
 
 
@@ -215,14 +207,14 @@ def _ranked_source_texts(
     store: types.Retriever,
     fixture: retrieval.RetrievalFixture,
     *,
-    k: int,
-    chunk_context: int,
+    budget: int,
+    intent: _budget.QueryIntent,
     bm25: bool,
 ) -> tuple[list[str], list[str], int]:
     retrieve_output = (
-        store.retrieve_bm25(fixture.query, k=k, chunk_context=chunk_context)
+        store.retrieve_bm25(fixture.query, budget=budget, intent=intent)
         if bm25
-        else store.retrieve(fixture.query, k=k, chunk_context=chunk_context)
+        else store.retrieve(fixture.query, budget=budget, intent=intent)
     )
     texts: list[str] = []
     paths: list[str] = []
@@ -275,8 +267,8 @@ async def _afetch_sources(
     store: types.Retriever,
     fixture: retrieval.RetrievalFixture,
     *,
-    k: int,
-    chunk_context: int,
+    budget: int,
+    intent: _budget.QueryIntent,
     repeat: int,
     bm25: bool,
     sem: anyio.Semaphore,
@@ -292,8 +284,8 @@ async def _afetch_sources(
                     _ranked_source_texts,
                     store,
                     fixture,
-                    k=k,
-                    chunk_context=chunk_context,
+                    budget=budget,
+                    intent=intent,
                     bm25=bm25,
                 ),
             )
@@ -387,16 +379,22 @@ async def _aeval_fixtures(
             span.set_attribute("fixture.query", fixture.query)
             span.set_attribute("fixture.category", fixture.category)
             intent = intent_fn(fixture.query)
-            fk, fcc = _budget.allocate(budget, intent)
+            schedule = _budget.allocate(budget, intent)
             span.set_attribute("fixture.intent", intent.value)
-            span.set_attribute("fixture.k", fk)
-            span.set_attribute("fixture.chunk_context", fcc)
-            print(f"[fixture] {fixture.query} → intent={intent.value} k={fk} cc={fcc}")
+            span.set_attribute("fixture.budget", budget)
+            span.set_attribute(
+                "fixture.schedule",
+                str([(t.chunks, t.window) for t in schedule.tiers]),
+            )
+            print(
+                f"[fixture] {fixture.query} → intent={intent.value} "
+                f"schedule={[(t.chunks, t.window) for t in schedule.tiers]}"
+            )
             texts_list, paths_list, chunks_list = await _afetch_sources(
                 store,
                 fixture,
-                k=fk,
-                chunk_context=fcc,
+                budget=budget,
+                intent=intent,
                 repeat=repeat,
                 bm25=bm25,
                 sem=sem,
@@ -561,12 +559,12 @@ def _print_summary(
     "--budget",
     default=110,
     type=int,
-    help="Context budget B: allocate k/chunk_context per fixture from budget+intent (default: 110 = 'thorough' preset)",
+    help="Context budget B: shaped into a depth schedule per fixture from budget+intent (default: 110 = 'thorough' preset)",
 )
 @click.option(
     "--intent",
     default="auto",
-    type=click.Choice(["auto", "variety", "balanced", "context"]),
+    type=click.Choice(["auto", *(v.value for v in _budget.QueryIntent)]),
     help="Retrieval intent for budget-based allocation (default: auto = classify per fixture via LLM)",
 )
 @click.option(
@@ -945,30 +943,6 @@ def chunk_file(file: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     )
     print(f"  Min chunk size: {min(len(c) for c in chunks_list)} chars")
     print(f"  Max chunk size: {max(len(c) for c in chunks_list)} chars")
-
-
-@cli.command("diff-retrieval")
-@click.argument("file1", type=click.Path(exists=True, path_type=pathlib.Path))
-@click.argument("file2", type=click.Path(exists=True, path_type=pathlib.Path))
-def diff_retrieval(file1: pathlib.Path, file2: pathlib.Path) -> None:
-    """Compare two retrieval result files and show differences."""
-    # Load and compare the JSON files
-    json1 = orjson.loads(file1.read_bytes())
-    json2 = orjson.loads(file2.read_bytes())
-
-    # Create the diff object
-    diff = retrieval_diff.compare_retrievals(
-        json1, json2, filename1=file1.name, filename2=file2.name
-    )
-
-    # Render all sections
-    print(retrieval_diff.render_comparison_headers(diff))
-    print()
-    print(retrieval_diff.render_document_sections(diff))
-    print()
-    print(retrieval_diff.render_summary_table(diff))
-    print()
-    print(retrieval_diff.render_final_summary(diff))
 
 
 if __name__ == "__main__":

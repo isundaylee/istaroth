@@ -8,6 +8,7 @@ import fastapi
 from fastapi import APIRouter, HTTPException, Query
 
 from istaroth.agd import localization
+from istaroth.rag import budget as budget_mod
 from istaroth.rag import document_store_set as document_store_set_module
 from istaroth.rag import text_set
 from istaroth.rag import types as rag_types
@@ -247,11 +248,11 @@ async def retrieve_library(
 
     if request.semantic:
         retrieve_output = await document_store.aretrieve(
-            request.query, k=request.k, chunk_context=request.chunk_context
+            request.query, budget=request.k, intent=budget_mod.QueryIntent.LOOKUP
         )
     else:
         retrieve_output = document_store.retrieve_bm25(
-            request.query, k=request.k, chunk_context=request.chunk_context
+            request.query, budget=request.k, intent=budget_mod.QueryIntent.LOOKUP
         )
 
     results = _build_retrieve_results(text_set_obj, retrieve_output)

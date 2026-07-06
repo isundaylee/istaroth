@@ -19,6 +19,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 import langsmith as ls
 
 from istaroth.agd import hierarchy_nav, localization, processed_types
+from istaroth.rag import budget as budget_mod
 from istaroth.rag import document_store_set, output_rendering
 from istaroth.services.common import tracing
 from istaroth.text import types as text_types
@@ -174,15 +175,19 @@ def get_file_content(file_id: str, max_chunks: int = 50, start_index: int = 0) -
 
 @mcp.tool()
 @_traced_tool
-def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
+def retrieve(query: str, budget: int = 110, intent: str = "balanced") -> str:
     """从Istaroth原神知识库中检索相关文档
 
     这是一个智能文档检索工具，专门用于查找原神游戏相关的背景故事、角色设定、世界观等内容。最好使用完整的句子或问题形式，以便更准确地匹配相关文档。
 
     参数：
     - query: 查询问题；最好使用完整的句子或问题形式，以便更准确地匹配相关文档。
-    - k: 返回文档数量，默认10个；建议设置为10至20之间，以获取更全面的结果。
-    - chunk_context: 返回匹配文档块周围的上下文块数量，默认5个
+    - budget: 检索上下文预算（返回的总文本块数量），默认110。
+    - intent: 检索意图，决定预算的花法——是围绕少数命中展开更长的连续上下文，还是覆盖更多各不相同的命中：
+      'context'：命中较少，但每个命中周围附带较长的连续上下文（适合追踪某一段完整剧情/对话）；
+      'variety'：覆盖尽可能多的不同命中，每个命中只带少量周围上下文（适合枚举、盘点某事物在哪些地方出现）；
+      'balanced'（默认）：两者折中；
+      'lookup'：只返回命中块本身，不附带任何周围上下文（适合纯粹的出处定位）。
 
     适用场景（语义检索）：
     - 查询角色背景故事和关系
@@ -202,9 +207,11 @@ def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
         with ls.trace(
             "mcp_retrieve",
             "chain",
-            inputs={"query": query, "k": k, "chunk_context": chunk_context},
+            inputs={"query": query, "budget": budget, "intent": intent},
         ) as rt:
-            retrieve_output = _store.retrieve(query, k=k, chunk_context=chunk_context)
+            retrieve_output = _store.retrieve(
+                query, budget=budget, intent=budget_mod.QueryIntent(intent)
+            )
 
             if not retrieve_output.results:
                 formatted_output = "未找到相关结果。"
@@ -235,7 +242,7 @@ def retrieve(query: str, k: int = 10, chunk_context: int = 5) -> str:
 
 @mcp.tool()
 @_traced_tool
-def retrieve_bm25(query: str, k: int = 10, chunk_context: int = 5) -> str:
+def retrieve_bm25(query: str, budget: int = 110, intent: str = "balanced") -> str:
     """从Istaroth原神知识库中检索相关文档（BM25关键词精确匹配）
 
     这是一个基于BM25关键词的精确检索工具，专门用于查找包含特定名称、术语或专有名词的文档。与retrieve工具不同，
@@ -243,8 +250,12 @@ def retrieve_bm25(query: str, k: int = 10, chunk_context: int = 5) -> str:
 
     参数：
     - query: 查询关键词；建议使用具体的人物名、地名、物品名等专有名词，以获得最佳匹配效果。
-    - k: 返回文档数量，默认10个；建议设置为10至20之间，以获取更全面的结果。
-    - chunk_context: 返回匹配文档块周围的上下文块数量，默认5个
+    - budget: 检索上下文预算（返回的总文本块数量），默认110。
+    - intent: 检索意图，决定预算的花法——是围绕少数命中展开更长的连续上下文，还是覆盖更多各不相同的命中：
+      'context'：命中较少，但每个命中周围附带较长的连续上下文（适合追踪某一段完整剧情/对话）；
+      'variety'：覆盖尽可能多的不同命中，每个命中只带少量周围上下文（适合枚举、盘点某事物在哪些地方出现）；
+      'balanced'（默认）：两者折中；
+      'lookup'：只返回命中块本身，不附带任何周围上下文（适合纯粹的出处定位）。
 
     本工具适用场景（BM25关键词检索）：
     - 查找特定角色名称、地名或物品的精确出现
@@ -263,10 +274,10 @@ def retrieve_bm25(query: str, k: int = 10, chunk_context: int = 5) -> str:
         with ls.trace(
             "mcp_retrieve_bm25",
             "chain",
-            inputs={"query": query, "k": k, "chunk_context": chunk_context},
+            inputs={"query": query, "budget": budget, "intent": intent},
         ) as rt:
             retrieve_output = _store.retrieve_bm25(
-                query, k=k, chunk_context=chunk_context
+                query, budget=budget, intent=budget_mod.QueryIntent(intent)
             )
 
             if not retrieve_output.results:

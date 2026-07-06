@@ -8,7 +8,7 @@ from fastapi import HTTPException
 from langchain_core.documents import Document
 
 from istaroth.agd import localization
-from istaroth.rag import text_set
+from istaroth.rag import budget, text_set
 from istaroth.rag import types as rag_types
 from istaroth.services.backend.routers import library
 from istaroth.text import types as text_types
@@ -42,7 +42,9 @@ def test_build_retrieve_results_maps_manifest_item(tmp_path: pathlib.Path) -> No
         },
     )
     retrieve_output = rag_types.RetrieveOutput(
-        query=rag_types.RetrieveQuery(query="hello", k=1, chunk_context=0),
+        query=rag_types.RetrieveQuery(
+            query="hello", budget=1, intent=budget.QueryIntent.LOOKUP
+        ),
         results=[(1.23, [doc])],
     )
 
@@ -71,7 +73,9 @@ def test_build_retrieve_results_missing_manifest(tmp_path: pathlib.Path) -> None
         },
     )
     retrieve_output = rag_types.RetrieveOutput(
-        query=rag_types.RetrieveQuery(query="missing", k=1, chunk_context=0),
+        query=rag_types.RetrieveQuery(
+            query="missing", budget=1, intent=budget.QueryIntent.LOOKUP
+        ),
         results=[(0.5, [doc])],
     )
 

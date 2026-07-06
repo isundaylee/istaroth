@@ -495,11 +495,6 @@ export interface components {
              * @default false
              */
             semantic: boolean;
-            /**
-             * Chunk Context
-             * @default 0
-             */
-            chunk_context: number;
         };
         /**
          * LibraryRetrieveResponse

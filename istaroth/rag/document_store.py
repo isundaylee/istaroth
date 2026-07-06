@@ -27,6 +27,7 @@ from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
 from istaroth import langsmith_utils, utils
+from istaroth.rag import budget as budget_mod
 from istaroth.rag import query_transform, rerank, types, vector_store
 from istaroth.text import proper_nouns
 
@@ -270,12 +271,13 @@ class DocumentStore:
         query: str,
         scored_docs: list[types.ScoredDocument],
         *,
-        k: int,
-        chunk_context: int,
+        budget: int,
+        intent: budget_mod.QueryIntent,
+        schedule: budget_mod.Schedule,
     ) -> types.RetrieveOutput:
         final_file_ids = list[tuple[float, str]]()
         final_chunk_indices = dict[str, set[int]]()
-        max_total_chunks = k * (2 * chunk_context + 1)
+        max_total_chunks = schedule.total_chunks
         total_chunks = 0
 
         for scored_doc in sorted(scored_docs, key=lambda x: x.score, reverse=True):
@@ -287,17 +289,16 @@ class DocumentStore:
             # For multiple retrieved docs from the same file, we use the highest
             # score for now.
             if file_id not in final_chunk_indices:
-                if len(final_file_ids) == k:
-                    break
-
                 final_file_ids.append((scored_doc.score, file_id))
                 final_chunk_indices[file_id] = set()
+
+            window = schedule.window_at(total_chunks)
 
             # Calculate how many new chunks would be added
             new_chunk_indices = set()
             for chunk_index in range(
-                max(metadata["chunk_index"] - chunk_context, 0),
-                min(metadata["chunk_index"] + chunk_context + 1, len(file_docs)),
+                max(metadata["chunk_index"] - window, 0),
+                min(metadata["chunk_index"] + window + 1, len(file_docs)),
             ):
                 if chunk_index not in final_chunk_indices[file_id]:
                     new_chunk_indices.add(chunk_index)
@@ -319,8 +320,8 @@ class DocumentStore:
         return types.RetrieveOutput(
             query=types.RetrieveQuery(
                 query=query,
-                k=k,
-                chunk_context=chunk_context,
+                budget=budget,
+                intent=intent,
             ),
             results=[
                 (
@@ -399,7 +400,7 @@ class DocumentStore:
 
     @langsmith_utils.traceable(name="retrieve")
     def retrieve(
-        self, query: str, *, k: int, chunk_context: int
+        self, query: str, *, budget: int, intent: budget_mod.QueryIntent
     ) -> types.RetrieveOutput:
         """Search using hybrid vector + BM25 retrieval with reciprocal rank fusion.
 
@@ -412,31 +413,28 @@ class DocumentStore:
         def _run() -> types.RetrieveOutput:
             return ctx.run(
                 anyio.run,
-                functools.partial(
-                    self.aretrieve, query, k=k, chunk_context=chunk_context
-                ),
+                functools.partial(self.aretrieve, query, budget=budget, intent=intent),
             )
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
             return pool.submit(_run).result()
 
     async def aretrieve(
-        self, query: str, *, k: int, chunk_context: int
+        self, query: str, *, budget: int, intent: budget_mod.QueryIntent
     ) -> types.RetrieveOutput:
         """Async hybrid vector + BM25 retrieval with parallel search execution."""
         with _tracer.start_as_current_span("aretrieve") as root_span:
             root_span.set_attribute("query", query)
-            root_span.set_attribute("k", k)
-            root_span.set_attribute("chunk_context", chunk_context)
-            result = await self._aretrieve_inner(
-                query, k=k, chunk_context=chunk_context
-            )
+            root_span.set_attribute("budget", budget)
+            root_span.set_attribute("intent", intent.value)
+            result = await self._aretrieve_inner(query, budget=budget, intent=intent)
             root_span.set_attribute("num_results", len(result.results))
             return result
 
     async def _aretrieve_inner(
-        self, query: str, *, k: int, chunk_context: int
+        self, query: str, *, budget: int, intent: budget_mod.QueryIntent
     ) -> types.RetrieveOutput:
+        schedule = budget_mod.allocate(budget, intent)
         with _tracer.start_as_current_span("query_transform") as span:
             span.set_attribute("query", query)
             queries = await anyio.to_thread.run_sync(
@@ -448,7 +446,9 @@ class DocumentStore:
         logger.info("Transformed query '%s' into: %r", query, queries)
 
         _all_results: dict[int, list[types.ScoredChunk]] = {}
-        fetch_k = max(_FETCH_DEPTH, k * 2)
+        # fetch_k counts candidate chunks per rank list (pre-expansion); size
+        # it off the number of hits the schedule can absorb, with 2x headroom.
+        fetch_k = max(_FETCH_DEPTH, 2 * schedule.nominal_hits)
 
         async def _run_vector(i: int, q: str) -> None:
             with _tracer.start_as_current_span("vector_search") as span:
@@ -495,10 +495,10 @@ class DocumentStore:
             span.set_attribute("retrieval.documents", _scored_docs_json(fused_results))
 
         with _tracer.start_as_current_span("select_documents") as span:
-            span.set_attribute("k", k)
-            span.set_attribute("chunk_context", chunk_context)
+            span.set_attribute("budget", budget)
+            span.set_attribute("intent", intent.value)
             result = self._select_scored_documents(
-                query, fused_results, k=k, chunk_context=chunk_context
+                query, fused_results, budget=budget, intent=intent, schedule=schedule
             )
             span.set_attribute("num_results", len(result.results))
             span.set_attribute(
@@ -514,20 +514,23 @@ class DocumentStore:
 
     @langsmith_utils.traceable(name="retrieve_bm25")
     def retrieve_bm25(
-        self, query: str, *, k: int, chunk_context: int
+        self, query: str, *, budget: int, intent: budget_mod.QueryIntent
     ) -> types.RetrieveOutput:
         """Search using BM25 keyword retrieval only."""
         with _tracer.start_as_current_span("retrieve_bm25") as span:
             span.set_attribute("query", query)
-            span.set_attribute("k", k)
-            span.set_attribute("chunk_context", chunk_context)
-            scored_chunks = self._bm25_store.search(query, max(_FETCH_DEPTH, k * 2))
+            span.set_attribute("budget", budget)
+            span.set_attribute("intent", intent.value)
+            schedule = budget_mod.allocate(budget, intent)
+            scored_chunks = self._bm25_store.search(
+                query, max(_FETCH_DEPTH, 2 * schedule.nominal_hits)
+            )
             span.set_attribute(
                 "retrieval.documents", _scored_chunks_json(scored_chunks)
             )
             scored_docs = self._resolve_chunks(scored_chunks)
             result = self._select_scored_documents(
-                query, scored_docs, k=k, chunk_context=chunk_context
+                query, scored_docs, budget=budget, intent=intent, schedule=schedule
             )
             span.set_attribute("num_results", len(result.results))
             return result
