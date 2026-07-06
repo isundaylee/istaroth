@@ -112,8 +112,7 @@ def build_quest_hierarchy(
     """Assemble the quest hierarchy from rendered (quest_id, title) pairs.
 
     Each quest is placed under its type and, when available, its series (chapter
-    ``groupId``, or the synthetic prefix-linked questline for groupId-less
-    chapters) and chapter; quests with a chapter but no series sit directly under
+    ``groupId``) and chapter; quests with a chapter but no series sit directly under
     the type, and quests with no chapter land in the type's standalone bucket.
     """
     main_quests = data_repo.load_main_quest_excel_config_data()
@@ -124,16 +123,6 @@ def build_quest_hierarchy(
         str,
         dict[
             id_types.QuestSeriesId,
-            dict[id_types.ChapterId, list[processed_types.HierarchyNode]],
-        ],
-    ] = collections.defaultdict(
-        lambda: collections.defaultdict(lambda: collections.defaultdict(list))
-    )
-    # type -> synthetic series id -> chapter_id -> quests (groupId-less questlines)
-    prefix_series_buckets: dict[
-        str,
-        dict[
-            id_types.ChapterId,
             dict[id_types.ChapterId, list[processed_types.HierarchyNode]],
         ],
     ] = collections.defaultdict(
@@ -165,38 +154,19 @@ def build_quest_hierarchy(
             series_id := chapter["groupId"]
         ):
             series_buckets[quest_type][series_id][chapter_id].append(leaf)
-        elif (
-            chapter is not None
-            and (
-                prefix_id := quest.get_prefix_series_id(chapter_id, data_repo=data_repo)
-            )
-            is not None
-        ):
-            prefix_series_buckets[quest_type][prefix_id][chapter_id].append(leaf)
         else:
             chapter_buckets[quest_type][chapter_id].append(leaf)
 
-    all_types = (
-        set(series_buckets)
-        | set(prefix_series_buckets)
-        | set(chapter_buckets)
-        | set(standalone_buckets)
-    )
+    all_types = set(series_buckets) | set(chapter_buckets) | set(standalone_buckets)
     ordered_types = [t for t in _TYPE_ORDER if t in all_types] + sorted(
         all_types - set(_TYPE_ORDER)
     )
 
     type_nodes = []
     for quest_type in ordered_types:
-        all_series = [
-            (series_id, f"s{series_id}", bucket)
-            for series_id, bucket in series_buckets.get(quest_type, {}).items()
-        ] + [
-            (series_id, f"p{series_id}", bucket)
-            for series_id, bucket in prefix_series_buckets.get(quest_type, {}).items()
-        ]
         series_nodes = []
-        for series_id, series_key, bucket in sorted(all_series, key=lambda s: s[0]):
+        for series_id in sorted(series_buckets.get(quest_type, {})):
+            bucket = series_buckets[quest_type][series_id]
             series_chapters = _make_chapters(
                 bucket, main_quests=main_quests, data_repo=data_repo
             )
@@ -209,7 +179,7 @@ def build_quest_hierarchy(
             ) or (series_chapters[0].title or series_chapters[0].children[0].title)
             series_nodes.append(
                 processed_types.HierarchyNode(
-                    key=series_key,
+                    key=f"s{series_id}",
                     title=series_title,
                     children=series_chapters,
                     file_id=None,

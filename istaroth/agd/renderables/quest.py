@@ -112,20 +112,6 @@ def _group_member_chapters(
     ]
 
 
-def get_prefix_series_id(
-    chapter_id: id_types.ChapterId, *, data_repo: repo.DataRepo
-) -> id_types.ChapterId | None:
-    """Synthetic series id (lowest member chapter id) for a groupId-less questline.
-
-    None for chapters that have a real ``groupId`` or no prefix-linked siblings.
-    """
-    chapters = data_repo.load_chapter_excel_config_data()
-    if (chapter := chapters[chapter_id])["groupId"]:
-        return None
-    members = _group_member_chapters(chapter, data_repo=data_repo)
-    return min(c["id"] for c in members) if len(members) >= 2 else None
-
-
 def get_quest_group_name(
     chapter_id: id_types.ChapterId, *, data_repo: repo.DataRepo
 ) -> str | None:

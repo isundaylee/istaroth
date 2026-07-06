@@ -22,18 +22,17 @@ def test_build_quest_hierarchy_places_74078(data_repo: repo.DataRepo) -> None:
     assert series.title == "水仙的追迹"
 
 
-def test_build_quest_hierarchy_prefix_series(data_repo: repo.DataRepo) -> None:
-    """groupId-less 山中好长日 chapters cluster into a named synthetic series."""
+def test_build_quest_hierarchy_groupless_chapter_stays_loose(
+    data_repo: repo.DataRepo,
+) -> None:
+    """A groupId-less chapter (山中好长日) sits directly under its type, no series."""
     hierarchy = quest_hierarchy.build_quest_hierarchy(
         [(76095, "天堂")], data_repo=data_repo
     )
 
     wq = next(t for t in hierarchy.nodes if t.key == "WQ")
     assert wq.children is not None
-    series = next(s for s in wq.children if s.key == "p10086")
-    assert series.title == "山中好长日"
-    assert series.children is not None
-    chapter = next(c for c in series.children if c.key == "c10094")
+    chapter = next(c for c in wq.children if c.key == "c10094")
     assert chapter.children is not None
     assert [leaf.file_id for leaf in chapter.children] == [76095]
 
