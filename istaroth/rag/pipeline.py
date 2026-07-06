@@ -13,7 +13,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, START, StateGraph
 from typing_extensions import TypedDict
 
-from istaroth import langsmith_utils, llm_manager
+from istaroth import langsmith_utils, llm_manager, otel_utils
 from istaroth.agd import localization
 from istaroth.rag import budget as _budget
 from istaroth.rag import (
@@ -48,17 +48,27 @@ def preprocess_question(
     is the single source of truth for preprocessing — both the pipeline and the
     intent-classification tests go through it.
     """
-    chain = prompts.ChatPromptTemplate.from_messages(
+    prompt = prompts.ChatPromptTemplate.from_messages(
         [("user", rag_prompts.question_preprocess_prompt)]
-    ) | preprocessing_llm.with_structured_output(_PreprocessOutput)
+    )
+    chain = prompt | preprocessing_llm.with_structured_output(
+        _PreprocessOutput, include_raw=True
+    )
     try:
-        result = chain.invoke({"question": question})
-        if isinstance(result, _PreprocessOutput):
-            queries = result.queries[:3] if result.queries else [question]
-            return queries, _budget.QueryIntent(result.intent)
+        with otel_utils.llm_span(
+            "preprocess_question",
+            llm=preprocessing_llm,
+            prompt=prompt.format_messages(question=question),
+        ) as gen_span:
+            result = chain.invoke({"question": question})
+            assert isinstance(result, dict)  # include_raw=True returns raw/parsed/error
+            gen_span.record_response(result["raw"])
+        if isinstance(parsed := result["parsed"], _PreprocessOutput):
+            queries = parsed.queries[:3] if parsed.queries else [question]
+            return queries, _budget.QueryIntent(parsed.intent)
         logger.warning(
             "Preprocessing response was not structured output (type=%s), falling back",
-            type(result).__name__,
+            type(parsed).__name__,
         )
     except Exception:
         logger.warning(
@@ -235,8 +245,11 @@ class RAGPipeline:
             "user_question": state["question"],
             "retrieved_context": state["retrieved_context"],
         }
+        generation_messages = self._generation_prompt.format_messages(
+            **generation_inputs
+        )
         final_generation_input_text_length = _count_message_text_length(
-            self._generation_prompt.format_messages(**generation_inputs)
+            generation_messages
         )
 
         config: RunnableConfig = {
@@ -257,11 +270,18 @@ class RAGPipeline:
         }
 
         gen_start = time.perf_counter()
-        with state["reporter"].step("generating"):
-            response = await anyio.to_thread.run_sync(
-                lambda: chain.invoke(
-                    generation_inputs,
-                    config=config,
+        with (
+            state["reporter"].step("generating"),
+            otel_utils.llm_span(
+                "generate", llm=self._llm, prompt=generation_messages
+            ) as gen_span,
+        ):
+            response = gen_span.record_response(
+                await anyio.to_thread.run_sync(
+                    lambda: chain.invoke(
+                        generation_inputs,
+                        config=config,
+                    )
                 )
             )
         metrics.rag_pipeline_stage_generation_duration_seconds.labels(

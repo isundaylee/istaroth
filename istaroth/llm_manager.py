@@ -192,4 +192,5 @@ def extract_text_from_response(response: typing.Any) -> str:
 
 def get_model_name(llm: language_models.BaseLanguageModel) -> str:
     """Extract model name from LLM instance."""
-    return getattr(llm, "model_name", str(type(llm).__name__))
+    name = getattr(llm, "model_name", None) or getattr(llm, "model", None)
+    return name.removeprefix("models/") if name else type(llm).__name__

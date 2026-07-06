@@ -9,6 +9,8 @@ import attrs
 from langchain_core import language_models
 from langchain_google_genai import llms as google_llms
 
+from istaroth import otel_utils
+
 logger = logging.getLogger(__name__)
 
 
@@ -112,7 +114,10 @@ class RewriteQueryTransformer(QueryTransformer):
 
         try:
             # Generate rewritten queries using LLM
-            response = self._llm.invoke(prompt)
+            with otel_utils.llm_span(
+                "rewrite_query", llm=self._llm, prompt=prompt
+            ) as gen_span:
+                response = gen_span.record_response(self._llm.invoke(prompt))
         except Exception as e:
             logger.warning(f"Failed to rewrite query {query!r}: {e}")
             # Fallback to original query on error

@@ -9,7 +9,7 @@ import time
 
 from langchain_core import language_models, messages
 
-from istaroth import llm_manager
+from istaroth import llm_manager, otel_utils
 
 logger = logging.getLogger(__name__)
 
@@ -85,12 +85,14 @@ async def extract_proper_nouns(
     content: str, *, llm: language_models.BaseLanguageModel
 ) -> list[str]:
     """Extract proper nouns from text content using the given LLM."""
-    response = await llm.ainvoke(
-        [
-            messages.SystemMessage(content=SYSTEM_PROMPT),
-            messages.HumanMessage(content=content),
-        ]
-    )
+    prompt_messages = [
+        messages.SystemMessage(content=SYSTEM_PROMPT),
+        messages.HumanMessage(content=content),
+    ]
+    with otel_utils.llm_span(
+        "extract_proper_nouns", llm=llm, prompt=prompt_messages
+    ) as gen_span:
+        response = gen_span.record_response(await llm.ainvoke(prompt_messages))
     raw = llm_manager.extract_text_from_response(response)
     return [line.strip() for line in raw.strip().splitlines() if line.strip()]
 
