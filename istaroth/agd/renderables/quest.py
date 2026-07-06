@@ -79,35 +79,18 @@ def _group_member_chapters(
 ) -> list[agd_types.ChapterExcelConfigDataItem]:
     """All chapters in the same quest group (questline) as ``chapter``.
 
-    Grouping is the chapter ``groupId`` when set. Some questlines (e.g.
-    山中好长日) are not groupId-linked — their chapters carry ``groupId`` 0 and
-    encode the questline only as a ``<name>·<ordinal>`` prefix in the CHS
-    chapter-number text — so those cluster by that source-language prefix.
-    Dev/test chapters are excluded so they can't poison the group's common
-    prefix.
+    Grouping is the chapter ``groupId``; a ``groupId``-less chapter is its own
+    sole member (some questlines, e.g. 山中好长日, embed a questline name in
+    their chapter numbers without any groupId link, but we deliberately don't
+    infer grouping the data doesn't encode). Dev/test chapters are excluded so
+    they can't poison the group's common prefix.
     """
-    chapters = data_repo.load_chapter_excel_config_data()
-    if group_id := chapter["groupId"]:
-        return [
-            c
-            for c in chapters.values()
-            if c["groupId"] == group_id
-            and not _is_test_or_hidden_chapter(c, data_repo=data_repo)
-        ]
-
-    source_text_map = data_repo.build_source_text_map_tracker()
-
-    def _prefix(c: agd_types.ChapterExcelConfigDataItem) -> str | None:
-        num = source_text_map.get_optional_untracked(c["chapterNumTextMapHash"])
-        return num.split("·")[0] if num is not None and "·" in num else None
-
-    if (prefix := _prefix(chapter)) is None:
+    if not (group_id := chapter["groupId"]):
         return [chapter]
     return [
         c
-        for c in chapters.values()
-        if not c["groupId"]
-        and _prefix(c) == prefix
+        for c in data_repo.load_chapter_excel_config_data().values()
+        if c["groupId"] == group_id
         and not _is_test_or_hidden_chapter(c, data_repo=data_repo)
     ]
 
