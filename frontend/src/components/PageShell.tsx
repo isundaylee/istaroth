@@ -35,9 +35,8 @@ interface PageShellProps {
   // extends the page; 'fill' pins the whole page to the viewport on desktop —
   // the document never scrolls, the rail spans the full height, and the main
   // column scrolls internally instead (below the breakpoint it behaves like
-  // 'fit'); 'natural' keeps the rail's full content height, letting a tall
-  // sidebar extend the page. Pass explicitly whenever `sidebar` is set.
-  sidebarSizing?: 'fit' | 'fill' | 'natural'
+  // 'fit'). Pass explicitly whenever `sidebar` is set.
+  sidebarSizing?: 'fit' | 'fill'
   // Accessible name for the mobile drawer toggle button (and visible label for
   // the desktop bookmark tab).
   sidebarLabel?: ReactNode
@@ -91,15 +90,12 @@ function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLab
     const panelClass = clsx(
       styles.panel,
       styles.wide,
-      // pageShellFill is a global marker so RootLayout's .app can pin the
-      // frame to the viewport via :has() (CSS modules hash cross-file names).
-      sidebarSizing === 'fill' && [styles.panelFill, 'pageShellFill'],
+      sidebarSizing === 'fill' && styles.panelFill,
       closeable && styles.ledger,
       closed && styles.ledgerClosed,
     )
     const railClass = clsx(
       styles.rail,
-      (sidebarSizing === 'fit' || sidebarSizing === 'fill') && styles.railFit,
       closeable && styles.ledgerRail,
       drawerOpen && styles.railOpen,
     )
@@ -118,7 +114,10 @@ function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLab
     )
 
     return (
-      <div className={panelClass}>
+      // data-page-shell-fill: cross-file marker for RootLayout's .app, which
+      // pins the frame to the viewport via :has() (CSS modules hash class
+      // names, so an attribute is the clean way to match across stylesheets).
+      <div className={panelClass} data-page-shell-fill={sidebarSizing === 'fill' ? '' : undefined}>
         <Navigation embedded leading={drawerToggle || undefined} />
         <div className={styles.split}>
           <div

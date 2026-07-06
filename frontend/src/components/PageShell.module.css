@@ -206,46 +206,30 @@
   }
 
   .rail {
-    /* Back to an in-flow grid column: undo the off-canvas drawer positioning.
-       Natural sizing (`sidebarSizing="natural"`): the rail keeps its full
-       content height and participates in the row, so a tall sidebar (the
-       library tree) extends the page. Sticky is inert once the rail is taller
-       than the viewport, and keeps a short rail in view beside a long body;
-       the panel is not a scroll container, so sticky resolves against the
-       page. */
-    position: sticky;
-    top: 15px;
+    /* Undo the off-canvas drawer positioning, and keep the main column alone
+       deciding the row height: absolutely positioning the rail into its grid
+       area (an abspos grid child's containing block is its grid area) takes it
+       out of track sizing while keeping the template's column width. Explicit
+       end lines, because for an abspos grid child an auto end line resolves to
+       the grid container's padding edge — the containing block would span the
+       whole panel instead of the sidebar column. The padding moves to the
+       inner wrapper, which carries the sticky viewport-tracking scroller,
+       capped by both the viewport and the row. */
+    position: absolute;
+    grid-area: 1 / 1 / 2 / 2;
+    inset: 0;
     z-index: auto;
-    grid-column: 1;
-    grid-row: 1;
     width: auto;
     border-right: 0;
     background: transparent;
     transform: none;
     transition: none;
-    align-self: start;
-    overflow: visible;
-  }
-
-  /* Fit sizing (`sidebarSizing="fit"`): the main column alone decides the row
-     height. Absolutely positioning the rail into its grid area (an abspos grid
-     child's containing block is its grid area) takes it out of track sizing
-     while keeping the template's column width. The padding moves to the inner
-     wrapper, which carries the sticky viewport-tracking scroller, capped by
-     both the viewport and the row. */
-  .railFit {
-    position: absolute;
-    /* Explicit end lines: .rail's `grid-column: 1` leaves the end line auto,
-       and for an abspos grid child an auto end line resolves to the grid
-       container's padding edge — the containing block would span the whole
-       panel instead of the sidebar column. */
-    grid-area: 1 / 1 / 2 / 2;
-    inset: 0;
     align-self: stretch;
+    overflow: visible;
     padding: 0;
   }
 
-  .railFit .railInner {
+  .rail .railInner {
     position: sticky;
     top: 15px;
     max-height: min(100%, 100vh - 30px);
@@ -254,7 +238,7 @@
   }
 
   /* Fill sizing (`sidebarSizing="fill"`): fit's rail behavior inside a
-     viewport-pinned page. RootLayout spots the global `pageShellFill` marker
+     viewport-pinned page. RootLayout spots the `data-page-shell-fill` marker
      and turns the app frame into an exact viewport-height column, so the
      document never scrolls: the panel flexes to the space above the footer,
      the split's row is capped to it, and the main column scrolls internally

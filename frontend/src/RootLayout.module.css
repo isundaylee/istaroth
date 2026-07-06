@@ -9,19 +9,18 @@
 }
 
 /* When the page hosts a viewport-pinned PageShell (sidebarSizing="fill",
-   marked by the global pageShellFill class), the whole frame becomes a static
-   window on desktop: the app column is exactly viewport height (border-box, so
-   the 15px padding is inside it), the panel flexes to the space above the
-   footer, and scrolling happens inside the panel's main column instead of the
-   document. */
+   marked by its data attribute), the whole frame becomes a static window on
+   desktop: the app column is exactly viewport height (border-box, so the 15px
+   padding is inside it), the panel flexes to the space above the footer, and
+   scrolling happens inside the panel's main column instead of the document. */
 @media (min-width: 1000px) {
-  .app:has(:global(.pageShellFill)) {
+  .app:has([data-page-shell-fill]) {
     display: flex;
     flex-direction: column;
     height: 100vh;
   }
 
-  .app:has(:global(.pageShellFill)) .main {
+  .app:has([data-page-shell-fill]) .main {
     display: flex;
     flex-direction: column;
     flex: 1;
