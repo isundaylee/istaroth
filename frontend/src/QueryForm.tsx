@@ -1,10 +1,10 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { useT, useTranslation } from './contexts/LanguageContext'
+import { useErrorToast } from './contexts/ErrorToastContext'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import Select, { type SelectOption } from './components/Select'
 import Button from './components/Button'
 import Composer from './components/Composer'
-import ErrorDisplay from './components/ErrorDisplay'
 import QueryProgress from './components/QueryProgress'
 import { getClientId } from './utils/clientId'
 import { consumeQueryStream } from './utils/queryStream'
@@ -55,11 +55,11 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
   const navigate = useAppNavigate()
   const t = useT()
   const { language } = useTranslation()
+  const showError = useErrorToast()
   const [internalQuestion, setInternalQuestion] = useState('')
   const [availableModels, setAvailableModels] = useState<string[]>([])
   const [selectedModel, setSelectedModel] = useState('')
   const [retrievalPreset, setRetrievalPreset] = useState<RetrievalPreset>('balanced')
-  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   // Pipeline steps that have started but not yet ended, in start order.
   const [activeSteps, setActiveSteps] = useState<ProgressStepStart[]>([])
@@ -142,11 +142,11 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
           }
         } else {
           console.error('Failed to fetch models from server')
-          setError(t('query.errors.modelsLoadFailed'))
+          showError(t('query.errors.modelsLoadFailed'))
         }
       } catch (err) {
         console.error('Error fetching models:', err)
-        setError(t('query.errors.modelsLoadFailed'))
+        showError(t('query.errors.modelsLoadFailed'))
       } finally {
         setModelsLoading(false)
       }
@@ -169,7 +169,6 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
     if (!questionToSubmit) return
 
     setLoading(true)
-    setError(null)
     setActiveSteps([])
     onSubmitStart?.()
 
@@ -191,7 +190,7 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
 
       if (!res.ok || !res.body) {
         const errorData = await res.json().catch(() => null) as ErrorResponse | null
-        setError(errorData?.error || t('query.errors.unknown'))
+        showError(errorData?.error || t('query.errors.unknown'))
         setLoading(false)
         return
       }
@@ -206,14 +205,14 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
           navigate(`/conversation/${result.conversation_uuid}`)
         },
         onError: (message) => {
-          setError(message)
+          showError(message)
           setLoading(false)
         },
         noConnectionError: t('query.errors.noConnection'),
         unknownError: t('query.errors.unknown')
       })
     } catch (err) {
-      setError(t('query.errors.noConnection'))
+      showError(t('query.errors.noConnection'))
       setLoading(false)
     }
   }
@@ -266,8 +265,6 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
       {!hideProgress && loading && activeSteps.length > 0 && (
         <QueryProgress steps={activeSteps} />
       )}
-
-      {error && <ErrorDisplay error={error} />}
     </>
   )
 })

@@ -16,7 +16,7 @@ function ErrorBoundaryContent() {
     message = error
   }
 
-  return <ErrorDisplay error={message} fullPage={true} />
+  return <ErrorDisplay error={message} />
 }
 
 function ErrorBoundary() {

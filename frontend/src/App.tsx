@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider, Outlet, ScrollRestoration } from 'react-router-dom'
 import { LanguageProvider } from './contexts/LanguageContext'
+import { ErrorToastProvider } from './contexts/ErrorToastContext'
 import { FooterProvider } from './contexts/FooterContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { PopupCoordinatorProvider } from './contexts/PopupCoordinatorContext'
@@ -21,6 +22,7 @@ function RootLayout() {
   return (
     <LanguageProvider>
       <ThemeProvider>
+      <ErrorToastProvider>
       <FooterProvider>
         <PopupCoordinatorProvider>
           <DocumentTitle />
@@ -34,6 +36,7 @@ function RootLayout() {
           <ScrollRestoration />
         </PopupCoordinatorProvider>
       </FooterProvider>
+      </ErrorToastProvider>
       </ThemeProvider>
     </LanguageProvider>
   )

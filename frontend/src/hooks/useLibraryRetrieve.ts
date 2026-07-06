@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useT, useTranslation } from '../contexts/LanguageContext'
+import { useErrorToast } from '../contexts/ErrorToastContext'
 import { buildUrlWithLanguage } from '../utils/language'
 import type { LibraryRetrieveRequest, LibraryRetrieveResponse } from '../types/api'
 
@@ -15,12 +16,12 @@ export interface LibraryRetrieveParams {
 export function useLibraryRetrieve() {
   const t = useT()
   const { language } = useTranslation()
+  const showError = useErrorToast()
   const location = useLocation()
   const [formParams, setFormParams] = useState<LibraryRetrieveParams>({ query: '', semantic: false })
   const [submittedParams, setSubmittedParams] = useState<LibraryRetrieveParams | null>(null)
   const [initialQuerySubmitted, setInitialQuerySubmitted] = useState(false)
   const [results, setResults] = useState<LibraryRetrieveResponse['results']>([])
-  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const activeRequestIdRef = useRef(0)
 
@@ -35,7 +36,6 @@ export function useLibraryRetrieve() {
   const clearSearch = useCallback(() => {
     activeRequestIdRef.current += 1
     setResults([])
-    setError(null)
     setLoading(false)
     setSubmittedParams(null)
   }, [])
@@ -58,7 +58,6 @@ export function useLibraryRetrieve() {
     if (!trimmed) return
 
     setLoading(true)
-    setError(null)
     const requestId = activeRequestIdRef.current + 1
     activeRequestIdRef.current = requestId
     setSubmittedParams({ query: trimmed, semantic: params.semantic })
@@ -80,18 +79,18 @@ export function useLibraryRetrieve() {
       if (res.ok) {
         setResults((data as LibraryRetrieveResponse).results)
       } else {
-        setError((data as { error?: string }).error || t('library.search.errors.unknown'))
+        showError((data as { error?: string }).error || t('library.search.errors.unknown'))
       }
     } catch {
       if (activeRequestIdRef.current === requestId) {
-        setError(t('library.search.errors.noConnection'))
+        showError(t('library.search.errors.noConnection'))
       }
     } finally {
       if (activeRequestIdRef.current === requestId) {
         setLoading(false)
       }
     }
-  }, [language, t])
+  }, [language, showError, t])
 
   const submit = useCallback(async () => {
     const params: LibraryRetrieveParams = { query: formParams.query.trim(), semantic: formParams.semantic }
@@ -123,7 +122,6 @@ export function useLibraryRetrieve() {
     setFormParams,
     submittedParams,
     results,
-    error,
     loading,
     submit,
   }
