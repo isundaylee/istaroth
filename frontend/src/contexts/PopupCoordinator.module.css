@@ -1,6 +1,6 @@
 /* The rail collecting minimized popup cards lives inside the answer region (see
    MinimizedPopupRegion). A full-height track spans the region so the sticky rail
-   inside it tracks the region top and sticks to the top of the screen on scroll.
+   inside it tracks the region top and sticks to the top of its scroll container.
    The track/rail pass clicks through; only the cards are interactive. */
 .region {
   position: relative;
@@ -12,6 +12,10 @@
      at rest too — the rail's sticky `top` only governs the stuck position. */
   top: 1.5rem;
   bottom: 0;
+  /* Inset just inside the region's right edge; see MinimizedPopupRegion for
+     why the cards dock inside the scroll container rather than hanging in the
+     page margin. */
+  right: 12px;
   z-index: 1;
   width: min(16rem, calc(100vw - 2rem));
   pointer-events: none;

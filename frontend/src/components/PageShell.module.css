@@ -3,11 +3,12 @@
  * surface, instead of a floating nav card above floating content cards. */
 
 .panel {
-  /* No clipping: the panel must NOT become a scroll container (that would trap
-     the minimized-popup rail's `position: sticky`, which tracks the viewport)
-     nor clip the rail, which is absolutely positioned out into the page margin
-     beside the card. The rounded corners still apply to the panel's own
-     background/border; content is inset by padding so it never reaches them. */
+  /* No clipping: the panel must NOT become a scroll container (scrolling
+     belongs to the page or, in fill sizing, to the body — a panel scroller
+     would break both) nor clip the ledger's bookmark tab, which hangs out past
+     the left border into the page margin. The rounded corners still apply to
+     the panel's own background/border; content is inset by padding so it never
+     reaches them. */
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--panel-bg);

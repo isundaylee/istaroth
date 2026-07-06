@@ -118,9 +118,7 @@ function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLab
     )
 
     return (
-      // data-popup-boundary: the minimized-popup rail anchors to this surface's
-      // right edge (see MinimizedPopupRegion).
-      <div className={panelClass} data-popup-boundary>
+      <div className={panelClass}>
         <Navigation embedded leading={drawerToggle || undefined} />
         <div className={styles.split}>
           <div
@@ -160,7 +158,7 @@ function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLab
     )
   }
   return (
-    <div className={styles.panel} data-popup-boundary>
+    <div className={styles.panel}>
       <Navigation embedded />
       <div className={flush ? styles.bodyFlush : styles.body}>{children}</div>
     </div>
