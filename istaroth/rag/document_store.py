@@ -446,10 +446,9 @@ class DocumentStore:
         logger.info("Transformed query '%s' into: %r", query, queries)
 
         _all_results: dict[int, list[types.ScoredChunk]] = {}
-        # fetch_k counts candidate chunks per rank list (pre-expansion); each
-        # selected file consumes at least one candidate hit, so size it off the
-        # schedule's nominal file count with 2x headroom.
-        fetch_k = max(_FETCH_DEPTH, 2 * schedule.nominal_files)
+        # fetch_k counts candidate chunks per rank list (pre-expansion); size
+        # it off the number of hits the schedule can absorb, with 2x headroom.
+        fetch_k = max(_FETCH_DEPTH, 2 * schedule.nominal_hits)
 
         async def _run_vector(i: int, q: str) -> None:
             with _tracer.start_as_current_span("vector_search") as span:
@@ -524,7 +523,7 @@ class DocumentStore:
             span.set_attribute("intent", intent.value)
             schedule = budget_mod.allocate(budget, intent)
             scored_chunks = self._bm25_store.search(
-                query, max(_FETCH_DEPTH, 2 * schedule.nominal_files)
+                query, max(_FETCH_DEPTH, 2 * schedule.nominal_hits)
             )
             span.set_attribute(
                 "retrieval.documents", _scored_chunks_json(scored_chunks)

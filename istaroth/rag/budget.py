@@ -43,12 +43,14 @@ class Schedule:
         return sum(t.chunks for t in self.tiers)
 
     @property
-    def nominal_files(self) -> int:
-        """Distinct files selected if every hit consumes its full window.
+    def nominal_hits(self) -> int:
+        """Reranked hit chunks (pre-expansion) the schedule nominally absorbs.
 
-        An estimate for sizing candidate fetch depth, not a hard cap: windows
+        Assumes each hit expands to its full window; hits on the same file
+        count separately, so this bounds distinct files from above. An
+        estimate for sizing candidate fetch depth, not a hard cap: windows
         clipped at file boundaries or overlapping earlier hits consume fewer
-        chunks, so the actual file count can run higher (bounded by budget).
+        chunks, so more hits can actually be consumed (bounded by budget).
         """
         return sum(math.ceil(t.chunks / (2 * t.window + 1)) for t in self.tiers)
 

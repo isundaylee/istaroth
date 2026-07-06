@@ -82,7 +82,7 @@ def test_schedule_window_at() -> None:
         schedule.window_at(110)
 
 
-def test_schedule_nominal_files() -> None:
-    assert budget.allocate(110, budget.QueryIntent.VARIETY).nominal_files == 74
-    assert budget.allocate(110, budget.QueryIntent.LOOKUP).nominal_files == 110
-    assert budget.allocate(110, budget.QueryIntent.BALANCED).nominal_files == 8
+def test_schedule_nominal_hits() -> None:
+    assert budget.allocate(110, budget.QueryIntent.VARIETY).nominal_hits == 74
+    assert budget.allocate(110, budget.QueryIntent.LOOKUP).nominal_hits == 110
+    assert budget.allocate(110, budget.QueryIntent.BALANCED).nominal_hits == 8
