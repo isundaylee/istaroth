@@ -27,8 +27,10 @@ class DocumentRetrievalInput(BaseModel):
     budget: int = Field(default=55, description="检索的上下文预算（总文本块数量）。")
     intent: str = Field(
         default="balanced",
-        description="检索意图：'variety'（广度优先）、'balanced'（均衡）、"
-        "'context'（深度优先）或 'lookup'（仅匹配块，无上下文）。",
+        description="检索意图，决定预算的花法："
+        "'context'（命中较少，每个命中带较长连续上下文）、"
+        "'variety'（覆盖更多不同命中，每个命中只带少量上下文）、"
+        "'balanced'（折中）或 'lookup'（只返回命中块本身，无上下文）。",
     )
 
 

@@ -43,7 +43,13 @@ class Schedule:
         return sum(t.chunks for t in self.tiers)
 
     @property
-    def max_files(self) -> int:
+    def nominal_files(self) -> int:
+        """Distinct files selected if every hit consumes its full window.
+
+        An estimate for sizing candidate fetch depth, not a hard cap: windows
+        clipped at file boundaries or overlapping earlier hits consume fewer
+        chunks, so the actual file count can run higher (bounded by budget).
+        """
         return sum(math.ceil(t.chunks / (2 * t.window + 1)) for t in self.tiers)
 
     def window_at(self, consumed: int) -> int:

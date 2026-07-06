@@ -33,7 +33,6 @@ from istaroth.rag import (
     output_rendering,
     pipeline,
     prompt_set,
-    retrieval_diff,
     text_set,
     types,
 )
@@ -959,30 +958,6 @@ def chunk_file(file: pathlib.Path, *, chunk_size_multiplier: float) -> None:
     )
     print(f"  Min chunk size: {min(len(c) for c in chunks_list)} chars")
     print(f"  Max chunk size: {max(len(c) for c in chunks_list)} chars")
-
-
-@cli.command("diff-retrieval")
-@click.argument("file1", type=click.Path(exists=True, path_type=pathlib.Path))
-@click.argument("file2", type=click.Path(exists=True, path_type=pathlib.Path))
-def diff_retrieval(file1: pathlib.Path, file2: pathlib.Path) -> None:
-    """Compare two retrieval result files and show differences."""
-    # Load and compare the JSON files
-    json1 = orjson.loads(file1.read_bytes())
-    json2 = orjson.loads(file2.read_bytes())
-
-    # Create the diff object
-    diff = retrieval_diff.compare_retrievals(
-        json1, json2, filename1=file1.name, filename2=file2.name
-    )
-
-    # Render all sections
-    print(retrieval_diff.render_comparison_headers(diff))
-    print()
-    print(retrieval_diff.render_document_sections(diff))
-    print()
-    print(retrieval_diff.render_summary_table(diff))
-    print()
-    print(retrieval_diff.render_final_summary(diff))
 
 
 if __name__ == "__main__":
