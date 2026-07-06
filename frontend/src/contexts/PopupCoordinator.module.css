@@ -12,12 +12,16 @@
      at rest too — the rail's sticky `top` only governs the stuck position. */
   top: 1.5rem;
   bottom: 0;
-  /* Inset just inside the region's right edge; see MinimizedPopupRegion for
-     why the cards dock inside the scroll container rather than hanging in the
-     page margin. */
-  right: 12px;
+  /* Reach the region's right edge, with the cards' 12px inset carried as
+     padding (see MinimizedPopupRegion for why the cards dock inside the scroll
+     container rather than hanging in the page margin). Flush right matters in
+     Safari: this layer punches a hole in WebKit's selection-gap painting, and
+     any strip of region between the track and the edge would show up as a
+     stray selection-colored column. */
+  right: 0;
+  padding-right: 12px;
   z-index: 1;
-  width: min(16rem, calc(100vw - 2rem));
+  width: calc(min(16rem, calc(100vw - 2rem)) + 12px);
   pointer-events: none;
 }
 
