@@ -13,7 +13,9 @@ function ConversationLayoutInner() {
     <PageShell
       flush
       sidebar={<HistoryRailContent activeConversationId={id} />}
-      sidebarSizing="fit"
+      // Answer pages pin to the viewport and scroll internally like the
+      // library; the home page keeps its natural content height.
+      sidebarSizing={id ? 'fill' : 'fit'}
       sidebarLabel={t('history.title')}
       sidebarCloseable
       sidebarClosed={!open}

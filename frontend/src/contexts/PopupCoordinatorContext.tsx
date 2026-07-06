@@ -65,10 +65,6 @@ const PopupCoordinatorContext = createContext<PopupCoordinatorValue>({
   bringToFront: () => {}
 })
 
-const RAIL_MAX_WIDTH = 256 // matches the CSS `min(16rem, ...)` cap
-const RAIL_GAP = 12 // gap between the content area and the rail
-const RAIL_MARGIN = 8 // minimum gap from the viewport edge
-
 /**
  * Top-level coordinator for floating popups. Owns the cross-popup policy that
  * individual panels cannot decide locally: a stacking order (z-index and
@@ -207,56 +203,32 @@ function _stuckBottom(guide: HTMLElement): number {
 /**
  * Wrap the answer/text area the minimized-popup rail should sit beside. The rail
  * is a ``position: sticky`` column inside this region, so it tracks the region's
- * top and sticks to the top of the screen on scroll natively — no scroll
+ * top and sticks to the top of its scroll container natively — no scroll
  * handlers. The stuck position clears the strictest registered placement guide
- * (sticky chrome such as the mobile navbar; see ``useRailPlacementGuide``).
- * Horizontally it hangs in the page margin just past the right border
- * of the enclosing ``[data-popup-boundary]`` surface (the page card) when there
- * is room — anchored to a visible edge rather than floating mid-gutter, since
- * the region's own right border may end well inside a wider card (the library
- * reading measure). Without room (or a boundary) it falls back to just outside
- * the region, then inset just inside it. This choice and the guide clearance
- * are measured only on resize.
+ * (sticky chrome such as the mobile navbar; see ``useRailPlacementGuide``),
+ * measured only on resize. Horizontally the track sits inset just inside the
+ * region's right edge (see the module CSS): every region lives inside
+ * PageShell's viewport-pinned main column, where anything hung outside the
+ * scroll container's border would become scrollable overflow — a stray
+ * horizontal scrollbar and clipped cards.
  */
 export function MinimizedPopupRegion({ children, className }: { children: ReactNode; className?: string }) {
   const { setRail, guides } = useContext(PopupCoordinatorContext)
-  const regionRef = useRef<HTMLDivElement>(null)
-  const [trackLeft, setTrackLeft] = useState<number | null>(null)
   const [guideBottom, setGuideBottom] = useState(0)
 
   useLayoutEffect(() => {
-    const region = regionRef.current
-    if (!region) return
-    const boundary = region.closest('[data-popup-boundary]')
-    const update = () => {
-      const railWidth = Math.min(RAIL_MAX_WIDTH, window.innerWidth - 2 * RAIL_MARGIN)
-      const regionRect = region.getBoundingClientRect()
-      const edge = boundary ? boundary.getBoundingClientRect().right : regionRect.right
-      setTrackLeft(
-        edge + RAIL_GAP + railWidth > window.innerWidth - RAIL_MARGIN
-          ? null
-          : edge - regionRect.left + RAIL_GAP
-      )
-      setGuideBottom(Math.max(0, ...guides.map(_stuckBottom)))
-    }
+    const update = () => setGuideBottom(Math.max(0, ...guides.map(_stuckBottom)))
     update()
     const observer = new ResizeObserver(update)
-    observer.observe(region)
-    if (boundary) observer.observe(boundary)
     guides.forEach((guide) => observer.observe(guide))
     observer.observe(document.documentElement)
     return () => observer.disconnect()
   }, [guides])
 
-  // Outside: the track's left edge sits a gap past the boundary's right border.
-  // Inset (no room): the track's right edge sits a gap inside the region's.
-  const trackStyle: CSSProperties = {
-    ...(trackLeft === null ? { right: `${RAIL_GAP}px` } : { left: `${trackLeft}px` }),
-    ['--rail-guide-bottom' as string]: `${guideBottom}px`
-  }
+  const trackStyle: CSSProperties = { ['--rail-guide-bottom' as string]: `${guideBottom}px` }
 
   return (
-    <div ref={regionRef} className={`${styles.region}${className ? ` ${className}` : ''}`}>
+    <div className={`${styles.region}${className ? ` ${className}` : ''}`}>
       {children}
       <div className={styles.railTrack} style={trackStyle}>
         <div ref={setRail} className={styles.rail} />

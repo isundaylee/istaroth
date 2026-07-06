@@ -1,7 +1,0 @@
-/* Reader adaptations for the two-pane layout. The Folio can be far wider than a
- * comfortable line length, so hold the reading column to a measure; the popup
- * rail then sits just outside its right edge in the leftover gutter. */
-
-.measure {
-  max-width: 760px;
-}
