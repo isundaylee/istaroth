@@ -6,6 +6,7 @@ import os
 import httpx
 from langchain_core.documents import Document
 
+from istaroth.rag import budget as budget_mod
 from istaroth.rag import types
 
 logger = logging.getLogger(__name__)
@@ -32,22 +33,22 @@ class RetrievalClient:
         return cls(url, language)
 
     def retrieve(
-        self, query: str, *, k: int, chunk_context: int
+        self, query: str, *, budget: int, intent: budget_mod.QueryIntent
     ) -> types.RetrieveOutput:
         resp = self._client.post(
             "/retrieve",
             json={
                 "language": self._language,
                 "query": query,
-                "k": k,
-                "chunk_context": chunk_context,
+                "budget": budget,
+                "intent": intent.value,
             },
         )
         resp.raise_for_status()
         return types.RetrieveOutput.from_dict(resp.json())
 
     async def aretrieve(
-        self, query: str, *, k: int, chunk_context: int
+        self, query: str, *, budget: int, intent: budget_mod.QueryIntent
     ) -> types.RetrieveOutput:
         """Async version of retrieve using the async HTTP client."""
         resp = await self._async_client.post(
@@ -55,23 +56,23 @@ class RetrievalClient:
             json={
                 "language": self._language,
                 "query": query,
-                "k": k,
-                "chunk_context": chunk_context,
+                "budget": budget,
+                "intent": intent.value,
             },
         )
         resp.raise_for_status()
         return types.RetrieveOutput.from_dict(resp.json())
 
     def retrieve_bm25(
-        self, query: str, *, k: int, chunk_context: int
+        self, query: str, *, budget: int, intent: budget_mod.QueryIntent
     ) -> types.RetrieveOutput:
         resp = self._client.post(
             "/retrieve_bm25",
             json={
                 "language": self._language,
                 "query": query,
-                "k": k,
-                "chunk_context": chunk_context,
+                "budget": budget,
+                "intent": intent.value,
             },
         )
         resp.raise_for_status()

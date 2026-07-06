@@ -336,15 +336,15 @@ def render_comparison_headers(diff: RetrievalDiff) -> str:
         lines.append("✓ Same query parameters")
         lines.append(f"  Query: {diff.meta1['query']['query']}")
         lines.append(
-            f"  k: {diff.meta1['query']['k']}, chunk_context: {diff.meta1['query']['chunk_context']}"
+            f"  budget: {diff.meta1['query']['budget']}, intent: {diff.meta1['query']['intent']}"
         )
     else:
         lines.append("✗ Different query parameters")
         lines.append(
-            f"  File A - Query: {diff.meta1['query']['query']}, k: {diff.meta1['query']['k']}, chunk_context: {diff.meta1['query']['chunk_context']}"
+            f"  File A - Query: {diff.meta1['query']['query']}, budget: {diff.meta1['query']['budget']}, intent: {diff.meta1['query']['intent']}"
         )
         lines.append(
-            f"  File B - Query: {diff.meta2['query']['query']}, k: {diff.meta2['query']['k']}, chunk_context: {diff.meta2['query']['chunk_context']}"
+            f"  File B - Query: {diff.meta2['query']['query']}, budget: {diff.meta2['query']['budget']}, intent: {diff.meta2['query']['intent']}"
         )
 
     # Compare environment settings

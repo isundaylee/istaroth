@@ -163,18 +163,24 @@ def build(
 
 @cli.command()
 @click.argument("query", type=str)
-@click.option("-k", "--k", default=5, help="Number of results to return")
-@click.option("-c", "--chunk-context", default=5, help="Context size for each chunk")
+@click.option("-b", "--budget", default=55, help="Context budget (total chunks)")
+@click.option(
+    "-i",
+    "--intent",
+    default="balanced",
+    type=click.Choice([v.value for v in _budget.QueryIntent]),
+    help="Retrieval intent (budget shape)",
+)
 @click.option("--save", type=pathlib.Path)
 def retrieve(
-    query: str, *, k: int, chunk_context: int, save: pathlib.Path | None
+    query: str, *, budget: int, intent: str, save: pathlib.Path | None
 ) -> None:
     """Retrieve similar documents from the document store."""
 
     with ls.trace(
         "rag_tools_retrieve",
         "chain",
-        inputs={"query": query, "k": k, "chunk_context": chunk_context},
+        inputs={"query": query, "budget": budget, "intent": intent},
     ) as rt:
         store, _, ts = _load_store()
 
@@ -183,7 +189,9 @@ def retrieve(
             sys.exit(1)
 
         logger.info("Searching for: '%s'", query)
-        retrieve_output = store.retrieve(query, k=k, chunk_context=chunk_context)
+        retrieve_output = store.retrieve(
+            query, budget=budget, intent=_budget.QueryIntent(intent)
+        )
 
         if not retrieve_output.results:
             logger.info("No results found.")
@@ -215,14 +223,14 @@ def _ranked_source_texts(
     store: types.Retriever,
     fixture: retrieval.RetrievalFixture,
     *,
-    k: int,
-    chunk_context: int,
+    budget: int,
+    intent: _budget.QueryIntent,
     bm25: bool,
 ) -> tuple[list[str], list[str], int]:
     retrieve_output = (
-        store.retrieve_bm25(fixture.query, k=k, chunk_context=chunk_context)
+        store.retrieve_bm25(fixture.query, budget=budget, intent=intent)
         if bm25
-        else store.retrieve(fixture.query, k=k, chunk_context=chunk_context)
+        else store.retrieve(fixture.query, budget=budget, intent=intent)
     )
     texts: list[str] = []
     paths: list[str] = []
@@ -275,8 +283,8 @@ async def _afetch_sources(
     store: types.Retriever,
     fixture: retrieval.RetrievalFixture,
     *,
-    k: int,
-    chunk_context: int,
+    budget: int,
+    intent: _budget.QueryIntent,
     repeat: int,
     bm25: bool,
     sem: anyio.Semaphore,
@@ -292,8 +300,8 @@ async def _afetch_sources(
                     _ranked_source_texts,
                     store,
                     fixture,
-                    k=k,
-                    chunk_context=chunk_context,
+                    budget=budget,
+                    intent=intent,
                     bm25=bm25,
                 ),
             )
@@ -387,16 +395,22 @@ async def _aeval_fixtures(
             span.set_attribute("fixture.query", fixture.query)
             span.set_attribute("fixture.category", fixture.category)
             intent = intent_fn(fixture.query)
-            fk, fcc = _budget.allocate(budget, intent)
+            schedule = _budget.allocate(budget, intent)
             span.set_attribute("fixture.intent", intent.value)
-            span.set_attribute("fixture.k", fk)
-            span.set_attribute("fixture.chunk_context", fcc)
-            print(f"[fixture] {fixture.query} → intent={intent.value} k={fk} cc={fcc}")
+            span.set_attribute("fixture.budget", budget)
+            span.set_attribute(
+                "fixture.schedule",
+                str([(t.chunks, t.window) for t in schedule.tiers]),
+            )
+            print(
+                f"[fixture] {fixture.query} → intent={intent.value} "
+                f"schedule={[(t.chunks, t.window) for t in schedule.tiers]}"
+            )
             texts_list, paths_list, chunks_list = await _afetch_sources(
                 store,
                 fixture,
-                k=fk,
-                chunk_context=fcc,
+                budget=budget,
+                intent=intent,
                 repeat=repeat,
                 bm25=bm25,
                 sem=sem,
@@ -561,12 +575,12 @@ def _print_summary(
     "--budget",
     default=110,
     type=int,
-    help="Context budget B: allocate k/chunk_context per fixture from budget+intent (default: 110 = 'thorough' preset)",
+    help="Context budget B: shaped into a depth schedule per fixture from budget+intent (default: 110 = 'thorough' preset)",
 )
 @click.option(
     "--intent",
     default="auto",
-    type=click.Choice(["auto", "variety", "balanced", "context"]),
+    type=click.Choice(["auto", *(v.value for v in _budget.QueryIntent)]),
     help="Retrieval intent for budget-based allocation (default: auto = classify per fixture via LLM)",
 )
 @click.option(

@@ -82,8 +82,6 @@ class _PipelineState(TypedDict):
     normalized_question: str
     budget: int
     intent: _budget.QueryIntent
-    k: int
-    chunk_context: int
     reporter: progress.ProgressReporter
     retrieval_queries: list[str]
     combined_retrieve_output: types.CombinedRetrieveOutput
@@ -175,13 +173,10 @@ class RAGPipeline:
 
     async def _retrieve_node(self, state: _PipelineState) -> dict[str, object]:
         retrieval_start = time.perf_counter()
-        k, cc = _budget.allocate(state["budget"], state["intent"])
         logger.info(
-            "Budget=%d intent=%s → allocated k=%d chunk_context=%d",
+            "Retrieving with budget=%d intent=%s",
             state["budget"],
             state["intent"].value,
-            k,
-            cc,
         )
 
         _retrieve_outputs: dict[int, types.RetrieveOutput] = {}
@@ -189,7 +184,7 @@ class RAGPipeline:
         async def _retrieve(i: int, q: str) -> None:
             with state["reporter"].step("searching", q):
                 _retrieve_outputs[i] = await self._retriever.aretrieve(
-                    q, k=k, chunk_context=cc
+                    q, budget=state["budget"], intent=state["intent"]
                 )
 
         async with anyio.create_task_group() as tg:
@@ -232,8 +227,6 @@ class RAGPipeline:
         return {
             "combined_retrieve_output": combined,
             "retrieved_context": retrieved_context,
-            "k": k,
-            "chunk_context": cc,
         }
 
     async def _generate_node(self, state: _PipelineState) -> dict[str, object]:
@@ -258,8 +251,6 @@ class RAGPipeline:
                 "retrieval_queries": state["retrieval_queries"],
                 "budget": state["budget"],
                 "intent": state["intent"].value,
-                "k": state["k"],
-                "chunk_context": state["chunk_context"],
                 "model": model,
                 "num_documents": self._retriever.num_documents,
                 "num_retrieved": len(state["combined_retrieve_output"].results),
@@ -356,8 +347,6 @@ class RAGPipeline:
             "normalized_question": question,
             "budget": budget,
             "intent": _intent,
-            "k": 0,
-            "chunk_context": 0,
             "reporter": reporter,
             "retrieval_queries": [],
             "combined_retrieve_output": types.CombinedRetrieveOutput(

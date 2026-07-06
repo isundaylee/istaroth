@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Any, Protocol, TypedDict
 import attrs
 from langchain_core.documents import Document
 
+from istaroth.rag import budget as budget_mod
+
 if TYPE_CHECKING:
     from istaroth.rag import text_set as text_set_mod
 
@@ -80,15 +82,15 @@ class AnswerResult:
 @attrs.define
 class RetrieveQuery:
     query: str
-    k: int
-    chunk_context: int
+    budget: int
+    intent: budget_mod.QueryIntent
 
     def to_dict(self) -> dict[str, Any]:
         """Convert RetrieveQuery to dictionary for serialization."""
         return {
             "query": self.query,
-            "k": self.k,
-            "chunk_context": self.chunk_context,
+            "budget": self.budget,
+            "intent": self.intent.value,
         }
 
     @classmethod
@@ -96,8 +98,8 @@ class RetrieveQuery:
         """Create RetrieveQuery from dictionary."""
         return cls(
             query=data["query"],
-            k=data["k"],
-            chunk_context=data["chunk_context"],
+            budget=data["budget"],
+            intent=budget_mod.QueryIntent(data["intent"]),
         )
 
 
@@ -249,14 +251,16 @@ class CombinedRetrieveOutput:
 class Retriever(Protocol):
     """Protocol for retrieval backends (DocumentStore or remote retrieval client)."""
 
-    def retrieve(self, query: str, *, k: int, chunk_context: int) -> RetrieveOutput: ...
+    def retrieve(
+        self, query: str, *, budget: int, intent: budget_mod.QueryIntent
+    ) -> RetrieveOutput: ...
 
     async def aretrieve(
-        self, query: str, *, k: int, chunk_context: int
+        self, query: str, *, budget: int, intent: budget_mod.QueryIntent
     ) -> RetrieveOutput: ...
 
     def retrieve_bm25(
-        self, query: str, *, k: int, chunk_context: int
+        self, query: str, *, budget: int, intent: budget_mod.QueryIntent
     ) -> RetrieveOutput: ...
 
     def get_file_chunks(self, file_id: str) -> list[Document] | None: ...

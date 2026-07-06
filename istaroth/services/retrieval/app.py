@@ -11,6 +11,7 @@ import pydantic
 from fastapi import FastAPI, HTTPException
 
 from istaroth.agd import localization
+from istaroth.rag import budget as budget_mod
 from istaroth.rag import document_store_set, types
 from istaroth.services.common import http_metrics_middleware, metrics
 
@@ -22,8 +23,8 @@ _store_set: document_store_set.DocumentStoreSet | None = None
 class _RetrieveRequest(pydantic.BaseModel):
     language: str
     query: str
-    k: int
-    chunk_context: int
+    budget: int
+    intent: budget_mod.QueryIntent
 
 
 class _GetFileChunksRequest(pydantic.BaseModel):
@@ -87,7 +88,7 @@ def create_app() -> FastAPI:
         store = _get_store(request.language)
         start = time.perf_counter()
         output = await store.aretrieve(
-            request.query, k=request.k, chunk_context=request.chunk_context
+            request.query, budget=request.budget, intent=request.intent
         )
         metrics.retrieval_duration_seconds.labels(
             operation="retrieve", language=request.language
@@ -99,7 +100,7 @@ def create_app() -> FastAPI:
         store = _get_store(request.language)
         start = time.perf_counter()
         output = store.retrieve_bm25(
-            request.query, k=request.k, chunk_context=request.chunk_context
+            request.query, budget=request.budget, intent=request.intent
         )
         metrics.retrieval_duration_seconds.labels(
             operation="retrieve_bm25", language=request.language

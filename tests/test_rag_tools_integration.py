@@ -10,7 +10,7 @@ from contextlib import contextmanager
 import chromadb
 import pytest
 
-from istaroth.rag import document_store, query_transform, rerank
+from istaroth.rag import budget, document_store, query_transform, rerank
 from istaroth.rag.vector_store import ChromaExternalVectorStore
 
 
@@ -73,7 +73,7 @@ def test_retrieve_relevant_content_with_k1(
     def _test_retrieval(ds: document_store.DocumentStore) -> None:
         """Test retrieval with the given document store."""
         for query, expected_keywords in test_queries:
-            r = ds.retrieve(query, k=1, chunk_context=0)
+            r = ds.retrieve(query, budget=1, intent=budget.QueryIntent.LOOKUP)
             [(_, docs)] = r.results
             [doc] = docs
             assert expected_keywords in doc.page_content

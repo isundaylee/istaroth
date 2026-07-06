@@ -8,6 +8,7 @@ from langchain_core.tools import BaseTool, Tool
 from pydantic import BaseModel, Field
 
 from istaroth.agd import localization
+from istaroth.rag import budget as budget_mod
 from istaroth.rag import document_store, output_rendering, text_set
 
 logger = logging.getLogger(__name__)
@@ -23,10 +24,11 @@ class DocumentRetrievalInput(BaseModel):
             "示例：'钟离'、'什么是灾祸？'、'散兵的起源'。"
         )
     )
-    k: int = Field(default=5, description="要检索的文件结果数量。")
-    chunk_context: int = Field(
-        default=5,
-        description="每个文件结果要包含多少个周围的上下文块。",
+    budget: int = Field(default=55, description="检索的上下文预算（总文本块数量）。")
+    intent: str = Field(
+        default="balanced",
+        description="检索意图：'variety'（广度优先）、'balanced'（均衡）、"
+        "'context'（深度优先）或 'lookup'（仅匹配块，无上下文）。",
     )
 
 
@@ -54,21 +56,23 @@ class DocumentRetrievalTool(BaseTool):
         self._text_set = text_set
         self._language = language
 
-    def _run(self, query: str, k: int = 5, chunk_context: int = 5) -> str:
+    def _run(self, query: str, budget: int = 55, intent: str = "balanced") -> str:
         """Execute document retrieval."""
         return output_rendering.render_retrieve_output(
             self._document_store.retrieve(
-                query, k=k, chunk_context=chunk_context
+                query, budget=budget, intent=budget_mod.QueryIntent(intent)
             ).results,
             text_set=self._text_set,
         )
 
-    async def _arun(self, query: str, k: int = 5, chunk_context: int = 5) -> str:
+    async def _arun(
+        self, query: str, budget: int = 55, intent: str = "balanced"
+    ) -> str:
         """Async version."""
         return output_rendering.render_retrieve_output(
             (
                 await self._document_store.aretrieve(
-                    query, k=k, chunk_context=chunk_context
+                    query, budget=budget, intent=budget_mod.QueryIntent(intent)
                 )
             ).results,
             text_set=self._text_set,

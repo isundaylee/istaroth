@@ -226,20 +226,12 @@ class LibraryRetrieveRequest(BaseModel):
     query: str
     k: int
     semantic: bool = False
-    chunk_context: int = 0
 
     @field_validator("k")
     @classmethod
     def _validate_k(cls, value: int) -> int:
         if not (0 < value <= 15):
             raise ValueError("Invalid k value: must be between 1 and 15")
-        return value
-
-    @field_validator("chunk_context")
-    @classmethod
-    def _validate_chunk_context(cls, value: int) -> int:
-        if not (0 <= value <= 10):
-            raise ValueError("Invalid chunk_context value: must be between 0 and 10")
         return value
 
 

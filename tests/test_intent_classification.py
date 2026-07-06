@@ -69,6 +69,6 @@ def test_narrative_scene_queries_keep_context_window(
 ) -> None:
     """A single continuous-scene query should keep a non-minimal context window."""
     intent = _classify(query, language)
-    _, chunk_context = budget.allocate(110, intent)
+    schedule = budget.allocate(110, intent)
     assert intent is not budget.QueryIntent.VARIETY
-    assert chunk_context > 1
+    assert all(tier.window > 1 for tier in schedule.tiers)

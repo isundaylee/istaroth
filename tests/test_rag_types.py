@@ -2,7 +2,7 @@
 
 from langchain_core.documents import Document
 
-from istaroth.rag import types
+from istaroth.rag import budget, types
 
 
 def test_retrieve_output_serialization():
@@ -30,7 +30,9 @@ def test_retrieve_output_serialization():
     )
 
     # Create RetrieveOutput with test data
-    query = types.RetrieveQuery(query="test query", k=2, chunk_context=5)
+    query = types.RetrieveQuery(
+        query="test query", budget=110, intent=budget.QueryIntent.BALANCED
+    )
     original = types.RetrieveOutput(
         query=query, results=[(0.95, [doc1, doc2]), (0.80, [doc1])]
     )
@@ -45,7 +47,9 @@ def test_retrieve_output_total_documents():
     doc2 = Document(page_content="Test 2", metadata={})
     doc3 = Document(page_content="Test 3", metadata={})
 
-    query = types.RetrieveQuery(query="total documents test", k=3, chunk_context=5)
+    query = types.RetrieveQuery(
+        query="total documents test", budget=110, intent=budget.QueryIntent.VARIETY
+    )
     output = types.RetrieveOutput(
         query=query, results=[(0.9, [doc1, doc2]), (0.8, [doc3])]
     )

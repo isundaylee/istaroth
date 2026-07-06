@@ -56,7 +56,7 @@ async def test_list_tools(mcp_client: Client) -> None:
 async def test_retrieve(mcp_client: Client) -> None:
     """Retrieve tool returns relevant content for a known query."""
     result = await mcp_client.call_tool(
-        "retrieve", {"query": "钟离的真实身份", "k": 1, "chunk_context": 0}
+        "retrieve", {"query": "钟离的真实身份", "budget": 1, "intent": "lookup"}
     )
     assert not result.is_error
     text = _extract_text(result)
@@ -66,7 +66,7 @@ async def test_retrieve(mcp_client: Client) -> None:
 async def test_retrieve_bm25(mcp_client: Client) -> None:
     """BM25 retrieve tool returns relevant content for a known keyword query."""
     result = await mcp_client.call_tool(
-        "retrieve_bm25", {"query": "摩拉克斯", "k": 1, "chunk_context": 0}
+        "retrieve_bm25", {"query": "摩拉克斯", "budget": 1, "intent": "lookup"}
     )
     assert not result.is_error
     text = _extract_text(result)
@@ -76,7 +76,7 @@ async def test_retrieve_bm25(mcp_client: Client) -> None:
 async def test_get_file_content(mcp_client: Client) -> None:
     """Get file content tool returns chunks for a valid file_id from retrieve results."""
     retrieve_result = await mcp_client.call_tool(
-        "retrieve", {"query": "钟离", "k": 1, "chunk_context": 0}
+        "retrieve", {"query": "钟离", "budget": 1, "intent": "lookup"}
     )
     file_id = _extract_file_id(_extract_text(retrieve_result))
 
