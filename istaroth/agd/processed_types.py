@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 import attrs
 
-from istaroth.agd import first_seen, id_types
+from istaroth.agd import id_types
 
 if TYPE_CHECKING:
     from istaroth.text import types as text_types
@@ -398,5 +398,3 @@ class RenderedItem:
 
     text_metadata: text_types.TextMetadata
     content: str
-    source_ids: list[first_seen.SourceId]
-    """Raw AGD source ids the content was rendered from (for version stamping)."""

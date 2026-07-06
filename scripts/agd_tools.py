@@ -127,6 +127,11 @@ def _get_data_repo_from_env() -> repo.DataRepo:
     return repo.DataRepo.from_env()
 
 
+@functools.cache
+def _get_first_seen_index() -> first_seen.FirstSeenIndex:
+    return first_seen.FirstSeenIndex.load()
+
+
 def _process_single_item(
     args: tuple[str, renderable_types.BaseRenderableType, bool],
 ) -> _RenderableResult:
@@ -137,7 +142,9 @@ def _process_single_item(
         with data_repo.tracking_scope(
             item_type=type(renderable_type).__name__, item_key=str(renderable_key)
         ) as scope:
-            rendered = renderable_type.process(renderable_key, data_repo)
+            rendered = renderable_type.process(
+                renderable_key, data_repo, first_seen_index=_get_first_seen_index()
+            )
         return _RenderableResult(
             renderable_key,
             rendered,
@@ -168,7 +175,6 @@ def _generate_content(
     strict: bool = False,
     manifest_list: list[text_types.TextMetadata],
     parsing_issues: list[issues.ParsingIssue],
-    first_seen_index: first_seen.FirstSeenIndex,
 ) -> tuple[_GenerationStats, tracking.TrackerStats]:
     """Generate content files using renderable type."""
     stats = _GenerationStats(success=0, error=0, skipped=0, issues=0)
@@ -244,16 +250,8 @@ def _generate_content(
                 stats.skipped += 1
                 continue
 
-            # Get TextMetadata from RenderedItem, stamping the first-seen
-            # game-version range of the content's source ids.
-            min_version, max_version = first_seen_index.resolve(
-                result.rendered_item.source_ids
-            )
-            text_metadata = attrs.evolve(
-                result.rendered_item.text_metadata,
-                min_version=min_version,
-                max_version=max_version,
-            )
+            # Get TextMetadata from RenderedItem
+            text_metadata = result.rendered_item.text_metadata
 
             # Check for path collision
             if text_metadata.relative_path in used_paths:
@@ -341,7 +339,8 @@ def generate_all(
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
-    first_seen_index = first_seen.FirstSeenIndex.load()
+    # Load the first-seen index before the pool forks so workers inherit it.
+    _get_first_seen_index()
 
     # Create output directory, deleting only AGD-owned content on --force
     # to avoid wiping unrelated folders (e.g. tps_shishu).
@@ -397,7 +396,6 @@ def generate_all(
             strict=strict,
             manifest_list=manifest_list,
             parsing_issues=all_parsing_issues,
-            first_seen_index=first_seen_index,
         )
         total_stats.update(stats)
         issue_counts[renderable.text_category.value] = stats.issues
@@ -607,6 +605,7 @@ def render_readable(readable_path: str) -> None:
             metadata,
             pathlib.Path(readable_path).name,
             category=text_types.TextCategory.AGD_READABLE,
+            first_seen_index=_get_first_seen_index(),
         )
 
         # Output only the content
@@ -636,6 +635,7 @@ def render_talk(talk_path: str) -> None:
             talk_id=talk_id,
             talk_file_path=talk_path,
             language=localization.Language.CHS,
+            first_seen_index=_get_first_seen_index(),
         )
 
         # Output only the content
@@ -660,7 +660,11 @@ def render_quest(quest_path: str) -> None:
             raise click.ClickException(f"Quest {quest_id} is a test/hidden quest")
 
         # Render the quest
-        rendered = quest.render_quest(quest_info, language=localization.Language.CHS)
+        rendered = quest.render_quest(
+            quest_info,
+            language=localization.Language.CHS,
+            first_seen_index=_get_first_seen_index(),
+        )
 
         # Output only the content
         click.echo(rendered.content)

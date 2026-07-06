@@ -66,6 +66,8 @@ def get_weapon_info(
 
 def render_weapon(
     weapon_info: processed_types.WeaponInfo,
+    *,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render a weapon's assembled story document into RAG-suitable format."""
     safe_name = utils.make_safe_filename_part(weapon_info.name)
@@ -76,19 +78,21 @@ def render_weapon(
         content_lines.append(f"{weapon_info.description}\n")
     content_lines.append("\n\n---\n\n".join(weapon_info.story_pages))
 
+    min_version, max_version = first_seen_index.resolve(
+        [
+            first_seen.SourceId(
+                first_seen.SourceDomain.WEAPON, int(weapon_info.weapon_id)
+            )
+        ]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_WEAPON,
             title=weapon_info.name,
             id=int(weapon_info.weapon_id),
             relative_path=f"{text_types.TextCategory.AGD_WEAPON.value}/{filename}",
-            min_version=None,
-            max_version=None,
+            min_version=min_version,
+            max_version=max_version,
         ),
         content="\n".join(content_lines),
-        source_ids=[
-            first_seen.SourceId(
-                first_seen.SourceDomain.WEAPON, int(weapon_info.weapon_id)
-            )
-        ],
     )

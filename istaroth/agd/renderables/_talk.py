@@ -356,6 +356,7 @@ def render_talk(
     talk_id: id_types.TalkId,
     talk_file_path: str | None = None,
     language: localization.Language,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render talk dialog into RAG-suitable format with branching support."""
     # Extract talk type from file path if provided
@@ -383,17 +384,19 @@ def render_talk(
 
     rendered_content = "\n".join(content_lines)
 
+    min_version, max_version = first_seen_index.resolve(
+        [first_seen.SourceId(first_seen.SourceDomain.TALK, talk_id)]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_TALK,
             title=title,
             id=talk_id,
             relative_path=f"{text_types.TextCategory.AGD_TALK.value}/{filename}",
-            min_version=None,
-            max_version=None,
+            min_version=min_version,
+            max_version=max_version,
         ),
         content=rendered_content,
-        source_ids=[first_seen.SourceId(first_seen.SourceDomain.TALK, talk_id)],
     )
 
 

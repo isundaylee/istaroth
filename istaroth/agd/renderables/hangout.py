@@ -314,7 +314,10 @@ def _render_coop_steps(
 
 
 def render_hangout(
-    hangout: processed_types.HangoutInfo, language: localization.Language
+    hangout: processed_types.HangoutInfo,
+    language: localization.Language,
+    *,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render a hangout quest's Coop story dialogue into RAG-suitable format."""
     title = (
@@ -332,17 +335,17 @@ def render_hangout(
         fork_map = _assign_fork_numbers(story.steps, fork_counter)
         content_lines.extend(_render_coop_steps(story.steps, language, fork_map))
 
+    min_version, max_version = first_seen_index.resolve(
+        [first_seen.SourceId(first_seen.SourceDomain.MAIN_QUEST, hangout.quest_id)]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_HANGOUT,
             title=title,
             id=hangout.quest_id,
             relative_path=f"{text_types.TextCategory.AGD_HANGOUT.value}/{filename}",
-            min_version=None,
-            max_version=None,
+            min_version=min_version,
+            max_version=max_version,
         ),
         content="\n".join(content_lines).rstrip(),
-        source_ids=[
-            first_seen.SourceId(first_seen.SourceDomain.MAIN_QUEST, hangout.quest_id)
-        ],
     )

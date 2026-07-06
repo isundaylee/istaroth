@@ -84,8 +84,8 @@ class TextMetadata:
     """Metadata for a text file.
 
     ``min_version``/``max_version`` bound the game versions in which the file's
-    source items first appeared (equal for single-source files); ``None`` for
-    non-AGD content that has no game version.
+    source items first appeared (equal for single-source files); required for
+    AGD content, and ``None`` for non-AGD content that has no game version.
     """
 
     category: TextCategory
@@ -96,10 +96,14 @@ class TextMetadata:
     max_version: str | None
 
     def __attrs_post_init__(self) -> None:
-        if (self.min_version is None) != (self.max_version is None):
+        if self.category.is_agd:
+            if self.min_version is None or self.max_version is None:
+                raise ValueError(
+                    f"min_version/max_version are required for {self.category.name}"
+                )
+        elif self.min_version is not None or self.max_version is not None:
             raise ValueError(
-                f"min_version {self.min_version!r} and max_version "
-                f"{self.max_version!r} must be set together"
+                f"min_version/max_version must be None for {self.category.name}"
             )
 
     def to_dict(self) -> dict[str, str | int | None]:
@@ -128,7 +132,6 @@ class TextMetadata:
             title=str(data["title"]),
             id=id_int,
             relative_path=str(data["relative_path"]),
-            # .get: manifests written before version metadata existed lack the keys.
-            min_version=data.get("min_version"),
-            max_version=data.get("max_version"),
+            min_version=data["min_version"],
+            max_version=data["max_version"],
         )

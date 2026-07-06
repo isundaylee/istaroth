@@ -77,9 +77,9 @@ per-version delta files in `text/first_seen/` in the `text/` submodule (see
 or `generate-all` fails on the new build's ids:
 
 1. Append the new version's `(version, commit)` entry to `_SNAPSHOTS` in
-   `scripts/build_first_seen.py`. Use the new build's snapshot commit in
+   `scripts/agd_build_first_seen.py`. Use the new build's snapshot commit in
    `<AGD>`'s git history; normalize hotfix versions to `major.minor`.
-2. Run `uv run python scripts/build_first_seen.py --agd-path <AGD>` — it
+2. Run `uv run python scripts/agd_build_first_seen.py --agd-path <AGD>` — it
    scans only the new snapshot and writes
    `text/first_seen/<version>.json` with the ids not seen in any earlier
    version. The new data file is committed to the `text/` submodule as part

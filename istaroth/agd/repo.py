@@ -192,19 +192,13 @@ class TextMapTracker(tracking.IdTracker[id_types.TextMapHash]):
 class ReadablesTracker(tracking.IdTracker[id_types.ReadableFilename]):
     """Tracks which readable filenames have been accessed."""
 
-    def __init__(self, agd_path: pathlib.Path, language_short: str) -> None:
-        self._agd_path = agd_path
-        self._language_short = language_short
-        self._readable_base_path = agd_path / "Readable" / language_short
-
-        # Discover all readable files
-        all_readable_filenames: set[id_types.ReadableFilename] = set()
-        if self._readable_base_path.exists():
-            for file_path in self._readable_base_path.glob("*.txt"):
-                # Store the filename relative to the readable base directory
-                all_readable_filenames.add(file_path.name)
-
-        super().__init__(set(sorted(all_readable_filenames)))
+    def __init__(
+        self,
+        readable_filenames: Iterable[id_types.ReadableFilename],
+        readable_base_path: pathlib.Path,
+    ) -> None:
+        self._readable_base_path = readable_base_path
+        super().__init__(set(readable_filenames))
 
     def get_content(self, readable_filename: id_types.ReadableFilename) -> str | None:
         """Get readable file content by filename and track access."""
@@ -231,6 +225,11 @@ class DataRepo:
 
     agd_path: pathlib.Path = attrs.field(converter=pathlib.Path)
     language: localization.Language
+    git_ref: str | None = None
+    """Load AGD files from this git revision of ``agd_path`` instead of the
+    checkout. Honored by the excel loaders and file-name listings (what the
+    first-seen scan needs); the BinOutput/TextMap/readable-content loaders
+    always read the checkout."""
 
     @staticmethod
     def _language_short(language: localization.Language) -> str:
@@ -242,8 +241,72 @@ class DataRepo:
         """Get the short language code used in AGD file structure (maps ENG to EN)."""
         return self._language_short(self.language)
 
+    def _read_bytes(self, relative_path: str) -> bytes:
+        """Read a file from ``git_ref`` when set, else from the checkout."""
+        if self.git_ref is None:
+            return (self.agd_path / relative_path).read_bytes()
+        result = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.agd_path),
+                "show",
+                f"{self.git_ref}:{relative_path}",
+            ],
+            capture_output=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            raise FileNotFoundError(
+                f"Failed to load {relative_path} at {self.git_ref}: "
+                f"{result.stderr.decode().strip()}"
+            )
+        return result.stdout
+
+    def _list_file_names(self, relative_dir: str) -> list[str]:
+        """File names directly under ``relative_dir`` (empty for a missing dir)."""
+        if self.git_ref is None:
+            dir_path = self.agd_path / relative_dir
+            if not dir_path.exists():
+                return []
+            return sorted(p.name for p in dir_path.iterdir() if p.is_file())
+        result = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(self.agd_path),
+                "ls-tree",
+                "--name-only",
+                self.git_ref,
+                f"{relative_dir}/",
+            ],
+            capture_output=True,
+            check=True,
+        )
+        return sorted(
+            line.rsplit("/", 1)[-1]
+            for line in result.stdout.decode().splitlines()
+            if line
+        )
+
     def _load_excel(self, filename: str) -> Any:
-        return orjson.loads((self.agd_path / "ExcelBinOutput" / filename).read_bytes())
+        return orjson.loads(self._read_bytes(f"ExcelBinOutput/{filename}"))
+
+    def load_excel_raw(self, filename: str) -> Any:
+        """Load an ExcelBinOutput file as raw parsed JSON (no field typing)."""
+        return self._load_excel(filename)
+
+    def list_readable_filenames(self) -> list[id_types.ReadableFilename]:
+        """Readable file names for the instance's language."""
+        return [
+            name
+            for name in self._list_file_names(f"Readable/{self.language_short}")
+            if name.endswith(".txt")
+        ]
+
+    def list_subtitle_names(self) -> list[str]:
+        """Subtitle file names for the instance's language (any extension)."""
+        return self._list_file_names(f"Subtitle/{self.language_short}")
 
     @staticmethod
     def _index_unique(
@@ -754,24 +817,28 @@ class DataRepo:
     def load_talk_excel_config_data(self) -> agd_types.TalkExcelConfigData:
         """Load and return the raw talk Excel configuration data."""
 
-        def _load_talk_file(file_path: pathlib.Path) -> agd_types.TalkExcelConfigData:
-            data = orjson.loads(file_path.read_bytes())
-            assert isinstance(data, list), file_path
+        def _load_talk_file(filename: str) -> agd_types.TalkExcelConfigData:
+            data = self._load_excel(filename)
+            assert isinstance(data, list), filename
             return data
 
-        base_path = self.agd_path / "ExcelBinOutput"
-        if split_paths := sorted(base_path.glob("TalkExcelConfigData_*.json")):
+        split_names = sorted(
+            name
+            for name in self._list_file_names("ExcelBinOutput")
+            if name.startswith("TalkExcelConfigData_") and name.endswith(".json")
+        )
+        if split_names:
             data = []
-            for file_path in split_paths:
-                data.extend(_load_talk_file(file_path))
+            for name in split_names:
+                data.extend(_load_talk_file(name))
             return data
 
-        file_path = base_path / "TalkExcelConfigData.json"
-        if not file_path.exists():
+        try:
+            return _load_talk_file("TalkExcelConfigData.json")
+        except FileNotFoundError:
             raise FileNotFoundError(
                 "TalkExcelConfigData.json or TalkExcelConfigData_*.json not found"
             )
-        return _load_talk_file(file_path)
 
     @functools.lru_cache(maxsize=None)
     def build_talk_tracker(self) -> TalkTracker:
@@ -1092,7 +1159,10 @@ class DataRepo:
     @functools.lru_cache(maxsize=None)
     def build_readables_tracker(self) -> ReadablesTracker:
         """Get ReadablesTracker for tracking access to readable files."""
-        return ReadablesTracker(self.agd_path, self.language_short)
+        return ReadablesTracker(
+            self.list_readable_filenames(),
+            self.agd_path / "Readable" / self.language_short,
+        )
 
     def build_scope_trackers(
         self,

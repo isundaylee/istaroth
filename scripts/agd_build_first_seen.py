@@ -4,21 +4,19 @@
 For each snapshot in ``_SNAPSHOTS`` (oldest first), enumerates the source ids
 present in that AGD revision and writes the ids never seen in any earlier
 snapshot to ``text/first_seen/<version>.json`` (committed to the ``text/``
-submodule alongside the corpus regen it stamps). Reads everything
-via ``git show``/``git ls-tree`` against the AGD repo's history — no checkout
-switching. The default run only generates files missing on disk (ingesting a
-new game version = append its ``_SNAPSHOTS`` entry and rerun); ``--rebuild-all``
-regenerates every file, doubling as a determinism check of the committed data.
+submodule alongside the corpus regen it stamps). Snapshots are read through
+git-ref-pinned ``DataRepo`` instances — no checkout switching. The default run
+only generates files missing on disk (ingesting a new game version = append
+its ``_SNAPSHOTS`` entry and rerun); ``--rebuild-all`` regenerates every file,
+doubling as a determinism check of the committed data.
 """
 
 import pathlib
-import subprocess
-from typing import Any
 
 import click
 import orjson
 
-from istaroth.agd import first_seen
+from istaroth.agd import first_seen, localization, repo
 
 # The last AGD snapshot commit of each game version, oldest first. Curated by
 # hand from `git log origin/master v2/main` because commit subjects are not
@@ -78,98 +76,22 @@ _SNAPSHOTS: list[tuple[str, str]] = [
     ("6.7", "82e74382e7788e318ad41fca926739a752c0bed6"),
 ]
 
-# Filename-keyed domains scan these languages and union the stems; the sets are
-# expected to match across languages, so the union just guards stragglers.
-_SCAN_LANGUAGES = ("CHS", "EN")
-
-_EXCEL_FILES: dict[first_seen.SourceDomain, tuple[str, str]] = {
-    first_seen.SourceDomain.MAIN_QUEST: ("MainQuestExcelConfigData.json", "id"),
-    first_seen.SourceDomain.MATERIAL: ("MaterialExcelConfigData.json", "id"),
-    first_seen.SourceDomain.WEAPON: ("WeaponExcelConfigData.json", "id"),
-    first_seen.SourceDomain.ACHIEVEMENT: ("AchievementExcelConfigData.json", "id"),
-    first_seen.SourceDomain.AVATAR: ("AvatarExcelConfigData.json", "id"),
-    first_seen.SourceDomain.ARTIFACT_SET: ("ReliquarySetExcelConfigData.json", "setId"),
-    first_seen.SourceDomain.ANIMAL_CODEX: ("AnimalCodexExcelConfigData.json", "id"),
-}
-
-
-def _git(agd_path: pathlib.Path, *args: str) -> bytes:
-    return subprocess.run(
-        ["git", "-C", str(agd_path), *args], capture_output=True, check=True
-    ).stdout
-
-
-def _ls_names(agd_path: pathlib.Path, commit: str, directory: str) -> list[str]:
-    """List file names directly under ``directory`` at ``commit``."""
-    out = _git(agd_path, "ls-tree", "--name-only", commit, f"{directory}/")
-    return [line.rsplit("/", 1)[-1] for line in out.decode().splitlines() if line]
-
-
-def _row_id(row: dict[str, Any], id_key: str) -> int:
-    # Field-name style varies by era (and by file within one era): 1.x dumps
-    # use PascalCase ("Id"/"SetId"), some ~2.7-3.x dumps underscore-prefixed
-    # camelCase ("_id"), current dumps plain camelCase.
-    for key in (id_key, id_key[0].upper() + id_key[1:], f"_{id_key}"):
-        if key in row:
-            return int(row[key])
-    raise KeyError(f"No {id_key!r} field in excel row: {sorted(row)[:5]}...")
-
-
-def _excel_ids(
-    agd_path: pathlib.Path, commit: str, filename: str, id_key: str
-) -> set[int | str]:
-    rows = orjson.loads(_git(agd_path, "show", f"{commit}:ExcelBinOutput/{filename}"))
-    return {_row_id(row, id_key) for row in rows}
-
-
-def _talk_ids(agd_path: pathlib.Path, commit: str) -> set[int | str]:
-    """Talk ids from TalkExcelConfigData.json, or its recent _N-split files."""
-    split_names = sorted(
-        name
-        for name in _ls_names(agd_path, commit, "ExcelBinOutput")
-        if name.startswith("TalkExcelConfigData_")
-    )
-    names = split_names if split_names else ["TalkExcelConfigData.json"]
-    ids: set[int | str] = set()
-    for name in names:
-        ids |= _excel_ids(agd_path, commit, name, "id")
-    return ids
-
-
-def _stem_keys(
-    agd_path: pathlib.Path, commit: str, directory: str, *, allow_missing: bool
-) -> set[int | str]:
-    """Language-neutral filename stems under ``directory``'s language subdirs."""
-    keys: set[int | str] = set()
-    found = False
-    for language in _SCAN_LANGUAGES:
-        names = _ls_names(agd_path, commit, f"{directory}/{language}")
-        found = found or bool(names)
-        keys |= {
-            first_seen.strip_language_suffix(pathlib.PurePosixPath(name).stem)
-            for name in names
-        }
-    if not found and not allow_missing:
-        raise FileNotFoundError(f"No {directory} files at {commit}")
-    return keys
-
 
 def _scan_snapshot(
     agd_path: pathlib.Path, commit: str
 ) -> dict[first_seen.SourceDomain, set[int | str]]:
-    """Enumerate all source ids present in one AGD snapshot."""
-    present = {
-        domain: _excel_ids(agd_path, commit, filename, id_key)
-        for domain, (filename, id_key) in _EXCEL_FILES.items()
+    """Scan one snapshot via git-pinned data repos, unioning both languages.
+
+    The excel-keyed domains are language-independent so the union is a no-op
+    for them; for the filename-keyed domains it guards language stragglers.
+    """
+    present: dict[first_seen.SourceDomain, set[int | str]] = {
+        domain: set() for domain in first_seen.SourceDomain
     }
-    present[first_seen.SourceDomain.TALK] = _talk_ids(agd_path, commit)
-    present[first_seen.SourceDomain.READABLE] = _stem_keys(
-        agd_path, commit, "Readable", allow_missing=False
-    )
-    # Subtitles only exist from 1.6 onward.
-    present[first_seen.SourceDomain.SUBTITLE] = _stem_keys(
-        agd_path, commit, "Subtitle", allow_missing=True
-    )
+    for language in localization.Language:
+        data_repo = repo.DataRepo(agd_path, language=language, git_ref=commit)
+        for domain, ids in first_seen.scan_snapshot(data_repo=data_repo).items():
+            present[domain] |= ids
     return present
 
 

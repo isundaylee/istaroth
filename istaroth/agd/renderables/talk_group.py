@@ -116,6 +116,7 @@ def render_talk_group(
     language: localization.Language,
     *,
     group_name: str | None = None,
+    first_seen_index: first_seen.FirstSeenIndex,
 ) -> processed_types.RenderedItem:
     """Render multiple talks from an activity group into a single file."""
     safe_type = utils.make_safe_filename_part(str(talk_group_type))
@@ -154,18 +155,20 @@ def render_talk_group(
         case _:
             assert_never(talk_group_type)
 
+    min_version, max_version = first_seen_index.resolve(
+        [
+            first_seen.SourceId(first_seen.SourceDomain.TALK, talk_id)
+            for talk_id in talk_group_info.talk_ids
+        ]
+    )
     return processed_types.RenderedItem(
         text_metadata=text_types.TextMetadata(
             category=text_types.TextCategory.AGD_TALK_GROUP,
             title=title,
             id=metadata_id,
             relative_path=f"{text_types.TextCategory.AGD_TALK_GROUP.value}/{filename}",
-            min_version=None,
-            max_version=None,
+            min_version=min_version,
+            max_version=max_version,
         ),
         content=rendered_content,
-        source_ids=[
-            first_seen.SourceId(first_seen.SourceDomain.TALK, talk_id)
-            for talk_id in talk_group_info.talk_ids
-        ],
     )

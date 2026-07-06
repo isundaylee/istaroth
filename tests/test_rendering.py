@@ -1,6 +1,7 @@
 """Tests for AGD rendering functionality."""
 
 import textwrap
+from typing import Iterable
 
 import pytest
 
@@ -19,6 +20,16 @@ from istaroth.agd.renderables import (
 from istaroth.text import types as text_types
 
 
+class _StubFirstSeenIndex(first_seen.FirstSeenIndex):
+    """Resolves every source id to a fixed version for rendering tests."""
+
+    def resolve(self, source_ids: Iterable[first_seen.SourceId]) -> tuple[str, str]:
+        return ("1.0", "1.0")
+
+
+_FAKE_FIRST_SEEN_INDEX = _StubFirstSeenIndex(versions={})
+
+
 def test_render_readable_basic() -> None:
     """Test basic readable rendering functionality."""
     content = "This is some readable content.\nWith multiple lines."
@@ -27,12 +38,13 @@ def test_render_readable_basic() -> None:
     )
 
     rendered = readable.render_readable_like(
-        content, metadata, "Test_EN.txt", category=text_types.TextCategory.AGD_READABLE
+        content,
+        metadata,
+        "Test_EN.txt",
+        category=text_types.TextCategory.AGD_READABLE,
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
-    assert rendered.source_ids == [
-        first_seen.SourceId(first_seen.SourceDomain.READABLE, "Test")
-    ]
     assert rendered.text_metadata.relative_path == "agd_readable/0_Test_Book_Title.txt"
     assert (
         rendered.content
@@ -49,7 +61,11 @@ def test_render_readable_special_characters() -> None:
     )
 
     rendered = readable.render_readable_like(
-        content, metadata, "Book999.txt", category=text_types.TextCategory.AGD_READABLE
+        content,
+        metadata,
+        "Book999.txt",
+        category=text_types.TextCategory.AGD_READABLE,
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     assert rendered.text_metadata.relative_path == "agd_readable/0_神霄折戟录第六卷.txt"
@@ -65,7 +81,11 @@ def test_render_readable_whitespace() -> None:
     )
 
     rendered = readable.render_readable_like(
-        content, metadata, "Book998.txt", category=text_types.TextCategory.AGD_READABLE
+        content,
+        metadata,
+        "Book998.txt",
+        category=text_types.TextCategory.AGD_READABLE,
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     assert (
@@ -84,7 +104,9 @@ def test_render_weapon_multi_page_with_description() -> None:
         story_pages=["第一页内容。", "第二页内容。"],
     )
 
-    rendered = weapon.render_weapon(weapon_info)
+    rendered = weapon.render_weapon(
+        weapon_info, first_seen_index=_FAKE_FIRST_SEEN_INDEX
+    )
 
     assert rendered.text_metadata.relative_path == "agd_weapon/11431_息燧之笛.txt"
     assert rendered.text_metadata.id == 11431
@@ -102,7 +124,9 @@ def test_render_weapon_single_page_no_description() -> None:
         story_pages=["少年人的梦想。"],
     )
 
-    rendered = weapon.render_weapon(weapon_info)
+    rendered = weapon.render_weapon(
+        weapon_info, first_seen_index=_FAKE_FIRST_SEEN_INDEX
+    )
 
     assert rendered.text_metadata.relative_path == "agd_weapon/11101_无锋剑.txt"
     assert rendered.content == "# 无锋剑\n\n少年人的梦想。"
@@ -121,7 +145,8 @@ def test_render_achievement_section() -> None:
                     description="何物徒留名字？",
                 )
             ],
-        )
+        ),
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     assert (
@@ -167,6 +192,7 @@ def test_render_talk_basic() -> None:
         talk_id=12345,
         language=localization.Language.CHS,
         talk_file_path="BinOutput/Talk/Quest/12345.json",
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     assert (
@@ -203,6 +229,7 @@ def test_render_talk_long_message() -> None:
         talk_id=67890,
         language=localization.Language.CHS,
         talk_file_path="BinOutput/Talk/NPC/67890.json",
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     assert (
@@ -225,6 +252,7 @@ def test_render_talk_empty() -> None:
         talk_id=99999,
         language=localization.Language.CHS,
         talk_file_path="BinOutput/Talk/99999.json",
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     assert rendered.text_metadata.relative_path == "agd_talk/99999_empty.txt"
@@ -250,6 +278,7 @@ def test_render_talk_special_characters() -> None:
         talk_id=11111,
         language=localization.Language.CHS,
         talk_file_path="BinOutput/Talk/Dialogue/11111.json",
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     assert (
@@ -317,6 +346,7 @@ def test_render_talk_branching_convergence() -> None:
         talk_id=99999,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/99999.json",
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     expected_content = textwrap.dedent(
@@ -401,6 +431,7 @@ def test_render_talk_nested_branches() -> None:
         talk_id=88888,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/88888.json",
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     expected_content = textwrap.dedent(
@@ -497,6 +528,7 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
         talk_id=77777,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/77777.json",
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     expected_content = textwrap.dedent(
@@ -604,6 +636,7 @@ def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
         talk_id=66666,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/66666.json",
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     # Exactly two options at the first choice, neither duplicated.
@@ -699,6 +732,7 @@ def test_render_talk_menu_hub_no_blowup() -> None:
         talk_id=88888,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/88888.json",
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     # Each unique answer line appears exactly once (no permutation blow-up), and
@@ -833,6 +867,7 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
         talk_id=55555,
         language=localization.Language.ENG,
         talk_file_path="BinOutput/Talk/Quest/55555.json",
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     # Three options per menu, two menus -> six options; no spurious extras.
@@ -882,7 +917,9 @@ def test_render_quest_numbers_variant_talks() -> None:
         associated_free_talks=[],
     )
 
-    content = quest.render_quest(quest_info, localization.Language.ENG).content
+    content = quest.render_quest(
+        quest_info, localization.Language.ENG, first_seen_index=_FAKE_FIRST_SEEN_INDEX
+    ).content
 
     assert "## Talk 1 (variant 1)" in content
     assert "## Talk 1 (variant 2)" in content
@@ -946,7 +983,9 @@ def test_render_quest_group_line() -> None:
         associated_free_talks=[],
     )
 
-    content = quest.render_quest(quest_info, localization.Language.ENG).content
+    content = quest.render_quest(
+        quest_info, localization.Language.ENG, first_seen_index=_FAKE_FIRST_SEEN_INDEX
+    ).content
 
     assert content.index(
         "(Quest is part of group: A Long Day in the Mountains)"
@@ -973,7 +1012,9 @@ def test_render_character_story_constellations() -> None:
         ],
     )
 
-    content = character.render_character_story(story_info).content
+    content = character.render_character_story(
+        story_info, first_seen_index=_FAKE_FIRST_SEEN_INDEX
+    ).content
 
     assert "## Constellations\n" in content
     assert "First Star: Line one. Line two." in content
@@ -1000,7 +1041,9 @@ def test_render_character_story_traveler_constellations_grouped() -> None:
         ],
     )
 
-    content = character.render_character_story(story_info).content
+    content = character.render_character_story(
+        story_info, first_seen_index=_FAKE_FIRST_SEEN_INDEX
+    ).content
 
     assert "### Pyro\n" in content
     assert "### Hydro\n" in content
@@ -1033,7 +1076,8 @@ def test_render_creature_group_monster() -> None:
                     description="古代文明的造物。",
                 ),
             ],
-        )
+        ),
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     assert (
@@ -1070,7 +1114,8 @@ def test_render_creature_group_stable_id() -> None:
                     description="常见的鱼类。",
                 )
             ],
-        )
+        ),
+        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
     assert a.text_metadata.relative_path.endswith("_CODEX_SUBTYPE_FISH.txt")
@@ -1094,7 +1139,9 @@ def test_render_book_series_english() -> None:
         ],
     )
 
-    rendered = book.render_book_series(series_info, localization.Language.ENG)
+    rendered = book.render_book_series(
+        series_info, localization.Language.ENG, first_seen_index=_FAKE_FIRST_SEEN_INDEX
+    )
 
     assert rendered.text_metadata.relative_path == "agd_book/1019_A_Drunkards_Tale.txt"
     assert rendered.text_metadata.id == 1019
@@ -1122,7 +1169,9 @@ def test_render_book_series_chinese_annotation() -> None:
         ],
     )
 
-    rendered = book.render_book_series(series_info, localization.Language.CHS)
+    rendered = book.render_book_series(
+        series_info, localization.Language.CHS, first_seen_index=_FAKE_FIRST_SEEN_INDEX
+    )
 
     assert "*维莉的忧郁·第 1 卷，共 1 卷*" in rendered.content
 
