@@ -24,7 +24,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 import langsmith as ls
 from opentelemetry import trace
 
-from istaroth import llm_manager, logging_utils, utils
+from istaroth import llm_manager, logging_utils
 from istaroth.agd import localization
 from istaroth.rag import budget as _budget
 from istaroth.rag import (
@@ -170,10 +170,7 @@ def build(
     type=click.Choice([v.value for v in _budget.QueryIntent]),
     help="Retrieval intent (budget shape)",
 )
-@click.option("--save", type=pathlib.Path)
-def retrieve(
-    query: str, *, budget: int, intent: str, save: pathlib.Path | None
-) -> None:
+def retrieve(query: str, *, budget: int, intent: str) -> None:
     """Retrieve similar documents from the document store."""
 
     with ls.trace(
@@ -202,18 +199,6 @@ def retrieve(
         rt.end(
             outputs=retrieve_output.to_langsmith_output(formatted_output, text_set=ts)
         )
-
-        if save is not None:
-            save_path = save / (
-                datetime.datetime.now().strftime("%Y%m%d_%H%M%S_")
-                + utils.make_safe_filename_part(query, max_length=50)
-                + ".txt"
-            )
-            data = retrieve_output.to_dict()
-            data["env"] = {
-                k: v for k, v in os.environ.items() if k.startswith("ISTAROTH_")
-            }
-            save_path.write_bytes(orjson.dumps(data))
 
         print(formatted_output)
 
