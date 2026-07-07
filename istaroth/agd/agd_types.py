@@ -264,6 +264,53 @@ Example file: ExcelBinOutput/AnecdoteExcelConfigData.json
 """
 
 
+class BlossomTalkExcelConfigDataItem(TypedDict):
+    """A blossom talk-pool entry: the NPC talks that point at one world spot's
+    blossom refresh event. Currently only Rich Ore Reserve (矿物富集点)
+    refreshes have talk entries. Ships cleartext."""
+
+    refreshId: id_types.BlossomRefreshId
+    talkId: list[id_types.TalkId]
+
+
+BlossomTalkExcelConfigData: TypeAlias = list[BlossomTalkExcelConfigDataItem]
+"""List of blossom talk-pool entries.
+
+Example file: ExcelBinOutput/BlossomTalkExcelConfigData.json
+"""
+
+
+class BlossomRefreshExcelConfigDataItem(TypedDict):
+    """A blossom world-event refresh pool (the fields used here ship cleartext)."""
+
+    id: id_types.BlossomRefreshId
+    cityId: id_types.CityId
+    clientShowType: str
+    nameTextMapHash: id_types.TextMapHash
+    descTextMapHash: id_types.TextMapHash
+
+
+BlossomRefreshExcelConfigData: TypeAlias = list[BlossomRefreshExcelConfigDataItem]
+"""List of blossom refresh pools.
+
+Example file: ExcelBinOutput/BlossomRefreshExcelConfigData.json
+"""
+
+
+class CityConfigDataItem(TypedDict):
+    """A city (region) entry (the fields used here ship cleartext)."""
+
+    cityId: id_types.CityId
+    cityNameTextMapHash: id_types.TextMapHash
+
+
+CityConfigData: TypeAlias = list[CityConfigDataItem]
+"""List of city entries.
+
+Example file: ExcelBinOutput/CityConfigData.json
+"""
+
+
 class TalkRole(TypedDict):
     """Type definition for talk role."""
 

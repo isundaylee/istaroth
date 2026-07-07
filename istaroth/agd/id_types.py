@@ -66,6 +66,15 @@ AnecdoteId: TypeAlias = int
 """Anecdote (Odd Encounter, 奇遇) id (``AnecdoteExcelConfigDataItem.id``); one
 world vignette grouping the ``TALK_STORYBOARD`` talks of its quest."""
 
+BlossomRefreshId: TypeAlias = int
+"""Blossom world-event refresh pool id (``BlossomRefreshExcelConfigDataItem.id``;
+``BlossomTalkExcelConfigDataItem.refreshId``). One city's refresh pool for a
+blossom event variant (ley-line blossom, Rich Ore Reserve, ...)."""
+
+CityId: TypeAlias = int
+"""City (region) id (``CityConfigDataItem.cityId``, e.g. ``1`` is Mondstadt);
+the blossom renderable key."""
+
 GadgetConfigId: TypeAlias = int
 """Gadget config id (``GadgetGroup.configId``); the first half of a GadgetGroup's
 composite ``(configId, groupId)`` key. Multiple GadgetGroup files can share a

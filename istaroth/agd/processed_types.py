@@ -174,6 +174,24 @@ class AnecdoteInfo:
 
 
 @attrs.define
+class BlossomSection:
+    """One ore-type variant of a region's blossom intel: its blurb and talks."""
+
+    description: str
+    talks: list[TalkInfo]
+
+
+@attrs.define
+class BlossomCityInfo:
+    """A region's blossom (Rich Ore Reserve, 矿物富集点) NPC-intel talks."""
+
+    city_id: id_types.CityId
+    title: str
+    sections: list[BlossomSection]
+    talk_ids: list[id_types.TalkId]
+
+
+@attrs.define
 class QuestStep:
     """A single quest-progression step at a subQuest ``order``.
 
