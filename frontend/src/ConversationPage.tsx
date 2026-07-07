@@ -3,6 +3,7 @@ import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import html2canvas from 'html2canvas'
 import { Pencil } from 'lucide-react'
 import { useT, useTranslation } from './contexts/LanguageContext'
+import { useErrorToast } from './contexts/ErrorToastContext'
 import { useFooter } from './contexts/FooterContext'
 import { translate } from './i18n'
 import { LANGUAGE_LOCALES, getLanguageFromUrl } from './utils/language'
@@ -38,6 +39,7 @@ export async function conversationPageLoader({ params, request }: LoaderFunction
 
 function ConversationPage() {
   const t = useT()
+  const showError = useErrorToast()
   const locale = LANGUAGE_LOCALES[useTranslation().language]
   const { conversation } = useLoaderData() as LoaderData
   const { setExtraContent } = useFooter()
@@ -127,7 +129,7 @@ function ConversationPage() {
       setExportedImage(dataURL)
     } catch (error) {
       console.error('PNG export failed:', error)
-      alert(t('conversation.errors.exportFailed'))
+      showError(t('conversation.errors.exportFailed'))
     } finally {
       setExporting(false)
     }

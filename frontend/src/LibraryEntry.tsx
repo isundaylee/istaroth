@@ -4,7 +4,6 @@ import { AppLink } from './components/AppLink'
 import Button from './components/Button'
 import Card from './components/Card'
 import Composer from './components/Composer'
-import ErrorDisplay from './components/ErrorDisplay'
 import { useOpenSidebarDrawer } from './components/PageShell'
 import Toggle from './components/Toggle'
 import { useT } from './contexts/LanguageContext'
@@ -65,7 +64,6 @@ function LibraryEntry() {
     setFormParams,
     submittedParams,
     results,
-    error,
     loading,
     submit,
   } = useLibraryRetrieve()
@@ -155,7 +153,6 @@ function LibraryEntry() {
             </Button>
           }
         />
-        {error && <ErrorDisplay error={error} />}
       </section>
 
       {!hasActiveSearch && (
