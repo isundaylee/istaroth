@@ -813,19 +813,16 @@ class DataRepo:
 
     @_warm_on_fork
     def build_talk_to_quest_mapping(self) -> dict[id_types.TalkId, id_types.QuestId]:
-        """Talk id -> owning quest id.
+        """Talk id -> owning quest id (``TalkExcelConfigData.questId``).
 
-        Quest files' own talk lists win over ``TalkExcelConfigData.questId``,
-        which fills in talks the quest files don't list.
+        Checked against the quest BinOutput files' own talk lists: TalkExcel is
+        a strict superset with no disagreements, so it is the single source.
         """
-        mapping: dict[id_types.TalkId, id_types.QuestId] = {}
-        for quest_id, quest_path in sorted(self.build_quest_mapping().items()):
-            for talk in self.load_quest_data(quest_path)["talks"]:
-                mapping.setdefault(talk["id"], quest_id)
-        for talk_item in self.load_talk_excel_config_data():
-            if talk_item["questId"]:
-                mapping.setdefault(talk_item["id"], talk_item["questId"])
-        return mapping
+        return {
+            talk_item["id"]: talk_item["questId"]
+            for talk_item in self.load_talk_excel_config_data()
+            if talk_item["questId"]
+        }
 
     @_warm_on_fork
     def build_subtitle_stem_to_cutscene_ids_mapping(
