@@ -686,6 +686,32 @@ class DataRepo:
         return self._get_talk_parser().free_group_quest_to_paths
 
     @functools.lru_cache(maxsize=None)
+    def load_anecdote_excel_config_data(
+        self,
+    ) -> dict[id_types.AnecdoteId, agd_types.AnecdoteExcelConfigDataItem]:
+        """Load AnecdoteExcelConfigData.json keyed by anecdote id."""
+        data = cast(
+            agd_types.AnecdoteExcelConfigData,
+            deobfuscation.deobfuscate_anecdote_excel_config_data(
+                self._load_excel("AnecdoteExcelConfigData.json")
+            ),
+        )
+        return self._index_unique(
+            data, lambda item: item["id"], duplicate_name="anecdote ID"
+        )
+
+    @functools.lru_cache(maxsize=None)
+    def build_storyboard_quest_to_talk_ids_mapping(
+        self,
+    ) -> dict[id_types.QuestId, list[id_types.TalkId]]:
+        """questId -> its ``TALK_STORYBOARD`` talk ids, sorted."""
+        mapping: dict[id_types.QuestId, list[id_types.TalkId]] = {}
+        for entry in self.load_talk_excel_config_data():
+            if entry["loadType"] == "TALK_STORYBOARD":
+                mapping.setdefault(entry["questId"], []).append(entry["id"])
+        return {quest_id: sorted(ids) for quest_id, ids in mapping.items()}
+
+    @functools.lru_cache(maxsize=None)
     def load_coop_interaction_excel_config_data(
         self,
     ) -> agd_types.CoopInteractionExcelConfigData:

@@ -17,6 +17,7 @@ from istaroth.agd import (
 from istaroth.agd.renderables import (
     _talk,
     achievement,
+    anecdote,
     artifact,
     book,
     character,
@@ -692,6 +693,40 @@ class Hangouts(BaseRenderableType[id_types.QuestId]):
         )
 
 
+class Anecdotes(BaseRenderableType[id_types.AnecdoteId]):
+    """Anecdote (Odd Encounter) content type: one file per world vignette."""
+
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_ANECDOTE
+    )
+    error_limit: ClassVar[int] = 10
+    error_limit_non_chinese: ClassVar[int] = 20
+
+    def discover(self, data_repo: repo.DataRepo) -> list[id_types.AnecdoteId]:
+        """All anecdote ids from the anecdote excel config."""
+        return sorted(data_repo.load_anecdote_excel_config_data())
+
+    def process(
+        self,
+        renderable_key: id_types.AnecdoteId,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
+    ) -> processed_types.RenderedItem | None:
+        """Render an anecdote, or skip when none of its talks have content."""
+        if (
+            anecdote_info := anecdote.get_anecdote_info(
+                renderable_key, data_repo=data_repo
+            )
+        ) is None:
+            return None
+        return anecdote.render_anecdote(
+            anecdote_info,
+            language=data_repo.language,
+            first_seen_index=first_seen_index,
+        )
+
+
 class Talks(BaseRenderableType[id_types.TalkId]):
     """Standalone talk content type for talks not used by other renderable types."""
 
@@ -754,6 +789,7 @@ ALL_RENDERABLE_TYPES: list[type[BaseRenderableType]] = [
     Voicelines,
     TalkGroups,
     Hangouts,
+    Anecdotes,
     Books,
     Weapons,
     Wings,

@@ -160,6 +160,20 @@ class HangoutInfo:
 
 
 @attrs.define
+class AnecdoteInfo:
+    """An anecdote (Odd Encounter) vignette: its blurbs and storyboard talks."""
+
+    anecdote_id: id_types.AnecdoteId
+    title: str
+    teaser: str | None
+    """Map-hint blurb shown before the encounter (missing on some entries)."""
+    description: str | None
+    """Post-completion recap of the scene."""
+    talks: list[TalkInfo]
+    talk_ids: list[id_types.TalkId]
+
+
+@attrs.define
 class QuestStep:
     """A single quest-progression step at a subQuest ``order``.
 

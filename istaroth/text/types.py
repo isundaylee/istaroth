@@ -29,6 +29,7 @@ class TextCategory(Enum):
     AGD_TALK_GROUP = "agd_talk_group"
     AGD_TALK = "agd_talk"
     AGD_HANGOUT = "agd_hangout"
+    AGD_ANECDOTE = "agd_anecdote"
     AGD_ARTIFACT_SET = "agd_artifact_set"
     AGD_CREATURE = "agd_creature"
 
@@ -57,6 +58,7 @@ class TextCategory(Enum):
                 | TextCategory.AGD_TALK_GROUP
                 | TextCategory.AGD_TALK
                 | TextCategory.AGD_HANGOUT
+                | TextCategory.AGD_ANECDOTE
                 | TextCategory.AGD_ARTIFACT_SET
                 | TextCategory.AGD_CREATURE
             ):

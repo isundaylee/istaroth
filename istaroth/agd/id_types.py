@@ -62,6 +62,10 @@ Overlaps the ``NpcId`` range (e.g. ``2001`` is both an activity and an NPC), so
 an ActivityGroup rendered file derives its manifest id via
 ``talk_parsing.activity_group_metadata_id`` rather than using this id raw."""
 
+AnecdoteId: TypeAlias = int
+"""Anecdote (Odd Encounter, 奇遇) id (``AnecdoteExcelConfigDataItem.id``); one
+world vignette grouping the ``TALK_STORYBOARD`` talks of its quest."""
+
 GadgetConfigId: TypeAlias = int
 """Gadget config id (``GadgetGroup.configId``); the first half of a GadgetGroup's
 composite ``(configId, groupId)`` key. Multiple GadgetGroup files can share a

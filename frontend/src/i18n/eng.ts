@@ -206,6 +206,7 @@ export const eng = {
       agd_talk_group: 'Talk Groups',
       agd_talk: 'Talks',
       agd_hangout: 'Hangout Events',
+      agd_anecdote: 'Odd Encounters',
       agd_voiceline: 'Voicelines',
       agd_creature: 'Living Beings',
       tps_shishu: 'Shishu Lore Manual'
