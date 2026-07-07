@@ -30,7 +30,9 @@ def get_anecdote_info(
             except ValueError:
                 issues.record(issues.IssueType.MISSING_TALK, str(talk_id))
                 continue
-            if talk_info.text:
+            # Require a non-skip line: skip-flagged (dev/test) lines are dropped
+            # at render time, so an all-skip talk would emit an empty section.
+            if any(not text.skip for text in talk_info.text):
                 talks.append(talk_info)
                 talk_ids.append(talk_id)
 
@@ -59,7 +61,7 @@ def render_anecdote(
         f"{anecdote.anecdote_id}_{utils.make_safe_filename_part(anecdote.title)}.txt"
     )
 
-    content_lines = [f"# Odd Encounter: {anecdote.title}\n"]
+    content_lines = [f"# {anecdote.title}\n"]
     for blurb in (anecdote.teaser, anecdote.description):
         if blurb is not None:
             content_lines.append(blurb)

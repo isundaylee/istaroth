@@ -206,7 +206,7 @@ export const chs = {
       agd_talk_group: '对话组',
       agd_talk: '对话',
       agd_hangout: '邀约事件',
-      agd_anecdote: '奇遇',
+      agd_anecdote: '轶闻',
       agd_voiceline: '语音台词',
       agd_creature: '生物志',
       tps_shishu: '诗漱原神世界观手册'
