@@ -7,8 +7,10 @@ import pytest
 
 from istaroth.agd import (
     agd_types,
+    first_seen,
     issues,
     localization,
+    processed_types,
     renderable_types,
     repo,
     talk_parsing,
@@ -132,6 +134,36 @@ def test_subtitle_title(data_repo: repo.DataRepo, stem: str, expected: str) -> N
         subtitle.build_subtitle_title(f"Subtitle/CHS/{stem}.srt", data_repo=data_repo)
         == expected
     )
+
+
+@pytest.mark.parametrize(
+    ("text_lines", "expected"),
+    [
+        ([], False),
+        (["."], False),
+        (["...", "."], False),
+        (["世界崩坏之后"], True),
+        ([".", "两颗陨星落在世界中央"], True),
+    ],
+)
+def test_subtitle_has_meaningful_content(
+    text_lines: list[str], expected: bool
+) -> None:
+    """Empty / lone-dot placeholder subtitles are detected for skipping."""
+    info = processed_types.SubtitleInfo(text_lines=text_lines)
+    assert subtitle.has_meaningful_content(info) is expected
+
+
+def test_subtitle_placeholder_file_skipped(data_repo: repo.DataRepo) -> None:
+    """A known placeholder subtitle (lone '.') renders to None."""
+    item = renderable_types.Subtitles().process(
+        f"Subtitle/{data_repo.language_short}/Cs_Sumeru_AQ302009_MOTM_{data_repo.language_short}.srt",
+        data_repo,
+        first_seen_index=first_seen.FirstSeenIndex(
+            {domain: {} for domain in first_seen.SourceDomain}
+        ),
+    )
+    assert item is None
 
 
 def test_subtitle_title_resolution_coverage(data_repo: repo.DataRepo) -> None:

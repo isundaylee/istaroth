@@ -387,6 +387,8 @@ class Subtitles(BaseRenderableType[str]):
     ) -> processed_types.RenderedItem | None:
         """Process subtitle file into rendered content."""
         subtitle_info = subtitle.get_subtitle_info(renderable_key, data_repo=data_repo)
+        if not subtitle.has_meaningful_content(subtitle_info):
+            return None
         return subtitle.render_subtitle(
             subtitle_info,
             renderable_key,

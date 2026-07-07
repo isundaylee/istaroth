@@ -36,6 +36,15 @@ def get_subtitle_info(
     return processed_types.SubtitleInfo(text_lines=text_lines)
 
 
+def has_meaningful_content(subtitle_info: processed_types.SubtitleInfo) -> bool:
+    """Whether any line carries real text.
+
+    A few subtitle files ship empty or as a lone ``.`` placeholder (their
+    videos have no speech); rendering those would produce title-only documents.
+    """
+    return any(line.strip(" .") for line in subtitle_info.text_lines)
+
+
 def _main_quest_title(
     quest_id: id_types.QuestId, *, data_repo: repo.DataRepo
 ) -> str | None:
