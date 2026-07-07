@@ -17,6 +17,22 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  /* Collapse all animations/transitions to a single instant frame rather than
+     `none`, so keyframe end states still apply and transition events still
+     fire. !important is required: `*` has zero specificity, so any component
+     rule would override it otherwise. */
+  /* stylelint-disable declaration-no-important */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  /* stylelint-enable declaration-no-important */
+}
+
 @media (max-width: 600px) {
   /* Citation list mobile styles */
   [data-citation-container] li {
