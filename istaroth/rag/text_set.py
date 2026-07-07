@@ -24,6 +24,7 @@ _CATEGORY_DISPLAY_ORDER = (
     text_types.TextCategory.AGD_BOOK,
     text_types.TextCategory.AGD_QUEST,
     text_types.TextCategory.AGD_HANGOUT,
+    text_types.TextCategory.AGD_ANECDOTE,
     text_types.TextCategory.AGD_ARTIFACT_SET,
     text_types.TextCategory.AGD_WEAPON,
     text_types.TextCategory.AGD_WINGS,

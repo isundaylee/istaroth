@@ -262,3 +262,23 @@ def test_deobfuscate_document_excel_config_data(data_repo: repo.DataRepo) -> Non
     loaded = data_repo.load_document_excel_config_data()
     assert loaded[101733]["titleTextMapHash"] == 3763660007
     assert loaded[191431]["CUSTOM_addlLocalID"] == [291001]
+
+
+def test_deobfuscate_anecdote_excel_config_data(data_repo: repo.DataRepo) -> None:
+    """De-obfuscate AnecdoteExcelConfigData via its dedicated (invented-name)
+    mapping; like the document test above, this fails loudly on the next AGD bump
+    until the rotated keys are re-derived."""
+    deobfuscated_data = deobfuscation.deobfuscate_anecdote_excel_config_data(
+        _load_raw(data_repo, "ExcelBinOutput/AnecdoteExcelConfigData.json")
+    )
+
+    entry = next(e for e in deobfuscated_data if e["id"] == 100001)  # 诺艾尔·剑术
+    assert entry["questIds"] == [510000101]
+    assert entry["titleTextMapHash"] == 1253956347
+    assert entry["teaserTextMapHash"] == 93015952
+    assert entry["descTextMapHash"] == 3335685669
+    assert entry["isHide"] is False
+
+    # load_anecdote_excel_config_data returns the same structure, keyed by id.
+    loaded = data_repo.load_anecdote_excel_config_data()
+    assert loaded[100001]["questIds"] == [510000101]

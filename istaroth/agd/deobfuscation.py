@@ -191,6 +191,23 @@ _COMMON_FIELD_MAPPINGS = {
     "GBAHMGGAMGH": "CUSTOM_addlLocalID",
 }
 
+# ExcelBinOutput/AnecdoteExcelConfigData.json has shipped obfuscated since its
+# 5.4 introduction — no cleartext dump ever existed — so these cleartext names
+# are invented rather than lineage-recovered. They live in a dedicated mapping
+# instead of _COMMON_FIELD_MAPPINGS because the build's global bijection already
+# assigns the genuine `id`/`titleTextMapHash`/`descTextMapHash` names to other
+# obfuscated keys; the anecdote fields' true source names are unknown. Re-derive
+# per build by value-matching entries against the previous build's file
+# (anecdote ids, quest ids, and `isHide` — which ships cleartext — are stable).
+_ANECDOTE_FIELD_MAPPINGS = {
+    # CNRELWin6.7.0_R45768959_S45393582_D45767575
+    "GIJOCHMAJCI": "id",
+    "AEEMNELFAIO": "questIds",
+    "EHGEFIODFHD": "titleTextMapHash",
+    "NIKLGDFJAJK": "teaserTextMapHash",
+    "OBJANDCNDMA": "descTextMapHash",
+}
+
 
 def _deobfuscate_data(
     data: dict[str, Any],
@@ -363,6 +380,13 @@ def deobfuscate_dialog_excel_config_data(
     text fields ship cleartext already.
     """
     return _process_array_items(data)
+
+
+def deobfuscate_anecdote_excel_config_data(
+    data: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """De-obfuscate AnecdoteExcelConfigData items (``isHide`` ships cleartext)."""
+    return [_deobfuscate_data(item, _ANECDOTE_FIELD_MAPPINGS, {}) for item in data]
 
 
 def deobfuscate_document_excel_config_data(

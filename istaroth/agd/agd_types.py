@@ -229,6 +229,7 @@ class TalkExcelConfigDataItem(TypedDict):
 
     id: id_types.TalkId
     initDialog: id_types.DialogId
+    loadType: str
     questId: id_types.QuestId  # 0 when the talk belongs to no quest
 
 
@@ -236,6 +237,30 @@ TalkExcelConfigData: TypeAlias = list[TalkExcelConfigDataItem]
 """List of talk configuration items.
 
 Example file: ExcelBinOutput/TalkExcelConfigData.json
+"""
+
+
+class AnecdoteExcelConfigDataItem(TypedDict):
+    """An anecdote (Odd Encounter, 奇遇) world-vignette entry.
+
+    Field names are invented, not lineage-recovered (see
+    ``deobfuscation._ANECDOTE_FIELD_MAPPINGS``). ``questIds`` holds the
+    anecdote's quest, whose id the quest's ``TALK_STORYBOARD`` talks carry as
+    their ``questId``; every current entry has exactly one.
+    """
+
+    id: id_types.AnecdoteId
+    questIds: list[id_types.QuestId]
+    titleTextMapHash: id_types.TextMapHash
+    teaserTextMapHash: id_types.TextMapHash
+    descTextMapHash: id_types.TextMapHash
+    isHide: bool
+
+
+AnecdoteExcelConfigData: TypeAlias = list[AnecdoteExcelConfigDataItem]
+"""List of anecdote entries.
+
+Example file: ExcelBinOutput/AnecdoteExcelConfigData.json
 """
 
 
