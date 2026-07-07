@@ -21,6 +21,7 @@ from istaroth.agd.renderables import (
     creature,
     quest,
     readable,
+    subtitle,
 )
 
 
@@ -102,6 +103,50 @@ def test_talk_6864003_narration_role(data_repo: repo.DataRepo) -> None:
 
     assert None in roles
     assert all(role is None or "TALK_ROLE_NONE" not in role for role in roles)
+
+
+@pytest.mark.parametrize(
+    ("stem", "expected"),
+    [
+        # Cutscene binding via videoName / subtitleId.
+        (
+            "Cs_Inazuma_LQ1204205_IntoTheVoid_Boy_CHS",
+            "熠熠生辉之樱 (Cs_Inazuma_LQ1204205_IntoTheVoid_Boy)",
+        ),
+        # Shared no-variant subtitle, matched through the localization path.
+        ("Cs_MDAQ019_DragonInCity_CHS", "龙灾 (Cs_MDAQ019_DragonInCity)"),
+        # No id token in the stem: only resolvable through its cutscene binding.
+        ("Ambor_Readings_CHS", "风之翼随风而起 (Ambor_Readings)"),
+        # No cutscene file in AGD: quest id token decoded from the filename.
+        ("Cs_NK_AQ603605_Boss_Boy_CHS", "虚空劫灰往世书 (Cs_NK_AQ603605_Boss_Boy)"),
+        # System video with no owning quest: bare stem.
+        ("Title_CHS", "Title"),
+    ],
+)
+def test_subtitle_title(data_repo: repo.DataRepo, stem: str, expected: str) -> None:
+    """Subtitle titles resolve to the owning quest's name (issue #74)."""
+    if data_repo.language is not localization.Language.CHS:
+        pytest.skip("Title assertions are CHS-specific")
+
+    assert (
+        subtitle.build_subtitle_title(f"Subtitle/CHS/{stem}.srt", data_repo=data_repo)
+        == expected
+    )
+
+
+def test_subtitle_title_resolution_coverage(data_repo: repo.DataRepo) -> None:
+    """Nearly all subtitles resolve a quest title; guards against a future AGD
+    build silently breaking the cutscene scan (e.g. newly obfuscated keys)."""
+    unresolved = []
+    for name in data_repo.list_subtitle_names():
+        if not name.endswith(".srt"):
+            continue
+        path = f"Subtitle/{data_repo.language_short}/{name}"
+        title = subtitle.build_subtitle_title(path, data_repo=data_repo)
+        if " (" not in title:
+            unresolved.append(name)
+
+    assert len(unresolved) <= 12, unresolved
 
 
 def test_talk_role_name_hash_ignores_fallback_text() -> None:

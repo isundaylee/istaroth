@@ -388,7 +388,10 @@ class Subtitles(BaseRenderableType[str]):
         """Process subtitle file into rendered content."""
         subtitle_info = subtitle.get_subtitle_info(renderable_key, data_repo=data_repo)
         return subtitle.render_subtitle(
-            subtitle_info, renderable_key, first_seen_index=first_seen_index
+            subtitle_info,
+            renderable_key,
+            subtitle.build_subtitle_title(renderable_key, data_repo=data_repo),
+            first_seen_index=first_seen_index,
         )
 
 
