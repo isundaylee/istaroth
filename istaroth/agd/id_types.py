@@ -26,6 +26,12 @@ DialogId: TypeAlias = int
 SubQuestId: TypeAlias = int
 """Sub-quest id (``SubQuestItem.subId``)."""
 
+CutsceneId: TypeAlias = int
+"""Cutscene id (a ``BinOutput/Cutscene/<id>.json`` file stem). The id encodes the
+cutscene's trigger site in one of several historical shapes -- a sub-quest id, a
+dialog-style ``talkId*100+n``, or a ``mainQuestId``-prefixed number -- which the
+subtitle renderable decodes to name the owning quest."""
+
 ChapterId: TypeAlias = int
 """Chapter (act) id."""
 

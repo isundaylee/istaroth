@@ -229,6 +229,7 @@ class TalkExcelConfigDataItem(TypedDict):
 
     id: id_types.TalkId
     initDialog: id_types.DialogId
+    questId: id_types.QuestId  # 0 when the talk belongs to no quest
 
 
 TalkExcelConfigData: TypeAlias = list[TalkExcelConfigDataItem]
@@ -325,6 +326,33 @@ class QuestData(TypedDict):
     chapterId: id_types.ChapterId  # 0 when the quest belongs to no chapter
     subQuests: list[SubQuestItem]
     talks: list[QuestTalkItem]
+
+
+class QuestExcelConfigDataItem(TypedDict):
+    """A sub-quest master-table row (only fields we use).
+
+    Example file: ExcelBinOutput/QuestExcelConfigData.json
+    """
+
+    subId: id_types.SubQuestId
+    mainId: id_types.QuestId
+
+
+QuestExcelConfigData: TypeAlias = list[QuestExcelConfigDataItem]
+
+
+class CutsceneVideoConfig(TypedDict):
+    """A pre-rendered video cutscene's video/subtitle binding (only fields we use).
+
+    The ``videoConfig`` block of a ``BinOutput/Cutscene/<id>.json`` variant entry
+    (example file: BinOutput/Cutscene/1204205.json). Video names are empty
+    strings (not absent) when a cutscene has no traveler-variant video.
+    """
+
+    videoName: str  # e.g. "Cs_..._Boy.usm"
+    videoNameOther: str  # the other traveler variant
+    subtitleId: NotRequired[id_types.LocalizationId]
+    subtitleIdOther: NotRequired[id_types.LocalizationId]
 
 
 class AvatarExcelConfigDataItem(TypedDict):

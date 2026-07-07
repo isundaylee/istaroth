@@ -797,6 +797,88 @@ class DataRepo:
         return quest_id_to_path
 
     @functools.lru_cache(maxsize=None)
+    def load_quest_excel_config_data(self) -> agd_types.QuestExcelConfigData:
+        """Load the sub-quest master table."""
+        return self._load_excel("QuestExcelConfigData.json")
+
+    @_warm_on_fork
+    def build_sub_quest_to_main_quest_mapping(
+        self,
+    ) -> dict[id_types.SubQuestId, id_types.QuestId]:
+        """Sub-quest id -> its main quest id."""
+        return {
+            quest["subId"]: quest["mainId"]
+            for quest in self.load_quest_excel_config_data()
+        }
+
+    @_warm_on_fork
+    def build_talk_to_quest_mapping(self) -> dict[id_types.TalkId, id_types.QuestId]:
+        """Talk id -> owning quest id (``TalkExcelConfigData.questId``).
+
+        Checked against the quest BinOutput files' own talk lists: TalkExcel is
+        a strict superset with no disagreements, so it is the single source.
+        """
+        return {
+            talk_item["id"]: talk_item["questId"]
+            for talk_item in self.load_talk_excel_config_data()
+            if talk_item["questId"]
+        }
+
+    @_warm_on_fork
+    def build_subtitle_stem_to_cutscene_ids_mapping(
+        self,
+    ) -> dict[str, list[id_types.CutsceneId]]:
+        """Subtitle file stem -> ids of the cutscenes that play it.
+
+        A video cutscene binds its subtitle track by ``subtitleId`` into
+        ``LocalizationExcelConfigData``, whose per-language path stem equals the
+        ``Subtitle/<lang>`` file stem, and names its videos after the stem minus
+        the language suffix (per traveler variant). Both links are indexed: the
+        localization one also covers subtitle files shared by both traveler
+        variants, whose stems carry no ``_Boy``/``_Girl`` marker.
+        """
+        language_short = self.language_short
+        localization_id_to_stems: dict[id_types.LocalizationId, list[str]] = {}
+        for entry in self.load_localization_excel_config_data():
+            for path_value in entry.values():
+                if not isinstance(path_value, str):
+                    continue
+                path = pathlib.Path(path_value)
+                if path.stem.endswith(f"_{language_short}"):
+                    localization_id_to_stems.setdefault(entry["id"], []).append(
+                        path.stem
+                    )
+
+        mapping: dict[str, set[id_types.CutsceneId]] = {}
+        for json_file in sorted(
+            (self.agd_path / "BinOutput" / "Cutscene").glob("*.json")
+        ):
+            cutscene_id = int(json_file.stem)
+            for variant in orjson.loads(json_file.read_bytes()).values():
+                assert isinstance(variant, dict), json_file
+                if "videoConfig" not in variant:
+                    continue
+                video_config = cast(
+                    agd_types.CutsceneVideoConfig, variant["videoConfig"]
+                )
+                for video_name in (
+                    video_config["videoName"],
+                    video_config["videoNameOther"],
+                ):
+                    if video_name:
+                        stem = f"{pathlib.Path(video_name).stem}_{language_short}"
+                        mapping.setdefault(stem, set()).add(cutscene_id)
+                for localization_id in (
+                    video_config.get("subtitleId"),
+                    video_config.get("subtitleIdOther"),
+                ):
+                    if localization_id is None:
+                        continue
+                    for stem in localization_id_to_stems.get(localization_id, []):
+                        mapping.setdefault(stem, set()).add(cutscene_id)
+        return {stem: sorted(ids) for stem, ids in mapping.items()}
+
+    @functools.lru_cache(maxsize=None)
     def _get_talk_parser(self) -> talk_parsing.TalkParser:
         return talk_parsing.TalkParser(self, self.load_talk_excel_config_data())
 
