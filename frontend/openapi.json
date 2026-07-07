@@ -990,6 +990,10 @@
             "type": "string",
             "title": "Category"
           },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
           "nodes": {
             "items": {
               "$ref": "#/components/schemas/HierarchyNode"
@@ -1001,10 +1005,11 @@
         "type": "object",
         "required": [
           "category",
+          "title",
           "nodes"
         ],
         "title": "LibraryCategoryHierarchy",
-        "description": "One category's document tree within the full library hierarchy."
+        "description": "One category's document tree within the full library hierarchy.\n\n``title`` is the category's localized display label, mirroring\n``HierarchyNode``'s ``key``/``title`` pairing (with ``category`` as the key)."
       },
       "LibraryFileInfo": {
         "properties": {

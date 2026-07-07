@@ -13,7 +13,7 @@ import { useAppNavigate } from './hooks/useAppNavigate'
 import { useLibraryProperNouns } from './hooks/useLibraryProperNouns'
 import { recordLibraryView } from './utils/libraryRecents'
 import {
-  categoryLabel,
+  findCategory,
   findLeafPath,
   hierarchyCrumbs,
   nodeLabel,
@@ -71,15 +71,15 @@ function LibraryFileViewer() {
   const { fileContent, fileTitle, fileId, category, currentId, minVersion, maxVersion } =
     useLoaderData() as LoaderData
   const { categories } = useRouteLoaderData('library-root') as LibraryHierarchyResponse
-  const nodes = categories.find((entry) => entry.category === category)?.nodes ?? []
+  const categoryEntry = findCategory(categories, category)
   const properNouns = useLibraryProperNouns(category, fileId)
 
-  const catLabel = categoryLabel(category, t)
+  const catLabel = categoryEntry.title
 
   // Locate the file within the shared category tree to derive the breadcrumb
   // trail. A file absent from the tree (e.g. a quest with no hierarchy
   // placement) simply degrades to no ancestors.
-  const path = findLeafPath(nodes, currentId)
+  const path = findLeafPath(categoryEntry.nodes, currentId)
   const ancestors = path ? path.slice(0, -1) : []
   const browseTo = (depth: number) =>
     `/library/${encodeURIComponent(category)}/browse/${ancestors
@@ -88,7 +88,7 @@ function LibraryFileViewer() {
       .join('/')}`
 
   const crumbs: Crumb[] = [
-    ...hierarchyCrumbs(category, ancestors, t),
+    ...hierarchyCrumbs(categoryEntry, ancestors, t),
     { label: fileTitle || catLabel },
   ]
 

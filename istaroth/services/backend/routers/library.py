@@ -103,11 +103,13 @@ async def get_library_hierarchy(
     leaves synthesized from the manifest. The corpus is immutable per deployment,
     so the response carries an ETag for free conditional reloads.
     """
-    text_set_obj = _get_text_set(document_store_set, _parse_language(language))
+    language_enum = _parse_language(language)
+    text_set_obj = _get_text_set(document_store_set, language_enum)
 
-    # The "v2" prefix versions the response shape: the hash covers only the
-    # corpus data, so it must be bumped if the payload structure ever changes.
-    etag = f'"v2-{text_set_obj.library_hierarchies_content_hash}"'
+    # The "v3" prefix versions the response shape: the hash covers only the
+    # corpus data, so it must be bumped if the payload structure or the
+    # baked-in category labels ever change.
+    etag = f'"v3-{text_set_obj.library_hierarchies_content_hash}"'
     if request.headers.get("if-none-match") == etag:
         return fastapi.Response(status_code=304, headers={"ETag": etag})
     response.headers["ETag"] = etag
@@ -116,7 +118,13 @@ async def get_library_hierarchy(
     return models.LibraryHierarchyResponse(
         categories=[
             models.LibraryCategoryHierarchy.model_validate(
-                {"category": category, **hierarchy}
+                {
+                    "category": category,
+                    "title": localization.get_category_label(
+                        text_types.TextCategory(category), language=language_enum
+                    ),
+                    **hierarchy,
+                }
             )
             for category, hierarchy in text_set_obj.get_library_hierarchies().items()
         ],

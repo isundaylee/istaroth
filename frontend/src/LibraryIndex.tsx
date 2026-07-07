@@ -6,7 +6,6 @@ import TextInput from './components/TextInput'
 import { useCloseSidebarDrawer } from './components/PageShell'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import {
-  categoryLabel,
   countLeaves,
   findLeafPath,
   flattenLeafEntries,
@@ -49,7 +48,7 @@ function LibraryIndex({ categories, latestVersion, activeCategory, activeFileId,
     () =>
       categories.map((entry) => ({
         key: entry.category,
-        title: categoryLabel(entry.category, t),
+        title: entry.title,
         children: entry.nodes,
         file_id: null,
         toc_eligible: false,
@@ -57,7 +56,7 @@ function LibraryIndex({ categories, latestVersion, activeCategory, activeFileId,
         // trailing), so the first child carries the category's max.
         max_version: entry.nodes[0]?.max_version ?? null,
       })),
-    [categories, t]
+    [categories]
   )
 
   // The group path-keys that must be open to reveal the current position: the
@@ -169,15 +168,14 @@ function LibraryIndex({ categories, latestVersion, activeCategory, activeFileId,
   // trail, so the filter searches across all categories at once.
   const allEntries = React.useMemo(
     () =>
-      categories.flatMap((entry) => {
-        const label = categoryLabel(entry.category, t)
-        return flattenLeafEntries(entry.nodes).map((leaf) => ({
+      categories.flatMap((entry) =>
+        flattenLeafEntries(entry.nodes).map((leaf) => ({
           ...leaf,
           category: entry.category,
-          context: leaf.context ? `${label} / ${leaf.context}` : label,
+          context: leaf.context ? `${entry.title} / ${leaf.context}` : entry.title,
         }))
-      }),
-    [categories, t]
+      ),
+    [categories]
   )
 
   const trimmed = query.trim().toLowerCase()
