@@ -1,4 +1,4 @@
-import type { HierarchyNode } from '../types/api'
+import type { HierarchyNode, LibraryCategoryHierarchy } from '../types/api'
 
 type T = (key: string) => string
 
@@ -6,12 +6,16 @@ export function nodeLabel(node: HierarchyNode): string {
   return node.title || node.key
 }
 
-// Translate a category value (e.g. "agd_quest") via i18n, falling back to the raw
-// value when there is no translation.
-export function categoryLabel(category: string, t: T): string {
-  const key = `library.categories.${category}`
-  const translated = t(key)
-  return translated === key ? category : translated
+// Resolve a category value (e.g. "agd_quest") to its hierarchy entry, which
+// carries the localized display title. The hierarchy response covers every
+// category in the corpus, so a miss is a bug rather than a display fallback.
+export function findCategory(
+  categories: LibraryCategoryHierarchy[],
+  category: string
+): LibraryCategoryHierarchy {
+  const entry = categories.find((item) => item.category === category)
+  if (!entry) throw new Error(`Category missing from hierarchy: ${category}`)
+  return entry
 }
 
 export function isLeaf(node: HierarchyNode): boolean {
@@ -23,16 +27,16 @@ export function isLeaf(node: HierarchyNode): boolean {
 // its browse path). Callers append their own trailing "current" crumb. Used by
 // both the hierarchy listing pages and the file viewer.
 export function hierarchyCrumbs(
-  category: string,
+  entry: LibraryCategoryHierarchy,
   ancestors: HierarchyNode[],
   t: T
 ): { label: string; to: string }[] {
   return [
     { label: t('library.title'), to: '/library' },
-    { label: categoryLabel(category, t), to: `/library/${encodeURIComponent(category)}` },
+    { label: entry.title, to: `/library/${encodeURIComponent(entry.category)}` },
     ...ancestors.map((node, index) => ({
       label: nodeLabel(node) || t('library.noFileName'),
-      to: `/library/${encodeURIComponent(category)}/browse/${ancestors
+      to: `/library/${encodeURIComponent(entry.category)}/browse/${ancestors
         .slice(0, index + 1)
         .map((ancestor) => ancestor.key)
         .join('/')}`,

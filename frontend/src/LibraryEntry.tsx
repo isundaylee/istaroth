@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useRouteLoaderData } from 'react-router-dom'
 import { AppLink } from './components/AppLink'
 import Button from './components/Button'
 import Card from './components/Card'
@@ -10,9 +10,9 @@ import { useT } from './contexts/LanguageContext'
 import { useLibraryRetrieve } from './hooks/useLibraryRetrieve'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import { getLibraryRecents } from './utils/libraryRecents'
-import { categoryLabel } from './utils/hierarchy'
+import { findCategory } from './utils/hierarchy'
 import styles from './LibraryEntry.module.css'
-import type { LibraryRetrieveResponse } from './types/api'
+import type { LibraryHierarchyResponse, LibraryRetrieveResponse } from './types/api'
 
 interface _ResultGroup {
   fileInfo: LibraryRetrieveResponse['results'][number]['file_info']
@@ -58,7 +58,14 @@ function LibraryEntry() {
   const navigate = useAppNavigate()
   const openSidebarDrawer = useOpenSidebarDrawer()
   const params = useParams()
-  const [recents] = useState(getLibraryRecents)
+  const { categories } = useRouteLoaderData('library-root') as LibraryHierarchyResponse
+  // A recent stored before a corpus change may reference a category that no
+  // longer exists; such an entry is dead (opening it would 404), so drop it.
+  const [recents] = useState(() =>
+    getLibraryRecents().filter((recent) =>
+      categories.some((entry) => entry.category === recent.category)
+    )
+  )
   const {
     formParams,
     setFormParams,
@@ -89,7 +96,7 @@ function LibraryEntry() {
               <AppLink to={`/library/${encodeURIComponent(group.fileInfo.category)}/${encodeURIComponent(group.fileInfo.id)}`} className={styles.resultTitle}>
                 {group.fileInfo.title || t('library.noFileName')}
               </AppLink>
-              <span className={styles.resultCat}>{categoryLabel(group.fileInfo.category, t)}</span>
+              <span className={styles.resultCat}>{findCategory(categories, group.fileInfo.category).title}</span>
               {group.passages.length > 1 && (
                 <span className={styles.resultCat}>
                   {group.passages.length} {t('library.frontDesk.matches')}
@@ -103,7 +110,7 @@ function LibraryEntry() {
         ))}
       </div>
     )
-  }, [loading, results, submittedParams, t])
+  }, [categories, loading, results, submittedParams, t])
 
   const hasActiveSearch = submittedParams !== null || loading
 
@@ -169,7 +176,7 @@ function LibraryEntry() {
                   type="button"
                   onClick={() => openEntry({ category: recent.category, fileId: recent.fileId })}
                 >
-                  <span className={styles.cardCategory}>{categoryLabel(recent.category, t)}</span>
+                  <span className={styles.cardCategory}>{findCategory(categories, recent.category).title}</span>
                   <span className={styles.cardTitle}>{recent.title || t('library.noFileName')}</span>
                 </button>
               ))}

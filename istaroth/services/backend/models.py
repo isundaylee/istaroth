@@ -285,9 +285,14 @@ class HierarchyNode(BaseModel):
 
 
 class LibraryCategoryHierarchy(BaseModel):
-    """One category's document tree within the full library hierarchy."""
+    """One category's document tree within the full library hierarchy.
+
+    ``title`` is the category's localized display label, mirroring
+    ``HierarchyNode``'s ``key``/``title`` pairing (with ``category`` as the key).
+    """
 
     category: str
+    title: str
     nodes: list[HierarchyNode]
 
 
