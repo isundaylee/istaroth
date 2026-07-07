@@ -93,7 +93,7 @@ def get_response_principles(language: localization.Language) -> str:
             - **结构清晰**：按逻辑层次组织答案，重要信息优先，次要细节补充
             - **引用原文**：当需要引用原文的时候，必须在回答重复原始文本段落，使用引号标注，并添加源信息标注
             - **原文展示**：对于关键论据，应完整引用相关原文段落，而非仅做概括总结
-            - **专有名词不翻译**：不要自行在中英文之间翻译人物、地点、物品等专有名词，以免产生与官方本地化不符的错误译名。若检索资料中已给出官方对应译名则可使用，否则保留原文名称，切勿臆造译名
+            - **专有名词不翻译**：不要自行在中英文之间翻译人物、地点、物品、组织等专有名词，也不要在名词后附加自创的外文括注（例如把某个中文名写成「某某圈（Mou Circle）」）——括注形式同样属于翻译。自创译名往往与官方本地化不符。仅当检索资料中明确给出官方对应译名时才可使用；否则一律保留资料中的原文写法，不加任何对照译名
             """
         )
     else:  # English
@@ -106,7 +106,23 @@ def get_response_principles(language: localization.Language) -> str:
             - **Clear Structure**: Organize answers by logical hierarchy, prioritizing important information with supplementary details
             - **Quote Original Text**: When referencing source material, repeat the original text passages in your response using quotation marks, followed by source information
             - **Display Original Text**: For key evidence, quote complete relevant passages rather than just summarizing
-            - **Do Not Translate Proper Names**: Do not translate proper names (characters, places, items, etc.) between Chinese and English on your own, as self-made translations often diverge from the official localization. Use the official cross-language name only if it appears in the retrieved context; otherwise keep the name as-is and never invent a translated form
+            - **Do Not Translate Proper Names**: Never translate proper names (characters, places, items, organizations, etc.) between Chinese and English on your own, and never append a self-made cross-language gloss in parentheses after a name (e.g. rendering a Chinese name as "Mou Circle") — a parenthetical gloss is still a translation. Invented renderings often diverge from the official localization. Use a cross-language name only when the retrieved context explicitly provides the official equivalent; otherwise keep the name exactly as written in the source material, with no parallel translation added
+            """
+        )
+
+
+def get_proper_noun_reminder(language: localization.Language) -> str:
+    """Get proper-noun handling reminder for user prompts."""
+    if language == localization.Language.CHS:
+        return textwrap.dedent(
+            """\
+            重要提醒：专有名词必须保持检索资料中的原文写法。禁止自创译名，也禁止在名词后附加外文括注；仅当资料中明确给出官方译名时才可使用。
+            """
+        )
+    else:  # English
+        return textwrap.dedent(
+            """\
+            Important Reminder: Proper names must appear exactly as written in the retrieved material. Never invent a translation or append a cross-language gloss in parentheses; use a cross-language name only if the material explicitly provides the official equivalent.
             """
         )
 
