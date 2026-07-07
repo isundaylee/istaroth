@@ -63,6 +63,9 @@ def _get_chinese_prompts() -> ReasoningPrompts:
     )
 
     citation_reminder = shared_prompts.get_citation_reminder(localization.Language.CHS)
+    proper_noun_reminder = shared_prompts.get_proper_noun_reminder(
+        localization.Language.CHS
+    )
 
     user_prompt_template = textwrap.dedent(
         f"""\
@@ -71,6 +74,8 @@ def _get_chinese_prompts() -> ReasoningPrompts:
         请回答以下问题，展示你的推理过程：
 
         {citation_reminder}
+
+        {proper_noun_reminder}
 
         {{input}}
         """
@@ -119,6 +124,9 @@ def _get_english_prompts() -> ReasoningPrompts:
     )
 
     citation_reminder = shared_prompts.get_citation_reminder(localization.Language.ENG)
+    proper_noun_reminder = shared_prompts.get_proper_noun_reminder(
+        localization.Language.ENG
+    )
 
     user_prompt_template = textwrap.dedent(
         f"""\
@@ -127,6 +135,8 @@ def _get_english_prompts() -> ReasoningPrompts:
         Please answer the following question, showing your reasoning process:
 
         {citation_reminder}
+
+        {proper_noun_reminder}
 
         {{input}}
         """

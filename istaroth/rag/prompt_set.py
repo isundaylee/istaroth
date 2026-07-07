@@ -87,6 +87,9 @@ def _get_chinese_prompts() -> RAGPrompts:
     )
 
     citation_reminder = shared_prompts.get_citation_reminder(localization.Language.CHS)
+    proper_noun_reminder = shared_prompts.get_proper_noun_reminder(
+        localization.Language.CHS
+    )
 
     user_prompt_template = textwrap.dedent(
         f"""\
@@ -98,6 +101,8 @@ def _get_chinese_prompts() -> RAGPrompts:
         请基于资料内容，结合你对《原神》剧情的理解，简洁清晰地回答用户问题。
 
         {citation_reminder}
+
+        {proper_noun_reminder}
 
         用户提问：{{user_question}}
         """
@@ -170,6 +175,9 @@ def _get_english_prompts() -> RAGPrompts:
     )
 
     citation_reminder = shared_prompts.get_citation_reminder(localization.Language.ENG)
+    proper_noun_reminder = shared_prompts.get_proper_noun_reminder(
+        localization.Language.ENG
+    )
 
     user_prompt_template = textwrap.dedent(
         f"""\
@@ -181,6 +189,8 @@ def _get_english_prompts() -> RAGPrompts:
         Please provide a concise and clear answer based on the source material, combined with your understanding of Genshin Impact lore.
 
         {citation_reminder}
+
+        {proper_noun_reminder}
 
         User Question: {{user_question}}
         """
