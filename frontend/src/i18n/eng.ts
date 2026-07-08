@@ -188,6 +188,7 @@ export const eng = {
       }
     },
     backToFiles: 'Back to Files',
+    shareLink: 'Copy Share Link',
     versionBadge: '(Added in {version})',
     versionBadgeRange: '(Added across {version})',
     newBadge: 'NEW',

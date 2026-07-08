@@ -188,6 +188,7 @@ export const chs = {
       }
     },
     backToFiles: '返回文件列表',
+    shareLink: '复制分享链接',
     versionBadge: '(于 {version} 版本加入)',
     versionBadgeRange: '(于 {version} 版本陆续加入)',
     newBadge: 'NEW',

@@ -69,24 +69,10 @@ async def _save_conversation(
     conversation_uuid = conversation.uuid
     logger.info("Conversation flushed with UUID: %s", conversation_uuid)
 
-    for _ in range(5):
-        slug = slugs.generate_slug()
-        try:
-            async with db_session.begin_nested():
-                db_session.add(
-                    db_models.ShortURL(
-                        slug=slug,
-                        target_path=f"/conversation/{conversation_uuid}",
-                    )
-                )
-                await db_session.flush()
-        except IntegrityError:
-            continue
-        await db_session.commit()
-        return conversation_uuid, slug
-
-    await db_session.rollback()
-    raise RuntimeError("Failed to generate a unique short URL slug after 5 attempts")
+    slug = await slugs.get_or_create_short_url(
+        f"/conversation/{conversation_uuid}", db_session=db_session
+    )
+    return conversation_uuid, slug
 
 
 def _build_pipeline(

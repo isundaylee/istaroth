@@ -1,13 +1,16 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLoaderData, useRouteLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
-import { useT } from './contexts/LanguageContext'
+import { Check, Share2, X } from 'lucide-react'
+import { useT, useTranslation } from './contexts/LanguageContext'
 import { MinimizedPopupRegion } from './contexts/PopupCoordinatorContext'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
+import Button from './components/Button'
 import HighlightedMarkdown from './components/HighlightedMarkdown'
 import NavButton from './components/NavButton'
 import SelectableAnswer from './components/SelectableAnswer'
 import { translate } from './i18n'
-import { ApiError, fetchLibraryFile } from './utils/api'
+import { ApiError, createLibraryFileShortUrl, fetchLibraryFile } from './utils/api'
+import { copyToClipboard } from './utils/clipboard'
 import { getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import { useLibraryProperNouns } from './hooks/useLibraryProperNouns'
@@ -67,6 +70,7 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
 
 function LibraryFileViewer() {
   const t = useT()
+  const { language } = useTranslation()
   const navigate = useAppNavigate()
   const { fileContent, fileTitle, fileId, category, currentId, minVersion, maxVersion } =
     useLoaderData() as LoaderData
@@ -101,26 +105,51 @@ function LibraryFileViewer() {
     recordLibraryView({ category, fileId: currentId, title: fileTitle })
   }, [category, currentId, fileTitle])
 
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
+
+  const copyShareUrl = async () => {
+    try {
+      const { slug } = await createLibraryFileShortUrl(category, fileId, language)
+      await copyToClipboard(`${window.location.origin}/s/${slug}`)
+      setCopyStatus('copied')
+    } catch {
+      setCopyStatus('failed')
+    }
+    setTimeout(() => setCopyStatus('idle'), 2000)
+  }
+
+  const shareTitle =
+    copyStatus === 'copied'
+      ? t('common.copied')
+      : copyStatus === 'failed'
+        ? t('common.copyFailed')
+        : t('library.shareLink')
+
   return (
     <>
       <MinimizedPopupRegion>
-        <Breadcrumbs
-          crumbs={crumbs}
-          trailing={
-            minVersion !== null && maxVersion !== null
-              ? t(
-                  // A min/max spread means the file's content accrued across
-                  // versions, so phrase it as "added over" rather than "added in".
-                  minVersion === maxVersion
-                    ? 'library.versionBadge'
-                    : 'library.versionBadgeRange'
-                ).replace(
-                  '{version}',
-                  formatVersionRange(minVersion, maxVersion)
-                )
-              : undefined
-          }
-        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+          <Breadcrumbs
+            crumbs={crumbs}
+            trailing={
+              minVersion !== null && maxVersion !== null
+                ? t(
+                    // A min/max spread means the file's content accrued across
+                    // versions, so phrase it as "added over" rather than "added in".
+                    minVersion === maxVersion
+                      ? 'library.versionBadge'
+                      : 'library.versionBadgeRange'
+                  ).replace(
+                    '{version}',
+                    formatVersionRange(minVersion, maxVersion)
+                  )
+                : undefined
+            }
+          />
+          <Button onClick={copyShareUrl} variant="icon" size="sm" title={shareTitle} aria-label={shareTitle}>
+            {copyStatus === 'copied' ? <Check aria-hidden /> : copyStatus === 'failed' ? <X aria-hidden /> : <Share2 aria-hidden />}
+          </Button>
+        </div>
 
           <SelectableAnswer resetKey={fileContent}>
             <HighlightedMarkdown content={fileContent} properNouns={properNouns} />
