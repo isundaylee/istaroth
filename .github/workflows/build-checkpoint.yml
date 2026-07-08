@@ -1,6 +1,10 @@
 name: Build and Release Checkpoint
 
 on:
+  schedule:
+    # Daily at 11:35pm Pacific (UTC-7); GitHub cron is UTC-only, so this
+    # drifts to 10:35pm during PST.
+    - cron: "35 6 * * *"
   workflow_dispatch:
     inputs:
       languages:
@@ -67,7 +71,7 @@ jobs:
         path: tmp/checkpoints/*.tar.gz
 
     - name: Create release
-      if: ${{ github.event.inputs.release == 'true' }}
+      if: ${{ github.event_name == 'schedule' || github.event.inputs.release == 'true' }}
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
