@@ -18,6 +18,7 @@ from istaroth.agd import (
 from istaroth.agd.renderables import (
     _talk,
     achievement,
+    activity,
     book,
     character,
     creature,
@@ -146,9 +147,7 @@ def test_subtitle_title(data_repo: repo.DataRepo, stem: str, expected: str) -> N
         ([".", "两颗陨星落在世界中央"], True),
     ],
 )
-def test_subtitle_has_meaningful_content(
-    text_lines: list[str], expected: bool
-) -> None:
+def test_subtitle_has_meaningful_content(text_lines: list[str], expected: bool) -> None:
     """Empty / lone-dot placeholder subtitles are detected for skipping."""
     info = processed_types.SubtitleInfo(text_lines=text_lines)
     assert subtitle.has_meaningful_content(info) is expected
@@ -681,6 +680,25 @@ def test_creatures_discover_returns_subtype_groups(data_repo: repo.DataRepo) -> 
     )
     # Far fewer files than entries: a dozen-ish groups vs. hundreds of creatures.
     assert len(discovered) < 20 < len(codex)
+
+
+def test_activities_group_loose_talks_by_activity(data_repo: repo.DataRepo) -> None:
+    """Loose TALK_ACTIVITY talks group under their owning activity's id and name."""
+    grouped = activity.list_loose_talk_ids_by_activity(data_repo, used_talk_ids=set())
+    assert {7567002, 7567003} <= set(grouped[5295])
+    assert 7567002 not in activity.list_loose_talk_ids_by_activity(
+        data_repo, used_talk_ids={7567002}
+    ).get(5295, [])
+
+    assert renderable_types.Activities(set()).discover(data_repo) == sorted(grouped)
+
+    info = activity.get_activity_talks_info(
+        5295, data_repo=data_repo, used_talk_ids=set()
+    )
+    assert info is not None
+    assert info.title == "龙龙同游"
+    assert {7567002, 7567003} <= set(info.talk_ids)
+    assert len(info.talks) == len(info.talk_ids)
 
 
 def test_sexpro_resolves_from_pinned_build(

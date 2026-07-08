@@ -17,6 +17,7 @@ from istaroth.agd import (
 from istaroth.agd.renderables import (
     _talk,
     achievement,
+    activity,
     anecdote,
     artifact,
     blossom,
@@ -43,6 +44,12 @@ class BaseRenderableType(ABC, Generic[TKey]):
     text_category: ClassVar[text_types.TextCategory]
     error_limit: ClassVar[int] = 0  # Default error limit
     error_limit_non_chinese: ClassVar[int] = 0  # Higher limit for non-Chinese languages
+    success_limit: ClassVar[int | None] = None
+    """Fail generation when a pass renders at least this many items.
+
+    Sanity bound for leftover-sweeping passes (Talks): a blowup there means a
+    new batch of loose content should get its own grouped renderable instead
+    (issue #105)."""
 
     @classmethod
     def error_limit_for(cls, language: localization.Language) -> int:
@@ -762,12 +769,63 @@ class Blossoms(BaseRenderableType[id_types.CityId]):
         )
 
 
+class Activities(BaseRenderableType[id_types.ActivityId]):
+    """Loose activity (event) talks, grouped into one file per activity."""
+
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_ACTIVITY
+    )
+    error_limit: ClassVar[int] = 5
+    error_limit_non_chinese: ClassVar[int] = 10
+
+    def __init__(self, used_talk_ids: set[id_types.TalkId]) -> None:
+        """Initialize with set of already used talk IDs."""
+        self.used_talk_ids = used_talk_ids
+
+    @classmethod
+    def create_for_generation(
+        cls, accessed_stats: tracking.TrackerStats
+    ) -> "Activities":
+        return cls(accessed_stats.accessed[tracking.TrackerKind.TALK].copy())
+
+    def discover(self, data_repo: repo.DataRepo) -> list[id_types.ActivityId]:
+        """All activity ids owning leftover TALK_ACTIVITY talks."""
+        return sorted(
+            activity.list_loose_talk_ids_by_activity(
+                data_repo, used_talk_ids=self.used_talk_ids
+            )
+        )
+
+    def process(
+        self,
+        renderable_key: id_types.ActivityId,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
+    ) -> processed_types.RenderedItem | None:
+        """Render an activity's loose talks, or skip when none have content."""
+        if (
+            activity_info := activity.get_activity_talks_info(
+                renderable_key,
+                data_repo=data_repo,
+                used_talk_ids=self.used_talk_ids,
+            )
+        ) is None:
+            return None
+        return activity.render_activity_talks(
+            activity_info,
+            language=data_repo.language,
+            first_seen_index=first_seen_index,
+        )
+
+
 class Talks(BaseRenderableType[id_types.TalkId]):
     """Standalone talk content type for talks not used by other renderable types."""
 
     text_category: ClassVar[text_types.TextCategory] = text_types.TextCategory.AGD_TALK
     error_limit: ClassVar[int] = 1000
     error_limit_non_chinese: ClassVar[int] = 1000
+    success_limit: ClassVar[int | None] = 50
 
     def __init__(self, used_talk_ids: set[id_types.TalkId]) -> None:
         """Initialize with set of already used talk IDs."""
@@ -811,8 +869,9 @@ class Talks(BaseRenderableType[id_types.TalkId]):
 
 
 # Ordered list of every AGD renderable type, in the order generate-all runs
-# them. Readables and Talks come last: each emits only the ids no earlier pass
-# already claimed, so they must run after everything else.
+# them. Activities, Readables, and Talks each emit only the ids no earlier pass
+# already claimed, so Activities must follow every other talk-claiming pass and
+# Readables/Talks must come last.
 ALL_RENDERABLE_TYPES: list[type[BaseRenderableType]] = [
     ArtifactSets,
     Creatures,
@@ -826,6 +885,7 @@ ALL_RENDERABLE_TYPES: list[type[BaseRenderableType]] = [
     Hangouts,
     Anecdotes,
     Blossoms,
+    Activities,
     Books,
     Weapons,
     Wings,

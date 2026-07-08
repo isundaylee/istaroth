@@ -64,6 +64,10 @@ _CATEGORY_LABELS: dict[text_types.TextCategory, dict[Language, str]] = {
         Language.CHS: "矿物富集点",
         Language.ENG: "Rich Ore Reserves",
     },
+    text_types.TextCategory.AGD_ACTIVITY: {
+        Language.CHS: "活动",
+        Language.ENG: "Events",
+    },
     text_types.TextCategory.AGD_READABLE: {
         Language.CHS: "可读文本",
         Language.ENG: "Readables",

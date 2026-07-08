@@ -277,6 +277,19 @@ def _generate_content(
 
             stats.success += 1
 
+            if (
+                renderable_type.success_limit is not None
+                and stats.success >= renderable_type.success_limit
+            ):
+                error_msg = (
+                    f"{renderable_type_name} rendered {stats.success} items, "
+                    f"expected fewer than {renderable_type.success_limit}; "
+                    "group the new loose content into a dedicated renderable "
+                    "(see issue #105)"
+                )
+                log_message(f"✗ {error_msg}")
+                raise RuntimeError(error_msg)
+
             pbar.set_postfix({"errors": stats.error, "skipped": stats.skipped})
 
     return stats, tracker_stats

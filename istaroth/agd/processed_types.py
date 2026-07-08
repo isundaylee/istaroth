@@ -174,6 +174,16 @@ class AnecdoteInfo:
 
 
 @attrs.define
+class ActivityTalksInfo:
+    """An activity's (活动/event) loose talks not claimed by any other pass."""
+
+    activity_id: id_types.ActivityId
+    title: str
+    talks: list[TalkInfo]
+    talk_ids: list[id_types.TalkId]
+
+
+@attrs.define
 class BlossomSection:
     """One ore-type variant of a region's blossom intel: its blurb and talks."""
 
