@@ -32,7 +32,7 @@ def get_anecdote_info(
                 continue
             # Require a non-skip line: skip-flagged (dev/test) lines are dropped
             # at render time, so an all-skip talk would emit an empty section.
-            if any(not text.skip for text in talk_info.text):
+            if talk_info.has_non_skip_text:
                 talks.append(talk_info)
                 talk_ids.append(talk_id)
 

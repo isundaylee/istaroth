@@ -78,6 +78,11 @@ class TalkInfo:
 
     text: list[TalkText]
 
+    @property
+    def has_non_skip_text(self) -> bool:
+        """Whether any line survives render-time skip filtering."""
+        return any(not text.skip for text in self.text)
+
 
 @attrs.define
 class TalkGroupInfo:
@@ -169,6 +174,16 @@ class AnecdoteInfo:
     """Map-hint blurb shown before the encounter (missing on some entries)."""
     description: str | None
     """Post-completion recap of the scene."""
+    talks: list[TalkInfo]
+    talk_ids: list[id_types.TalkId]
+
+
+@attrs.define
+class ActivityTalksInfo:
+    """An activity's (活动/event) loose talks not claimed by any other pass."""
+
+    activity_id: id_types.ActivityId
+    title: str
     talks: list[TalkInfo]
     talk_ids: list[id_types.TalkId]
 
