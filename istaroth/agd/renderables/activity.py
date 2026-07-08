@@ -49,7 +49,7 @@ def get_activity_talks_info(
         # render time, so an all-skip talk would emit an empty section. Loading
         # the talk above still claims its id, so dropped talks don't leak back
         # into the loose Talks pass.
-        if any(not text.skip for text in talk_info.text):
+        if talk_info.has_non_skip_text:
             talks.append(talk_info)
             talk_ids.append(talk_id)
 

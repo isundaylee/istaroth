@@ -78,6 +78,11 @@ class TalkInfo:
 
     text: list[TalkText]
 
+    @property
+    def has_non_skip_text(self) -> bool:
+        """Whether any line survives render-time skip filtering."""
+        return any(not text.skip for text in self.text)
+
 
 @attrs.define
 class TalkGroupInfo:
