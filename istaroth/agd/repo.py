@@ -169,6 +169,12 @@ class TextMapTracker(tracking.IdTracker[id_types.TextMapHash]):
             return self._get_cleaned_text(text)
         return None
 
+    def get_required(self, key: id_types.TextMapHash) -> str:
+        """Get text by ID, raises when the hash resolves nowhere."""
+        if (text := self.get_optional(key)) is None:
+            raise ValueError(f"Unresolvable text map hash {key}")
+        return text
+
     def get_current_optional(self, key: id_types.TextMapHash) -> str | None:
         """Get current-build text by ID, returns None if not found."""
         if (text := self._text_map.get(key)) is not None:

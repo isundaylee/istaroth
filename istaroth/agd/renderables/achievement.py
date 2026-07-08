@@ -22,24 +22,16 @@ def get_achievement_section_info(
     section, achievement_configs = section_config
 
     text_map = data_repo.build_text_map_tracker()
-    if (section_name := text_map.get_optional(section["nameTextMapHash"])) is None:
-        raise ValueError(f"Missing name for achievement section {section_id}")
+    section_name = text_map.get_required(section["nameTextMapHash"])
 
-    achievements = list[processed_types.AchievementInfo]()
-    for achievement in achievement_configs:
-        if (name := text_map.get_optional(achievement["titleTextMapHash"])) is None:
-            raise ValueError(f"Missing name for achievement {achievement['id']}")
-        if (
-            description := text_map.get_optional(achievement["descTextMapHash"])
-        ) is None:
-            raise ValueError(f"Missing description for achievement {achievement['id']}")
-        achievements.append(
-            processed_types.AchievementInfo(
-                achievement_id=achievement["id"],
-                name=name,
-                description=description,
-            )
+    achievements = [
+        processed_types.AchievementInfo(
+            achievement_id=achievement["id"],
+            name=text_map.get_required(achievement["titleTextMapHash"]),
+            description=text_map.get_required(achievement["descTextMapHash"]),
         )
+        for achievement in achievement_configs
+    ]
 
     return processed_types.AchievementSectionInfo(
         section_id=section_id,

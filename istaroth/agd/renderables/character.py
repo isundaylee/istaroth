@@ -48,15 +48,11 @@ def _resolve_constellations(
     for talent_id in talent_ids:
         if (talent := talent_map.get(talent_id)) is None:
             raise ValueError(f"Unknown talent {talent_id} in depot {depot['id']}")
-        if (name := text_map.get_optional(talent["nameTextMapHash"])) is None:
-            raise ValueError(f"Missing constellation name for talent {talent_id}")
-        if (description := text_map.get_optional(talent["descTextMapHash"])) is None:
-            raise ValueError(
-                f"Missing constellation description for talent {talent_id}"
-            )
         constellations.append(
             processed_types.Constellation(
-                name=name, description=description, element=element
+                name=text_map.get_required(talent["nameTextMapHash"]),
+                description=text_map.get_required(talent["descTextMapHash"]),
+                element=element,
             )
         )
     return constellations
@@ -221,11 +217,7 @@ def get_voiceline_info(
     voicelines = {}
     for fetter in fetters_data:
         if fetter["avatarId"] == avatar_id:
-            title_hash = fetter["voiceTitleTextMapHash"]
-            if (title := text_map.get_optional(title_hash)) is None:
-                raise ValueError(
-                    f"Missing voiceline title {title_hash} for avatar ID {avatar_id}"
-                )
+            title = text_map.get_required(fetter["voiceTitleTextMapHash"])
             content = text_map.get(fetter["voiceFileTextTextMapHash"], "")
             if content:
                 voicelines[title] = content

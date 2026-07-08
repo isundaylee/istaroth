@@ -384,7 +384,7 @@ def test_achievement_section_requires_active_localized_text() -> None:
         pronoun_hashes={},
     )
 
-    with pytest.raises(ValueError, match="Missing description for achievement 2"):
+    with pytest.raises(ValueError, match="Unresolvable text map hash 202"):
         achievement.get_achievement_section_info(9, data_repo=data_repo)
 
 

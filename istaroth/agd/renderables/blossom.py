@@ -16,12 +16,6 @@ from istaroth.text import types as text_types
 _INTEL_SHOW_TYPE = "BLOSSOM_SHOWTYPE_NPCTALK"
 
 
-def _resolve_text(data_repo: repo.DataRepo, text_hash: id_types.TextMapHash) -> str:
-    if (text := data_repo.build_text_map_tracker().get_optional(text_hash)) is None:
-        raise ValueError(f"Unresolvable text map hash {text_hash}")
-    return text
-
-
 def _intel_rows(
     data_repo: repo.DataRepo,
 ) -> list[tuple[agd_types.BlossomRefreshExcelConfigDataItem, list[id_types.TalkId]]]:
@@ -44,6 +38,7 @@ def get_blossom_city_info(
     city_id: id_types.CityId, *, data_repo: repo.DataRepo
 ) -> processed_types.BlossomCityInfo | None:
     """Assemble a region's blossom intel talks, sectioned by ore-type blurb."""
+    text_map = data_repo.build_text_map_tracker()
     names = set[str]()
     # Sections key on the resolved blurb text (not its hash): several refreshes
     # share one blurb (e.g. crystal pools at different unlock levels), and even
@@ -53,15 +48,15 @@ def get_blossom_city_info(
     for refresh, row_talk_ids in _intel_rows(data_repo):
         if refresh["cityId"] != city_id:
             continue
-        names.add(_resolve_text(data_repo, refresh["nameTextMapHash"]))
-        desc = _resolve_text(data_repo, refresh["descTextMapHash"])
+        names.add(text_map.get_required(refresh["nameTextMapHash"]))
+        desc = text_map.get_required(refresh["descTextMapHash"])
         section_order[desc] = min(section_order.get(desc, refresh["id"]), refresh["id"])
         section_talk_ids.setdefault(desc, set()).update(row_talk_ids)
 
     # All intel refreshes share the one Rich Ore Reserve name.
     (name,) = names
-    city_name = _resolve_text(
-        data_repo, data_repo.load_city_config_data()[city_id]["cityNameTextMapHash"]
+    city_name = text_map.get_required(
+        data_repo.load_city_config_data()[city_id]["cityNameTextMapHash"]
     )
 
     sections = list[processed_types.BlossomSection]()

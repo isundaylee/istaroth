@@ -79,10 +79,7 @@ def get_artifact_set_info(
                 f"Artifact configuration not found for artifact ID: {artifact_id} in set {set_id}"
             )
 
-        if (name := text_map.get_optional(artifact_config["nameTextMapHash"])) is None:
-            raise ValueError(
-                f"Missing name for artifact ID {artifact_id} in set {set_id}"
-            )
+        name = text_map.get_required(artifact_config["nameTextMapHash"])
 
         description = text_map.get(artifact_config["descTextMapHash"], "")
 
@@ -115,12 +112,10 @@ def get_artifact_set_info(
         )
     ) is None:
         raise ValueError(f"Equip affix {affix_id} not found for set {set_id}")
-    if (set_name := text_map.get_optional(affix_name_hash)) is None:
-        raise ValueError(
-            f"Set name not found for affix {affix_id} (hash {affix_name_hash}) in set {set_id}"
-        )
     return processed_types.ArtifactSetInfo(
-        set_name=set_name, set_id=set_id, artifacts=artifacts
+        set_name=text_map.get_required(affix_name_hash),
+        set_id=set_id,
+        artifacts=artifacts,
     )
 
 
