@@ -194,6 +194,7 @@ def test_render_talk_basic() -> None:
         talk_file_path="BinOutput/Talk/Quest/12345.json",
         first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
+    assert rendered is not None
 
     assert (
         rendered.text_metadata.relative_path == "agd_talk/12345_这里看起来很神秘呢.txt"
@@ -206,6 +207,38 @@ def test_render_talk_basic() -> None:
     )
     assert rendered.content == expected_content
     assert rendered.text_metadata.id == 12345
+
+
+def test_render_talk_all_skipped_returns_none() -> None:
+    """A talk whose every line is dev/test-skipped emits no file at all."""
+    talk_info = processed_types.TalkInfo(
+        text=[
+            processed_types.TalkText(
+                role=None,
+                message="test台词文本",
+                next_dialog_ids=[],
+                dialog_id=1,
+                skip=True,
+            ),
+            processed_types.TalkText(
+                role="(test)旅人兰那罗",
+                message="(test)好汉不吃眼前亏，我先去东南方向的洞里躲一躲",
+                next_dialog_ids=[],
+                dialog_id=2,
+                skip=False,
+            ),
+        ]
+    )
+    assert (
+        _talk.render_talk(
+            talk_info,
+            talk_id=6863205,
+            language=localization.Language.CHS,
+            talk_file_path="BinOutput/Talk/Gadget/6863205.json",
+            first_seen_index=_FAKE_FIRST_SEEN_INDEX,
+        )
+        is None
+    )
 
 
 def test_render_talk_long_message() -> None:
@@ -231,6 +264,7 @@ def test_render_talk_long_message() -> None:
         talk_file_path="BinOutput/Talk/NPC/67890.json",
         first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
+    assert rendered is not None
 
     assert (
         rendered.text_metadata.relative_path
@@ -247,17 +281,16 @@ def test_render_talk_empty() -> None:
     """Test talk rendering with empty talk."""
     talk_info = processed_types.TalkInfo(text=[])
 
-    rendered = _talk.render_talk(
-        talk_info,
-        talk_id=99999,
-        language=localization.Language.CHS,
-        talk_file_path="BinOutput/Talk/99999.json",
-        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
+    assert (
+        _talk.render_talk(
+            talk_info,
+            talk_id=99999,
+            language=localization.Language.CHS,
+            talk_file_path="BinOutput/Talk/99999.json",
+            first_seen_index=_FAKE_FIRST_SEEN_INDEX,
+        )
+        is None
     )
-
-    assert rendered.text_metadata.relative_path == "agd_talk/99999_empty.txt"
-    assert rendered.content == "# Talk Dialog\n"
-    assert rendered.text_metadata.id == 99999
 
 
 def test_render_talk_special_characters() -> None:
@@ -280,6 +313,7 @@ def test_render_talk_special_characters() -> None:
         talk_file_path="BinOutput/Talk/Dialogue/11111.json",
         first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
+    assert rendered is not None
 
     assert (
         rendered.text_metadata.relative_path == "agd_talk/11111_这是引号还有破折号.txt"
@@ -348,6 +382,7 @@ def test_render_talk_branching_convergence() -> None:
         talk_file_path="BinOutput/Talk/Quest/99999.json",
         first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
+    assert rendered is not None
 
     expected_content = textwrap.dedent(
         """
@@ -433,6 +468,7 @@ def test_render_talk_nested_branches() -> None:
         talk_file_path="BinOutput/Talk/Quest/88888.json",
         first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
+    assert rendered is not None
 
     expected_content = textwrap.dedent(
         """
@@ -530,6 +566,7 @@ def test_render_talk_nested_branches_with_intermediate_convergence() -> None:
         talk_file_path="BinOutput/Talk/Quest/77777.json",
         first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
+    assert rendered is not None
 
     expected_content = textwrap.dedent(
         """
@@ -638,6 +675,7 @@ def test_render_talk_rebranching_convergence_no_duplicate_options() -> None:
         talk_file_path="BinOutput/Talk/Quest/66666.json",
         first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
+    assert rendered is not None
 
     # Exactly two options at the first choice, neither duplicated.
     assert rendered.content.count("Player: Short") == 1, rendered.content
@@ -734,6 +772,7 @@ def test_render_talk_menu_hub_no_blowup() -> None:
         talk_file_path="BinOutput/Talk/Quest/88888.json",
         first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
+    assert rendered is not None
 
     # Each unique answer line appears exactly once (no permutation blow-up), and
     # the exit branch's content is still present.
@@ -869,6 +908,7 @@ def test_render_talk_cascaded_correct_answer_menus_no_spurious_options() -> None
         talk_file_path="BinOutput/Talk/Quest/55555.json",
         first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
+    assert rendered is not None
 
     # Three options per menu, two menus -> six options; no spurious extras.
     assert rendered.content.count("Option ") == 6, rendered.content

@@ -652,7 +652,10 @@ def render_talk(talk_path: str) -> None:
         )
 
         # Output only the content
-        click.echo(rendered.content)
+        if rendered is None:
+            click.echo("(no dialog line survives rendering)", err=True)
+        else:
+            click.echo(rendered.content)
 
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
