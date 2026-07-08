@@ -390,69 +390,6 @@
         }
       }
     },
-    "/api/library/file/{category}/{id}/short-url": {
-      "post": {
-        "tags": [
-          "library"
-        ],
-        "summary": "Create File Short Url",
-        "description": "Create (or reuse) a short URL for a library file page.",
-        "operationId": "create_file_short_url_api_library_file__category___id__short_url_post",
-        "parameters": [
-          {
-            "name": "category",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Category"
-            }
-          },
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Id"
-            }
-          },
-          {
-            "name": "language",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Language code (CHS, ENG)",
-              "title": "Language"
-            },
-            "description": "Language code (CHS, ENG)"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ShortURLResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/library/proper-nouns": {
       "get": {
         "tags": [
@@ -586,6 +523,48 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LibraryRetrieveResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/short-urls": {
+      "post": {
+        "tags": [
+          "short-urls"
+        ],
+        "summary": "Create Short Url",
+        "description": "Create (or reuse) a short URL for an in-app target path.",
+        "operationId": "create_short_url_api_short_urls_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShortURLCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShortURLResponse"
                 }
               }
             }
@@ -1490,6 +1469,20 @@
         ],
         "title": "QueryStreamStepStart",
         "description": "A pipeline step has started (shown until its matching step_end)."
+      },
+      "ShortURLCreateRequest": {
+        "properties": {
+          "target_path": {
+            "type": "string",
+            "title": "Target Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_path"
+        ],
+        "title": "ShortURLCreateRequest",
+        "description": "Request model for short URL creation."
       },
       "ShortURLResponse": {
         "properties": {

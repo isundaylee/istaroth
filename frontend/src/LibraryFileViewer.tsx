@@ -1,17 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useLoaderData, useRouteLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
-import { Check, Share2, X } from 'lucide-react'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import { MinimizedPopupRegion } from './contexts/PopupCoordinatorContext'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
-import Button from './components/Button'
 import HighlightedMarkdown from './components/HighlightedMarkdown'
 import NavButton from './components/NavButton'
 import SelectableAnswer from './components/SelectableAnswer'
+import ShareLinkButton from './components/ShareLinkButton'
 import { translate } from './i18n'
-import { ApiError, createLibraryFileShortUrl, fetchLibraryFile } from './utils/api'
-import { copyToClipboard } from './utils/clipboard'
-import { getLanguageFromUrl } from './utils/language'
+import { ApiError, fetchLibraryFile } from './utils/api'
+import { buildUrlWithLanguage, getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import { useLibraryProperNouns } from './hooks/useLibraryProperNouns'
 import { recordLibraryView } from './utils/libraryRecents'
@@ -105,26 +103,6 @@ function LibraryFileViewer() {
     recordLibraryView({ category, fileId: currentId, title: fileTitle })
   }, [category, currentId, fileTitle])
 
-  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle')
-
-  const copyShareUrl = async () => {
-    try {
-      const { slug } = await createLibraryFileShortUrl(category, fileId, language)
-      await copyToClipboard(`${window.location.origin}/s/${slug}`)
-      setCopyStatus('copied')
-    } catch {
-      setCopyStatus('failed')
-    }
-    setTimeout(() => setCopyStatus('idle'), 2000)
-  }
-
-  const shareTitle =
-    copyStatus === 'copied'
-      ? t('common.copied')
-      : copyStatus === 'failed'
-        ? t('common.copyFailed')
-        : t('library.shareLink')
-
   return (
     <>
       <MinimizedPopupRegion>
@@ -146,9 +124,13 @@ function LibraryFileViewer() {
                 : undefined
             }
           />
-          <Button onClick={copyShareUrl} variant="icon" size="sm" title={shareTitle} aria-label={shareTitle}>
-            {copyStatus === 'copied' ? <Check aria-hidden /> : copyStatus === 'failed' ? <X aria-hidden /> : <Share2 aria-hidden />}
-          </Button>
+          <ShareLinkButton
+            targetPath={buildUrlWithLanguage(
+              `/library/${encodeURIComponent(category)}/${fileId}`,
+              '',
+              language
+            )}
+          />
         </div>
 
           <SelectableAnswer resetKey={fileContent}>

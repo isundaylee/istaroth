@@ -7,6 +7,7 @@ export const eng = {
     copy: 'Copy',
     copied: 'Copied',
     copyFailed: 'Copy failed',
+    shareLink: 'Copy Share Link',
     close: 'Close',
     expand: 'Expand',
     download: 'Download',
@@ -188,7 +189,6 @@ export const eng = {
       }
     },
     backToFiles: 'Back to Files',
-    shareLink: 'Copy Share Link',
     versionBadge: '(Added in {version})',
     versionBadgeRange: '(Added across {version})',
     newBadge: 'NEW',

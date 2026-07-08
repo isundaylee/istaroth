@@ -19,11 +19,12 @@ export function fetchLibraryFile(category: string, id: string | number, language
   )
 }
 
-export function createLibraryFileShortUrl(category: string, id: string | number, language: string): Promise<ShortURLResponse> {
-  return fetchJson(
-    `/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(id)}/short-url?language=${encodeURIComponent(language.toUpperCase())}`,
-    { method: 'POST' }
-  )
+export function createShortUrl(targetPath: string): Promise<ShortURLResponse> {
+  return fetchJson('/api/short-urls', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target_path: targetPath })
+  })
 }
 
 export function fetchCitationsBatch(

@@ -12,12 +12,8 @@ from istaroth.rag import budget as budget_mod
 from istaroth.rag import document_store_set as document_store_set_module
 from istaroth.rag import text_set
 from istaroth.rag import types as rag_types
-from istaroth.services.backend import models, proper_noun_highlighting, slugs
-from istaroth.services.backend.dependencies import (
-    DBSession,
-    DocumentStoreSet,
-    LLMManager,
-)
+from istaroth.services.backend import models, proper_noun_highlighting
+from istaroth.services.backend.dependencies import DocumentStoreSet, LLMManager
 from istaroth.services.backend.utils import (
     handle_unexpected_exception,
     text_metadata_to_library_file_info,
@@ -169,42 +165,6 @@ async def get_file(
     file_info = text_metadata_to_library_file_info(manifest_item)
 
     return models.LibraryFileResponse(file_info=file_info, content=content)
-
-
-@router.post(
-    "/api/library/file/{category}/{id}/short-url",
-    response_model=models.ShortURLResponse,
-)
-@handle_unexpected_exception
-async def create_file_short_url(
-    category: str,
-    id: str,
-    document_store_set: DocumentStoreSet,
-    db_session: DBSession,
-    language: str = Query(..., description="Language code (CHS, ENG)"),
-) -> models.ShortURLResponse:
-    """Create (or reuse) a short URL for a library file page."""
-    language_enum = _parse_language(language)
-    text_set_obj = _get_text_set(document_store_set, language_enum)
-
-    if (
-        text_set_obj.get_manifest_item(text_types.TextCategory(category), int(id))
-        is None
-    ):
-        raise HTTPException(
-            status_code=404, detail=f"File not found: category={category}, id={id}"
-        )
-
-    # Mirrors the frontend's URL scheme: CHS is the default language and is
-    # carried implicitly; other languages ride on the `lang` query param.
-    target_path = f"/library/{category}/{id}"
-    if language_enum is not localization.Language.CHS:
-        target_path += f"?lang={language_enum.value.lower()}"
-
-    return models.ShortURLResponse(
-        slug=await slugs.get_or_create_short_url(target_path, db_session=db_session),
-        target_path=target_path,
-    )
 
 
 @router.get("/api/library/proper-nouns", response_model=models.ProperNounsResponse)
