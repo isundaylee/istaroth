@@ -1,4 +1,4 @@
-import type { CitationBatchRequest, CitationBatchResponse, LibraryFileResponse } from '../types/api'
+import type { CitationBatchRequest, CitationBatchResponse, LibraryFileResponse, ShortURLResponse } from '../types/api'
 
 /** Non-2xx response from an API endpoint. Network errors propagate as-is. */
 export class ApiError extends Error {
@@ -17,6 +17,14 @@ export function fetchLibraryFile(category: string, id: string | number, language
   return fetchJson(
     `/api/library/file/${encodeURIComponent(category)}/${encodeURIComponent(id)}?language=${encodeURIComponent(language.toUpperCase())}`
   )
+}
+
+export function createShortUrl(targetPath: string): Promise<ShortURLResponse> {
+  return fetchJson('/api/short-urls', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target_path: targetPath })
+  })
 }
 
 export function fetchCitationsBatch(

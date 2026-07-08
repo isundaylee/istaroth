@@ -1,14 +1,15 @@
 import { useEffect } from 'react'
 import { useLoaderData, useRouteLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
-import { useT } from './contexts/LanguageContext'
+import { useT, useTranslation } from './contexts/LanguageContext'
 import { MinimizedPopupRegion } from './contexts/PopupCoordinatorContext'
 import Breadcrumbs, { type Crumb } from './components/Breadcrumbs'
 import HighlightedMarkdown from './components/HighlightedMarkdown'
 import NavButton from './components/NavButton'
 import SelectableAnswer from './components/SelectableAnswer'
+import ShareLinkButton from './components/ShareLinkButton'
 import { translate } from './i18n'
 import { ApiError, fetchLibraryFile } from './utils/api'
-import { getLanguageFromUrl } from './utils/language'
+import { buildUrlWithLanguage, getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import { useLibraryProperNouns } from './hooks/useLibraryProperNouns'
 import { recordLibraryView } from './utils/libraryRecents'
@@ -67,6 +68,7 @@ export async function libraryFileViewerLoader({ params, request }: LoaderFunctio
 
 function LibraryFileViewer() {
   const t = useT()
+  const { language } = useTranslation()
   const navigate = useAppNavigate()
   const { fileContent, fileTitle, fileId, category, currentId, minVersion, maxVersion } =
     useLoaderData() as LoaderData
@@ -104,23 +106,32 @@ function LibraryFileViewer() {
   return (
     <>
       <MinimizedPopupRegion>
-        <Breadcrumbs
-          crumbs={crumbs}
-          trailing={
-            minVersion !== null && maxVersion !== null
-              ? t(
-                  // A min/max spread means the file's content accrued across
-                  // versions, so phrase it as "added over" rather than "added in".
-                  minVersion === maxVersion
-                    ? 'library.versionBadge'
-                    : 'library.versionBadgeRange'
-                ).replace(
-                  '{version}',
-                  formatVersionRange(minVersion, maxVersion)
-                )
-              : undefined
-          }
-        />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
+          <Breadcrumbs
+            crumbs={crumbs}
+            trailing={
+              minVersion !== null && maxVersion !== null
+                ? t(
+                    // A min/max spread means the file's content accrued across
+                    // versions, so phrase it as "added over" rather than "added in".
+                    minVersion === maxVersion
+                      ? 'library.versionBadge'
+                      : 'library.versionBadgeRange'
+                  ).replace(
+                    '{version}',
+                    formatVersionRange(minVersion, maxVersion)
+                  )
+                : undefined
+            }
+          />
+          <ShareLinkButton
+            targetPath={buildUrlWithLanguage(
+              `/library/${encodeURIComponent(category)}/${fileId}`,
+              '',
+              language
+            )}
+          />
+        </div>
 
           <SelectableAnswer resetKey={fileContent}>
             <HighlightedMarkdown content={fileContent} properNouns={properNouns} />

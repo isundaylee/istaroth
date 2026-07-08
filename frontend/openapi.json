@@ -540,6 +540,48 @@
         }
       }
     },
+    "/api/short-urls": {
+      "post": {
+        "tags": [
+          "short-urls"
+        ],
+        "summary": "Create Short Url",
+        "description": "Create (or reuse) a short URL for an in-app target path.",
+        "operationId": "create_short_url_api_short_urls_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShortURLCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShortURLResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/short-urls/{slug}": {
       "get": {
         "tags": [
@@ -1427,6 +1469,20 @@
         ],
         "title": "QueryStreamStepStart",
         "description": "A pipeline step has started (shown until its matching step_end)."
+      },
+      "ShortURLCreateRequest": {
+        "properties": {
+          "target_path": {
+            "type": "string",
+            "title": "Target Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_path"
+        ],
+        "title": "ShortURLCreateRequest",
+        "description": "Request model for short URL creation."
       },
       "ShortURLResponse": {
         "properties": {

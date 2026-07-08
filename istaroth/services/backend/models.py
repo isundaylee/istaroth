@@ -121,6 +121,23 @@ class ConversationListResponse(BaseModel):
     conversations: list[ConversationSummary]
 
 
+class ShortURLCreateRequest(BaseModel):
+    """Request model for short URL creation."""
+
+    target_path: str
+
+    @field_validator("target_path")
+    @classmethod
+    def _validate_target_path(cls, value: str) -> str:
+        # Require an in-app absolute path; "//" would be a protocol-relative
+        # external redirect. 255 is the DB column size.
+        if not value.startswith("/") or value.startswith("//"):
+            raise ValueError("target_path must be an absolute in-app path")
+        if len(value) > 255:
+            raise ValueError("target_path must be at most 255 characters")
+        return value
+
+
 class ShortURLResponse(BaseModel):
     """Response model for short URL resolution."""
 

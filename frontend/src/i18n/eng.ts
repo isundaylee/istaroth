@@ -7,6 +7,7 @@ export const eng = {
     copy: 'Copy',
     copied: 'Copied',
     copyFailed: 'Copy failed',
+    shareLink: 'Copy Share Link',
     close: 'Close',
     expand: 'Expand',
     download: 'Download',

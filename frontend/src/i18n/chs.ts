@@ -7,6 +7,7 @@ export const chs = {
     copy: '复制',
     copied: '已复制',
     copyFailed: '复制失败',
+    shareLink: '复制分享链接',
     close: '关闭',
     expand: '展开',
     download: '下载',

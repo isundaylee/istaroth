@@ -242,6 +242,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/short-urls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Short Url
+         * @description Create (or reuse) a short URL for an in-app target path.
+         */
+        post: operations["create_short_url_api_short_urls_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/short-urls/{slug}": {
         parameters: {
             query?: never;
@@ -662,6 +682,14 @@ export interface components {
             detail: string | null;
         };
         /**
+         * ShortURLCreateRequest
+         * @description Request model for short URL creation.
+         */
+        ShortURLCreateRequest: {
+            /** Target Path */
+            target_path: string;
+        };
+        /**
          * ShortURLResponse
          * @description Response model for short URL resolution.
          */
@@ -1038,6 +1066,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LibraryRetrieveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_short_url_api_short_urls_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShortURLCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShortURLResponse"];
                 };
             };
             /** @description Validation Error */

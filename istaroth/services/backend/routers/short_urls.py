@@ -5,13 +5,27 @@ import logging
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
-from istaroth.services.backend import db_models, models
+from istaroth.services.backend import db_models, models, slugs
 from istaroth.services.backend.dependencies import DBSession
 from istaroth.services.backend.utils import handle_unexpected_exception
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+@router.post("/api/short-urls", response_model=models.ShortURLResponse)
+@handle_unexpected_exception
+async def create_short_url(
+    request: models.ShortURLCreateRequest, db_session: DBSession
+) -> models.ShortURLResponse:
+    """Create (or reuse) a short URL for an in-app target path."""
+    return models.ShortURLResponse(
+        slug=await slugs.get_or_create_short_url(
+            request.target_path, db_session=db_session
+        ),
+        target_path=request.target_path,
+    )
 
 
 @router.get("/api/short-urls/{slug}", response_model=models.ShortURLResponse)
