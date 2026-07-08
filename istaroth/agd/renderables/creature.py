@@ -36,8 +36,7 @@ def _get_creature_info(
     entry = data_repo.load_animal_codex_excel_config_data()[codex_id]
     text_map = data_repo.build_text_map_tracker()
 
-    if (description := text_map.get_optional(entry["descTextMapHash"])) is None:
-        raise ValueError(f"Missing description for creature codex {codex_id}")
+    description = text_map.get_required(entry["descTextMapHash"])
 
     describe_id = entry["describeId"]
     title: str | None = None
@@ -67,9 +66,7 @@ def _get_creature_info(
         case other:
             raise ValueError(f"Unknown codex type {other!r} for creature {codex_id}")
 
-    if (name := text_map.get_optional(name_hash)) is None:
-        raise ValueError(f"Missing name for creature codex {codex_id}")
-
+    name = text_map.get_required(name_hash)
     return processed_types.CreatureInfo(
         codex_id=codex_id,
         name=name,

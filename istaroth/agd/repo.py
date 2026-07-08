@@ -169,6 +169,12 @@ class TextMapTracker(tracking.IdTracker[id_types.TextMapHash]):
             return self._get_cleaned_text(text)
         return None
 
+    def get_required(self, key: id_types.TextMapHash) -> str:
+        """Get text by ID, raises when the hash resolves nowhere."""
+        if (text := self.get_optional(key)) is None:
+            raise ValueError(f"Unresolvable text map hash {key}")
+        return text
+
     def get_current_optional(self, key: id_types.TextMapHash) -> str | None:
         """Get current-build text by ID, returns None if not found."""
         if (text := self._text_map.get(key)) is not None:
@@ -710,6 +716,38 @@ class DataRepo:
             if entry["loadType"] == "TALK_STORYBOARD":
                 mapping.setdefault(entry["questId"], []).append(entry["id"])
         return {quest_id: sorted(ids) for quest_id, ids in mapping.items()}
+
+    @functools.lru_cache(maxsize=None)
+    def load_blossom_talk_excel_config_data(
+        self,
+    ) -> agd_types.BlossomTalkExcelConfigData:
+        """Load BlossomTalkExcelConfigData.json (cleartext)."""
+        return self._load_excel("BlossomTalkExcelConfigData.json")
+
+    @functools.lru_cache(maxsize=None)
+    def load_blossom_refresh_excel_config_data(
+        self,
+    ) -> dict[id_types.BlossomRefreshId, agd_types.BlossomRefreshExcelConfigDataItem]:
+        """Load BlossomRefreshExcelConfigData.json keyed by refresh id."""
+        return self._index_unique(
+            cast(
+                agd_types.BlossomRefreshExcelConfigData,
+                self._load_excel("BlossomRefreshExcelConfigData.json"),
+            ),
+            lambda item: item["id"],
+            duplicate_name="blossom refresh ID",
+        )
+
+    @functools.lru_cache(maxsize=None)
+    def load_city_config_data(
+        self,
+    ) -> dict[id_types.CityId, agd_types.CityConfigDataItem]:
+        """Load CityConfigData.json keyed by city id."""
+        return self._index_unique(
+            cast(agd_types.CityConfigData, self._load_excel("CityConfigData.json")),
+            lambda item: item["cityId"],
+            duplicate_name="city ID",
+        )
 
     @functools.lru_cache(maxsize=None)
     def load_coop_interaction_excel_config_data(

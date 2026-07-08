@@ -53,12 +53,9 @@ def get_weapon_info(
     if not story_pages:
         return None
 
-    if (name := text_map.get_optional(weapon["nameTextMapHash"])) is None:
-        raise ValueError(f"Missing name for weapon ID {weapon_id}")
-
     return processed_types.WeaponInfo(
         weapon_id=weapon_id,
-        name=name,
+        name=text_map.get_required(weapon["nameTextMapHash"]),
         description=text_map.get(weapon["descTextMapHash"], ""),
         story_pages=story_pages,
     )

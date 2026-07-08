@@ -19,6 +19,7 @@ from istaroth.agd.renderables import (
     achievement,
     anecdote,
     artifact,
+    blossom,
     book,
     character,
     creature,
@@ -727,6 +728,40 @@ class Anecdotes(BaseRenderableType[id_types.AnecdoteId]):
         )
 
 
+class Blossoms(BaseRenderableType[id_types.CityId]):
+    """Blossom (Rich Ore Reserve) intel talks: one file per region."""
+
+    text_category: ClassVar[text_types.TextCategory] = (
+        text_types.TextCategory.AGD_BLOSSOM
+    )
+    error_limit: ClassVar[int] = 5
+    error_limit_non_chinese: ClassVar[int] = 10
+
+    def discover(self, data_repo: repo.DataRepo) -> list[id_types.CityId]:
+        """All city ids with NPC-intel blossom talk pools."""
+        return blossom.list_city_ids(data_repo)
+
+    def process(
+        self,
+        renderable_key: id_types.CityId,
+        data_repo: repo.DataRepo,
+        *,
+        first_seen_index: first_seen.FirstSeenIndex,
+    ) -> processed_types.RenderedItem | None:
+        """Render a region's blossom intel, or skip when no talks have content."""
+        if (
+            blossom_city_info := blossom.get_blossom_city_info(
+                renderable_key, data_repo=data_repo
+            )
+        ) is None:
+            return None
+        return blossom.render_blossom_city(
+            blossom_city_info,
+            language=data_repo.language,
+            first_seen_index=first_seen_index,
+        )
+
+
 class Talks(BaseRenderableType[id_types.TalkId]):
     """Standalone talk content type for talks not used by other renderable types."""
 
@@ -790,6 +825,7 @@ ALL_RENDERABLE_TYPES: list[type[BaseRenderableType]] = [
     TalkGroups,
     Hangouts,
     Anecdotes,
+    Blossoms,
     Books,
     Weapons,
     Wings,
