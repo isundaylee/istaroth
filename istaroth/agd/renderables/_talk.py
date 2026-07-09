@@ -357,16 +357,28 @@ def render_talk(
     talk_file_path: str | None = None,
     language: localization.Language,
     first_seen_index: first_seen.FirstSeenIndex,
-) -> processed_types.RenderedItem:
-    """Render talk dialog into RAG-suitable format with branching support."""
+) -> processed_types.RenderedItem | None:
+    """Render talk dialog into RAG-suitable format with branching support.
+
+    Returns None when no dialog line survives rendering (e.g. a dev/test talk
+    whose every line is skipped), so all-skipped talks emit no file at all.
+    """
     # Extract talk type from file path if provided
     talk_type = (
         _extract_talk_type_from_path(talk_file_path) if talk_file_path else "unknown"
     )
 
+    body_lines = render_talk_content(talk, language)
+    if not any(line.strip() for line in body_lines):
+        return None
+
     # Generate filename - use first non-skipped, non-empty dialog line's message
     first_message = next(
-        (text.message for text in talk.text if not text.skip and text.message.strip()),
+        (
+            text.message
+            for text in talk.text
+            if _render_dialog_line(text, language) is not None and text.message.strip()
+        ),
         None,
     )
     if first_message is not None:
@@ -378,11 +390,7 @@ def render_talk(
         filename = f"{talk_id}_empty.txt"
         title = "Empty Talk"
 
-    # Render content
-    content_lines = ["# Talk Dialog\n"]
-    content_lines.extend(render_talk_content(talk, language))
-
-    rendered_content = "\n".join(content_lines)
+    rendered_content = "\n".join(["# Talk Dialog\n", *body_lines])
 
     min_version, max_version = first_seen_index.resolve(
         [first_seen.SourceId(first_seen.SourceDomain.TALK, talk_id)]
