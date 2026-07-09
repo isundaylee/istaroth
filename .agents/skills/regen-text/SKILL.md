@@ -35,10 +35,15 @@ When the user asks to **regen corpus**:
    tool calls when the regen is launched detached/in the background:
 
    ```bash
+   source .env.common   # provides AGD_PATH; without it both runs fail instantly
    rm -f /tmp/regen-chs.status /tmp/regen-eng.status
    ( uv run scripts/agd_tools.py generate-all -f text/chs > /tmp/regen-chs.log 2>&1; echo $? > /tmp/regen-chs.status ) &
    ( AGD_LANGUAGE=ENG uv run scripts/agd_tools.py generate-all -f text/eng > /tmp/regen-eng.log 2>&1; echo $? > /tmp/regen-eng.status ) &
    ```
+
+   A full dual-language regen takes only a few minutes, so check the sentinel
+   files soon after launching. Peek at both logs shortly after launch to catch
+   instant failures (e.g. `Error: AGD_PATH environment variable not set`).
 
    To check for completion, poll for both sentinel files to exist, then read the
    codes — do NOT use `pgrep`/`ps` name matching (it is fragile and can match the
@@ -61,6 +66,7 @@ When the user asks to **regen corpus**:
 
 6. Audit the generated diff using the procedure below. Treat any unexplained lost content as a failure to investigate before committing.
 7. Run pre-commit separately from committing and add any resulting changes.
+   `pre-commit` is not on PATH; invoke it as `uv run pre-commit run`.
 8. Commit the generated data inside `text/` on its `main` branch.
 9. Record the submodule pointer in the parent repository's single code commit:
    - Amend the existing code commit with `git add text && git commit --amend --no-edit` when the regen accompanies a code change.
