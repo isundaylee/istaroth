@@ -8,7 +8,7 @@ import NavButton from './components/NavButton'
 import SelectableAnswer from './components/SelectableAnswer'
 import ShareLinkButton from './components/ShareLinkButton'
 import { translate } from './i18n'
-import { ApiError, fetchLibraryFile } from './utils/api'
+import { ApiError, createShortUrl, fetchLibraryFile } from './utils/api'
 import { buildUrlWithLanguage, getLanguageFromUrl } from './utils/language'
 import { useAppNavigate } from './hooks/useAppNavigate'
 import { useLibraryProperNouns } from './hooks/useLibraryProperNouns'
@@ -125,11 +125,12 @@ function LibraryFileViewer() {
             }
           />
           <ShareLinkButton
-            targetPath={buildUrlWithLanguage(
-              `/library/${encodeURIComponent(category)}/${fileId}`,
-              '',
-              language
-            )}
+            getShareUrl={async () => {
+              const { slug } = await createShortUrl(
+                buildUrlWithLanguage(`/library/${encodeURIComponent(category)}/${fileId}`, '', language)
+              )
+              return `${window.location.origin}/s/${slug}`
+            }}
           />
         </div>
 

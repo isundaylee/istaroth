@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
 import html2canvas from 'html2canvas'
-import { Pencil } from 'lucide-react'
+import { ImageDown, Pencil } from 'lucide-react'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import { useErrorToast } from './contexts/ErrorToastContext'
 import { useFooter } from './contexts/FooterContext'
 import { translate } from './i18n'
 import { LANGUAGE_LOCALES, getLanguageFromUrl } from './utils/language'
-import { copyToClipboard } from './utils/clipboard'
 import QueryForm from './QueryForm'
 import { PageSection } from './components/PageShell'
 import Button from './components/Button'
+import ShareLinkButton from './components/ShareLinkButton'
 import CitedAnswer from './components/CitedAnswer'
 import { MinimizedPopupRegion } from './contexts/PopupCoordinatorContext'
 import type { ConversationResponse } from './types/api'
@@ -49,7 +49,6 @@ function ConversationPage() {
   const [editing, setEditing] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [exportedImage, setExportedImage] = useState<string | null>(null)
-  const [copyButtonText, setCopyButtonText] = useState('')
 
   useEffect(() => {
     setSubmittingNew(false)
@@ -88,21 +87,6 @@ function ConversationPage() {
     setExtraContent(content)
     return () => setExtraContent(null)
   }, [conversation, setExtraContent, t, locale, submittingNew])
-
-  useEffect(() => {
-    setCopyButtonText(t('conversation.shareLink'))
-  }, [t])
-
-  const copyCurrentUrl = () => {
-    const shortUrl = `${window.location.origin}/s/${conversation.short_slug}`
-    copyToClipboard(shortUrl).then(() => {
-      setCopyButtonText(t('common.copied'))
-      setTimeout(() => setCopyButtonText(t('conversation.shareLink')), 2000)
-    }).catch(() => {
-      setCopyButtonText(t('common.copyFailed'))
-      setTimeout(() => setCopyButtonText(t('conversation.shareLink')), 2000)
-    })
-  }
 
   const exportPageAsPNG = async () => {
     setExporting(true)
@@ -162,15 +146,18 @@ function ConversationPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
                     <h3>{t('conversation.answer')}</h3>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <Button onClick={copyCurrentUrl} variant="secondary">
-                        {copyButtonText}
-                      </Button>
+                      <ShareLinkButton
+                        getShareUrl={async () => `${window.location.origin}/s/${conversation.short_slug}`}
+                      />
                       <Button
                         onClick={exportPageAsPNG}
-                        variant="secondary"
+                        variant="icon"
+                        size="sm"
                         disabled={exporting}
+                        title={exporting ? t('conversation.exporting') : t('conversation.export')}
+                        aria-label={exporting ? t('conversation.exporting') : t('conversation.export')}
                       >
-                        {exporting ? t('conversation.exporting') : t('conversation.export')}
+                        <ImageDown aria-hidden />
                       </Button>
                     </div>
                   </div>
