@@ -69,7 +69,6 @@ export const chs = {
     question: '问题',
     answer: '回答',
     askAnother: '再问一个问题',
-    shareLink: '复制分享链接',
     export: '导出图片',
     exporting: '导出中...',
     metadata: {
