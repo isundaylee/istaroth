@@ -1,10 +1,10 @@
 """Generic manifest utilities for text files."""
 
 import collections
+import json
 import pathlib
 
-import orjson
-
+from istaroth import json_utils
 from istaroth.text import types
 
 _MANIFEST_DIR_NAME = "manifest"
@@ -29,7 +29,7 @@ def write_manifest(
     manifest_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = manifest_dir / f"{name}.json"
     manifest_data = [item.to_dict() for item in manifest]
-    manifest_path.write_bytes(orjson.dumps(manifest_data, option=orjson.OPT_INDENT_2))
+    manifest_path.write_bytes(json_utils.dumps_indented(manifest_data))
     return manifest_path
 
 
@@ -42,6 +42,6 @@ def load_manifest_dir(
         raise FileNotFoundError(f"Manifest directory not found: {manifest_dir}")
     items: list[types.TextMetadata] = []
     for path in sorted(manifest_dir.glob("*.json")):
-        data = orjson.loads(path.read_bytes())
+        data = json.loads(path.read_bytes())
         items.extend(types.TextMetadata.from_dict(entry) for entry in data)
     return tuple(items)

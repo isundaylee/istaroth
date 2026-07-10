@@ -353,7 +353,6 @@ opentelemetry-util-http==0.60b1
 orjson==3.11.7
     # via
     #   chromadb
-    #   istaroth
     #   langgraph-sdk
     #   langsmith
 ormsgpack==1.12.2
@@ -385,7 +384,7 @@ protobuf==6.33.5
     #   googleapis-common-protos
     #   onnxruntime
     #   opentelemetry-proto
-psycopg2-binary==2.9.11
+psycopg==3.3.4
     # via istaroth
 py-key-value-aio==0.4.4
     # via fastmcp
@@ -588,6 +587,8 @@ typing-inspection==0.4.2
     #   mcp
     #   pydantic
     #   pydantic-settings
+tzdata==2026.2 ; sys_platform == 'win32'
+    # via psycopg
 urllib3==2.6.3
     # via
     #   kubernetes

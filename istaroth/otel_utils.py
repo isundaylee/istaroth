@@ -5,11 +5,10 @@ import contextlib
 from typing import TypeVar
 
 import attrs
-import orjson
 from langchain_core import language_models, messages
 from opentelemetry import trace
 
-from istaroth import llm_manager
+from istaroth import json_utils, llm_manager
 
 _tracer = trace.get_tracer(__name__)
 
@@ -21,7 +20,7 @@ PromptLike = str | collections.abc.Sequence[messages.BaseMessage]
 def _render_prompt(prompt: PromptLike) -> str:
     if isinstance(prompt, str):
         return prompt
-    return orjson.dumps(
+    return json_utils.dumps(
         [{"role": m.type, "content": m.content} for m in prompt]
     ).decode()
 
@@ -40,7 +39,7 @@ class GenAISpan:
             and isinstance(response, messages.AIMessage)
             and response.tool_calls
         ):
-            text = orjson.dumps(response.tool_calls).decode()
+            text = json_utils.dumps(response.tool_calls).decode()
         self._span.set_attribute("gen_ai.completion", text)
         if isinstance(response, messages.AIMessage) and (
             usage := response.usage_metadata

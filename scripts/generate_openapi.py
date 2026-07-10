@@ -5,11 +5,10 @@ import pathlib
 import sys
 from pathlib import Path
 
-import orjson
-
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
+from istaroth import json_utils
 from istaroth.services.backend.app import create_app
 
 
@@ -19,7 +18,7 @@ def generate_openapi_spec() -> None:
     openapi_spec = app.openapi()
 
     output_path = Path(__file__).parent.parent / "frontend" / "openapi.json"
-    output_path.write_bytes(orjson.dumps(openapi_spec, option=orjson.OPT_INDENT_2))
+    output_path.write_bytes(json_utils.dumps_indented(openapi_spec))
 
     print(f"✅ OpenAPI specification generated successfully at {output_path}")
 

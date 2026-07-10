@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import functools
 import itertools
+import json
 import logging
 import os
 import pathlib
@@ -11,7 +12,6 @@ import subprocess
 from typing import Any, Callable, Iterable, TypeVar, cast
 
 import attrs
-import orjson
 
 from istaroth import text_cleanup
 from istaroth.agd import (
@@ -296,7 +296,7 @@ class DataRepo:
         )
 
     def _load_excel(self, filename: str) -> Any:
-        return orjson.loads(self._read_bytes(f"ExcelBinOutput/{filename}"))
+        return json.loads(self._read_bytes(f"ExcelBinOutput/{filename}"))
 
     def load_excel_raw(self, filename: str) -> Any:
         """Load an ExcelBinOutput file as raw parsed JSON (no field typing)."""
@@ -359,10 +359,10 @@ class DataRepo:
         text_map_dir = self.agd_path / "TextMap"
         medium_path = text_map_dir / f"TextMap_Medium{language_short}.json"
         data: agd_types.TextMap = (
-            orjson.loads(medium_path.read_bytes()) if medium_path.exists() else {}
+            json.loads(medium_path.read_bytes()) if medium_path.exists() else {}
         )
         data.update(
-            orjson.loads((text_map_dir / f"TextMap{language_short}.json").read_bytes())
+            json.loads((text_map_dir / f"TextMap{language_short}.json").read_bytes())
         )
         return data
 
@@ -418,7 +418,7 @@ class DataRepo:
             raise RuntimeError(
                 f"Failed to load {path} at {ref}: {result.stderr.strip()}"
             )
-        return orjson.loads(result.stdout)
+        return json.loads(result.stdout)
 
     def _git_show_text_map(
         self, fallback_ref: str, filename: str, *, required: bool
@@ -775,7 +775,7 @@ class DataRepo:
         """coopStoryId -> play-order node graph, from the BinOutput/Coop/*.json files."""
         graphs: dict[id_types.CoopStoryId, coop_graph.CoopStoryGraph] = {}
         for json_file in (self.agd_path / "BinOutput" / "Coop").glob("*.json"):
-            raw_data = orjson.loads(json_file.read_bytes())
+            raw_data = json.loads(json_file.read_bytes())
             data = deobfuscation.deobfuscate_coop_graph_data(raw_data)
             for story in data["coopInteractionMap"].values():
                 graphs[story["id"]] = coop_graph.build_story_graph(story)
@@ -918,7 +918,7 @@ class DataRepo:
             (self.agd_path / "BinOutput" / "Cutscene").glob("*.json")
         ):
             cutscene_id = int(json_file.stem)
-            for variant in orjson.loads(json_file.read_bytes()).values():
+            for variant in json.loads(json_file.read_bytes()).values():
                 assert isinstance(variant, dict), json_file
                 if "videoConfig" not in variant:
                     continue
@@ -998,7 +998,7 @@ class DataRepo:
     def load_talk_data(self, talk_file: str) -> agd_types.TalkData:
         """Load talk data from specified talk file."""
         file_path = self.agd_path / talk_file
-        raw_data: dict[str, Any] = orjson.loads(file_path.read_bytes())
+        raw_data: dict[str, Any] = json.loads(file_path.read_bytes())
         data = deobfuscation.deobfuscate_talk_data(raw_data)
         return data  # type: ignore[return-value]
 
@@ -1006,7 +1006,7 @@ class DataRepo:
     def load_talk_group_data(self, path: str) -> dict[str, Any]:
         """Load talk group data from specified talk file."""
         file_path = self.agd_path / path
-        raw_data: dict[str, Any] = orjson.loads(file_path.read_bytes())
+        raw_data: dict[str, Any] = json.loads(file_path.read_bytes())
         data = deobfuscation.deobfuscate_talk_group_data(raw_data)
         if (
             (
@@ -1025,7 +1025,7 @@ class DataRepo:
     def load_quest_data(self, quest_file: str) -> agd_types.QuestData:
         """Load quest data from specified quest file."""
         file_path = self.agd_path / quest_file
-        raw_data: dict[str, Any] = orjson.loads(file_path.read_bytes())
+        raw_data: dict[str, Any] = json.loads(file_path.read_bytes())
         data = deobfuscation.deobfuscate_quest_data(raw_data)
         return data  # type: ignore[return-value]
 

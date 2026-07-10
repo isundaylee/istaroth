@@ -7,13 +7,12 @@ import time
 from typing import Any, AsyncIterator
 
 import anyio
-import orjson
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
-from istaroth import llm_errors
+from istaroth import json_utils, llm_errors
 from istaroth.agd import localization
 from istaroth.rag import pipeline, progress, types
 from istaroth.services.backend import (
@@ -230,7 +229,7 @@ async def query_stream(
 
             async def _generate_cached() -> AsyncIterator[bytes]:
                 event = models.QueryStreamDone(result=cached)
-                yield orjson.dumps(event.model_dump(), option=orjson.OPT_APPEND_NEWLINE)
+                yield json_utils.dumps(event.model_dump()) + b"\n"
 
             return StreamingResponse(
                 _generate_cached(),
@@ -316,14 +315,12 @@ async def query_stream(
         async with anyio.create_task_group() as tg:
             tg.start_soon(_run)
             async for event in receive_stream:
-                yield orjson.dumps(event.to_dict(), option=orjson.OPT_APPEND_NEWLINE)
+                yield json_utils.dumps(event.to_dict()) + b"\n"
 
         terminal_event = terminal.get(
             "event", models.QueryStreamError(error="Internal server error")
         )
-        yield orjson.dumps(
-            terminal_event.model_dump(), option=orjson.OPT_APPEND_NEWLINE
-        )
+        yield json_utils.dumps(terminal_event.model_dump()) + b"\n"
 
     return StreamingResponse(
         _generate(),

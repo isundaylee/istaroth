@@ -11,11 +11,12 @@ its ``_SNAPSHOTS`` entry and rerun); ``--rebuild-all`` regenerates every file,
 doubling as a determinism check of the committed data.
 """
 
+import json
 import pathlib
 
 import click
-import orjson
 
+from istaroth import json_utils
 from istaroth.agd import first_seen, localization, repo
 
 # The last AGD snapshot commit of each game version, oldest first. Curated by
@@ -109,9 +110,7 @@ def _write_delta(
             domain.value: sorted(new[domain]) for domain in first_seen.SourceDomain
         },
     }
-    _delta_path(version).write_bytes(
-        orjson.dumps(payload, option=orjson.OPT_INDENT_2) + b"\n"
-    )
+    _delta_path(version).write_bytes(json_utils.dumps_indented(payload) + b"\n")
 
 
 @click.command()
@@ -141,7 +140,7 @@ def main(agd_path: pathlib.Path, rebuild_all: bool) -> None:
                     f"Delta file for {version} exists but earlier versions "
                     f"{missing_earlier} are missing; run with --rebuild-all"
                 )
-            data = orjson.loads(_delta_path(version).read_bytes())
+            data = json.loads(_delta_path(version).read_bytes())
             if data["commit"] != commit:
                 raise RuntimeError(
                     f"Committed {version}.json was built from {data['commit']}, "

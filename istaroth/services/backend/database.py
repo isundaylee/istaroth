@@ -31,7 +31,7 @@ def get_sync_database_uri() -> str:
     uri = get_database_uri()
     # Convert async URI to sync for migrations and sync operations
     if uri.startswith("postgresql+asyncpg://"):
-        uri = uri.replace("postgresql+asyncpg://", "postgresql://")
+        uri = uri.replace("postgresql+asyncpg://", "postgresql+psycopg://")
     elif uri.startswith("sqlite+aiosqlite://"):
         uri = uri.replace("sqlite+aiosqlite://", "sqlite://")
     return uri

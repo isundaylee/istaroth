@@ -31,10 +31,12 @@ See the ``retrieval-fixtures`` skill for the full recipe.
 """
 
 import functools
+import json
 import pathlib
 
 import attrs
-import orjson
+
+from istaroth import json_utils
 
 _FIXTURE_DIR = pathlib.Path(__file__).parent / "retrieval_fixtures"
 
@@ -184,7 +186,7 @@ def persist_anchors(anchors: list[tuple[str, str, dict]]) -> int:
         by_category.setdefault(category, []).append((query, passage))
     for category, items in by_category.items():
         path = _FIXTURE_DIR / f"{category}.json"
-        data = orjson.loads(path.read_bytes())
+        data = json.loads(path.read_bytes())
         fixtures_by_query = {f["query"]: f for f in data["fixtures"]}
         # Sort appended anchors so output is independent of (concurrent) discovery
         # order; each anchor dict is already built with a fixed key order.
@@ -197,9 +199,7 @@ def persist_anchors(anchors: list[tuple[str, str, dict]]) -> int:
                 continue
             fixture["relevant_passages"].append(passage)
             written += 1
-        path.write_bytes(
-            orjson.dumps(data, option=orjson.OPT_INDENT_2 | orjson.OPT_APPEND_NEWLINE)
-        )
+        path.write_bytes(json_utils.dumps_indented(data) + b"\n")
     load_retrieval_dataset.cache_clear()
     return written
 
@@ -209,7 +209,7 @@ def load_retrieval_dataset() -> RetrievalDataset:
     """Load and validate every category JSON under retrieval_fixtures/."""
     fixtures: list[RetrievalFixture] = []
     for path in sorted(_FIXTURE_DIR.glob("*.json")):
-        data = orjson.loads(path.read_bytes())
+        data = json.loads(path.read_bytes())
         category = data["category"]
         assert (
             category == path.stem

@@ -3,6 +3,7 @@
 
 import datetime
 import functools
+import json
 import logging
 import os
 import pathlib
@@ -15,7 +16,6 @@ from dataclasses import dataclass
 import anyio
 import attrs
 import click
-import orjson
 import tabulate
 
 # Add the parent directory to Python path to find istaroth module
@@ -24,7 +24,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 import langsmith as ls
 from opentelemetry import trace
 
-from istaroth import llm_manager, logging_utils
+from istaroth import json_utils, llm_manager, logging_utils
 from istaroth.agd import localization
 from istaroth.rag import budget as _budget
 from istaroth.rag import (
@@ -131,9 +131,7 @@ def build(
         logger.error("No files found in manifest to process.")
         sys.exit(1)
 
-    metadata = orjson.loads(
-        (text_path / "stats" / "agd" / "metadata.json").read_bytes()
-    )
+    metadata = json.loads((text_path / "stats" / "agd" / "metadata.json").read_bytes())
 
     match localization.Language(metadata["language"]):
         case localization.Language.CHS:
@@ -449,7 +447,7 @@ async def _aeval_fixtures(
             span.set_attribute("fixture.n_sources", fe.n_sources)
             span.set_attribute("fixture.n_chunks", fe.n_chunks)
             span.set_attribute(
-                "fixture.first_ranks", orjson.dumps(fe.first_ranks).decode()
+                "fixture.first_ranks", json_utils.dumps(fe.first_ranks).decode()
             )
             results[idx] = fe
 
