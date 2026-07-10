@@ -17,7 +17,7 @@ Special thanks to Dimbreath for his wonderful work on AnimeGameData!
 
 ### Python Environment Setup
 
-Requires **Python 3.12** (see `.python-version`) and [uv](https://docs.astral.sh/uv/).
+Requires **Python 3.14** (see `.python-version`) and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync              # creates .venv and installs all dependencies

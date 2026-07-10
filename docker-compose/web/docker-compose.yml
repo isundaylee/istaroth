@@ -7,7 +7,7 @@ x-backend-env: &backend-env
   PYTHONDONTWRITEBYTECODE: "1"
 
 x-backend-common: &backend-common
-  image: python:3.12-slim
+  image: python:3.14-slim
   working_dir: /app
   volumes:
     - ./checkpoints:/data/checkpoints
@@ -27,7 +27,7 @@ x-backend-common: &backend-common
 services:
   backend-deps:
     <<: *backend-common
-    image: ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+    image: ghcr.io/astral-sh/uv:python3.14-bookworm-slim
     command: ["uv", "sync", "--frozen", "--no-group", "dev", "--group", "ml"]
     environment:
       UV_LINK_MODE: symlink
