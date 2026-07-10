@@ -1,10 +1,46 @@
 # Changelog
 
 <!--
-Last updated through commit: 9cbf099ea3544d8e6d6c6d775eb062028ffebc40 (9cbf099)
+Last updated through commit: 5892aabe42b64a65c81b4a09d29b3e114567d39b (5892aab)
 When extending this changelog, document commits landed after the hash above,
 then update this marker to the new cutoff commit.
 -->
+
+## Week of 2026-07-06 – 2026-07-12
+
+- **Frontend**
+  - Sorted the library tree by first-seen game version, surfaced version ranges
+    on file pages, and badged content introduced in the latest build.
+  - Added stable short-link sharing to library files and standardized the
+    conversation share/export actions as compact icon buttons.
+  - Moved transient failures into top-level toasts and respected the operating
+    system's reduced-motion preference throughout the UI.
+- **Backend**
+  - Made the hierarchy API the single source of localized category labels.
+  - Generalized short-URL creation to validated in-app paths and reused existing
+    slugs for repeated shares.
+- **RAG**
+  - Strengthened the no-translation rule for proper nouns, including invented
+    parenthetical glosses, and repeated it in every request prompt.
+- **Text/corpus**
+  - *New content:*
+    - Grouped loose storyboard dialogue into `agd_anecdote` Odd Encounter files.
+    - Grouped Rich Ore Reserve dialogue by region in a new `agd_blossom`
+      category.
+    - Grouped loose event dialogue by owning activity in a new `agd_activity`
+      category.
+  - *Enhancements & fixes:*
+    - Resolved subtitle filenames from their owning quest titles.
+    - Stopped emitting loose-talk files when every line is filtered dev/test
+      content, and added a sanity limit against future loose-talk regressions.
+- **CI/build**
+  - Scheduled nightly checkpoint builds and releases.
+  - Added an opt-in Playwright end-to-end suite covering library browsing and
+    search, short-link sharing, and the full question-and-answer flow against a
+    running dev stack.
+- **Docs**
+  - Documented environment setup and the `uv run pre-commit` invocation in the
+    corpus-regeneration workflow.
 
 ## Week of 2026-06-29 – 2026-07-05
 
@@ -17,6 +53,48 @@ then update this marker to the new cutoff commit.
   - Modularized base form primitives (Select/Button/TextInput) via variant props.
   - Added a visible hairline border to composer controls in dark mode and fixed
     three mobile layout issues on the nav and Retrieve page.
+  - Standardized buttons, toggles, dropdowns, control sizing, and functional
+    icons; simplified the language switcher and added navigation and popup
+    keyboard shortcuts.
+  - Rebuilt the library as a searchable two-pane reading room with a persistent
+    document tree, front desk, grouped search results, mobile drawer, and a
+    single-fetch hierarchy.
+  - Replaced the standalone history page with a responsive consultation rail,
+    including localized dates and a sticky, iPad-friendly layout.
+  - Shared answer, citation, selection, and popup coordination across pages;
+    rendered sticky citations as highlighted Markdown and improved minimized and
+    fullscreen popup behavior.
+  - Added the Istaroth guide-character home hero, wrapped long answer content,
+    removed redundant library navigation, and fixed conversation image-export
+    spacing and several sidebar, divider, navbar, and Safari layout artifacts.
+- **MCP**
+  - Enabled OpenTelemetry tracing for MCP requests.
+- **RAG**
+  - Added GenAI OpenTelemetry spans for LLM calls and unified trace context with
+    LangSmith.
+  - Decoupled candidate-fetch depth from result count and canonicalized retrieval
+    around intent and budget with tiered depth schedules.
+- **Backend**
+  - Switched JSON serialization to `orjson` and parsed NPC role ids into typed
+    integer keys at the data boundary.
+- **Text/corpus**
+  - *Enhancements & fixes:*
+    - Upgraded AnimeGameData to 6.7.0 with new deobfuscation mappings and a full
+      corpus regeneration.
+    - Extended TextMap fallback coverage for text removed from recent AGD builds,
+      and dropped untranslated CHS-only dev/test placeholders from ENG output.
+    - Normalized raw game markup and masked-character placeholders.
+    - Standardized readable keys, separated activity and NPC talk-group metadata
+      ids, and gave talk groups and quest groups human-readable derived titles.
+    - Recorded first-seen game-version ranges in corpus metadata.
+- **Tech debt**
+  - Unified per-item generation tracking, table-drove renderable dispatch, and
+    simplified corpus-layer indexing and cleanup.
+  - Normalized DataRepo derived-index naming and automatically registered
+    fork-warmed loaders.
+- **Docs**
+  - Added the end-to-end AGD version-upgrade workflow, including its TextMap
+    fallback audit.
 
 ## Week of 2026-06-22 – 2026-06-28
 
