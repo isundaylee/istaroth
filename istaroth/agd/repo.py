@@ -104,7 +104,7 @@ class TextMapTracker(tracking.IdTracker[id_types.TextMapHash]):
 
     Deliberately bends the base contract: ``_all_ids`` is only the *current*
     build's hashes, but reads that resolve via the older fallback TextMap still
-    record their hash in ``_accessed_ids`` (and ``has`` reports fallback hits).
+    record their hash as accessed (and ``has`` reports fallback hits).
     Since ``get_unused_ids`` subtracts accessed from ``_all_ids``, those
     out-of-set fallback hashes never inflate the current-build unused count --
     they simply don't count as unused current hashes, which is the intent.
