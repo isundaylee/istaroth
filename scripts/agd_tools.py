@@ -432,34 +432,45 @@ def generate_all(
     if processes is None:
         processes = multiprocessing.cpu_count()
 
-    # Pre-compute expensive mappings in parent process for inheritance via fork
-    data_repo.precompute_for_fork()
+    # Parent-side accesses (precomputed mappings like npc id -> name, discovery)
+    # also feed rendered output, so a run-level scope collects them for the usage
+    # stats. Folded into all_tracker_stats only AFTER the loop: the per-pass
+    # dedup must keep seeing per-item accesses only.
+    parent_scope = data_repo.tracking_scope(
+        item_type="generate-all", item_key="parent-process"
+    )
 
-    # Disable gc before forking: the setting is inherited by workers, so no worker
-    # pays gc-pause overhead, and gc never traverses the huge inherited caches —
-    # which would otherwise dirty copy-on-write pages and inflate memory. This is a
-    # short-lived batch process, so leaked cycles are reclaimed at exit anyway.
-    gc.disable()
+    with parent_scope:
+        # Pre-compute expensive mappings in parent process for inheritance via fork
+        data_repo.precompute_for_fork()
 
-    # Explicitly set start method to 'fork' to ensure child processes inherit
-    # the pre-computed mapping from parent memory
-    multiprocessing.set_start_method("fork", force=True)
+        # Disable gc before forking: the setting is inherited by workers, so no worker
+        # pays gc-pause overhead, and gc never traverses the huge inherited caches —
+        # which would otherwise dirty copy-on-write pages and inflate memory. This is a
+        # short-lived batch process, so leaked cycles are reclaimed at exit anyway.
+        gc.disable()
 
-    # Open errors file for writing
-    errors_file_path = stats_dir / "errors.info"
-    with (
-        errors_file_path.open("w", encoding="utf-8") as errors_file,
-        multiprocessing.Pool(processes=processes) as pool,
-    ):
-        # Each renderable knows its own category and how to build itself; the
-        # trailing Readables/Talks passes read the tracker stats accumulated so
-        # far to skip ids the earlier passes already claimed.
-        for renderable_type in renderable_types.ALL_RENDERABLE_TYPES:
-            if not should_generate(renderable_type.text_category):
-                continue
-            process_content_type(
-                renderable_type.create_for_generation(all_tracker_stats)
-            )
+        # Explicitly set start method to 'fork' to ensure child processes inherit
+        # the pre-computed mapping from parent memory
+        multiprocessing.set_start_method("fork", force=True)
+
+        # Open errors file for writing
+        errors_file_path = stats_dir / "errors.info"
+        with (
+            errors_file_path.open("w", encoding="utf-8") as errors_file,
+            multiprocessing.Pool(processes=processes) as pool,
+        ):
+            # Each renderable knows its own category and how to build itself; the
+            # trailing Readables/Talks passes read the tracker stats accumulated so
+            # far to skip ids the earlier passes already claimed.
+            for renderable_type in renderable_types.ALL_RENDERABLE_TYPES:
+                if not should_generate(renderable_type.text_category):
+                    continue
+                process_content_type(
+                    renderable_type.create_for_generation(all_tracker_stats)
+                )
+
+    all_tracker_stats.update(tracking.TrackerStats(parent_scope.accessed_ids))
 
     # Create summary table
     headers = ["Content Type", "Success", "Errors", "Skipped", "Issues"]
@@ -483,15 +494,16 @@ def generate_all(
         f.write(summary_table)
     click.echo(f"Summary table written to {summary_table_path}")
 
-    # Merge this run's accessed ids into each tracked resource, then report the
-    # unused counts. Keyed by tracker kind so adding a resource needs no changes here.
+    # Report each tracked resource's unused counts against this run's accessed
+    # ids. Keyed by tracker kind so adding a resource needs no changes here.
     scope_trackers = data_repo.build_scope_trackers()
     for kind, tracker in scope_trackers.items():
-        tracker.merge_accessed(all_tracker_stats.accessed[kind])
-        click.echo(f"{kind.label}: {tracker.format_unused_stats()} unused")
+        click.echo(
+            f"{kind.label}: {tracker.format_unused_stats(all_tracker_stats.accessed[kind])} unused"
+        )
 
     # Write unused stats to JSON file
-    unused_stats_data = all_tracker_stats.to_dict(scope_trackers)
+    unused_stats_data = all_tracker_stats.format_stats(scope_trackers)
     unused_stats_path = stats_dir / "unused_stats.json"
     unused_stats_path.write_bytes(
         orjson.dumps(unused_stats_data, option=orjson.OPT_INDENT_2)

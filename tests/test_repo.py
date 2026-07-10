@@ -1,6 +1,6 @@
 """Tests for AGD repository helpers."""
 
-from istaroth.agd import agd_types, localization, repo
+from istaroth.agd import agd_types, localization, repo, tracking
 
 
 def test_text_map_tracker_uses_fallback_only_on_current_miss() -> None:
@@ -12,15 +12,18 @@ def test_text_map_tracker_uses_fallback_only_on_current_miss() -> None:
         pronoun_hashes={},
     )
 
-    assert text_map.has(100)
-    assert text_map.has(300)
-    assert text_map.get_optional(100) == "Current"
-    assert text_map.get_optional(200) == "Current wins"
-    assert text_map.get_optional(300) == "Fallback"
-    assert text_map.get_current_optional(300) is None
-    assert text_map.get_optional_untracked(300) == "Fallback"
-    assert text_map.get(400, "Default") == "Default"
-    assert text_map.get_accessed_ids() == {100, 200, 300}
+    with tracking.TrackingScope(
+        {tracking.TrackerKind.TEXT_MAP: text_map}, item_type="test", item_key="test"
+    ) as scope:
+        assert text_map.has(100)
+        assert text_map.has(300)
+        assert text_map.get_optional(100) == "Current"
+        assert text_map.get_optional(200) == "Current wins"
+        assert text_map.get_optional(300) == "Fallback"
+        assert text_map.get_current_optional(300) is None
+        assert text_map.get_optional_untracked(300) == "Fallback"
+        assert text_map.get(400, "Default") == "Default"
+    assert scope.accessed_ids[tracking.TrackerKind.TEXT_MAP] == {100, 200, 300}
 
 
 def test_data_repo_loads_fallback_refs_in_code_order(monkeypatch) -> None:
