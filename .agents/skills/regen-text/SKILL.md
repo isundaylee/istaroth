@@ -37,9 +37,15 @@ When the user asks to **regen corpus**:
    ```bash
    source .env.common   # provides AGD_PATH; without it both runs fail instantly
    rm -f /tmp/regen-chs.status /tmp/regen-eng.status
-   ( uv run scripts/agd_tools.py generate-all -f text/chs > /tmp/regen-chs.log 2>&1; echo $? > /tmp/regen-chs.status ) &
-   ( AGD_LANGUAGE=ENG uv run scripts/agd_tools.py generate-all -f text/eng > /tmp/regen-eng.log 2>&1; echo $? > /tmp/regen-eng.status ) &
+   ( uv run --isolated --python 3.14t --only-group regen scripts/agd_tools.py generate-all -f text/chs > /tmp/regen-chs.log 2>&1; echo $? > /tmp/regen-chs.status ) &
+   ( AGD_LANGUAGE=ENG uv run --isolated --python 3.14t --only-group regen scripts/agd_tools.py generate-all -f text/eng > /tmp/regen-eng.log 2>&1; echo $? > /tmp/regen-eng.status ) &
    ```
+
+   The `--isolated --python 3.14t --only-group regen` flags run the regen on a
+   free-threaded interpreter in a uv-managed ephemeral environment (built from
+   the same lockfile's `regen` dependency group) — there is no second venv to
+   maintain, and the project `.venv` stays on the regular build. A plain
+   `uv run scripts/agd_tools.py ...` still works and produces identical output.
 
    A full dual-language regen takes only a few minutes, so check the sentinel
    files soon after launching. Peek at both logs shortly after launch to catch

@@ -48,8 +48,9 @@ dependencies = [
 
 [dependency-groups]
 # Minimal deps for scripts/agd_tools.py corpus regen; pure-Python only so the
-# regen can run on a free-threaded interpreter (e.g. uv sync --python 3.14t
-# --only-group regen into a separate venv).
+# regen can run on a free-threaded interpreter via a uv ephemeral environment
+# (uv run --isolated --python 3.14t --only-group regen scripts/agd_tools.py ...)
+# with no separate venv to maintain.
 regen = [
     "attrs",
     "click",
