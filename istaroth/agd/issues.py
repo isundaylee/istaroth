@@ -8,12 +8,15 @@ aggregated and reported instead of being buried in the output.
 
 A caller collects per scope by creating a fresh ``IssueTracker`` (stamped with the
 owning item's identity) and entering its ``apply`` context, which installs it as
-the active tracker for the duration. ``record`` builds a fully-stamped
+the active tracker for the duration. The active tracker lives in a
+``ContextVar``, so concurrent threads/tasks each see only their own tracker.
+``record`` builds a fully-stamped
 ``ParsingIssue`` from that identity; outside any active context it is a no-op, so
 ad hoc callers (CLI render, web backend) record nothing.
 """
 
 import contextlib
+import contextvars
 import enum
 from typing import ClassVar, Iterator
 
@@ -55,7 +58,9 @@ class IssueTracker:
     produce fully-formed :class:`ParsingIssue`s without the caller re-stamping.
     """
 
-    _active: ClassVar["IssueTracker | None"] = None
+    _active: ClassVar[contextvars.ContextVar["IssueTracker | None"]] = (
+        contextvars.ContextVar("istaroth_agd_issues_active_tracker", default=None)
+    )
 
     def __init__(self, *, item_type: str, item_key: str) -> None:
         self._item_type = item_type
@@ -65,12 +70,11 @@ class IssueTracker:
     @contextlib.contextmanager
     def apply(self) -> Iterator["IssueTracker"]:
         """Install this tracker as the active one for the duration of the block."""
-        previous = IssueTracker._active
-        IssueTracker._active = self
+        token = IssueTracker._active.set(self)
         try:
             yield self
         finally:
-            IssueTracker._active = previous
+            IssueTracker._active.reset(token)
 
     def record(self, issue_type: IssueType, detail: str) -> None:
         """Append a gap stamped with this tracker's owning item identity."""
@@ -86,5 +90,5 @@ class IssueTracker:
 
 def record(issue_type: IssueType, detail: str) -> None:
     """Record a non-fatal gap into the active tracker, or no-op if none active."""
-    if (active := IssueTracker._active) is not None:
+    if (active := IssueTracker._active.get()) is not None:
         active.record(issue_type, detail)
