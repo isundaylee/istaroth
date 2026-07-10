@@ -31,13 +31,12 @@ dependencies = [
     "langgraph>=1.0.9",
     "mcp",
     "openai",
-    "orjson",
     "opentelemetry-exporter-otlp-proto-grpc",
     "opentelemetry-instrumentation-fastapi",
     "opentelemetry-instrumentation-httpx",
     "opentelemetry-sdk",
     "prometheus-client",
-    "psycopg2-binary",
+    "psycopg",
     "pydantic",
     "pypinyin>=0.55.0",
     "rank-bm25",
@@ -48,6 +47,15 @@ dependencies = [
 ]
 
 [dependency-groups]
+# Minimal deps for scripts/agd_tools.py corpus regen; pure-Python only so the
+# regen can run on a free-threaded interpreter (e.g. uv sync --python 3.14t
+# --only-group regen into a separate venv).
+regen = [
+    "attrs",
+    "click",
+    "tabulate",
+    "tqdm",
+]
 ml = [
     "faiss-cpu",
     "huggingface-hub",

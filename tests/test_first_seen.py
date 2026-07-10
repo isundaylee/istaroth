@@ -2,9 +2,9 @@
 
 import pathlib
 
-import orjson
 import pytest
 
+from istaroth import json_utils
 from istaroth.agd import first_seen
 
 
@@ -16,7 +16,7 @@ def _write_delta(
         "commit": f"commit-{version}",
         "new": {domain.value: [] for domain in first_seen.SourceDomain} | new,
     }
-    (data_dir / f"{version}.json").write_bytes(orjson.dumps(payload))
+    (data_dir / f"{version}.json").write_bytes(json_utils.dumps(payload))
 
 
 @pytest.fixture

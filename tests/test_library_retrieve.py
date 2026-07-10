@@ -2,11 +2,11 @@
 
 import pathlib
 
-import orjson
 import pytest
 from fastapi import HTTPException
 from langchain_core.documents import Document
 
+from istaroth import json_utils
 from istaroth.agd import localization
 from istaroth.rag import budget, text_set
 from istaroth.rag import types as rag_types
@@ -27,7 +27,7 @@ def _create_text_set(tmp_path: pathlib.Path) -> text_set.TextSet:
     )
     manifest_dir = text_path / "manifest"
     manifest_dir.mkdir()
-    (manifest_dir / "test.json").write_bytes(orjson.dumps([metadata.to_dict()]))
+    (manifest_dir / "test.json").write_bytes(json_utils.dumps([metadata.to_dict()]))
     return text_set.TextSet(text_path=text_path, language=localization.Language.ENG)
 
 

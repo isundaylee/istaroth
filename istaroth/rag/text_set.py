@@ -8,12 +8,13 @@ the same underlying text files; a DocumentStoreSet exposes both views.
 
 import functools
 import hashlib
+import json
 import pathlib
 from typing import Any
 
 import attrs
-import orjson
 
+from istaroth import json_utils
 from istaroth.agd import first_seen, localization
 from istaroth.text import manifest as text_manifest
 from istaroth.text import types as text_types
@@ -131,7 +132,7 @@ class TextSet:
         path = self.text_path / "metadata" / "agd" / "hierarchy.json"
         if not path.exists():
             return {}
-        return orjson.loads(path.read_bytes())
+        return json.loads(path.read_bytes())
 
     def get_hierarchy_for_category(self, category: str) -> dict[str, Any] | None:
         """Return the pre-baked document hierarchy for a category, or None.
@@ -199,4 +200,4 @@ class TextSet:
     @functools.cached_property
     def library_hierarchies_content_hash(self) -> str:
         """Hash of the library hierarchies, usable as an HTTP ETag ingredient."""
-        return hashlib.sha256(orjson.dumps(self._library_hierarchies)).hexdigest()
+        return hashlib.sha256(json_utils.dumps(self._library_hierarchies)).hexdigest()

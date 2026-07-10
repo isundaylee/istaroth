@@ -1,14 +1,13 @@
 """Tests for AGD de-obfuscation functionality."""
 
+import json
 from typing import Any
-
-import orjson
 
 from istaroth.agd import deobfuscation, repo
 
 
 def _load_raw(data_repo: repo.DataRepo, relative_path: str) -> Any:
-    return orjson.loads((data_repo.agd_path / relative_path).read_bytes())
+    return json.loads((data_repo.agd_path / relative_path).read_bytes())
 
 
 def test_deobfuscate_quest_data(data_repo: repo.DataRepo) -> None:

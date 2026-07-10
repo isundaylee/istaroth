@@ -10,7 +10,8 @@ from datetime import UTC, datetime, timedelta
 
 import click
 import langsmith
-import orjson
+
+from istaroth import json_utils
 
 
 def _make_client() -> langsmith.Client:
@@ -77,9 +78,7 @@ def list_queries(hours: float, limit: int, verbose: bool, as_json: bool) -> None
     ]
 
     if as_json:
-        click.echo(
-            orjson.dumps(results, option=orjson.OPT_INDENT_2, default=str).decode()
-        )
+        click.echo(json_utils.dumps_indented(results, default=str).decode())
         return
 
     for r in results:
@@ -107,10 +106,8 @@ def show_trace(trace_id: str, as_json: bool) -> None:
 
     if as_json:
         click.echo(
-            orjson.dumps(
-                [_format_run(r, verbose=True) for r in runs],
-                option=orjson.OPT_INDENT_2,
-                default=str,
+            json_utils.dumps_indented(
+                [_format_run(r, verbose=True) for r in runs], default=str
             ).decode()
         )
         return
@@ -149,9 +146,7 @@ def list_errors(hours: float, limit: int, as_json: bool) -> None:
     ]
 
     if as_json:
-        click.echo(
-            orjson.dumps(results, option=orjson.OPT_INDENT_2, default=str).decode()
-        )
+        click.echo(json_utils.dumps_indented(results, default=str).decode())
         return
 
     for r in results:

@@ -11,11 +11,11 @@ alongside the corpus regenerations they stamp).
 from __future__ import annotations
 
 import enum
+import json
 import pathlib
 from typing import Any, Iterable
 
 import attrs
-import orjson
 
 from istaroth.agd import repo
 
@@ -119,7 +119,7 @@ class FirstSeenIndex:
             domain: {} for domain in SourceDomain
         }
         for path in delta_paths:
-            data = orjson.loads(path.read_bytes())
+            data = json.loads(path.read_bytes())
             version = data["version"]
             if version != path.stem:
                 raise ValueError(

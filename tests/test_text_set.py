@@ -2,8 +2,7 @@
 
 import pathlib
 
-import orjson
-
+from istaroth import json_utils
 from istaroth.agd import localization
 from istaroth.rag import text_set
 from istaroth.text import manifest, types
@@ -85,7 +84,7 @@ def test_library_hierarchies(tmp_path: pathlib.Path) -> None:
     }
     hierarchy_path = tmp_path / "metadata" / "agd" / "hierarchy.json"
     hierarchy_path.parent.mkdir(parents=True)
-    hierarchy_path.write_bytes(orjson.dumps({"agd_quest": quest_tree}))
+    hierarchy_path.write_bytes(json_utils.dumps({"agd_quest": quest_tree}))
 
     text_set_obj = text_set.TextSet(
         text_path=tmp_path, language=localization.Language.CHS

@@ -6,14 +6,13 @@ import shutil
 import subprocess
 import sys
 
-import orjson
 import pytest
 from opentelemetry import trace
 from opentelemetry.sdk import trace as sdk_trace
 from opentelemetry.sdk.trace import export as sdk_trace_export
 from opentelemetry.sdk.trace.export import in_memory_span_exporter
 
-from istaroth import utils
+from istaroth import json_utils, utils
 from istaroth.agd import localization, repo
 
 
@@ -160,7 +159,7 @@ def test_text_dir(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
     stats_agd_dir = data_dir / "stats" / "agd"
     stats_agd_dir.mkdir(parents=True)
     (stats_agd_dir / "metadata.json").write_text(
-        orjson.dumps({"language": localization.Language.CHS.value}).decode()
+        json_utils.dumps({"language": localization.Language.CHS.value}).decode()
     )
 
     manifest_dir = data_dir / "manifest"
@@ -177,7 +176,7 @@ def test_text_dir(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
         for idx, filename in enumerate(documents.keys())
     ]
     (manifest_dir / "test.json").write_text(
-        orjson.dumps(manifest_data, option=orjson.OPT_INDENT_2).decode()
+        json_utils.dumps_indented(manifest_data).decode()
     )
 
     return data_dir

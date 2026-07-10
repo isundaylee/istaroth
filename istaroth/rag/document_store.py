@@ -11,6 +11,7 @@ import contextvars
 import functools
 import hashlib
 import io
+import json
 import logging
 import pathlib
 import pickle
@@ -19,14 +20,13 @@ from typing import cast
 import anyio
 import attrs
 import jieba
-import orjson
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from opentelemetry import trace
 from rank_bm25 import BM25Okapi
 from tqdm import tqdm
 
-from istaroth import langsmith_utils, utils
+from istaroth import json_utils, langsmith_utils, utils
 from istaroth.rag import budget as budget_mod
 from istaroth.rag import query_transform, rerank, types, vector_store
 from istaroth.text import proper_nouns
@@ -47,11 +47,11 @@ def _chinese_tokenizer(text: str) -> list[str]:
 
 
 def _scored_chunks_json(chunks: list[types.ScoredChunk]) -> str:
-    return orjson.dumps([sc.to_trace_output() for sc in chunks]).decode()
+    return json_utils.dumps([sc.to_trace_output() for sc in chunks]).decode()
 
 
 def _scored_docs_json(docs: list[types.ScoredDocument]) -> str:
-    return orjson.dumps([sd.to_trace_output() for sd in docs]).decode()
+    return json_utils.dumps([sd.to_trace_output() for sd in docs]).decode()
 
 
 def _merge_small_chunks(
@@ -503,7 +503,7 @@ class DocumentStore:
             span.set_attribute("num_results", len(result.results))
             span.set_attribute(
                 "retrieval.selected_files",
-                orjson.dumps(
+                json_utils.dumps(
                     [
                         {"file_id": docs[0].metadata["file_id"], "score": score}
                         for score, docs in result.results
@@ -553,12 +553,12 @@ class DocumentStore:
 
         # Save configuration
         (path / "config.json").write_bytes(
-            orjson.dumps({"vector_store_type": self._vector_store.get_type().value})
+            json_utils.dumps({"vector_store_type": self._vector_store.get_type().value})
         )
 
         # Write out documents
         (path / "documents.json").write_bytes(
-            orjson.dumps(
+            json_utils.dumps(
                 {
                     file_id: [
                         {
@@ -594,7 +594,7 @@ class DocumentStore:
                         )
                         for doc in file_docs
                     }
-                    for file_id, file_docs in orjson.loads(
+                    for file_id, file_docs in json.loads(
                         documents_file.read_bytes()
                     ).items()
                 }
@@ -603,7 +603,7 @@ class DocumentStore:
             vs: vector_store.VectorStore
             if external_vector_store is None:
                 # Load configuration to determine vector store type
-                config = orjson.loads((path / "config.json").read_bytes())
+                config = json.loads((path / "config.json").read_bytes())
                 store_type = vector_store.VectorStoreType(config["vector_store_type"])
 
                 # Load the appropriate vector store

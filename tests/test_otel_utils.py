@@ -1,9 +1,9 @@
 """Tests for the OTel GenAI span helper."""
 
+import json
 from typing import Any, cast
 
 import anyio
-import orjson
 import pytest
 from langchain_core import language_models, messages
 from opentelemetry import trace
@@ -54,7 +54,7 @@ def test_llm_span_message_prompt_rendered_as_json(span_exporter: Any) -> None:
     ]
     with otel_utils.llm_span("msg_call", llm=_LLM, prompt=prompt) as gen_span:
         gen_span.record_response("ok")
-    rendered = orjson.loads(
+    rendered = json.loads(
         cast(str, _single_span(span_exporter, "msg_call").attributes["gen_ai.prompt"])
     )
     assert rendered == [
@@ -70,7 +70,7 @@ def test_llm_span_tool_call_completion(span_exporter: Any) -> None:
     )
     with otel_utils.llm_span("tool_call", llm=_LLM, prompt="hi") as gen_span:
         gen_span.record_response(response)
-    completion = orjson.loads(
+    completion = json.loads(
         cast(
             str,
             _single_span(span_exporter, "tool_call").attributes["gen_ai.completion"],
