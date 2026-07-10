@@ -16,6 +16,8 @@ from typing import (
     cast,
 )
 
+from istaroth import caching
+
 if TYPE_CHECKING:
     from istaroth.agd import agd_types, id_types, repo
 
@@ -164,9 +166,21 @@ class TalkParser:
         invalid_paths = dict[pathlib.Path, str]()
 
         # Scan Talk directory and all subdirectories for JSON files
-        for json_file in sorted(
-            (self.agd_path / "BinOutput" / "Talk").glob("**/*.json")
-        ):
+        talk_files = sorted((self.agd_path / "BinOutput" / "Talk").glob("**/*.json"))
+        # Parse in parallel up front; the serial scan below then hits the cache,
+        # keeping classification and dedup decisions in the original sorted order.
+        caching.warm_concurrently(
+            data_repo.load_talk_group_data,
+            [
+                rel.as_posix()
+                for json_file in talk_files
+                if (rel := json_file.relative_to(self.agd_path))
+                not in self._BAD_TALK_PATHS
+                and rel.parts[2] not in self._EXCLUDE_DIRECTORIES
+                and rel.parts[2] != self._COOP_DIRECTORY
+            ],
+        )
+        for json_file in talk_files:
             relative_path = json_file.relative_to(self.agd_path)
 
             if relative_path in self._BAD_TALK_PATHS:
@@ -342,6 +356,17 @@ class TalkParser:
         cache for later rendering.
         """
         text_map = data_repo.build_text_map_tracker()
+        # Colliding candidates need their dialogs loaded for signatures; parse
+        # them in parallel so the serial resolution below hits the cache.
+        caching.warm_concurrently(
+            data_repo.load_talk_data,
+            [
+                path
+                for candidates in self._talk_candidates.values()
+                if len(candidates) > 1
+                for path in candidates
+            ],
+        )
         stats = collections.Counter[str]()
         for talk_id, candidates in self._talk_candidates.items():
             if len(candidates) == 1:

@@ -19,6 +19,8 @@ from istaroth.text import types as text_types
 
 _SPEAKER_TITLE_LIMIT = 3
 
+_COMPOSITE_ROLE_PATTERN = re.compile(r"(.+) \((.+)\)")
+
 
 def get_talk_group_info(
     talk_group_type: talk_parsing.TalkGroupType,
@@ -96,7 +98,7 @@ def derive_speaker_group_name(
                 # mismatch composite; count its more specific half so e.g.
                 # "旅行者 (观察花卉)" titles as "观察花卉" and "遗迹的铭文 (铭文)"
                 # dedups with a plain "遗迹的铭文".
-                if (m := re.fullmatch(r"(.+) \((.+)\)", name)) is not None:
+                if (m := _COMPOSITE_ROLE_PATTERN.fullmatch(name)) is not None:
                     name = m.group(2) if m.group(1) in generic else m.group(1)
                 if name in generic or name.startswith(roles.unknown_role):
                     continue

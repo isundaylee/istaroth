@@ -21,12 +21,16 @@ def assert_not_none(obj: T | None) -> T:
     return obj
 
 
+_UNSAFE_CHARS_PATTERN = re.compile(r"[^\w\s-]")
+_WHITESPACE_PATTERN = re.compile(r"\s+")
+
+
 def make_safe_filename_part(text: str, *, max_length: int = 50) -> str:
     """Convert text to a safe filename part by removing special chars and normalizing spaces."""
     # Remove special characters, keeping only word chars, spaces, and hyphens
-    safe_text = re.sub(r"[^\w\s-]", "", text[:max_length])
+    safe_text = _UNSAFE_CHARS_PATTERN.sub("", text[:max_length])
     # Replace multiple spaces with single underscore
-    safe_text = re.sub(r"\s+", "_", safe_text.strip())
+    safe_text = _WHITESPACE_PATTERN.sub("_", safe_text.strip())
     return safe_text
 
 
