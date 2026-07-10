@@ -24,17 +24,27 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=False,
         help="Run opt-in tests marked `llm` that call a real model (cost tokens).",
     )
+    parser.addoption(
+        "--run-e2e",
+        action="store_true",
+        default=False,
+        help="Run opt-in browser e2e tests marked `e2e` against a running dev stack.",
+    )
 
 
 def pytest_collection_modifyitems(
     config: pytest.Config, items: list[pytest.Item]
 ) -> None:
-    if config.getoption("--run-llm"):
-        return
-    skip_llm = pytest.mark.skip(reason="needs --run-llm (calls a real model)")
-    for item in items:
-        if "llm" in item.keywords:
-            item.add_marker(skip_llm)
+    for marker, flag, reason in [
+        ("llm", "--run-llm", "needs --run-llm (calls a real model)"),
+        ("e2e", "--run-e2e", "needs --run-e2e (drives a running dev stack)"),
+    ]:
+        if config.getoption(flag):
+            continue
+        skip = pytest.mark.skip(reason=reason)
+        for item in items:
+            if marker in item.keywords:
+                item.add_marker(skip)
 
 
 _SPAN_EXPORTER = in_memory_span_exporter.InMemorySpanExporter()
