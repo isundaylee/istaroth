@@ -50,7 +50,7 @@ class TrackerKind(enum.Enum):
         }[self]
 
 
-_active_scope: contextvars.ContextVar["TrackingScope | None"] = contextvars.ContextVar(
+_active_scope: contextvars.ContextVar[TrackingScope | None] = contextvars.ContextVar(
     "active_tracking_scope", default=None
 )
 
@@ -142,12 +142,12 @@ class TrackingScope:
         )
         self._stack = contextlib.ExitStack()
         self._entered = False
-        self._scope_token: contextvars.Token["TrackingScope | None"] | None = None
+        self._scope_token: contextvars.Token[TrackingScope | None] | None = None
         self.accessed_ids: dict[TrackerKind, set[Any]] = {
             kind: set() for kind in trackers
         }
 
-    def __enter__(self) -> "TrackingScope":
+    def __enter__(self) -> TrackingScope:
         # A second entry would keep accumulating into the first entry's sets and
         # confuse the item attribution. Enter each scope once.
         if self._entered:
@@ -180,16 +180,16 @@ class TrackerStats:
     accessed: dict[TrackerKind, set[Any]]
 
     @classmethod
-    def empty(cls) -> "TrackerStats":
+    def empty(cls) -> TrackerStats:
         """A stats object with an empty accessed set for every tracker kind."""
         return cls({kind: set() for kind in TrackerKind})
 
-    def update(self, other: "TrackerStats") -> None:
+    def update(self, other: TrackerStats) -> None:
         """Merge another stats object's accessed ids into this one."""
         for kind, ids in other.accessed.items():
             self.accessed.setdefault(kind, set()).update(ids)
 
-    def to_dict(self, trackers: dict[TrackerKind, IdTracker[Any]]) -> dict[str, Any]:
+    def format_stats(self, trackers: dict[TrackerKind, IdTracker[Any]]) -> dict[str, Any]:
         """Serialize unused/total counts and unused ids, keyed by tracker JSON key."""
         unused = {
             kind: tracker.get_unused_ids(self.accessed[kind])

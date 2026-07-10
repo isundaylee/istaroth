@@ -503,7 +503,7 @@ def generate_all(
         )
 
     # Write unused stats to JSON file
-    unused_stats_data = all_tracker_stats.to_dict(scope_trackers)
+    unused_stats_data = all_tracker_stats.format_stats(scope_trackers)
     unused_stats_path = stats_dir / "unused_stats.json"
     unused_stats_path.write_bytes(
         orjson.dumps(unused_stats_data, option=orjson.OPT_INDENT_2)
