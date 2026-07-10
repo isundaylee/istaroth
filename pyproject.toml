@@ -69,6 +69,7 @@ dev = [
     "py-spy>=0.4.1",
     "pytest",
     "pytest-asyncio",
+    "pytest-playwright>=0.8.0",
     "types-tabulate",
     "types-tqdm",
 ]
@@ -91,6 +92,7 @@ include = ["istaroth*"]
 asyncio_mode = "auto"
 markers = [
     "llm: opt-in tests that call a real model (cost tokens); run with --run-llm",
+    "e2e: opt-in browser end-to-end tests against a running dev stack; run with --run-e2e",
 ]
 
 [tool.mypy]
