@@ -1,6 +1,5 @@
 """Short-URL sharing flow."""
 
-import re
 from typing import Any
 
 import pytest
@@ -24,7 +23,7 @@ def test_share_short_url(page: Page, sample_library_file: dict[str, Any]) -> Non
     slug = response_info.value.json()["slug"]
 
     page.goto(f"/s/{slug}")
-    expect(page).to_have_url(re.compile(re.escape(path)))
+    expect(page).to_have_url(path)
     expect(page.get_by_role("button", name="返回文件列表")).to_be_visible(
         timeout=60_000
     )

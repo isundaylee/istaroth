@@ -20,10 +20,7 @@ def test_browse_to_document(page: Page, sample_library_file: dict[str, Any]) -> 
     page.get_by_role("button", name=sample_library_file["title"]).first.click()
 
     expect(page).to_have_url(
-        re.compile(
-            rf"/library/{re.escape(sample_library_file['category'])}"
-            rf"/{sample_library_file['file_id']}"
-        )
+        f"/library/{sample_library_file['category']}/{sample_library_file['file_id']}"
     )
     expect(page.get_by_role("button", name="复制分享链接")).to_be_visible()
     expect(page.get_by_role("button", name="返回文件列表")).to_be_visible()
