@@ -1,5 +1,5 @@
 # Multi-stage build for Istaroth MCP server
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
@@ -23,7 +23,7 @@ COPY requirements-app.txt /tmp/
 RUN uv pip install --no-cache -r /tmp/requirements-app.txt
 
 # Final stage
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \

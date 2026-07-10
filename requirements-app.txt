@@ -44,8 +44,6 @@ attrs==25.4.0
     #   referencing
 authlib==1.6.8
     # via fastmcp
-backoff==2.2.1
-    # via posthog
 bcrypt==5.0.0
     # via chromadb
 beartype==0.22.9
@@ -66,7 +64,7 @@ cffi==2.0.0 ; platform_python_implementation != 'PyPy'
     # via cryptography
 charset-normalizer==3.4.4
     # via requests
-chromadb==1.5.1
+chromadb==1.5.9
     # via istaroth
 click==8.3.1
     # via
@@ -95,7 +93,6 @@ distro==1.9.0
     # via
     #   google-genai
     #   openai
-    #   posthog
 dnspython==2.8.0
     # via email-validator
 docstring-parser==0.17.0
@@ -377,8 +374,6 @@ pathable==0.5.0
     # via jsonschema-path
 platformdirs==4.9.2
     # via fastmcp
-posthog==5.4.0
-    # via chromadb
 prometheus-client==0.24.1
     # via istaroth
 propcache==0.4.1
@@ -429,6 +424,7 @@ pydantic-core==2.41.5
     #   pydantic
 pydantic-settings==2.13.1
     # via
+    #   chromadb
     #   langchain-community
     #   mcp
 pygments==2.19.2
@@ -444,9 +440,7 @@ pypinyin==0.55.0
 pyproject-hooks==1.2.0
     # via build
 python-dateutil==2.9.0.post0
-    # via
-    #   kubernetes
-    #   posthog
+    # via kubernetes
 python-dotenv==1.2.1
     # via
     #   fastmcp
@@ -476,7 +470,7 @@ referencing==0.37.0
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
-regex==2024.11.6
+regex==2026.6.28
     # via tiktoken
 requests==2.32.5
     # via
@@ -488,7 +482,6 @@ requests==2.32.5
     #   langchain-classic
     #   langchain-community
     #   langsmith
-    #   posthog
     #   requests-oauthlib
     #   requests-toolbelt
     #   tiktoken
@@ -518,7 +511,6 @@ shellingham==1.5.4
 six==1.17.0
     # via
     #   kubernetes
-    #   posthog
     #   python-dateutil
 sniffio==1.3.1
     # via
@@ -568,12 +560,9 @@ types-requests==2.32.4.20260107
     # via cohere
 typing-extensions==4.15.0
     # via
-    #   aiosignal
     #   alembic
-    #   anyio
     #   chromadb
     #   cohere
-    #   exceptiongroup
     #   fastapi
     #   google-genai
     #   grpcio
@@ -588,9 +577,7 @@ typing-extensions==4.15.0
     #   py-key-value-aio
     #   pydantic
     #   pydantic-core
-    #   referencing
     #   sqlalchemy
-    #   starlette
     #   typing-inspect
     #   typing-inspection
 typing-inspect==0.9.0
