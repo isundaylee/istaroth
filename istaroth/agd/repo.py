@@ -13,6 +13,7 @@ import time
 from typing import Any, Callable, Iterable, TypeVar, cast
 
 import attrs
+import msgspec
 
 from istaroth import caching, json_utils, text_cleanup
 from istaroth.agd import (
@@ -478,11 +479,10 @@ class DataRepo:
 
     @caching.threadsafe_cache
     def load_dialog_excel_config_data(self) -> agd_types.DialogExcelConfigData:
-        """Load Dialog Excel configuration data."""
-        raw_data: list[dict[str, Any]] = self._load_excel("DialogExcelConfigData.json")
-        return cast(
-            agd_types.DialogExcelConfigData,
-            deobfuscation.deobfuscate_dialog_excel_config_data(raw_data),
+        """Load Dialog Excel configuration data (partial typed decode)."""
+        return msgspec.json.decode(
+            self._read_bytes("ExcelBinOutput/DialogExcelConfigData.json"),
+            type=list[agd_types.DialogExcelConfigDataItem],
         )
 
     @caching.threadsafe_cache
@@ -842,7 +842,7 @@ class DataRepo:
     ) -> dict[id_types.DialogId, id_types.TextMapHash]:
         """Dialog id -> talkContentTextMapHash, for resolving Coop choice prompts."""
         return {
-            dialog_item["id"]: dialog_item["talkContentTextMapHash"]
+            dialog_item.id: dialog_item.talkContentTextMapHash
             for dialog_item in self.load_dialog_excel_config_data()
         }
 
@@ -1311,15 +1311,10 @@ class DataRepo:
         self,
     ) -> dict[id_types.DialogId, id_types.TextMapHash]:
         """Get cached mapping from dialog ID to talkRoleNameTextMapHash."""
-        dialog_data = self.load_dialog_excel_config_data()
-
-        dialog_id_to_role_hash: dict[id_types.DialogId, id_types.TextMapHash] = {}
-        for dialog_item in dialog_data:
-            dialog_id = dialog_item["id"]
-            role_name_hash = dialog_item["talkRoleNameTextMapHash"]
-            dialog_id_to_role_hash[dialog_id] = role_name_hash
-
-        return dialog_id_to_role_hash
+        return {
+            dialog_item.id: dialog_item.talkRoleNameTextMapHash
+            for dialog_item in self.load_dialog_excel_config_data()
+        }
 
     @caching.threadsafe_cache
     def load_reliquary_set_excel_config_data(

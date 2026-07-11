@@ -8,7 +8,9 @@ from __future__ import annotations
 
 from typing import NotRequired, TypeAlias, TypedDict
 
-from istaroth.agd import id_types
+import msgspec
+
+from istaroth.agd import deobfuscation, id_types
 
 TextMap: TypeAlias = dict[str, str]
 """Dictionary mapping string IDs to localized text content.
@@ -107,18 +109,16 @@ class AnimalDescribeExcelConfigDataItem(TypedDict):
 AnimalDescribeExcelConfigData: TypeAlias = list[AnimalDescribeExcelConfigDataItem]
 
 
-class DialogTalkRole(TypedDict):
-    """Type definition for talk role in dialog entries."""
+class DialogExcelConfigDataItem(
+    msgspec.Struct, rename={"id": deobfuscation.DIALOG_EXCEL_ID_KEY}
+):
+    """Individual dialog configuration entry, partially decoded.
 
-    type: str
-    id: str  # NPC id reference; ships as a str on disk, unlike the int NpcId master id
-
-
-class DialogExcelConfigDataItem(TypedDict):
-    """Type definition for individual dialog configuration entries."""
+    Only the consumed fields; decoding into this Struct skips the rest of the
+    ~90MB file, ~10x faster than a full decode + deobfuscation pass.
+    """
 
     id: id_types.DialogId  # de-obfuscated from the rotating dialog-id key
-    talkRole: DialogTalkRole
     talkContentTextMapHash: id_types.TextMapHash
     talkRoleNameTextMapHash: id_types.TextMapHash
 
