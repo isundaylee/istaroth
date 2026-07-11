@@ -351,11 +351,12 @@ def generate_all(
 
     if sys._is_gil_enabled():
         click.echo(
-            "Warning: the GIL is enabled, so worker threads serialize CPU-bound "
-            "work; run on a free-threaded interpreter (e.g. "
+            "Error: the GIL is enabled, so worker threads would serialize "
+            "CPU-bound work; run on a free-threaded interpreter (e.g. "
             "uv run --isolated --python 3.14t --only-group regen).",
             err=True,
         )
+        sys.exit(1)
 
     try:
         data_repo = _get_data_repo_from_env()
