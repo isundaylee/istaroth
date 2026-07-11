@@ -69,7 +69,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.35rem;
   width: 30px;
   /* border-right is 0 (the panel border closes the tab off), so mirror the 1px
      left border with 1px extra right padding to keep content centered. */
@@ -91,24 +91,11 @@
   background: var(--color-surface-hover);
 }
 
-.ledgerTabGlyph {
+.ledgerTabGlyph,
+.ledgerTabGlyph > svg {
+  display: block;
   width: 0.8rem;
   height: 0.8rem;
-}
-
-.ledgerTabLabel {
-  /* Book-spine treatment: default `mixed` orientation rotates Latin to read
-     top-to-bottom while CJK glyphs stay upright. */
-  writing-mode: vertical-rl;
-  font-size: 0.65rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-  line-height: 1;
-  letter-spacing: 0.08em;
-  /* vertical-rl positions glyphs from the font's vertical origin, which for
-     common CJK/Latin fonts paints the ink ~0.05–0.1em right of the line box
-     center; nudge it back so the label optically centers under the chevron. */
-  transform: translateX(-0.07em);
 }
 
 /* Ledger rail — same sizing as the library rail but with the tab riding its
