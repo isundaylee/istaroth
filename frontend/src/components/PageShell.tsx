@@ -1,7 +1,7 @@
 import { ReactNode, createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import clsx from 'clsx'
-import { ChevronLeft, ChevronRight, Menu } from 'lucide-react'
+import { Menu, PanelLeftOpen } from 'lucide-react'
 import Button from './Button'
 import Navigation from './Navigation'
 import styles from './PageShell.module.css'
@@ -37,9 +37,13 @@ interface PageShellProps {
   // column scrolls internally instead (below the breakpoint it behaves like
   // 'fit'). Pass explicitly whenever `sidebar` is set.
   sidebarSizing?: 'fit' | 'fill'
-  // Accessible name for the mobile drawer toggle button (and visible label for
-  // the desktop bookmark tab).
-  sidebarLabel?: ReactNode
+  // Accessible name for the mobile drawer toggle button and the desktop
+  // bookmark tab.
+  sidebarLabel?: string
+  // Icon identifying the sidebar's content, shown on the desktop bookmark tab
+  // while the sidebar is closed (the open state shows a collapse icon
+  // instead). Pass when sidebarCloseable is set.
+  sidebarGlyph?: ReactNode
   // When true, the sidebar can be toggled on desktop via a bookmark tab on the
   // left border. Open = wide two-pane (1140px), closed = centered 800px card.
   // On mobile the tab is hidden and the nav's drawer toggle is always visible.
@@ -59,7 +63,7 @@ const noop = () => {}
 // share a single hairline-bordered surface (see the home page). Pages render
 // their content as children instead of their own <Navigation> + card; the
 // enclosing <main> is owned by RootLayout.
-function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLabel, sidebarCloseable, sidebarClosed = false, onSidebarToggle = noop, hideMobileSidebarToggle = false }: PageShellProps) {
+function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLabel, sidebarGlyph, sidebarCloseable, sidebarClosed = false, onSidebarToggle = noop, hideMobileSidebarToggle = false }: PageShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
   const openDrawer = useCallback(() => setDrawerOpen(true), [])
@@ -107,7 +111,7 @@ function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLab
         className={styles.drawerToggle}
         onClick={openDrawer}
         aria-expanded={drawerOpen}
-        aria-label={typeof sidebarLabel === 'string' ? sidebarLabel : undefined}
+        aria-label={sidebarLabel}
       >
         <Menu className={styles.drawerToggleGlyph} aria-hidden />
       </Button>
@@ -131,12 +135,14 @@ function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLab
                 type="button"
                 className={styles.ledgerTab}
                 onClick={onSidebarToggle}
-                aria-label={typeof sidebarLabel === 'string' ? sidebarLabel : undefined}
+                aria-label={sidebarLabel}
               >
                 {closed
-                  ? <ChevronLeft className={styles.ledgerTabGlyph} aria-hidden />
-                  : <ChevronRight className={styles.ledgerTabGlyph} aria-hidden />}
-                <span className={styles.ledgerTabLabel}>{sidebarLabel}</span>
+                  ? <span className={styles.ledgerTabGlyph} aria-hidden>{sidebarGlyph}</span>
+                  // Collapsing moves the panel's left edge rightward, so the
+                  // right-pointing PanelLeftOpen glyph is the one that reads
+                  // "collapse" here despite its lucide name.
+                  : <PanelLeftOpen className={styles.ledgerTabGlyph} aria-hidden />}
               </button>
             </div>
           )}

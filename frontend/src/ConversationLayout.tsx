@@ -1,4 +1,5 @@
 import { Outlet, useParams } from 'react-router-dom'
+import { History } from 'lucide-react'
 import { HistoryRailProvider, useHistoryRail } from './contexts/HistoryRailContext'
 import { HistoryRailContent } from './components/HistoryRail'
 import PageShell from './components/PageShell'
@@ -17,6 +18,7 @@ function ConversationLayoutInner() {
       // library; the home page keeps its natural content height.
       sidebarSizing={id ? 'fill' : 'fit'}
       sidebarLabel={t('history.title')}
+      sidebarGlyph={<History />}
       sidebarCloseable
       sidebarClosed={!open}
       onSidebarToggle={toggle}
