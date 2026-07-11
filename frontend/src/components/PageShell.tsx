@@ -39,7 +39,7 @@ interface PageShellProps {
   sidebarSizing?: 'fit' | 'fill'
   // Accessible name for the mobile drawer toggle button and the desktop
   // bookmark tab.
-  sidebarLabel?: ReactNode
+  sidebarLabel?: string
   // Icon identifying the sidebar's content, shown on the desktop bookmark tab
   // while the sidebar is closed (the open state shows a collapse icon
   // instead). Pass when sidebarCloseable is set.
@@ -111,7 +111,7 @@ function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLab
         className={styles.drawerToggle}
         onClick={openDrawer}
         aria-expanded={drawerOpen}
-        aria-label={typeof sidebarLabel === 'string' ? sidebarLabel : undefined}
+        aria-label={sidebarLabel}
       >
         <Menu className={styles.drawerToggleGlyph} aria-hidden />
       </Button>
@@ -135,7 +135,7 @@ function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLab
                 type="button"
                 className={styles.ledgerTab}
                 onClick={onSidebarToggle}
-                aria-label={typeof sidebarLabel === 'string' ? sidebarLabel : undefined}
+                aria-label={sidebarLabel}
               >
                 {closed
                   ? <span className={styles.ledgerTabGlyph} aria-hidden>{sidebarGlyph}</span>
