@@ -50,10 +50,11 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  /* The split starts at the INNER edge of the panel border, so -30px lands the
-     30px tab's right edge exactly on top of the 1px border: the tab covers the
-     hairline (looks attached) without eating into the panel interior. */
-  left: -30px;
+  /* The split starts at the INNER edge of the panel's 1px border, so -31px
+     puts the 30px tab fully outside it, flush against the border: the hairline
+     stays visible and doubles as the tab's right edge (the tab bg and panel bg
+     are different surfaces, so covering the border would show a color seam). */
+  left: -31px;
   z-index: 10;
   width: 30px;
   /* Only the tab itself should catch clicks, not the whole strip. */
@@ -70,8 +71,8 @@
   align-items: center;
   gap: 0.15rem;
   width: 30px;
-  /* The rightmost 1px rides on top of the panel border, so give the right side
-     1px extra padding to center content in the visible 29px. */
+  /* border-right is 0 (the panel border closes the tab off), so mirror the 1px
+     left border with 1px extra right padding to keep content centered. */
   padding: 0.45rem calc(0.25rem + 1px) 0.45rem 0.25rem;
   border: 1px solid var(--color-border);
   border-right: 0;
