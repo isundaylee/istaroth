@@ -24,11 +24,11 @@ def list_loose_talk_ids_by_activity(
     grouped = collections.defaultdict[id_types.ActivityId, list[id_types.TalkId]](list)
     for entry in data_repo.load_talk_excel_config_data():
         if (
-            entry["loadType"] == _ACTIVITY_LOAD_TYPE
-            and (talk_id := entry["id"]) in available
+            entry.loadType == _ACTIVITY_LOAD_TYPE
+            and (talk_id := entry.id) in available
             and talk_id not in used_talk_ids
         ):
-            grouped[entry["questId"]].append(talk_id)
+            grouped[entry.questId].append(talk_id)
     return {activity_id: sorted(talk_ids) for activity_id, talk_ids in grouped.items()}
 
 

@@ -331,9 +331,9 @@ class TalkParser:
     ) -> dict[id_types.TalkId, id_types.DialogId]:
         """Map talkId -> initDialog for config entries with a nonzero one."""
         return {
-            entry["id"]: init_dialog
+            entry.id: init_dialog
             for entry in talk_excel_data
-            if (init_dialog := entry["initDialog"])
+            if (init_dialog := entry.initDialog)
         }
 
     def _resolve_talk_candidates(

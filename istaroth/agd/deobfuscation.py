@@ -5,6 +5,12 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
+# Current build's obfuscated key for the DialogExcelConfigData dialog id (its
+# other consumed text fields ship cleartext). agd_types.DialogExcelConfigDataItem
+# decodes through this rename, so bump it when the key rotates in a new build —
+# a stale value fails loudly as a missing required field.
+DIALOG_EXCEL_ID_KEY = "GFLDJMJKIKE"
+
 # Global field mappings - union of all mappings used across different data types.
 # NOTE: when adding current-build mappings here, extend
 # tests/test_deobfuscation.py to cover them.
@@ -153,7 +159,7 @@ _COMMON_FIELD_MAPPINGS = {
     # END node: the ending/save-point id.
     "AOOCCGGPPAI": "savePointId",
     # DialogExcelConfigData dialog id (its other text fields are already cleartext).
-    "GFLDJMJKIKE": "id",
+    DIALOG_EXCEL_ID_KEY: "id",
     # CNRELWin6.7.0_R45768959_S45393582_D45767575. Some Talk/Npc files still use
     # the reshuffled Quest-family dialog schema below (mixed with older-scheme
     # files in the same directory); NpcGroup's own talks-item schema, Coop, and
@@ -369,17 +375,6 @@ def _deobfuscate_coop_story(story: dict[str, Any]) -> dict[str, Any]:
         for node_id, node in deobfuscated["coopMap"].items()
     }
     return deobfuscated
-
-
-def deobfuscate_dialog_excel_config_data(
-    data: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    """De-obfuscate DialogExcelConfigData JSON by renaming obfuscated field names.
-
-    Exposes the dialog id (the rotating obfuscated key) as ``id``; the dialog's
-    text fields ship cleartext already.
-    """
-    return _process_array_items(data)
 
 
 def deobfuscate_anecdote_excel_config_data(

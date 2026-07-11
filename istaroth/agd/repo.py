@@ -13,6 +13,7 @@ import time
 from typing import Any, Callable, Iterable, TypeVar, cast
 
 import attrs
+import msgspec
 
 from istaroth import caching, json_utils, text_cleanup
 from istaroth.agd import (
@@ -85,7 +86,7 @@ class TalkTracker(
         talk_excel_data: agd_types.TalkExcelConfigData,
         talk_file_mapping: dict[id_types.TalkId, str],
     ) -> None:
-        super().__init__({talk["id"]: talk for talk in talk_excel_data})
+        super().__init__({talk.id: talk for talk in talk_excel_data})
         self._talk_file_mapping = talk_file_mapping
 
     def get_talk_file_path(self, talk_id: id_types.TalkId) -> str | None:
@@ -478,11 +479,10 @@ class DataRepo:
 
     @caching.threadsafe_cache
     def load_dialog_excel_config_data(self) -> agd_types.DialogExcelConfigData:
-        """Load Dialog Excel configuration data."""
-        raw_data: list[dict[str, Any]] = self._load_excel("DialogExcelConfigData.json")
-        return cast(
-            agd_types.DialogExcelConfigData,
-            deobfuscation.deobfuscate_dialog_excel_config_data(raw_data),
+        """Load Dialog Excel configuration data (partial typed decode)."""
+        return msgspec.json.decode(
+            self._read_bytes("ExcelBinOutput/DialogExcelConfigData.json"),
+            type=list[agd_types.DialogExcelConfigDataItem],
         )
 
     @caching.threadsafe_cache
@@ -736,8 +736,8 @@ class DataRepo:
         """questId -> its ``TALK_STORYBOARD`` talk ids, sorted."""
         mapping: dict[id_types.QuestId, list[id_types.TalkId]] = {}
         for entry in self.load_talk_excel_config_data():
-            if entry["loadType"] == "TALK_STORYBOARD":
-                mapping.setdefault(entry["questId"], []).append(entry["id"])
+            if entry.loadType == "TALK_STORYBOARD":
+                mapping.setdefault(entry.questId, []).append(entry.id)
         return {quest_id: sorted(ids) for quest_id, ids in mapping.items()}
 
     @caching.threadsafe_cache
@@ -842,7 +842,7 @@ class DataRepo:
     ) -> dict[id_types.DialogId, id_types.TextMapHash]:
         """Dialog id -> talkContentTextMapHash, for resolving Coop choice prompts."""
         return {
-            dialog_item["id"]: dialog_item["talkContentTextMapHash"]
+            dialog_item.id: dialog_item.talkContentTextMapHash
             for dialog_item in self.load_dialog_excel_config_data()
         }
 
@@ -913,9 +913,9 @@ class DataRepo:
         a strict superset with no disagreements, so it is the single source.
         """
         return {
-            talk_item["id"]: talk_item["questId"]
+            talk_item.id: talk_item.questId
             for talk_item in self.load_talk_excel_config_data()
-            if talk_item["questId"]
+            if talk_item.questId
         }
 
     @_warm_for_workers
@@ -1006,32 +1006,32 @@ class DataRepo:
             ]:
                 future.result()
 
+    def talk_excel_file_names(self) -> list[str]:
+        """This build's talk Excel filenames (split files, else the single legacy file)."""
+        names = self._list_file_names("ExcelBinOutput")
+        if split_names := sorted(
+            name
+            for name in names
+            if name.startswith("TalkExcelConfigData_") and name.endswith(".json")
+        ):
+            return split_names
+        if "TalkExcelConfigData.json" in names:
+            return ["TalkExcelConfigData.json"]
+        raise FileNotFoundError(
+            "TalkExcelConfigData.json or TalkExcelConfigData_*.json not found"
+        )
+
     @caching.threadsafe_cache
     def load_talk_excel_config_data(self) -> agd_types.TalkExcelConfigData:
-        """Load and return the raw talk Excel configuration data."""
-
-        def _load_talk_file(filename: str) -> agd_types.TalkExcelConfigData:
-            data = self._load_excel(filename)
-            assert isinstance(data, list), filename
-            return data
-
-        split_names = sorted(
-            name
-            for name in self._list_file_names("ExcelBinOutput")
-            if name.startswith("TalkExcelConfigData_") and name.endswith(".json")
-        )
-        if split_names:
-            data = []
-            for name in split_names:
-                data.extend(_load_talk_file(name))
-            return data
-
-        try:
-            return _load_talk_file("TalkExcelConfigData.json")
-        except FileNotFoundError:
-            raise FileNotFoundError(
-                "TalkExcelConfigData.json or TalkExcelConfigData_*.json not found"
+        """Load talk Excel configuration data (partial typed decode)."""
+        return [
+            item
+            for name in self.talk_excel_file_names()
+            for item in msgspec.json.decode(
+                self._read_bytes(f"ExcelBinOutput/{name}"),
+                type=list[agd_types.TalkExcelConfigDataItem],
             )
+        ]
 
     @caching.threadsafe_cache
     def build_talk_tracker(self) -> TalkTracker:
@@ -1311,15 +1311,10 @@ class DataRepo:
         self,
     ) -> dict[id_types.DialogId, id_types.TextMapHash]:
         """Get cached mapping from dialog ID to talkRoleNameTextMapHash."""
-        dialog_data = self.load_dialog_excel_config_data()
-
-        dialog_id_to_role_hash: dict[id_types.DialogId, id_types.TextMapHash] = {}
-        for dialog_item in dialog_data:
-            dialog_id = dialog_item["id"]
-            role_name_hash = dialog_item["talkRoleNameTextMapHash"]
-            dialog_id_to_role_hash[dialog_id] = role_name_hash
-
-        return dialog_id_to_role_hash
+        return {
+            dialog_item.id: dialog_item.talkRoleNameTextMapHash
+            for dialog_item in self.load_dialog_excel_config_data()
+        }
 
     @caching.threadsafe_cache
     def load_reliquary_set_excel_config_data(

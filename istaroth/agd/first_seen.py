@@ -186,7 +186,9 @@ def scan_snapshot(*, data_repo: repo.DataRepo) -> dict[SourceDomain, set[int | s
         for domain, (filename, id_key) in _EXCEL_DOMAINS.items()
     }
     present[SourceDomain.TALK] = {
-        _row_id(dict(row), "id") for row in data_repo.load_talk_excel_config_data()
+        _row_id(row, "id")
+        for name in data_repo.talk_excel_file_names()
+        for row in data_repo.load_excel_raw(name)
     }
     readable_names = data_repo.list_readable_filenames()
     if not readable_names:
