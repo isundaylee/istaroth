@@ -11,12 +11,12 @@ alongside the corpus regenerations they stamp).
 from __future__ import annotations
 
 import enum
-import json
 import pathlib
 from typing import Any, Iterable
 
 import attrs
 
+from istaroth import json_utils
 from istaroth.agd import repo
 
 DATA_DIR = pathlib.Path(__file__).parent.parent.parent / "text" / "first_seen"
@@ -119,7 +119,7 @@ class FirstSeenIndex:
             domain: {} for domain in SourceDomain
         }
         for path in delta_paths:
-            data = json.loads(path.read_bytes())
+            data = json_utils.loads(path.read_bytes())
             version = data["version"]
             if version != path.stem:
                 raise ValueError(

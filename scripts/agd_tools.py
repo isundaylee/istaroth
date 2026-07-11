@@ -358,6 +358,13 @@ def generate_all(
         )
         sys.exit(1)
 
+    # Disable gc: collection passes would repeatedly traverse the huge shared
+    # caches without ever reclaiming them, adding pauses for nothing. Disabled
+    # before any data loading (not just the worker loop) — decoding the text
+    # maps and precompute allocate heavily too. This is a short-lived batch
+    # process, so leaked cycles are reclaimed at exit anyway.
+    gc.disable()
+
     try:
         data_repo = _get_data_repo_from_env()
     except ValueError as e:
@@ -458,12 +465,6 @@ def generate_all(
     with parent_scope:
         # Pre-compute expensive mappings before the worker threads start
         data_repo.precompute_for_workers(max_workers=worker_count)
-
-        # Disable gc: collection passes would repeatedly traverse the huge shared
-        # caches without ever reclaiming them, adding pauses for nothing. This is
-        # a short-lived batch process, so leaked cycles are reclaimed at exit
-        # anyway.
-        gc.disable()
 
         # Open errors file for writing
         errors_file_path = stats_dir / "errors.info"
