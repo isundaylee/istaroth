@@ -22,6 +22,18 @@ _REALNAME_MAP: dict[int, dict[localization.Language, str]] = {
 }
 _REALNAME_PATTERN = re.compile(r"#\{REALNAME\[ID\((\d+)\)[^\]]*\]\}")
 
+# Precompiled hot-path markers: clean_text_markers runs for every text-map
+# lookup, and module-level re.sub() re-resolves its pattern through the shared
+# re._compile cache on each call, which contends badly across worker threads on
+# the free-threaded build.
+_NICKNAME_PATTERN = re.compile(r"\{NICKNAME\}")
+_GENDER_BRANCH_PATTERN = re.compile(r"\{M#([^}]+)\}\{F#[^}]+\}")
+_CENTER_PATTERN = re.compile(r"<center>(.*?)</center>", flags=re.DOTALL)
+_RIGHT_PATTERN = re.compile(r"<right>(.*?)</right>", flags=re.DOTALL)
+_ITALIC_PATTERN = re.compile(r"<i>(.*?)</i>", flags=re.DOTALL | re.IGNORECASE)
+_COLOR_PATTERN = re.compile(r"<color=#[0-9A-Fa-f]{6,8}>([^<]*)</color>")
+_IMAGE_PATTERN = re.compile(r"<image name=[^>]*/>\n?")
+
 
 def resolve_sexpro(text: str, resolve_token: Callable[[str], str]) -> str:
     """Replace SEXPRO placeholders with their first (male-player) branch's text.
@@ -31,6 +43,11 @@ def resolve_sexpro(text: str, resolve_token: Callable[[str], str]) -> str:
     ``clean_text_markers`` so a branch that itself carries a nested gender macro
     (e.g. INFO_MALE_PRONOUN_BROANDSIS) is then handled by its ``{M#...}{F#...}`` pass.
     """
+    # Substring guard: most texts carry no markers, and on the free-threaded
+    # build a Pattern.sub call contends on shared re-module caches even when
+    # nothing matches, so skip the regex unless its marker can be present.
+    if "#SEXPRO[" not in text:
+        return text
     return _SEXPRO_PATTERN.sub(lambda m: resolve_token(m.group(1)), text)
 
 
@@ -49,31 +66,44 @@ def clean_text_markers(text: str, language: localization.Language) -> str:
     # Replace escape sequences
     text = text.replace("\\n", "\n")
 
+    # Each regex below runs behind a substring guard on a fragment every match
+    # must contain: most texts carry no markers, and on the free-threaded build
+    # a Pattern.sub call contends on shared re-module caches even when nothing
+    # matches, so the guards keep the common case regex-free.
+
     # Replace {NICKNAME} with appropriate traveler name
-    text = re.sub(r"\{NICKNAME\}", localized_names.player, text)
+    if "{NICKNAME}" in text:
+        text = _NICKNAME_PATTERN.sub(localized_names.player, text)
 
     # Replace {M#option1}{F#option2} with M option
-    text = re.sub(r"\{M#([^}]+)\}\{F#[^}]+\}", r"\1", text)
+    if "{M#" in text:
+        text = _GENDER_BRANCH_PATTERN.sub(r"\1", text)
 
     # Replace #{REALNAME[ID(n)|...]} with the hardcoded character name (raises
     # on an unmapped ID so new characters surface instead of silently leaking).
-    text = _REALNAME_PATTERN.sub(
-        lambda m: _REALNAME_MAP[int(m.group(1))][language], text
-    )
+    if "#{REALNAME[" in text:
+        text = _REALNAME_PATTERN.sub(
+            lambda m: _REALNAME_MAP[int(m.group(1))][language], text
+        )
 
     # Strip <center>/<right> structural wrappers, keeping their content
-    text = re.sub(r"<center>(.*?)</center>", r"\1", text, flags=re.DOTALL)
-    text = re.sub(r"<right>(.*?)</right>", r"\1", text, flags=re.DOTALL)
+    if "<center>" in text:
+        text = _CENTER_PATTERN.sub(r"\1", text)
+    if "<right>" in text:
+        text = _RIGHT_PATTERN.sub(r"\1", text)
 
     # Replace <i>content</i> with markdown emphasis; run before <color> below since
     # a few lines nest <i> inside <color> and <color>'s content class excludes "<"
-    text = re.sub(r"<i>(.*?)</i>", r"*\1*", text, flags=re.DOTALL | re.IGNORECASE)
+    if "<i>" in text or "<I>" in text:
+        text = _ITALIC_PATTERN.sub(r"*\1*", text)
 
     # Replace <color=#RRGGBB[AA]>content</color> with markdown emphasis (6-8 hex
     # digits: the corpus has RGB, RGBA, and a handful of truncated 7-digit values)
-    text = re.sub(r"<color=#[0-9A-Fa-f]{6,8}>([^<]*)</color>", r"*\1*", text)
+    if "<color=#" in text:
+        text = _COLOR_PATTERN.sub(r"*\1*", text)
 
     # Drop standalone <image name=.../> placeholders (always alone on their line)
-    text = re.sub(r"<image name=[^>]*/>\n?", "", text)
+    if "<image name=" in text:
+        text = _IMAGE_PATTERN.sub("", text)
 
     return text

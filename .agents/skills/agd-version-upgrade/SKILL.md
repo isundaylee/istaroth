@@ -36,8 +36,8 @@ lacks a hash.
    directory for both languages:
 
    ```bash
-   AGD_PATH=<AGD> uv run scripts/agd_tools.py generate-all -f --only agd_quest /tmp/audit_chs
-   AGD_PATH=<AGD> AGD_LANGUAGE=ENG uv run scripts/agd_tools.py generate-all -f --only agd_quest /tmp/audit_eng
+   AGD_PATH=<AGD> uv run --isolated --python 3.14t --only-group regen scripts/agd_tools.py generate-all -f --only agd_quest /tmp/audit_chs
+   AGD_PATH=<AGD> AGD_LANGUAGE=ENG uv run --isolated --python 3.14t --only-group regen scripts/agd_tools.py generate-all -f --only agd_quest /tmp/audit_eng
    ```
 
 2. Count unique missing hashes and compare against the pre-upgrade corpus

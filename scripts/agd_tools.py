@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """AGD tools for processing and rendering game content."""
 
-import functools
+import concurrent.futures
 import gc
 import logging
-import multiprocessing
-import multiprocessing.pool
 import os
 import pathlib
 import random
@@ -22,7 +20,7 @@ from tqdm import tqdm
 # Add the parent directory to Python path to find istaroth module
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
-from istaroth import json_utils
+from istaroth import caching, json_utils
 from istaroth.agd import (
     coop_hierarchy,
     first_seen,
@@ -122,12 +120,12 @@ class _ErrorLimitError(Exception):
         )
 
 
-@functools.cache
+@caching.threadsafe_cache
 def _get_data_repo_from_env() -> repo.DataRepo:
     return repo.DataRepo.from_env()
 
 
-@functools.cache
+@caching.threadsafe_cache
 def _get_first_seen_index() -> first_seen.FirstSeenIndex:
     return first_seen.FirstSeenIndex.load()
 
@@ -169,7 +167,8 @@ def _generate_content(
     output_dir: pathlib.Path,
     *,
     data_repo: repo.DataRepo,
-    pool: multiprocessing.pool.Pool,
+    executor: concurrent.futures.ThreadPoolExecutor,
+    workers: int,
     errors_file: TextIO | None = None,
     sample_rate: float = 1.0,
     strict: bool = False,
@@ -197,7 +196,7 @@ def _generate_content(
             f"Sampling {len(renderable_keys)} of {original_count} items ({sample_rate:.1%})"
         )
 
-    # Prepare arguments for multiprocessing
+    # Prepare arguments for the worker threads
     process_args = [(key, renderable_type, strict) for key in renderable_keys]
 
     # Track used paths to detect collisions
@@ -208,10 +207,14 @@ def _generate_content(
         if errors_file:
             errors_file.write(message + "\n")
 
-    # Use the provided multiprocessing pool
-    # Process with progress bar
+    # Process with progress bar. Results are consumed in submission order on
+    # this thread, so the stats/manifest/file writes need no locking; buffersize
+    # caps in-flight submissions so the early-exit raises below don't leave
+    # thousands of queued tasks behind.
     with tqdm(total=len(process_args), desc=type(renderable_type).__name__) as pbar:
-        for result in pool.imap(_process_single_item, process_args):
+        for result in executor.map(
+            _process_single_item, process_args, buffersize=4 * workers
+        ):
             pbar.update(1)
 
             # Collect accessed text map IDs regardless of success/failure
@@ -310,10 +313,10 @@ def cli() -> None:
     help="Generate only specific content type",
 )
 @click.option(
-    "--processes",
+    "--workers",
     "-j",
     type=int,
-    help="Number of parallel processes (default: CPU count)",
+    help="Number of parallel worker threads (default: CPU count)",
 )
 @click.option(
     "--sample-rate",
@@ -335,7 +338,7 @@ def generate_all(
     output_dir: pathlib.Path,
     force: bool,
     only: str | None,
-    processes: int | None,
+    workers: int | None,
     sample_rate: float,
     strict: bool,
     allow_errors: bool,
@@ -346,14 +349,25 @@ def generate_all(
         click.echo("Error: sample-rate must be between 0.0 and 1.0", err=True)
         sys.exit(1)
 
+    if sys._is_gil_enabled():
+        click.echo(
+            "Error: the GIL is enabled, so worker threads would serialize "
+            "CPU-bound work; run on a free-threaded interpreter (e.g. "
+            "uv run --isolated --python 3.14t --only-group regen).",
+            err=True,
+        )
+        sys.exit(1)
+
     try:
-        data_repo = repo.DataRepo.from_env()
+        data_repo = _get_data_repo_from_env()
     except ValueError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
-    # Load the first-seen index before the pool forks so workers inherit it.
+    # Load the first-seen index before the worker threads start so they share it.
     _get_first_seen_index()
+
+    worker_count = workers if workers is not None else (os.cpu_count() or 1)
 
     # Create output directory, deleting only AGD-owned content on --force
     # to avoid wiping unrelated folders (e.g. tps_shishu).
@@ -403,7 +417,8 @@ def generate_all(
             renderable,
             output_dir,
             data_repo=data_repo,
-            pool=pool,
+            executor=executor,
+            workers=worker_count,
             errors_file=errors_file,
             sample_rate=sample_rate,
             strict=strict,
@@ -428,9 +443,9 @@ def generate_all(
     def should_generate(category: text_types.TextCategory) -> bool:
         return only_category is None or only_category == category
 
-    # Set up multiprocessing pool to reuse across all content generation
-    if processes is None:
-        processes = multiprocessing.cpu_count()
+    # Warm the expensive tracker build chains before the run-level scope is
+    # constructed (its construction would otherwise compute them serially).
+    data_repo.precompute_scope_trackers()
 
     # Parent-side accesses (precomputed mappings like npc id -> name, discovery)
     # also feed rendered output, so a run-level scope collects them for the usage
@@ -441,34 +456,37 @@ def generate_all(
     )
 
     with parent_scope:
-        # Pre-compute expensive mappings in parent process for inheritance via fork
-        data_repo.precompute_for_fork()
+        # Pre-compute expensive mappings before the worker threads start
+        data_repo.precompute_for_workers(max_workers=worker_count)
 
-        # Disable gc before forking: the setting is inherited by workers, so no worker
-        # pays gc-pause overhead, and gc never traverses the huge inherited caches —
-        # which would otherwise dirty copy-on-write pages and inflate memory. This is a
-        # short-lived batch process, so leaked cycles are reclaimed at exit anyway.
+        # Disable gc: collection passes would repeatedly traverse the huge shared
+        # caches without ever reclaiming them, adding pauses for nothing. This is
+        # a short-lived batch process, so leaked cycles are reclaimed at exit
+        # anyway.
         gc.disable()
-
-        # Explicitly set start method to 'fork' to ensure child processes inherit
-        # the pre-computed mapping from parent memory
-        multiprocessing.set_start_method("fork", force=True)
 
         # Open errors file for writing
         errors_file_path = stats_dir / "errors.info"
         with (
             errors_file_path.open("w", encoding="utf-8") as errors_file,
-            multiprocessing.Pool(processes=processes) as pool,
+            concurrent.futures.ThreadPoolExecutor(max_workers=worker_count) as executor,
         ):
             # Each renderable knows its own category and how to build itself; the
             # trailing Readables/Talks passes read the tracker stats accumulated so
             # far to skip ids the earlier passes already claimed.
-            for renderable_type in renderable_types.ALL_RENDERABLE_TYPES:
-                if not should_generate(renderable_type.text_category):
-                    continue
-                process_content_type(
-                    renderable_type.create_for_generation(all_tracker_stats)
-                )
+            try:
+                for renderable_type in renderable_types.ALL_RENDERABLE_TYPES:
+                    if not should_generate(renderable_type.text_category):
+                        continue
+                    process_content_type(
+                        renderable_type.create_for_generation(all_tracker_stats)
+                    )
+            except BaseException:
+                # Abandoning an executor.map iterator leaves up to buffersize
+                # submissions in flight; cancel the queued ones so abort paths
+                # don't keep rendering after the run is already failed.
+                executor.shutdown(wait=True, cancel_futures=True)
+                raise
 
     all_tracker_stats.update(tracking.TrackerStats(parent_scope.accessed_ids))
 
@@ -586,7 +604,7 @@ def generate_all(
             err=True,
         )
 
-    # Skip interpreter teardown: with gc disabled and the large forked caches still
+    # Skip interpreter teardown: with gc disabled and the large shared caches still
     # alive, normal shutdown wastes seconds finalizing objects we're about to
     # discard. Flush first since os._exit bypasses atexit and buffer flushing.
     sys.stdout.flush()

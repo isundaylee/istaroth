@@ -2,18 +2,20 @@
 
 from __future__ import annotations
 
-import functools
+import concurrent.futures
+import contextvars
 import itertools
 import json
 import logging
 import os
 import pathlib
 import subprocess
+import time
 from typing import Any, Callable, Iterable, TypeVar, cast
 
 import attrs
 
-from istaroth import text_cleanup
+from istaroth import caching, text_cleanup
 from istaroth.agd import (
     agd_types,
     coop_graph,
@@ -30,22 +32,22 @@ _K = TypeVar("_K")
 _T = TypeVar("_T")
 _CachedMethodT = TypeVar("_CachedMethodT", bound=Callable[..., Any])
 
-# Names of the DataRepo methods marked with @_warm_on_fork, in class-definition
-# order; precompute_for_fork warms each so forked workers inherit the caches.
-_FORK_WARM_METHOD_NAMES: list[str] = []
+# Names of the DataRepo methods marked with @_warm_for_workers, in class-definition
+# order; precompute_for_workers warms each so worker threads share the caches.
+_WORKER_WARM_METHOD_NAMES: list[str] = []
 
 
-def _warm_on_fork(method: _CachedMethodT) -> _CachedMethodT:
-    """``lru_cache`` a DataRepo method and register it for fork pre-warming.
+def _warm_for_workers(method: _CachedMethodT) -> _CachedMethodT:
+    """``threadsafe_cache`` a DataRepo method and register it for pre-warming.
 
-    Applies an unbounded ``lru_cache`` and records the method in
-    ``_FORK_WARM_METHOD_NAMES`` so ``precompute_for_fork`` warms it (and, through
-    that call, everything it transitively pulls). Every fork-warmed method thus
-    caches uniformly under a single decorator, and a newly added one can't
+    Applies an exactly-once cache and records the method in
+    ``_WORKER_WARM_METHOD_NAMES`` so ``precompute_for_workers`` warms it (and,
+    through that call, everything it transitively pulls). Every warmed method
+    thus caches uniformly under a single decorator, and a newly added one can't
     silently fall off a hand-maintained warm list.
     """
-    _FORK_WARM_METHOD_NAMES.append(method.__name__)
-    return cast(_CachedMethodT, functools.lru_cache(maxsize=None)(method))
+    _WORKER_WARM_METHOD_NAMES.append(method.__name__)
+    return cast(_CachedMethodT, caching.threadsafe_cache(method))
 
 
 # Ordered newest-to-oldest; earlier refs win when multiple fallbacks contain a hash.
@@ -341,18 +343,27 @@ class DataRepo:
         )  # Will raise ValueError for invalid languages
         return cls(agd_path, language=language)
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def _build_text_map_tracker_for(
         self, language: localization.Language
     ) -> TextMapTracker:
-        """Load the TextMap for a specific language, merging Medium variant if present."""
+        """Load the TextMap for a specific language, merging Medium variant if present.
+
+        The current-build parse, fallback-build loads, and pronoun-hash loads are
+        independent, and the current-build parse alone is the precompute region's
+        critical path, so the three run concurrently.
+        """
         language_short = self._language_short(language)
-        return TextMapTracker(
-            self._load_current_text_map(language_short),
-            language,
-            self._load_fallback_text_map(language_short),
-            pronoun_hashes=self._load_pronoun_hashes(),
-        )
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+            current = pool.submit(self._load_current_text_map, language_short)
+            fallback = pool.submit(self._load_fallback_text_map, language_short)
+            pronouns = pool.submit(self._load_pronoun_hashes)
+            return TextMapTracker(
+                current.result(),
+                language,
+                fallback.result(),
+                pronoun_hashes=pronouns.result(),
+            )
 
     def _load_current_text_map(self, language_short: str) -> agd_types.TextMap:
         """Load current-build TextMap, merging Medium variant if present."""
@@ -366,11 +377,15 @@ class DataRepo:
         )
         return data
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def _load_fallback_text_map(self, language_short: str) -> agd_types.TextMap:
-        """Load older-build TextMaps used for current-build misses."""
-        data: agd_types.TextMap = {}
-        for fallback_ref in _TEXT_MAP_FALLBACK_REFS:
+        """Load older-build TextMaps used for current-build misses.
+
+        The per-ref loads run concurrently; the merge stays in
+        ``_TEXT_MAP_FALLBACK_REFS`` order so earlier refs still win.
+        """
+
+        def _load_ref(fallback_ref: str) -> agd_types.TextMap:
             ref_data: agd_types.TextMap = {}
             medium = self._git_show_text_map(
                 fallback_ref, f"TextMap_Medium{language_short}.json", required=False
@@ -382,11 +397,18 @@ class DataRepo:
             )
             assert required_text_map is not None
             ref_data.update(required_text_map)
-            for key, value in ref_data.items():
-                data.setdefault(key, value)
+            return ref_data
+
+        data: agd_types.TextMap = {}
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=len(_TEXT_MAP_FALLBACK_REFS)
+        ) as pool:
+            for ref_data in pool.map(_load_ref, _TEXT_MAP_FALLBACK_REFS):
+                for key, value in ref_data.items():
+                    data.setdefault(key, value)
         return data
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def _load_pronoun_hashes(self) -> dict[str, id_types.TextMapHash]:
         """Map SEXPRO ``INFO_*_PRONOUN_*`` tokens to their TextMap hashes.
 
@@ -433,12 +455,12 @@ class DataRepo:
                 raise
             return None
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_text_map_tracker(self) -> TextMapTracker:
         """Load TextMap for the instance's language, merging Medium variant if present."""
         return self._build_text_map_tracker_for(self.language)
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_source_text_map_tracker(self) -> TextMapTracker:
         """Load the CHS (source) TextMap regardless of the instance's language.
 
@@ -448,12 +470,12 @@ class DataRepo:
         """
         return self._build_text_map_tracker_for(localization.Language.CHS)
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_npc_excel_config_data(self) -> agd_types.NpcExcelConfigData:
         """Load NPC Excel configuration data."""
         return self._load_excel("NpcExcelConfigData.json")
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_dialog_excel_config_data(self) -> agd_types.DialogExcelConfigData:
         """Load Dialog Excel configuration data."""
         raw_data: list[dict[str, Any]] = self._load_excel("DialogExcelConfigData.json")
@@ -462,14 +484,14 @@ class DataRepo:
             deobfuscation.deobfuscate_dialog_excel_config_data(raw_data),
         )
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_localization_excel_config_data(
         self,
     ) -> agd_types.LocalizationExcelConfigData:
         """Load localization Excel configuration data."""
         return self._load_excel("LocalizationExcelConfigData.json")
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_document_excel_config_data(
         self,
     ) -> dict[id_types.DocumentId, agd_types.DocumentExcelConfigDataItem]:
@@ -485,7 +507,7 @@ class DataRepo:
             data, lambda doc_item: doc_item["id"], duplicate_name="document ID"
         )
 
-    @_warm_on_fork
+    @_warm_for_workers
     def _build_readable_localization_maps(
         self,
     ) -> tuple[
@@ -527,7 +549,7 @@ class DataRepo:
         """Map a localization id to its readable filename for the instance language."""
         return self._build_readable_localization_maps()[1]
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_localization_id_to_title_hash_mapping(
         self,
     ) -> dict[id_types.LocalizationId, id_types.TextMapHash]:
@@ -546,7 +568,7 @@ class DataRepo:
                 mapping.setdefault(loc_id, doc_item["titleTextMapHash"])
         return mapping
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_book_suit_excel_config_data(
         self,
     ) -> dict[id_types.BookSuitId, agd_types.BookSuitExcelConfigDataItem]:
@@ -557,12 +579,12 @@ class DataRepo:
             duplicate_name="book suit ID",
         )
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_books_codex_excel_config_data(self) -> agd_types.BooksCodexExcelConfigData:
         """Load BooksCodexExcelConfigData.json."""
         return self._load_excel("BooksCodexExcelConfigData.json")
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_book_series_mapping(
         self,
     ) -> dict[id_types.BookSuitId, list[id_types.ReadableFilename]]:
@@ -629,26 +651,26 @@ class DataRepo:
             if len(filenames) >= 2
         }
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def build_material_tracker(self) -> MaterialTracker:
         """Load material Excel configuration data as MaterialTracker."""
         return MaterialTracker(self._load_excel("MaterialExcelConfigData.json"))
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_achievement_excel_config_data(
         self,
     ) -> agd_types.AchievementExcelConfigData:
         """Load AchievementExcelConfigData.json."""
         return self._load_excel("AchievementExcelConfigData.json")
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_achievement_goal_excel_config_data(
         self,
     ) -> agd_types.AchievementGoalExcelConfigData:
         """Load AchievementGoalExcelConfigData.json."""
         return self._load_excel("AchievementGoalExcelConfigData.json")
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_achievement_section_mapping(
         self,
     ) -> dict[
@@ -680,18 +702,18 @@ class DataRepo:
             )
         return mapping
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_talk_group_mapping(
         self,
     ) -> dict[tuple[talk_parsing.TalkGroupType, talk_parsing.TalkGroupId], str]:
         return self._get_talk_parser().talk_group_id_to_path
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def build_free_group_mapping(self) -> dict[id_types.QuestId, list[str]]:
         """questId -> FreeGroup talk file paths attached by the id heuristic."""
         return self._get_talk_parser().free_group_quest_to_paths
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_anecdote_excel_config_data(
         self,
     ) -> dict[id_types.AnecdoteId, agd_types.AnecdoteExcelConfigDataItem]:
@@ -706,7 +728,7 @@ class DataRepo:
             data, lambda item: item["id"], duplicate_name="anecdote ID"
         )
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def build_storyboard_quest_to_talk_ids_mapping(
         self,
     ) -> dict[id_types.QuestId, list[id_types.TalkId]]:
@@ -717,14 +739,14 @@ class DataRepo:
                 mapping.setdefault(entry["questId"], []).append(entry["id"])
         return {quest_id: sorted(ids) for quest_id, ids in mapping.items()}
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_blossom_talk_excel_config_data(
         self,
     ) -> agd_types.BlossomTalkExcelConfigData:
         """Load BlossomTalkExcelConfigData.json (cleartext)."""
         return self._load_excel("BlossomTalkExcelConfigData.json")
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_blossom_refresh_excel_config_data(
         self,
     ) -> dict[id_types.BlossomRefreshId, agd_types.BlossomRefreshExcelConfigDataItem]:
@@ -738,7 +760,7 @@ class DataRepo:
             duplicate_name="blossom refresh ID",
         )
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_city_config_data(
         self,
     ) -> dict[id_types.CityId, agd_types.CityConfigDataItem]:
@@ -749,26 +771,26 @@ class DataRepo:
             duplicate_name="city ID",
         )
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_coop_interaction_excel_config_data(
         self,
     ) -> agd_types.CoopInteractionExcelConfigData:
         """Load CoopInteractionExcelConfigData.json (cleartext)."""
         return self._load_excel("CoopInteractionExcelConfigData.json")
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_coop_chapter_excel_config_data(
         self,
     ) -> agd_types.CoopChapterExcelConfigData:
         """Load CoopChapterExcelConfigData.json (cleartext)."""
         return self._load_excel("CoopChapterExcelConfigData.json")
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def build_coop_story_mapping(self) -> dict[id_types.CoopStoryId, list[str]]:
         """coopStoryId -> its Coop talk file paths, sorted by local talk id."""
         return self._get_talk_parser().coop_story_to_paths
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_coop_story_graph_mapping(
         self,
     ) -> dict[id_types.CoopStoryId, coop_graph.CoopStoryGraph]:
@@ -781,7 +803,7 @@ class DataRepo:
                 graphs[story["id"]] = coop_graph.build_story_graph(story)
         return graphs
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_hangout_quest_to_stories_mapping(
         self,
     ) -> dict[id_types.QuestId, list[id_types.CoopStoryId]]:
@@ -793,7 +815,7 @@ class DataRepo:
                 mapping.setdefault(entry["mainQuestId"], []).append(coop_story_id)
         return {quest_id: sorted(stories) for quest_id, stories in mapping.items()}
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_coop_chapter_to_avatar_mapping(
         self,
     ) -> dict[id_types.ChapterId, id_types.AvatarId]:
@@ -803,7 +825,7 @@ class DataRepo:
             for chapter in self.load_coop_chapter_excel_config_data()
         }
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_avatar_id_to_name_mapping(self) -> dict[id_types.AvatarId, str]:
         """Avatar id -> localized character name (only avatars whose name resolves)."""
         text_map = self.build_text_map_tracker()
@@ -813,7 +835,7 @@ class DataRepo:
             if (name := text_map.get_optional(avatar["nameTextMapHash"])) is not None
         }
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_dialog_id_to_content_hash_mapping(
         self,
     ) -> dict[id_types.DialogId, id_types.TextMapHash]:
@@ -823,7 +845,7 @@ class DataRepo:
             for dialog_item in self.load_dialog_excel_config_data()
         }
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_quest_mapping(self) -> dict[id_types.QuestId, str]:
         """Build a mapping from quest ID to BinOutput/Quest file path.
 
@@ -832,7 +854,14 @@ class DataRepo:
         """
         quest_id_to_path: dict[id_types.QuestId, str] = {}
 
-        for json_file in (self.agd_path / "BinOutput" / "Quest").glob("*.json"):
+        quest_files = list((self.agd_path / "BinOutput" / "Quest").glob("*.json"))
+        # Parse in parallel up front; the serial loop below then hits the cache,
+        # keeping duplicate-resolution decisions in the original scan order.
+        caching.warm_concurrently(
+            self.load_quest_data,
+            [f.relative_to(self.agd_path).as_posix() for f in quest_files],
+        )
+        for json_file in quest_files:
             relative_path_str = json_file.relative_to(self.agd_path).as_posix()
             quest_data = self.load_quest_data(relative_path_str)
             assert isinstance(quest_data, dict), relative_path_str
@@ -860,12 +889,12 @@ class DataRepo:
 
         return quest_id_to_path
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_quest_excel_config_data(self) -> agd_types.QuestExcelConfigData:
         """Load the sub-quest master table."""
         return self._load_excel("QuestExcelConfigData.json")
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_sub_quest_to_main_quest_mapping(
         self,
     ) -> dict[id_types.SubQuestId, id_types.QuestId]:
@@ -875,7 +904,7 @@ class DataRepo:
             for quest in self.load_quest_excel_config_data()
         }
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_talk_to_quest_mapping(self) -> dict[id_types.TalkId, id_types.QuestId]:
         """Talk id -> owning quest id (``TalkExcelConfigData.questId``).
 
@@ -888,7 +917,7 @@ class DataRepo:
             if talk_item["questId"]
         }
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_subtitle_stem_to_cutscene_ids_mapping(
         self,
     ) -> dict[str, list[id_types.CutsceneId]]:
@@ -942,24 +971,41 @@ class DataRepo:
                         mapping.setdefault(stem, set()).add(cutscene_id)
         return {stem: sorted(ids) for stem, ids in mapping.items()}
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def _get_talk_parser(self) -> talk_parsing.TalkParser:
         return talk_parsing.TalkParser(self, self.load_talk_excel_config_data())
 
-    def precompute_for_fork(self) -> None:
-        """Pre-compute expensive mappings in parent process for inheritance via fork.
+    def precompute_for_workers(self, *, max_workers: int) -> None:
+        """Front-load every shared cache before worker threads start.
 
-        This method should be called in the parent process before creating
-        multiprocessing pools with fork start method to ensure child processes
-        inherit the cached results. Warms every method marked with
-        ``@_warm_on_fork`` (which transitively warms the loaders/parsers each one
-        depends on), so adding a new fork-warmed method only requires the
-        decorator, not a matching line here.
+        Warms every method marked with ``@_warm_for_workers`` (which transitively
+        warms the loaders/parsers each one depends on), so adding a new warmed
+        method only requires the decorator, not a matching line here. With
+        exactly-once caching this is not needed for correctness; it exists so
+        the precompute-time tracker accesses (npc name hashes etc.) land in the
+        caller's run-level scope before the item passes start, instead of being
+        attributed to whichever item happens to touch a cold cache first.
+
+        The warm methods run concurrently; shared sub-loaders dedupe through the
+        exactly-once cache, so the region costs its critical path. Each method is
+        submitted through ``contextvars.copy_context()`` because pool threads do
+        not inherit the caller's context, and without the active TrackingScope
+        the warm-time accesses would be dropped from the usage stats.
         """
-        for method_name in _FORK_WARM_METHOD_NAMES:
-            getattr(self, method_name)()
 
-    @functools.lru_cache(maxsize=None)
+        def _warm(method_name: str) -> None:
+            start = time.perf_counter()
+            getattr(self, method_name)()
+            logger.debug("Warmed %s in %.2fs", method_name, time.perf_counter() - start)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as pool:
+            for future in [
+                pool.submit(contextvars.copy_context().run, _warm, name)
+                for name in _WORKER_WARM_METHOD_NAMES
+            ]:
+                future.result()
+
+    @caching.threadsafe_cache
     def load_talk_excel_config_data(self) -> agd_types.TalkExcelConfigData:
         """Load and return the raw talk Excel configuration data."""
 
@@ -986,7 +1032,7 @@ class DataRepo:
                 "TalkExcelConfigData.json or TalkExcelConfigData_*.json not found"
             )
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def build_talk_tracker(self) -> TalkTracker:
         """Build the access-tracking TalkTracker with resolved talk file paths."""
         return TalkTracker(
@@ -994,7 +1040,7 @@ class DataRepo:
             self._get_talk_parser().talk_id_to_path,
         )
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_talk_data(self, talk_file: str) -> agd_types.TalkData:
         """Load talk data from specified talk file."""
         file_path = self.agd_path / talk_file
@@ -1002,7 +1048,7 @@ class DataRepo:
         data = deobfuscation.deobfuscate_talk_data(raw_data)
         return data  # type: ignore[return-value]
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_talk_group_data(self, path: str) -> dict[str, Any]:
         """Load talk group data from specified talk file."""
         file_path = self.agd_path / path
@@ -1021,7 +1067,7 @@ class DataRepo:
             data.setdefault(field, int(file_path.stem))
         return data
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_quest_data(self, quest_file: str) -> agd_types.QuestData:
         """Load quest data from specified quest file."""
         file_path = self.agd_path / quest_file
@@ -1029,12 +1075,12 @@ class DataRepo:
         data = deobfuscation.deobfuscate_quest_data(raw_data)
         return data  # type: ignore[return-value]
 
-    @_warm_on_fork
+    @_warm_for_workers
     def load_avatar_excel_config_data(self) -> agd_types.AvatarExcelConfigData:
         """Load avatar Excel configuration data."""
         return self._load_excel("AvatarExcelConfigData.json")
 
-    @_warm_on_fork
+    @_warm_for_workers
     def load_avatar_skill_depot_excel_config_data(
         self,
     ) -> dict[id_types.SkillDepotId, agd_types.AvatarSkillDepotExcelConfigDataItem]:
@@ -1045,7 +1091,7 @@ class DataRepo:
             duplicate_name="skill depot ID",
         )
 
-    @_warm_on_fork
+    @_warm_for_workers
     def load_avatar_talent_excel_config_data(
         self,
     ) -> dict[id_types.TalentId, agd_types.AvatarTalentExcelConfigDataItem]:
@@ -1056,7 +1102,7 @@ class DataRepo:
             duplicate_name="talent ID",
         )
 
-    @_warm_on_fork
+    @_warm_for_workers
     def load_avatar_skill_excel_config_data(
         self,
     ) -> dict[id_types.SkillId, agd_types.AvatarSkillExcelConfigDataItem]:
@@ -1067,19 +1113,19 @@ class DataRepo:
             duplicate_name="skill ID",
         )
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_fetter_story_excel_config_data(
         self,
     ) -> agd_types.FetterStoryExcelConfigData:
         """Load fetter story Excel configuration data."""
         return self._load_excel("FetterStoryExcelConfigData.json")
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_fetters_excel_config_data(self) -> agd_types.FettersExcelConfigData:
         """Load fetters Excel configuration data."""
         return self._load_excel("FettersExcelConfigData.json")
 
-    @_warm_on_fork
+    @_warm_for_workers
     def load_animal_codex_excel_config_data(
         self,
     ) -> dict[id_types.AnimalCodexId, agd_types.AnimalCodexExcelConfigDataItem]:
@@ -1090,7 +1136,7 @@ class DataRepo:
             duplicate_name="animal codex ID",
         )
 
-    @_warm_on_fork
+    @_warm_for_workers
     def load_monster_describe_excel_config_data(
         self,
     ) -> dict[
@@ -1103,7 +1149,7 @@ class DataRepo:
             duplicate_name="monster describe ID",
         )
 
-    @_warm_on_fork
+    @_warm_for_workers
     def load_monster_title_excel_config_data(
         self,
     ) -> dict[id_types.MonsterTitleId, agd_types.MonsterTitleExcelConfigDataItem]:
@@ -1114,14 +1160,14 @@ class DataRepo:
             duplicate_name="monster title ID",
         )
 
-    @_warm_on_fork
+    @_warm_for_workers
     def load_monster_special_name_excel_config_data(
         self,
     ) -> agd_types.MonsterSpecialNameExcelConfigData:
         """Load MonsterSpecialNameExcelConfigData.json."""
         return self._load_excel("MonsterSpecialNameExcelConfigData.json")
 
-    @_warm_on_fork
+    @_warm_for_workers
     def load_animal_describe_excel_config_data(
         self,
     ) -> dict[id_types.CreatureDescribeId, agd_types.AnimalDescribeExcelConfigDataItem]:
@@ -1132,7 +1178,7 @@ class DataRepo:
             duplicate_name="animal describe ID",
         )
 
-    @_warm_on_fork
+    @_warm_for_workers
     def load_main_quest_excel_config_data(
         self,
     ) -> dict[id_types.QuestId, agd_types.MainQuestExcelConfigDataItem]:
@@ -1143,7 +1189,7 @@ class DataRepo:
             duplicate_name="main quest ID",
         )
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_chapter_excel_config_data(
         self,
     ) -> dict[id_types.ChapterId, agd_types.ChapterExcelConfigDataItem]:
@@ -1164,12 +1210,12 @@ class DataRepo:
             if (name := text_map.get_optional(npc["nameTextMapHash"])) is not None
         }
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_npc_id_to_name_mapping(self) -> dict[id_types.NpcId, str]:
         """Get cached mapping from NPC ID to name."""
         return self._build_npc_id_to_name(self.build_text_map_tracker())
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_npc_id_to_source_name_mapping(self) -> dict[id_types.NpcId, str]:
         """NPC ID -> CHS (source) name, for language-independent test/hidden filtering.
 
@@ -1177,7 +1223,7 @@ class DataRepo:
         """
         return self._build_npc_id_to_name(self.build_source_text_map_tracker())
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_new_activity_excel_config_data(
         self,
     ) -> dict[id_types.ActivityId, agd_types.NewActivityExcelConfigDataItem]:
@@ -1188,7 +1234,7 @@ class DataRepo:
             duplicate_name="activity ID",
         )
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_activity_id_to_name_mapping(self) -> dict[id_types.ActivityId, str]:
         """Activity id -> localized activity name (unresolvable names omitted)."""
         text_map = self.build_text_map_tracker()
@@ -1198,28 +1244,28 @@ class DataRepo:
             if (name := text_map.get_optional(entry["nameTextMapHash"])) is not None
         }
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_home_world_npc_excel_config_data(
         self,
     ) -> agd_types.HomeWorldNPCExcelConfigData:
         """Load HomeWorldNPCExcelConfigData.json."""
         return self._load_excel("HomeWorldNPCExcelConfigData.json")
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_role_combat_tarot_avatar_excel_config_data(
         self,
     ) -> agd_types.RoleCombatTarotAvatarExcelConfigData:
         """Load RoleCombatTarotAvatarExcelConfigData.json."""
         return self._load_excel("RoleCombatTarotAvatarExcelConfigData.json")
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_gcg_week_level_excel_config_data(
         self,
     ) -> agd_types.GCGWeekLevelExcelConfigData:
         """Load GCGWeekLevelExcelConfigData.json."""
         return self._load_excel("GCGWeekLevelExcelConfigData.json")
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_npc_id_to_game_mode_mapping(
         self,
     ) -> dict[id_types.NpcId, localization.GameMode]:
@@ -1259,7 +1305,7 @@ class DataRepo:
                 mapping[npc_id] = mode
         return mapping
 
-    @_warm_on_fork
+    @_warm_for_workers
     def build_dialog_id_to_role_name_hash_mapping(
         self,
     ) -> dict[id_types.DialogId, id_types.TextMapHash]:
@@ -1274,24 +1320,24 @@ class DataRepo:
 
         return dialog_id_to_role_hash
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_reliquary_set_excel_config_data(
         self,
     ) -> agd_types.ReliquarySetExcelConfigData:
         """Load ReliquarySetExcelConfigData.json."""
         return self._load_excel("ReliquarySetExcelConfigData.json")
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_reliquary_excel_config_data(self) -> agd_types.ReliquaryExcelConfigData:
         """Load ReliquaryExcelConfigData.json."""
         return self._load_excel("ReliquaryExcelConfigData.json")
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_equip_affix_excel_config_data(self) -> agd_types.EquipAffixExcelConfigData:
         """Load EquipAffixExcelConfigData.json."""
         return self._load_excel("EquipAffixExcelConfigData.json")
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def load_weapon_excel_config_data(
         self,
     ) -> dict[id_types.WeaponId, agd_types.WeaponExcelConfigDataItem]:
@@ -1302,13 +1348,32 @@ class DataRepo:
             duplicate_name="weapon ID",
         )
 
-    @functools.lru_cache(maxsize=None)
+    @caching.threadsafe_cache
     def build_readables_tracker(self) -> ReadablesTracker:
         """Get ReadablesTracker for tracking access to readable files."""
         return ReadablesTracker(
             self.list_readable_filenames(),
             self.agd_path / "Readable" / self.language_short,
         )
+
+    def precompute_scope_trackers(self) -> None:
+        """Warm the scope trackers' build chains concurrently.
+
+        The TextMap parse and the talk-file scan behind ``build_scope_trackers``
+        are the expensive half of the precompute region, and constructing them
+        records no tracker accesses, so they can be warmed in parallel before
+        any run-level tracking scope exists. ``precompute_for_workers`` (which
+        must run inside the scope for access attribution) then only pays for
+        the cheap remainder.
+        """
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+            futures: list[concurrent.futures.Future[Any]] = [
+                pool.submit(self.build_text_map_tracker),
+                pool.submit(self.build_talk_tracker),
+                pool.submit(self.build_readables_tracker),
+            ]
+            for future in futures:
+                future.result()
 
     def build_scope_trackers(
         self,
