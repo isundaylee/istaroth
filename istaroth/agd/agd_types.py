@@ -224,8 +224,14 @@ Example file: ExcelBinOutput/BooksCodexExcelConfigData.json
 """
 
 
-class TalkExcelConfigDataItem(TypedDict):
-    """Type definition for talk configuration entries."""
+class TalkExcelConfigDataItem(msgspec.Struct):
+    """Talk configuration entry, partially decoded.
+
+    Only the consumed fields (all cleartext); decoding into this Struct skips
+    the rest of the ~140MB split files. Strict for the current build only —
+    historic-era key styles go through ``load_excel_raw`` instead (see
+    ``first_seen.scan_snapshot``).
+    """
 
     id: id_types.TalkId
     initDialog: id_types.DialogId
