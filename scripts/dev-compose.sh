@@ -118,6 +118,50 @@ _ensure_frontend_node_modules() {
   mkdir -p "$REPO_ROOT/frontend/node_modules"
 }
 
+_checkout_text_submodule() {
+  echo "dev-compose.sh: checking out shallow text submodule ..."
+  git -C "$REPO_ROOT" submodule update --init --depth 1 text
+  echo "dev-compose.sh: text submodule ready."
+}
+
+_sync_frontend_node_modules() {
+  echo "dev-compose.sh: syncing frontend/node_modules ..."
+  npm ci --prefix "$REPO_ROOT/frontend"
+  echo "dev-compose.sh: frontend/node_modules ready."
+}
+
+_sync_uv_venv() {
+  echo "dev-compose.sh: syncing .venv ..."
+  (cd "$REPO_ROOT" && uv sync)
+  echo "dev-compose.sh: .venv ready."
+}
+
+_setup_job_pids=()
+_setup_job_names=()
+
+_start_setup_job() {
+  local name="$1"
+  shift
+  "$@" &
+  _setup_job_pids+=("$!")
+  _setup_job_names+=("$name")
+}
+
+_wait_setup_jobs() {
+  local failed=0 i name pid
+  for i in "${!_setup_job_pids[@]}"; do
+    name="${_setup_job_names[$i]}"
+    pid="${_setup_job_pids[$i]}"
+    if wait "$pid"; then
+      :
+    else
+      echo "dev-compose.sh: setup job failed: $name" >&2
+      failed=1
+    fi
+  done
+  [[ "$failed" -eq 0 ]]
+}
+
 _write_env_file() {
   cat >"$ENV_FILE" <<EOF
 COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME
@@ -164,11 +208,15 @@ cmd_setup() {
     target="$REPO_ROOT/$name"
     [[ -e "$target" ]] || ln -s "$MAIN_ROOT/$name" "$target"
   done
-  _clone_checkpoints
   _ensure_frontend_node_modules
+  _start_setup_job "checkpoint clone" _clone_checkpoints
+  _start_setup_job "text submodule checkout" _checkout_text_submodule
+  _start_setup_job "frontend node_modules sync" _sync_frontend_node_modules
+  _start_setup_job "uv venv sync" _sync_uv_venv
   _resolve_identity
   _export_ports
   _write_env_file
+  _wait_setup_jobs
 }
 
 cmd_up() {

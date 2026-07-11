@@ -85,6 +85,10 @@ writable copy — Chroma opens its SQLite read-write even for queries, so stacks
 must not share one on-disk database. Delete the directory and re-run `setup` to
 refresh after updating `tmp/checkpoints`.
 
+`scripts/dev-compose.sh setup` also initializes the shallow `text` submodule,
+syncs the host `.venv`, and runs `npm ci` for host-side frontend tooling used by
+pre-commit. Those setup steps run in parallel with the checkpoint clone.
+
 After changing `pyproject.toml` or `frontend/package.json`:
 
 ```bash
