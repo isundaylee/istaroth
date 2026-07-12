@@ -353,8 +353,10 @@ pub fn generate_all(
         "agd_talk_group",
         error_limit(talk_group::ERROR_LIMITS),
         &talk_group_keys,
-        |k| format!("('{}', '{}')", k.0, k.1),
-        |(group_type, group_id), scope| talk_group::process(&repo, scope, group_type, group_id),
+        |k| format!("('{}', '{}')", k.0.name(), k.1),
+        |&(group_type, ref group_id), scope| {
+            talk_group::process(&repo, scope, group_type, group_id)
+        },
     )?;
 
     // 10. Hangouts.

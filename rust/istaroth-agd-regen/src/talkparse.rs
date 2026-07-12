@@ -31,17 +31,43 @@ pub const BAD_TALK_PATHS: [&str; 9] = [
     "BinOutput/Talk/BlossomGroup/5900009.json",
 ];
 
-const GROUP_DIRECTORIES: [&str; 4] = [
-    "ActivityGroup",
-    "GadgetGroup",
-    "NpcGroup",
-    "StoryboardGroup",
-];
+/// Talk-group kind, one per `BinOutput/Talk/<dir>Group` directory. Variants
+/// are declared in the alphabetical order of their directory names so the
+/// derived `Ord` keeps the pass's discovery order (and thus manifest order)
+/// identical to sorting the old string keys.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
+pub enum GroupType {
+    Activity,
+    Gadget,
+    Npc,
+    Storyboard,
+}
+
+impl GroupType {
+    fn from_dir(dir: &str) -> Option<GroupType> {
+        Some(match dir {
+            "ActivityGroup" => GroupType::Activity,
+            "GadgetGroup" => GroupType::Gadget,
+            "NpcGroup" => GroupType::Npc,
+            "StoryboardGroup" => GroupType::Storyboard,
+            _ => return None,
+        })
+    }
+
+    pub fn name(self) -> &'static str {
+        match self {
+            GroupType::Activity => "ActivityGroup",
+            GroupType::Gadget => "GadgetGroup",
+            GroupType::Npc => "NpcGroup",
+            GroupType::Storyboard => "StoryboardGroup",
+        }
+    }
+}
 
 #[derive(Default)]
 pub struct TalkParseResult {
     pub talk_id_to_path: FxHashMap<i64, String>,
-    pub talk_group_id_to_path: FxHashMap<(String, String), String>,
+    pub talk_group_id_to_path: FxHashMap<(GroupType, String), String>,
     pub coop_story_to_paths: FxHashMap<i64, Vec<String>>,
     pub free_group_quest_to_paths: FxHashMap<i64, Vec<String>>,
 }
@@ -183,22 +209,23 @@ pub fn parse_talks(
     tm: &TextMaps,
     init_dialogs: &FxHashMap<i64, i64>,
 ) -> Result<TalkParseResult> {
-    let mut talk_group_candidates: FxHashMap<(String, String), Vec<String>> = FxHashMap::default();
+    let mut talk_group_candidates: FxHashMap<(GroupType, String), Vec<String>> =
+        FxHashMap::default();
     let mut coop_group: FxHashMap<i64, Vec<(i64, String)>> = FxHashMap::default();
     let mut talk_candidates: FxHashMap<i64, Vec<String>> = FxHashMap::default();
     let mut free_group: FxHashMap<i64, Vec<(i64, String)>> = FxHashMap::default();
 
-    let handle_group = |group_type: &str,
+    let handle_group = |group_type: GroupType,
                         rel: &str,
                         data: &Value,
-                        candidates: &mut FxHashMap<(String, String), Vec<String>>|
+                        candidates: &mut FxHashMap<(GroupType, String), Vec<String>>|
      -> Result<()> {
         let talks = data.arr("talks").with_context(|| rel.to_string())?;
         if talks.is_empty() {
             return Ok(());
         }
         let key_id = match group_type {
-            "ActivityGroup" | "NpcGroup" | "StoryboardGroup" => {
+            GroupType::Activity | GroupType::Npc | GroupType::Storyboard => {
                 // First nonzero of activityId/npcId/storyboardId; a present
                 // non-int field is a schema change and errors.
                 let mut chosen = None;
@@ -216,7 +243,7 @@ pub fn parse_talks(
                     None => bail!("no int group id in {rel}"),
                 }
             }
-            "GadgetGroup" => {
+            GroupType::Gadget => {
                 // configId alone is not unique across GadgetGroup files (issue
                 // #186); fold in groupId as the file's own composite key. Both
                 // fields are required on every GadgetGroup file, so a missing
@@ -227,10 +254,9 @@ pub fn parse_talks(
                     data.i("groupId").with_context(|| rel.to_string())?
                 )
             }
-            _ => unreachable!(),
         };
         candidates
-            .entry((group_type.to_string(), key_id))
+            .entry((group_type, key_id))
             .or_default()
             .push(rel.to_string());
         Ok(())
@@ -274,8 +300,8 @@ pub fn parse_talks(
                     .or_default()
                     .push((talk_id, rel.clone()));
             }
-        } else if GROUP_DIRECTORIES.contains(&subdir) {
-            handle_group(subdir, rel, data, &mut talk_group_candidates)?;
+        } else if let Some(group_type) = GroupType::from_dir(subdir) {
+            handle_group(group_type, rel, data, &mut talk_group_candidates)?;
         } else if is_talk_file(data) {
             let talk_id = match data.f("talkId")? {
                 Value::Number(n) => as_i64(&Value::Number(n.clone()))?,
@@ -287,9 +313,9 @@ pub fn parse_talks(
                 .or_default()
                 .push(rel.clone());
         } else if data.has("activityId") {
-            handle_group("ActivityGroup", rel, data, &mut talk_group_candidates)?;
+            handle_group(GroupType::Activity, rel, data, &mut talk_group_candidates)?;
         } else if data.has("npcId") {
-            handle_group("NpcGroup", rel, data, &mut talk_group_candidates)?;
+            handle_group(GroupType::Npc, rel, data, &mut talk_group_candidates)?;
         } else {
             bail!("Unknown talk file type {rel}");
         }
@@ -304,7 +330,7 @@ pub fn parse_talks(
             .min_by(|a, b| a.0.cmp(&b.0))
             .map(|(_, p)| p.clone())
             .unwrap();
-        talk_group_id_to_path.insert((group_type.clone(), group_id.clone()), winner);
+        talk_group_id_to_path.insert((*group_type, group_id.clone()), winner);
     }
 
     let mut free_group_quest_to_paths = FxHashMap::default();
@@ -497,7 +523,7 @@ mod tests {
             &empty_tm(),
         );
         assert_eq!(
-            result.talk_group_id_to_path[&("NpcGroup".to_string(), "1292".to_string())],
+            result.talk_group_id_to_path[&(GroupType::Npc, "1292".to_string())],
             "BinOutput/Talk/NpcGroup/1292.json"
         );
     }
@@ -522,7 +548,7 @@ mod tests {
         assert_eq!(result.talk_group_id_to_path.len(), 2);
         for group_id in ["1003_201096001", "1003_220200001"] {
             assert_eq!(
-                result.talk_group_id_to_path[&("GadgetGroup".to_string(), group_id.to_string())],
+                result.talk_group_id_to_path[&(GroupType::Gadget, group_id.to_string())],
                 format!("BinOutput/Talk/GadgetGroup/{group_id}.json")
             );
         }
@@ -542,7 +568,7 @@ mod tests {
         );
         assert_eq!(result.talk_group_id_to_path.len(), 1);
         assert_eq!(
-            result.talk_group_id_to_path[&("GadgetGroup".to_string(), "4242_99".to_string())],
+            result.talk_group_id_to_path[&(GroupType::Gadget, "4242_99".to_string())],
             "BinOutput/Talk/GadgetGroup/4242_99.json"
         );
     }

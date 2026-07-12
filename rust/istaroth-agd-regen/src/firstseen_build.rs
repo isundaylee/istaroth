@@ -9,11 +9,12 @@
 //! entry and rerun); `--rebuild-all` regenerates every file, doubling as a
 //! determinism check of the committed data.
 
+use crate::firstseen::{Domain, SourceKey};
 use crate::git::{git_ls_tree, git_show};
 use crate::util;
 use anyhow::{Context, Result, anyhow, bail};
 use rayon::prelude::*;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 use std::path::Path;
 
@@ -76,49 +77,22 @@ const SNAPSHOTS: [(&str, &str); 46] = [
     ("6.7", "82e74382e7788e318ad41fca926739a752c0bed6"),
 ];
 
-/// First-seen domain names; the order indexes `DomainSets` (the delta files'
-/// JSON keys are written sorted regardless).
-const DOMAINS: [&str; 10] = [
-    "main_quest",
-    "talk",
-    "readable",
-    "subtitle",
-    "material",
-    "weapon",
-    "achievement",
-    "avatar",
-    "artifact_set",
-    "animal_codex",
+const EXCEL_DOMAINS: [(Domain, &str, &str); 7] = [
+    (Domain::MainQuest, "MainQuestExcelConfigData.json", "id"),
+    (Domain::Material, "MaterialExcelConfigData.json", "id"),
+    (Domain::Weapon, "WeaponExcelConfigData.json", "id"),
+    (Domain::Achievement, "AchievementExcelConfigData.json", "id"),
+    (Domain::Avatar, "AvatarExcelConfigData.json", "id"),
+    (
+        Domain::ArtifactSet,
+        "ReliquarySetExcelConfigData.json",
+        "setId",
+    ),
+    (Domain::AnimalCodex, "AnimalCodexExcelConfigData.json", "id"),
 ];
 
-const EXCEL_DOMAINS: [(&str, &str, &str); 7] = [
-    ("main_quest", "MainQuestExcelConfigData.json", "id"),
-    ("material", "MaterialExcelConfigData.json", "id"),
-    ("weapon", "WeaponExcelConfigData.json", "id"),
-    ("achievement", "AchievementExcelConfigData.json", "id"),
-    ("avatar", "AvatarExcelConfigData.json", "id"),
-    ("artifact_set", "ReliquarySetExcelConfigData.json", "setId"),
-    ("animal_codex", "AnimalCodexExcelConfigData.json", "id"),
-];
-
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-enum Key {
-    Int(i64),
-    Str(String),
-}
-
-type DomainSets = Vec<FxHashSet<Key>>; // indexed like DOMAINS
-
-fn empty_sets() -> DomainSets {
-    DOMAINS.iter().map(|_| FxHashSet::default()).collect()
-}
-
-fn domain_index(name: &str) -> Result<usize> {
-    DOMAINS
-        .iter()
-        .position(|d| *d == name)
-        .ok_or_else(|| anyhow!("unknown first-seen domain {name}"))
-}
+/// Per-domain source-id sets; a domain absent from the map is empty.
+type DomainSets = FxHashMap<Domain, FxHashSet<SourceKey>>;
 
 /// Field-name style varies by era (and by file within one era): 1.x dumps use
 /// PascalCase ("Id"/"SetId"), some ~2.7-3.x dumps underscore-prefixed
@@ -175,32 +149,32 @@ fn load_talk_excel_at(agd_path: &Path, git_ref: &str) -> Result<Vec<Value>> {
 /// Enumerate all source ids present in one AGD snapshot, unioned over both
 /// languages.
 fn scan_snapshot(agd_path: &Path, commit: &str) -> Result<DomainSets> {
-    let mut present = empty_sets();
+    let mut present = DomainSets::default();
 
     // Excel domains + talk are language-independent; scan once.
-    let excel_results: Vec<Result<(usize, FxHashSet<Key>)>> = EXCEL_DOMAINS
+    let excel_results: Vec<Result<(Domain, FxHashSet<SourceKey>)>> = EXCEL_DOMAINS
         .par_iter()
-        .map(|(domain, filename, id_key)| {
+        .map(|&(domain, filename, id_key)| {
             let bytes = git_show(agd_path, commit, &format!("ExcelBinOutput/{filename}"))?
                 .ok_or_else(|| anyhow!("missing {filename} at {commit}"))?;
             let candidates = id_key_candidates(id_key);
-            let ids: FxHashSet<Key> = parse_rows(&bytes)?
+            let ids: FxHashSet<SourceKey> = parse_rows(&bytes)?
                 .iter()
-                .map(|row| Ok(Key::Int(row_id(row, &candidates)?)))
+                .map(|row| Ok(SourceKey::Int(row_id(row, &candidates)?)))
                 .collect::<Result<_>>()?;
-            Ok((domain_index(domain)?, ids))
+            Ok((domain, ids))
         })
         .collect();
     for r in excel_results {
-        let (idx, ids) = r?;
-        present[idx].extend(ids);
+        let (domain, ids) = r?;
+        present.entry(domain).or_default().extend(ids);
     }
     let talk_id_candidates = id_key_candidates("id");
-    let talk_ids: FxHashSet<Key> = load_talk_excel_at(agd_path, commit)?
+    let talk_ids: FxHashSet<SourceKey> = load_talk_excel_at(agd_path, commit)?
         .iter()
-        .map(|row| Ok(Key::Int(row_id(row, &talk_id_candidates)?)))
+        .map(|row| Ok(SourceKey::Int(row_id(row, &talk_id_candidates)?)))
         .collect::<Result<_>>()?;
-    present[domain_index("talk")?].extend(talk_ids);
+    present.entry(Domain::Talk).or_default().extend(talk_ids);
 
     // Filename-keyed domains: union all languages to guard against language
     // stragglers. Subtitles only exist from 1.6 onward, so a missing Subtitle
@@ -214,16 +188,16 @@ fn scan_snapshot(agd_path: &Path, commit: &str) -> Result<DomainSets> {
         if readable_names.is_empty() {
             bail!("No readable files for {language_short} at {commit}");
         }
-        present[domain_index("readable")?].extend(
-            readable_names
-                .iter()
-                .map(|n| Key::Str(util::strip_language_suffix(util::path_stem(n)).to_string())),
+        present.entry(Domain::Readable).or_default().extend(
+            readable_names.iter().map(|n| {
+                SourceKey::Str(util::strip_language_suffix(util::path_stem(n)).to_string())
+            }),
         );
         let subtitle_names = git_ls_tree(agd_path, commit, &format!("Subtitle/{language_short}"))?;
-        present[domain_index("subtitle")?].extend(
-            subtitle_names
-                .iter()
-                .map(|n| Key::Str(util::strip_language_suffix(util::path_stem(n)).to_string())),
+        present.entry(Domain::Subtitle).or_default().extend(
+            subtitle_names.iter().map(|n| {
+                SourceKey::Str(util::strip_language_suffix(util::path_stem(n)).to_string())
+            }),
         );
     }
     Ok(present)
@@ -234,18 +208,18 @@ fn scan_snapshot(agd_path: &Path, commit: &str) -> Result<DomainSets> {
 fn write_delta(path: &Path, version: &str, commit: &str, new: &DomainSets) -> Result<usize> {
     let mut new_obj = serde_json::Map::new();
     let mut total = 0usize;
-    for (i, domain) in DOMAINS.iter().enumerate() {
-        let mut keys: Vec<&Key> = new[i].iter().collect();
+    for domain in Domain::ALL {
+        let mut keys: Vec<&SourceKey> = new.get(&domain).into_iter().flatten().collect();
         keys.sort();
         total += keys.len();
         let values: Vec<Value> = keys
             .iter()
             .map(|k| match k {
-                Key::Int(n) => Value::from(*n),
-                Key::Str(s) => Value::from(s.as_str()),
+                SourceKey::Int(n) => Value::from(*n),
+                SourceKey::Str(s) => Value::from(s.as_str()),
             })
             .collect();
-        new_obj.insert(domain.to_string(), Value::Array(values));
+        new_obj.insert(domain.name().to_string(), Value::Array(values));
     }
     let mut payload = serde_json::Map::new();
     payload.insert("version".to_string(), Value::from(version));
@@ -282,12 +256,12 @@ pub fn build_first_seen(agd_path: &Path, data_dir: &Path, rebuild_all: bool) -> 
         .par_iter()
         .map(|(i, _, commit)| (*i, scan_snapshot(agd_path, commit)))
         .collect();
-    let mut scanned: Vec<Option<DomainSets>> = SNAPSHOTS.iter().map(|_| None).collect();
+    let mut scanned: Vec<Option<DomainSets>> = vec![None; SNAPSHOTS.len()];
     for (i, result) in scans {
         scanned[i] = Some(result.with_context(|| format!("scan {}", SNAPSHOTS[i].0))?);
     }
 
-    let mut seen = empty_sets();
+    let mut seen = DomainSets::default();
     for (i, (version, commit)) in SNAPSHOTS.iter().enumerate() {
         let path = data_dir.join(format!("{version}.json"));
         match scanned[i].take() {
@@ -309,19 +283,13 @@ pub fn build_first_seen(agd_path: &Path, data_dir: &Path, rebuild_all: bool) -> 
                     .and_then(|v| v.as_object())
                     .ok_or_else(|| anyhow!("{version}.json has no \"new\" object"))?;
                 for (domain_name, keys) in new {
-                    let idx = domain_index(domain_name)?;
+                    let domain = Domain::from_name(domain_name)?;
                     let keys = keys
                         .as_array()
                         .ok_or_else(|| anyhow!("{domain_name} ids in {version}.json not a list"))?;
+                    let seen_ids = seen.entry(domain).or_default();
                     for key in keys {
-                        let key = match key {
-                            Value::Number(n) => {
-                                Key::Int(n.as_i64().ok_or_else(|| anyhow!("bad id"))?)
-                            }
-                            Value::String(s) => Key::Str(s.clone()),
-                            other => bail!("bad source id {other:?}"),
-                        };
-                        seen[idx].insert(key);
+                        seen_ids.insert(SourceKey::from_json(key)?);
                     }
                 }
                 eprintln!("{version}: kept existing delta");
@@ -329,18 +297,22 @@ pub fn build_first_seen(agd_path: &Path, data_dir: &Path, rebuild_all: bool) -> 
             Some(present) => {
                 let new: DomainSets = present
                     .iter()
-                    .zip(seen.iter())
-                    .map(|(p, s)| p.difference(s).cloned().collect())
+                    .map(|(domain, ids)| {
+                        let unseen = match seen.get(domain) {
+                            Some(s) => ids.difference(s).cloned().collect(),
+                            None => ids.clone(),
+                        };
+                        (*domain, unseen)
+                    })
                     .collect();
-                for (s, p) in seen.iter_mut().zip(present) {
-                    s.extend(p);
+                for (domain, ids) in present {
+                    seen.entry(domain).or_default().extend(ids);
                 }
                 let total = write_delta(&path, version, commit, &new)?;
-                let breakdown: Vec<String> = DOMAINS
+                let breakdown: Vec<String> = Domain::ALL
                     .iter()
-                    .enumerate()
-                    .filter(|(idx, _)| !new[*idx].is_empty())
-                    .map(|(idx, d)| format!("{d}={}", new[idx].len()))
+                    .filter_map(|d| new.get(d).filter(|ids| !ids.is_empty()).map(|ids| (d, ids)))
+                    .map(|(d, ids)| format!("{}={}", d.name(), ids.len()))
                     .collect();
                 eprintln!(
                     "{version}: wrote {total} new ids ({})",

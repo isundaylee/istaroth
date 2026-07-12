@@ -6,6 +6,7 @@ use crate::lang::Language;
 use crate::renderables::talk::{self, TalkInfo, TalkNotFound};
 use crate::rendered_item::RenderedItem;
 use crate::repo::Repo;
+use crate::talkparse::GroupType;
 use crate::util;
 use crate::vh::ValueExt;
 use anyhow::{Result, anyhow, bail};
@@ -28,14 +29,14 @@ pub struct TalkGroupInfo {
 pub fn get_talk_group_info(
     repo: &Repo,
     scope: &Scope,
-    group_type: &str,
+    group_type: GroupType,
     group_id: &str,
 ) -> Result<TalkGroupInfo> {
     let path = repo
         .parse
         .talk_group_id_to_path
-        .get(&(group_type.to_string(), group_id.to_string()))
-        .ok_or_else(|| anyhow!("unknown talk group {group_type} {group_id}"))?;
+        .get(&(group_type, group_id.to_string()))
+        .ok_or_else(|| anyhow!("unknown talk group {} {group_id}", group_type.name()))?;
     let data = repo
         .talk_files
         .get(path)
@@ -184,16 +185,17 @@ const ACTIVITY_GROUP_METADATA_ID_OFFSET: i64 = 1_000_000_000;
 pub fn render_talk_group(
     repo: &Repo,
     scope: &Scope,
-    group_type: &str,
+    group_type: GroupType,
     group_id: &str,
     info: &TalkGroupInfo,
     group_name: Option<String>,
 ) -> Result<RenderedItem> {
-    let safe_type = util::make_safe_filename_part(group_type);
+    let type_name = group_type.name();
+    let safe_type = util::make_safe_filename_part(type_name);
     let filename = format!("{group_id}_{safe_type}.txt");
     let title = match &group_name {
-        Some(name) => format!("{name} ({group_type} {group_id})"),
-        None => format!("{group_type} - {group_id}"),
+        Some(name) => format!("{name} ({type_name} {group_id})"),
+        None => format!("{type_name} - {group_id}"),
     };
 
     let mut content_lines = vec![format!("# Talk Group: {title}\n")];
@@ -210,7 +212,7 @@ pub fn render_talk_group(
     let content = content_lines.join("\n").trim_end().to_string();
 
     let metadata_id = match group_type {
-        "GadgetGroup" => {
+        GroupType::Gadget => {
             let (config_str, group_str) = group_id
                 .split_once('_')
                 .ok_or_else(|| anyhow!("bad gadget composite id {group_id}"))?;
@@ -218,9 +220,9 @@ pub fn render_talk_group(
             let gadget_group_id: i64 = group_str.parse()?;
             config_id * 10i64.pow(GADGET_GROUP_ID_DIGITS) + gadget_group_id
         }
-        "ActivityGroup" => ACTIVITY_GROUP_METADATA_ID_OFFSET + util::parse_i64(group_id)?,
-        "NpcGroup" => util::parse_i64(group_id)?,
-        other => bail!("unsupported talk group type {other}"),
+        GroupType::Activity => ACTIVITY_GROUP_METADATA_ID_OFFSET + util::parse_i64(group_id)?,
+        GroupType::Npc => util::parse_i64(group_id)?,
+        GroupType::Storyboard => bail!("unsupported talk group type StoryboardGroup"),
     };
 
     let versions = repo
@@ -237,8 +239,8 @@ pub fn render_talk_group(
 }
 
 /// TalkGroups pass discovery: sorted (group type, group id) keys.
-pub fn discover(repo: &Repo) -> Result<Vec<(String, String)>> {
-    let mut keys: Vec<(String, String)> =
+pub fn discover(repo: &Repo) -> Result<Vec<(GroupType, String)>> {
+    let mut keys: Vec<(GroupType, String)> =
         repo.parse.talk_group_id_to_path.keys().cloned().collect();
     keys.sort();
     Ok(keys)
@@ -248,7 +250,7 @@ pub fn discover(repo: &Repo) -> Result<Vec<(String, String)>> {
 pub fn process(
     repo: &Repo,
     scope: &Scope,
-    group_type: &str,
+    group_type: GroupType,
     group_id: &str,
 ) -> Result<Option<RenderedItem>> {
     let info = get_talk_group_info(repo, scope, group_type, group_id)?;
@@ -256,7 +258,7 @@ pub fn process(
         return Ok(None);
     }
     let group_name: Option<String> = match group_type {
-        "NpcGroup" => {
+        GroupType::Npc => {
             let npc_id = util::parse_i64(group_id)?;
             match repo.npc_chs_name(npc_id) {
                 Some(chs_name) => {
@@ -276,12 +278,12 @@ pub fn process(
                 None => None,
             }
         }
-        "ActivityGroup" => repo
+        GroupType::Activity => repo
             .activity_id_to_name
             .get(&util::parse_i64(group_id)?)
             .cloned(),
-        "GadgetGroup" => derive_speaker_group_name(&info, repo.language),
-        other => bail!("unsupported talk group type {other}"),
+        GroupType::Gadget => derive_speaker_group_name(&info, repo.language),
+        GroupType::Storyboard => bail!("unsupported talk group type StoryboardGroup"),
     };
     Ok(Some(render_talk_group(
         repo, scope, group_type, group_id, &info, group_name,
