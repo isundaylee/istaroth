@@ -142,7 +142,7 @@ pub fn process(repo: &Repo, scope: &Scope, city_id: i64) -> Result<Option<Render
         content_lines.push(format!("## {}\n", section.description));
         for talk_info in &section.talks {
             content_lines.push(format!("### Talk {talk_index}\n"));
-            content_lines.extend(talk::render_talk_content(talk_info, scope)?);
+            content_lines.extend(talk::render_talk_content(talk_info, repo.language, scope)?);
             content_lines.push(String::new());
             talk_index += 1;
         }

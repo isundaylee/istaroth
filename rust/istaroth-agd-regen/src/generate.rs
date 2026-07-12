@@ -32,11 +32,13 @@ struct RunState {
     errors_file: std::fs::File,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_pass<K: Sync>(
     state: &mut RunState,
     output_dir: &Path,
     pass_name: &str,
     category: &'static str,
+    error_limit: usize,
     keys: &[K],
     key_desc: impl Fn(&K) -> String,
     process: impl Fn(&K, &Scope) -> Result<Option<RenderedItem>> + Sync,
@@ -67,6 +69,15 @@ fn run_pass<K: Sync>(
                 let line = format!("✗ {pass_name}: {} -> ERROR: {e:#}", key_desc(&keys[i]));
                 eprintln!("{line}");
                 writeln!(state.errors_file, "{line}")?;
+                if errors > error_limit {
+                    writeln!(
+                        state.errors_file,
+                        "Error limit exceeded ({errors} > {error_limit}), stopping generation"
+                    )?;
+                    bail!(
+                        "{pass_name} generation exceeded error limit ({errors} > {error_limit}); {e:#}"
+                    );
+                }
                 // A failed item's accesses and issues are dropped, so a
                 // half-parsed item can't skew cross-pass exclusion or stats.
             }
@@ -151,6 +162,7 @@ fn check_manifest_unique(manifest: &[TextMetadata]) -> Result<()> {
 
 /// Run the full generation. Exits the process directly to skip freeing the
 /// huge shared caches.
+#[allow(clippy::too_many_arguments)]
 pub fn generate_all(
     agd_path: &Path,
     first_seen_dir: &Path,
@@ -158,6 +170,7 @@ pub fn generate_all(
     language: Language,
     force: bool,
     verbose: bool,
+    allow_errors: bool,
 ) -> Result<()> {
     let t_start = Instant::now();
     // The load scope collects text-map accesses made building derived
@@ -165,6 +178,16 @@ pub fn generate_all(
     // the passes' cross-pass exclusion sets.
     let load_scope = Scope::default();
     let repo = Repo::load(agd_path, first_seen_dir, language, verbose, &load_scope)?;
+    // Per-category error limits (reference `error_limit` /
+    // `error_limit_non_chinese`): non-CHS output legitimately hits per-item
+    // failures (untranslated text), so its ceilings are higher.
+    let error_limit = |chs: usize, non_chs: usize| -> usize {
+        if language == Language::Chs {
+            chs
+        } else {
+            non_chs
+        }
+    };
     eprintln!("Repo loaded in {:.2}s", t_start.elapsed().as_secs_f64());
 
     // --force cleanup of AGD-owned outputs.
@@ -227,6 +250,7 @@ pub fn generate_all(
         output_dir,
         "ArtifactSets",
         "agd_artifact_set",
+        error_limit(0, 0),
         &artifact_set_ids,
         |k| k.to_string(),
         |&set_id, scope| artifact::process(&repo, scope, set_id),
@@ -239,6 +263,7 @@ pub fn generate_all(
         output_dir,
         "Creatures",
         "agd_creature",
+        error_limit(0, 2),
         &creature_subtypes,
         |k| k.clone(),
         |subtype, scope| creature::process(&repo, scope, subtype),
@@ -251,6 +276,7 @@ pub fn generate_all(
         output_dir,
         "Quests",
         "agd_quest",
+        error_limit(100, 2000),
         &quest_ids,
         |k| k.to_string(),
         |&quest_id, scope| quest::process(&repo, scope, quest_id),
@@ -263,6 +289,7 @@ pub fn generate_all(
         output_dir,
         "CharacterStories",
         "agd_character_story",
+        error_limit(0, 0),
         &story_avatar_ids,
         |k| k.to_string(),
         |&avatar_id, scope| character::process_story(&repo, scope, avatar_id),
@@ -275,6 +302,7 @@ pub fn generate_all(
         output_dir,
         "Subtitles",
         "agd_subtitle",
+        error_limit(0, 0),
         &subtitle_paths,
         |k| k.clone(),
         |path, scope| subtitle::process(&repo, scope, path),
@@ -287,6 +315,7 @@ pub fn generate_all(
         output_dir,
         "MaterialTypes",
         "agd_material_type",
+        error_limit(0, 0),
         &material_types,
         |k| k.clone(),
         |material_type, scope| material::process(&repo, scope, material_type),
@@ -299,6 +328,7 @@ pub fn generate_all(
         output_dir,
         "Achievements",
         "agd_achievement",
+        error_limit(0, 0),
         &achievement_section_ids,
         |k| k.to_string(),
         |&section_id, scope| achievement::process(&repo, scope, section_id),
@@ -311,6 +341,7 @@ pub fn generate_all(
         output_dir,
         "Voicelines",
         "agd_voiceline",
+        error_limit(0, 0),
         &voiceline_avatar_ids,
         |k| k.to_string(),
         |&avatar_id, scope| character::process_voiceline(&repo, scope, avatar_id),
@@ -323,6 +354,7 @@ pub fn generate_all(
         output_dir,
         "TalkGroups",
         "agd_talk_group",
+        error_limit(120, 120),
         &talk_group_keys,
         |k| format!("('{}', '{}')", k.0, k.1),
         |(group_type, group_id), scope| talk_group::process(&repo, scope, group_type, group_id),
@@ -335,6 +367,7 @@ pub fn generate_all(
         output_dir,
         "Hangouts",
         "agd_hangout",
+        error_limit(50, 200),
         &hangout_quest_ids,
         |k| k.to_string(),
         |&quest_id, scope| hangout::process(&repo, scope, quest_id),
@@ -347,6 +380,7 @@ pub fn generate_all(
         output_dir,
         "Anecdotes",
         "agd_anecdote",
+        error_limit(10, 20),
         &anecdote_ids,
         |k| k.to_string(),
         |&anecdote_id, scope| anecdote::process(&repo, scope, anecdote_id),
@@ -359,6 +393,7 @@ pub fn generate_all(
         output_dir,
         "Blossoms",
         "agd_blossom",
+        error_limit(5, 10),
         &blossom_cities,
         |k| k.to_string(),
         |&city_id, scope| blossom::process(&repo, scope, city_id),
@@ -372,6 +407,7 @@ pub fn generate_all(
         output_dir,
         "Activities",
         "agd_activity",
+        error_limit(5, 10),
         &activity_ids,
         |k| k.to_string(),
         |&activity_id, scope| activity::process(&repo, scope, &activities_used_talks, activity_id),
@@ -384,6 +420,7 @@ pub fn generate_all(
         output_dir,
         "Books",
         "agd_book",
+        error_limit(50, 200),
         &book_keys,
         book::BookKey::desc,
         |key, scope| book::process(&repo, scope, key),
@@ -396,6 +433,7 @@ pub fn generate_all(
         output_dir,
         "Weapons",
         "agd_weapon",
+        error_limit(50, 200),
         &weapon_ids,
         |k| k.clone(),
         |weapon_id, scope| weapon::process(&repo, scope, weapon_id),
@@ -413,6 +451,7 @@ pub fn generate_all(
             output_dir,
             pass_name,
             category,
+            error_limit(50, 200),
             &filenames,
             |k| k.clone(),
             |filename, scope| readable::process(&repo, scope, filename, category),
@@ -427,6 +466,7 @@ pub fn generate_all(
         output_dir,
         "Readables",
         "agd_readable",
+        error_limit(50, 200),
         &readable_keys,
         |k| k.clone(),
         |filename, scope| readable::process(&repo, scope, filename, "agd_readable"),
@@ -441,6 +481,7 @@ pub fn generate_all(
         output_dir,
         "Talks",
         "agd_talk",
+        error_limit(1000, 1000),
         &talk_keys,
         |k| k.to_string(),
         |&talk_id, scope| talk::process(&repo, scope, talk_id),
@@ -600,7 +641,14 @@ pub fn generate_all(
         t_start.elapsed().as_secs_f64()
     );
     // Exit without unwinding: freeing the huge shared caches wastes seconds.
-    let code = if state.errors > 0 { 1 } else { 0 };
+    let code = if state.errors > 0 && !allow_errors {
+        1
+    } else {
+        0
+    };
+    if code != 0 {
+        eprintln!("Some items failed to generate; pass --allow-errors to exit 0 anyway.");
+    }
     std::io::Write::flush(&mut std::io::stderr()).ok();
     std::process::exit(code);
 }

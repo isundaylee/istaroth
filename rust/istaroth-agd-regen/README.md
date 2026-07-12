@@ -1,11 +1,19 @@
 # istaroth-agd-regen (Rust prototype)
 
-Prototype rewrite of `scripts/agd_tools.py generate-all` for the **CHS** corpus,
-built to estimate the performance floor of a Rust port. Output is
-**byte-identical** to the Python pipeline for all 19 `agd_*` content
+Prototype rewrite of `scripts/agd_tools.py generate-all` for the **CHS** and
+**ENG** corpora, built to estimate the performance floor of a Rust port.
+Output is **byte-identical** to the Python pipeline for all 19 `agd_*` content
 directories, `manifest/agd.json`, `metadata/agd/hierarchy.json`, and the
-`stats/agd/*` diagnostics (`metadata.json`, `summary_table.txt`,
-`unused_stats.json`, `parsing_issues.json`/`.info`, `errors.info`).
+`stats/agd/*` diagnostics (`metadata.json`, `unused_stats.json`,
+`parsing_issues.json`/`.info`, `errors.info`); `summary_table.txt` carries the
+same counts but is left-aligned rather than tabulate-centered (the one
+intended output difference, see `stats::render_summary_table`).
+
+ENG generation mirrors the reference pipeline's source/output text-map split:
+dev/test markers (`$HIDDEN`, `(test)`, `beta测试任务`) exist only in CHS text,
+so hidden-quest/step/NPC filtering always consults the CHS source map while
+content renders from the output language's map, and the per-category error
+limits switch to the higher `error_limit_non_chinese` values.
 
 Structured as a library (`src/lib.rs`, entry point `generate::generate_all`)
 plus a thin clap CLI (`src/main.rs`).
@@ -22,6 +30,10 @@ cargo build --release --manifest-path rust/Cargo.toml
 # from the repo root, so text/first_seen resolves (or set FIRST_SEEN_DIR)
 ./rust/target/release/istaroth-agd-regen generate-all -f tmp-local/rust-chs
 # -v additionally prints per-phase [load] timing details
+# ENG (language comes from AGD_LANGUAGE, like the Python pipeline;
+# --allow-errors exits 0 even with per-item failures, also like Python):
+AGD_LANGUAGE=ENG ./rust/target/release/istaroth-agd-regen \
+  generate-all -f --allow-errors tmp-local/rust-eng
 
 # first-seen delta files (writes to FIRST_SEEN_DIR, default text/first_seen):
 ./rust/target/release/istaroth-agd-regen build-first-seen [--rebuild-all]

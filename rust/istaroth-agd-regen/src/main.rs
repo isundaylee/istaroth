@@ -11,7 +11,7 @@ use std::path::PathBuf;
 static GLOBAL: MiMalloc = MiMalloc;
 
 #[derive(Parser)]
-#[command(about = "Istaroth AGD corpus generation (CHS)")]
+#[command(about = "Istaroth AGD corpus generation")]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -19,7 +19,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Generate the full text corpus into OUTPUT_DIR.
+    /// Generate the full text corpus into OUTPUT_DIR (language from
+    /// AGD_LANGUAGE, default CHS).
     GenerateAll {
         output_dir: PathBuf,
         /// Delete existing AGD-owned output in OUTPUT_DIR first.
@@ -28,6 +29,10 @@ enum Command {
         /// Print load-phase timing details.
         #[arg(short, long)]
         verbose: bool,
+        /// Exit 0 even when some items failed to generate (default: exit 1 on
+        /// any error).
+        #[arg(long)]
+        allow_errors: bool,
     },
     /// Build or update the first-seen version index.
     BuildFirstSeen {
@@ -49,14 +54,21 @@ fn main() -> Result<()> {
             output_dir,
             force,
             verbose,
-        } => generate::generate_all(
-            &agd_path,
-            &first_seen_dir,
-            &output_dir,
-            lang::Language::Chs,
-            force,
-            verbose,
-        ),
+            allow_errors,
+        } => {
+            let language_str = std::env::var("AGD_LANGUAGE").unwrap_or_else(|_| "CHS".to_string());
+            let language = lang::Language::from_value(&language_str)
+                .with_context(|| format!("unsupported AGD_LANGUAGE {language_str}"))?;
+            generate::generate_all(
+                &agd_path,
+                &first_seen_dir,
+                &output_dir,
+                language,
+                force,
+                verbose,
+                allow_errors,
+            )
+        }
         Command::BuildFirstSeen { rebuild_all } => {
             let t0 = std::time::Instant::now();
             firstseen_build::build_first_seen(&agd_path, &first_seen_dir, rebuild_all)?;

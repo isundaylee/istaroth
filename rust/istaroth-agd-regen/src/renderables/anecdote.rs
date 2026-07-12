@@ -72,7 +72,7 @@ pub fn process(repo: &Repo, scope: &Scope, anecdote_id: i64) -> Result<Option<Re
     }
     for (i, talk_info) in talks.iter().enumerate() {
         content_lines.push(format!("## Talk {i}\n"));
-        content_lines.extend(talk::render_talk_content(talk_info, scope)?);
+        content_lines.extend(talk::render_talk_content(talk_info, repo.language, scope)?);
         content_lines.push(String::new());
     }
     let versions = repo.first_seen.resolve_ints(Domain::Talk, talk_ids)?;

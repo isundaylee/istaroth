@@ -3,6 +3,7 @@
 
 use crate::firstseen::Domain;
 use crate::issues::Scope;
+use crate::lang::Language;
 use crate::renderables::readable;
 use crate::rendered_item::RenderedItem;
 use crate::repo::Repo;
@@ -101,7 +102,10 @@ pub fn process_book_series(
     let total = volumes.len();
     let mut content_parts = vec![format!("# {series_name}")];
     for (index, volume) in volumes.iter().enumerate() {
-        let annotation = format!("*{series_name}·第 {} 卷，共 {total} 卷*", index + 1);
+        let annotation = match repo.language {
+            Language::Chs => format!("*{series_name}·第 {} 卷，共 {total} 卷*", index + 1),
+            Language::Eng => format!("*{series_name} — Volume {} of {total}*", index + 1),
+        };
         content_parts.push(format!(
             "## {}\n\n{annotation}\n\n{}",
             volume.title, volume.content

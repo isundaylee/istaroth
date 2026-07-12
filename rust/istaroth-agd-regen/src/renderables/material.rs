@@ -49,7 +49,9 @@ pub fn process(repo: &Repo, scope: &Scope, material_type: &str) -> Result<Option
                 "No description available".to_string()
             }
         };
-        if util::should_skip_text(&name) || util::should_skip_text(&description) {
+        if util::should_skip_text(&name, repo.language)
+            || util::should_skip_text(&description, repo.language)
+        {
             continue;
         }
         materials.push(MaterialInfo {

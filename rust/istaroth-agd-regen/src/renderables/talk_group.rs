@@ -2,6 +2,7 @@
 
 use crate::firstseen::Domain;
 use crate::issues::{IssueType, Scope};
+use crate::lang::Language;
 use crate::renderables::talk::{self, TalkInfo, TalkNotFound};
 use crate::rendered_item::RenderedItem;
 use crate::repo::Repo;
@@ -89,16 +90,6 @@ fn entry_int(v: &Value) -> Result<i64> {
     }
 }
 
-const GENERIC_SPEAKERS: [&str; 7] = [
-    talk::PLAYER,
-    talk::MATE_AVATAR,
-    talk::BLACK_SCREEN,
-    talk::PAIMON,
-    talk::MISSING_TALK_ROLE,
-    "???",
-    "？？？",
-];
-
 /// Title from the group's most talkative named speakers, or None if none.
 ///
 /// Generic speakers (player, Paimon, black-screen text, `???`,
@@ -106,7 +97,17 @@ const GENERIC_SPEAKERS: [&str; 7] = [
 /// are dropped; dev/test-named roles arrive already skip-flagged. The top
 /// `SPEAKER_TITLE_LIMIT` names by line count are joined with ` / `, with a
 /// trailing `...` when more named speakers exist.
-pub fn derive_speaker_group_name(info: &TalkGroupInfo) -> Option<String> {
+pub fn derive_speaker_group_name(info: &TalkGroupInfo, language: Language) -> Option<String> {
+    let roles = language.role_names();
+    let generic_speakers: [&str; 7] = [
+        roles.player,
+        roles.mate_avatar,
+        roles.black_screen,
+        roles.paimon,
+        talk::MISSING_TALK_ROLE,
+        "???",
+        "？？？",
+    ];
     let mut speakers: IndexMap<String, usize> = IndexMap::new();
     for (talk_info, next_talks) in &info.talks {
         for t in std::iter::once(talk_info).chain(next_talks.iter()) {
@@ -126,13 +127,13 @@ pub fn derive_speaker_group_name(info: &TalkGroupInfo) -> Option<String> {
                 if let Some(m) = COMPOSITE_ROLE.captures(&name) {
                     let g1 = m.get(1).unwrap().as_str();
                     let g2 = m.get(2).unwrap().as_str();
-                    name = if GENERIC_SPEAKERS.contains(&g1) {
+                    name = if generic_speakers.contains(&g1) {
                         g2.to_string()
                     } else {
                         g1.to_string()
                     };
                 }
-                if GENERIC_SPEAKERS.contains(&name.as_str()) || name.starts_with(talk::UNKNOWN_ROLE)
+                if generic_speakers.contains(&name.as_str()) || name.starts_with(roles.unknown_role)
                 {
                     continue;
                 }
@@ -187,11 +188,11 @@ pub fn render_talk_group(
     let mut content_lines = vec![format!("# Talk Group: {title}\n")];
     for (i, (talk_info, next_talks)) in info.talks.iter().enumerate() {
         content_lines.push(format!("## Talk {i}\n"));
-        content_lines.extend(talk::render_talk_content(talk_info, scope)?);
+        content_lines.extend(talk::render_talk_content(talk_info, repo.language, scope)?);
         content_lines.push(String::new());
         for (j, next_talk) in next_talks.iter().enumerate() {
             content_lines.push(format!("### Talk {i} related talk {j}\n"));
-            content_lines.extend(talk::render_talk_content(next_talk, scope)?);
+            content_lines.extend(talk::render_talk_content(next_talk, repo.language, scope)?);
             content_lines.push(String::new());
         }
     }
@@ -248,7 +249,7 @@ pub fn process(
             let npc_id = util::py_int(group_id)?;
             match repo.npc_source_name(npc_id) {
                 Some(source_name) => {
-                    if util::should_skip_text(source_name) {
+                    if util::should_skip_text(source_name, Language::Chs) {
                         return Ok(None);
                     }
                     let mut name = repo
@@ -268,7 +269,7 @@ pub fn process(
             .activity_id_to_name
             .get(&util::py_int(group_id)?)
             .cloned(),
-        "GadgetGroup" => derive_speaker_group_name(&info),
+        "GadgetGroup" => derive_speaker_group_name(&info, repo.language),
         other => bail!("unsupported talk group type {other}"),
     };
     Ok(Some(render_talk_group(
@@ -304,51 +305,60 @@ mod tests {
     fn derive_speaker_group_name_cases() {
         // Generic-only speakers give no name.
         assert_eq!(
-            derive_speaker_group_name(&group(
-                &[Some("旅行者"), Some("派蒙"), Some("???"), None],
-                &[],
-            )),
+            derive_speaker_group_name(
+                &group(&[Some("旅行者"), Some("派蒙"), Some("???"), None], &[],),
+                Language::Chs
+            ),
             None
         );
         assert_eq!(
-            derive_speaker_group_name(&group(&[Some("告示板")], &[])),
+            derive_speaker_group_name(&group(&[Some("告示板")], &[]), Language::Chs),
             Some("告示板".to_string())
         );
         // Most talkative first; more than three named speakers get an ellipsis.
         assert_eq!(
-            derive_speaker_group_name(&group(
-                &[Some("甲"), Some("乙"), Some("乙"), Some("丙"), Some("丁")],
-                &[],
-            )),
+            derive_speaker_group_name(
+                &group(
+                    &[Some("甲"), Some("乙"), Some("乙"), Some("丙"), Some("丁")],
+                    &[],
+                ),
+                Language::Chs
+            ),
             Some("乙 / 甲 / 丙 / ...".to_string())
         );
         // A generic-half composite counts as its specific half; a named-half
         // composite dedups with the plain name.
         assert_eq!(
-            derive_speaker_group_name(&group(&[Some("旅行者 (观察花卉)")], &[])),
+            derive_speaker_group_name(&group(&[Some("旅行者 (观察花卉)")], &[]), Language::Chs),
             Some("观察花卉".to_string())
         );
         assert_eq!(
-            derive_speaker_group_name(&group(
-                &[Some("遗迹的铭文 (铭文)"), Some("遗迹的铭文")],
-                &[],
-            )),
+            derive_speaker_group_name(
+                &group(&[Some("遗迹的铭文 (铭文)"), Some("遗迹的铭文")], &[],),
+                Language::Chs
+            ),
             Some("遗迹的铭文".to_string())
         );
         // Placeholder roles and skip-flagged (dev/test) lines are dropped.
         assert_eq!(
-            derive_speaker_group_name(&group(&[Some("Unknown Role (TALK_ROLE_GADGET)")], &[])),
+            derive_speaker_group_name(
+                &group(&[Some("Unknown Role (TALK_ROLE_GADGET)")], &[]),
+                Language::Chs
+            ),
             None
         );
         assert_eq!(
-            derive_speaker_group_name(&group(&[Some("[Missing Talk]")], &[])),
+            derive_speaker_group_name(&group(&[Some("[Missing Talk]")], &[]), Language::Chs),
             None
         );
         assert_eq!(
-            derive_speaker_group_name(&group(
-                &[Some("（test）阿圆 (阿圆)"), Some("阿圆")],
-                &["（test）阿圆 (阿圆)"],
-            )),
+            derive_speaker_group_name(
+                &group(
+                    &[Some("（test）阿圆 (阿圆)"), Some("阿圆")],
+                    &["（test）阿圆 (阿圆)"],
+                ),
+                Language::Chs
+            ),
             Some("阿圆".to_string())
         );
     }

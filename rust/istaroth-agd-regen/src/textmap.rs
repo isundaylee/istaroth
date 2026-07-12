@@ -4,6 +4,7 @@
 use crate::cleanup;
 use crate::git::git_show;
 use crate::issues::Scope;
+use crate::lang::Language;
 use anyhow::{Result, anyhow};
 use rustc_hash::FxHashMap;
 use std::path::Path;
@@ -25,6 +26,7 @@ pub const FALLBACK_REFS: [&str; 3] = [
 ];
 
 pub struct TextMaps {
+    language: Language,
     current: FxHashMap<i64, String>,
     fallback: FxHashMap<i64, String>,
     pronouns: FxHashMap<String, i64>,
@@ -62,18 +64,21 @@ fn parse_text_map(bytes: &[u8]) -> Result<FxHashMap<i64, String>> {
 impl TextMaps {
     #[cfg(test)]
     pub(crate) fn for_tests(
+        language: Language,
         current: FxHashMap<i64, String>,
         fallback: FxHashMap<i64, String>,
         pronouns: FxHashMap<String, i64>,
     ) -> TextMaps {
         TextMaps {
+            language,
             current,
             fallback,
             pronouns,
         }
     }
 
-    pub fn load(agd_path: &Path, language_short: &str) -> Result<TextMaps> {
+    pub fn load(agd_path: &Path, language: Language) -> Result<TextMaps> {
+        let language_short = language.short();
         let (current, (fallback, pronouns)) = rayon::join(
             || Self::load_current(agd_path, language_short),
             || {
@@ -84,6 +89,7 @@ impl TextMaps {
             },
         );
         Ok(TextMaps {
+            language,
             current: current?,
             fallback: fallback?,
             pronouns: pronouns?,
@@ -200,7 +206,7 @@ impl TextMaps {
                 .map(str::to_string)
                 .ok_or_else(|| anyhow!("Unresolvable SEXPRO pronoun token: {token}"))
         })?;
-        cleanup::clean_text_markers(&resolved)
+        cleanup::clean_text_markers(&resolved, self.language)
     }
 
     /// Any lookup that resolves — in the current OR fallback map — records the
@@ -277,6 +283,7 @@ mod tests {
     #[test]
     fn fallback_only_on_current_miss() {
         let tm = TextMaps::for_tests(
+            Language::Chs,
             string_map(&[(100, "Current"), (200, "Current wins")]),
             string_map(&[(200, "Fallback loses"), (300, "Fallback")]),
             FxHashMap::default(),
@@ -314,6 +321,7 @@ mod tests {
     #[test]
     fn get_required_errors_on_miss() {
         let tm = TextMaps::for_tests(
+            Language::Chs,
             FxHashMap::default(),
             FxHashMap::default(),
             FxHashMap::default(),
@@ -327,6 +335,7 @@ mod tests {
         // 6.x dropped the pronoun TextMap rows, so both the token -> hash
         // pairing and the hash -> text live in the fallback maps.
         let tm = TextMaps::for_tests(
+            Language::Chs,
             FxHashMap::default(),
             string_map(&[(500, "他")]),
             [("INFO_MALE_PRONOUN_HE".to_string(), 500)]

@@ -1,5 +1,5 @@
-//! Port of istaroth.agd.repo.DataRepo (CHS build): eager loading of all AGD
-//! inputs plus every derived mapping generate-all consumes.
+//! Port of istaroth.agd.repo.DataRepo: eager loading of all AGD inputs plus
+//! every derived mapping generate-all consumes.
 
 use crate::coop::CoopStoryGraph;
 use crate::firstseen::FirstSeenIndex;
@@ -65,6 +65,11 @@ pub struct Repo {
     pub agd_path: PathBuf,
     pub language: Language,
     pub tm: TextMaps,
+    /// The CHS (source) text maps when the output language is not CHS; None
+    /// when source == output. Dev/test markers ($HIDDEN, (test), beta测试任务)
+    /// exist only in CHS text, so hidden filtering consults these via the
+    /// `source_*` accessors regardless of the output language.
+    tm_source: Option<TextMaps>,
     pub first_seen: FirstSeenIndex,
 
     /// Raw excel tables.
@@ -94,6 +99,9 @@ pub struct Repo {
     pub talk_to_quest: FxHashMap<i64, i64>,
     pub subtitle_stem_to_cutscenes: FxHashMap<String, Vec<i64>>,
     pub npc_id_to_name: FxHashMap<i64, String>,
+    /// NPC id -> CHS (source) name when the output language is not CHS; None
+    /// when source == output (see `npc_source_name`).
+    npc_id_to_source_name: Option<FxHashMap<i64, String>>,
     pub activity_id_to_name: FxHashMap<i64, String>,
     pub npc_id_to_game_mode: FxHashMap<i64, &'static str>,
 
@@ -506,6 +514,22 @@ fn build_id_to_name(
     Ok(id_to_name)
 }
 
+/// Like `build_id_to_name` against the CHS source map, untracked: the source
+/// tracker is not scope-observed in the reference pipeline, so its accesses
+/// never reach usage stats.
+fn build_id_to_source_name(
+    entries: &[Value],
+    tm_source: &TextMaps,
+) -> Result<FxHashMap<i64, String>> {
+    let mut id_to_name = FxHashMap::default();
+    for entry in entries {
+        if let Some(name) = tm_source.get_optional_untracked(entry.i("nameTextMapHash")?)? {
+            id_to_name.insert(entry.i("id")?, name);
+        }
+    }
+    Ok(id_to_name)
+}
+
 fn build_activity_id_to_name(
     new_activity: &IndexMap<i64, Value>,
     tm: &TextMaps,
@@ -520,11 +544,17 @@ fn build_activity_id_to_name(
     Ok(activity_id_to_name)
 }
 
-fn build_npc_id_to_game_mode(excel: &Excels) -> Result<FxHashMap<i64, &'static str>> {
+fn build_npc_id_to_game_mode(
+    excel: &Excels,
+    language: Language,
+) -> Result<FxHashMap<i64, &'static str>> {
     let mut npc_id_to_game_mode: FxHashMap<i64, &'static str> = FxHashMap::default();
     let mode_lists: [(&'static str, Vec<i64>); 3] = [
         (
-            "尘歌壶",
+            match language {
+                Language::Chs => "尘歌壶",
+                Language::Eng => "Serenitea Pot",
+            },
             excel
                 .home_world_npc
                 .iter()
@@ -532,7 +562,10 @@ fn build_npc_id_to_game_mode(excel: &Excels) -> Result<FxHashMap<i64, &'static s
                 .collect::<Result<_>>()?,
         ),
         (
-            "幻想真境剧诗",
+            match language {
+                Language::Chs => "幻想真境剧诗",
+                Language::Eng => "Imaginarium Theater",
+            },
             excel
                 .role_combat_tarot
                 .iter()
@@ -540,7 +573,10 @@ fn build_npc_id_to_game_mode(excel: &Excels) -> Result<FxHashMap<i64, &'static s
                 .collect::<Result<_>>()?,
         ),
         (
-            "七圣召唤",
+            match language {
+                Language::Chs => "七圣召唤",
+                Language::Eng => "Genius Invokation TCG",
+            },
             excel
                 .gcg_week_level
                 .iter()
@@ -691,6 +727,7 @@ fn build_subtitle_stem_map(
 /// Everything phase A loads in parallel before the derived mappings.
 struct Inputs {
     tm: TextMaps,
+    tm_source: Option<TextMaps>,
     talk_files: FxHashMap<String, Value>,
     talk_file_rels: Vec<String>,
     quest_files: FxHashMap<String, Value>,
@@ -713,13 +750,14 @@ impl Repo {
         let language_short = language.short();
         let Inputs {
             tm,
+            tm_source,
             talk_files,
             talk_file_rels,
             quest_files,
             excel,
             dialog_maps,
             misc,
-        } = Self::load_inputs(agd_path, first_seen_dir, language_short, verbose)?;
+        } = Self::load_inputs(agd_path, first_seen_dir, language, verbose)?;
 
         let talk_ids_all: FxHashSet<i64> = excel
             .talk
@@ -753,8 +791,12 @@ impl Repo {
         let coop_chapter_to_avatar = build_coop_chapter_to_avatar(&excel.coop_chapter)?;
         let avatar_id_to_name = build_id_to_name(&excel.avatar, &tm, load_scope)?;
         let npc_id_to_name = build_id_to_name(&excel.npc, &tm, load_scope)?;
+        let npc_id_to_source_name = tm_source
+            .as_ref()
+            .map(|src| build_id_to_source_name(&excel.npc, src))
+            .transpose()?;
         let activity_id_to_name = build_activity_id_to_name(&excel.new_activity, &tm, load_scope)?;
-        let npc_id_to_game_mode = build_npc_id_to_game_mode(&excel)?;
+        let npc_id_to_game_mode = build_npc_id_to_game_mode(&excel, language)?;
         let sub_quest_to_main = build_sub_quest_to_main(&excel.quest)?;
         let talk_to_quest = build_talk_to_quest(&excel.talk)?;
         let subtitle_stem_to_cutscenes =
@@ -773,6 +815,7 @@ impl Repo {
             agd_path: agd_path.to_path_buf(),
             language,
             tm,
+            tm_source,
             first_seen: misc.first_seen,
             excel,
             talk_ids_all,
@@ -796,6 +839,7 @@ impl Repo {
             talk_to_quest,
             subtitle_stem_to_cutscenes,
             npc_id_to_name,
+            npc_id_to_source_name,
             activity_id_to_name,
             npc_id_to_game_mode,
             readable_filenames,
@@ -809,9 +853,10 @@ impl Repo {
     fn load_inputs(
         agd_path: &Path,
         first_seen_dir: &Path,
-        language_short: &str,
+        language: Language,
         verbose: bool,
     ) -> Result<Inputs> {
+        let language_short = language.short();
         let excel_dir = agd_path.join("ExcelBinOutput");
 
         // Talk excel: split files or the single one.
@@ -837,50 +882,59 @@ impl Repo {
         };
 
         let t0 = std::time::Instant::now();
-        let (tm, (talk_files_res, (quest_files_res, (excels_res, misc_res)))) = rayon::join(
-            || {
-                run_timed(verbose, "text maps", || {
-                    TextMaps::load(agd_path, language_short)
-                })
-            },
-            || {
-                rayon::join(
-                    || run_timed(verbose, "talk files", || Self::load_talk_files(agd_path)),
-                    || {
+        let ((tm, tm_source), (talk_files_res, (quest_files_res, (excels_res, misc_res)))) =
+            rayon::join(
+                || {
+                    run_timed(verbose, "text maps", || {
                         rayon::join(
+                            || TextMaps::load(agd_path, language),
                             || {
-                                run_timed(verbose, "quest files", || {
-                                    Self::load_quest_files(agd_path)
-                                })
-                            },
-                            || {
-                                rayon::join(
-                                    || {
-                                        run_timed(verbose, "excels", || {
-                                            Self::load_excels(&excel_dir, load_talk_excel)
-                                        })
-                                    },
-                                    || {
-                                        run_timed(verbose, "misc", || {
-                                            Self::load_misc(
-                                                agd_path,
-                                                first_seen_dir,
-                                                language_short,
-                                            )
-                                        })
-                                    },
-                                )
+                                (language != Language::Chs)
+                                    .then(|| TextMaps::load(agd_path, Language::Chs))
+                                    .transpose()
                             },
                         )
-                    },
-                )
-            },
-        );
+                    })
+                },
+                || {
+                    rayon::join(
+                        || run_timed(verbose, "talk files", || Self::load_talk_files(agd_path)),
+                        || {
+                            rayon::join(
+                                || {
+                                    run_timed(verbose, "quest files", || {
+                                        Self::load_quest_files(agd_path)
+                                    })
+                                },
+                                || {
+                                    rayon::join(
+                                        || {
+                                            run_timed(verbose, "excels", || {
+                                                Self::load_excels(&excel_dir, load_talk_excel)
+                                            })
+                                        },
+                                        || {
+                                            run_timed(verbose, "misc", || {
+                                                Self::load_misc(
+                                                    agd_path,
+                                                    first_seen_dir,
+                                                    language_short,
+                                                )
+                                            })
+                                        },
+                                    )
+                                },
+                            )
+                        },
+                    )
+                },
+            );
         log_elapsed(verbose, "phase A total", t0);
         let (talk_files, talk_file_rels) = talk_files_res?;
         let (excel, dialog_maps) = excels_res?;
         Ok(Inputs {
             tm: tm?,
+            tm_source: tm_source?,
             talk_files,
             talk_file_rels,
             quest_files: quest_files_res?,
@@ -1211,8 +1265,40 @@ impl Repo {
     }
 
     pub fn npc_source_name(&self, npc_id: i64) -> Option<&String> {
-        // CHS build: the source (CHS) map IS the output map.
-        self.npc_id_to_name.get(&npc_id)
+        // CHS build: the source (CHS) map IS the output map, so the dedicated
+        // source-name mapping exists only for other output languages.
+        self.npc_id_to_source_name
+            .as_ref()
+            .unwrap_or(&self.npc_id_to_name)
+            .get(&npc_id)
+    }
+
+    // --- CHS source text map accessors ---
+    //
+    // The reference pipeline resolves dev/test markers against the CHS source
+    // tracker, which is scope-observed only when it IS the output tracker
+    // (CHS run). So CHS-run lookups track into the scope while non-CHS-run
+    // source lookups never do; the tracked/untracked split below encodes that.
+
+    pub fn source_get_optional(&self, key: i64, scope: &Scope) -> Result<Option<String>> {
+        match &self.tm_source {
+            None => self.tm.get_optional(key, scope),
+            Some(src) => src.get_optional_untracked(key),
+        }
+    }
+
+    pub fn source_get_current_optional(&self, key: i64, scope: &Scope) -> Result<Option<String>> {
+        match &self.tm_source {
+            None => self.tm.get_current_optional(key, scope),
+            Some(src) => src.get_current_optional_untracked(key),
+        }
+    }
+
+    pub fn source_get_optional_untracked(&self, key: i64) -> Result<Option<String>> {
+        self.tm_source
+            .as_ref()
+            .unwrap_or(&self.tm)
+            .get_optional_untracked(key)
     }
 }
 

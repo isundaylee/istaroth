@@ -59,11 +59,11 @@ pub fn load_readable(
         .readable_content(readable_filename, scope)
         .ok_or_else(|| anyhow!("Readable not found: {readable_filename}"))?;
     let content = repo.tm.clean_text(content)?;
-    if util::should_skip_readable_content(&content) {
+    if util::should_skip_readable_content(&content, repo.language) {
         return Ok(None);
     }
     let metadata = get_readable_metadata(repo, scope, readable_filename)?;
-    if util::should_skip_text(&metadata.title) {
+    if util::should_skip_text(&metadata.title, repo.language) {
         return Ok(None);
     }
     Ok(Some((content, metadata)))

@@ -2,6 +2,7 @@
 
 use crate::firstseen::Domain;
 use crate::issues::Scope;
+use crate::lang::Language;
 use crate::rendered_item::RenderedItem;
 use crate::repo::Repo;
 use crate::util;
@@ -22,13 +23,12 @@ fn main_quest_title(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Option<
         return Ok(None);
     };
     let title_hash = main_quest.i("titleTextMapHash")?;
-    let chs_title = repo.tm.get_optional(title_hash, scope)?;
-    if let Some(chs) = &chs_title
-        && util::should_skip_text(chs)
+    if let Some(chs) = repo.source_get_optional(title_hash, scope)?
+        && util::should_skip_text(&chs, Language::Chs)
     {
         return Ok(None);
     }
-    Ok(chs_title)
+    repo.tm.get_optional(title_hash, scope)
 }
 
 /// Title of the main quest an id-shaped number points at, or None.
@@ -75,7 +75,7 @@ pub fn process(repo: &Repo, scope: &Scope, subtitle_path: &str) -> Result<Option
     for line in util::py_strip(&content).split('\n') {
         let line = util::py_strip(line);
         if !line.is_empty() && !util::py_isdigit(line) && !line.contains("-->") {
-            text_lines.push(crate::cleanup::clean_text_markers(line)?);
+            text_lines.push(crate::cleanup::clean_text_markers(line, repo.language)?);
         }
     }
     // A few subtitle files ship empty or as a lone `.` placeholder (their

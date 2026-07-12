@@ -3,6 +3,7 @@
 
 use crate::firstseen::Domain;
 use crate::issues::Scope;
+use crate::lang::Language;
 use crate::rendered_item::RenderedItem;
 use crate::repo::Repo;
 use crate::util;
@@ -11,28 +12,37 @@ use anyhow::{Result, anyhow, bail};
 use rustc_hash::FxHashSet;
 use serde_json::Value;
 
-const CREATURE_TYPE_LABELS: [(&str, &str); 2] =
-    [("CODEX_MONSTER", "魔物"), ("CODEX_ANIMAL", "野生生物")];
-const CREATURE_SUBTYPE_LABELS: [(&str, &str); 12] = [
-    ("CODEX_SUBTYPE_ELEMENTAL", "元素生命"),
-    ("CODEX_SUBTYPE_HILICHURL", "丘丘部族"),
-    ("CODEX_SUBTYPE_ABYSS", "深渊"),
-    ("CODEX_SUBTYPE_FATUI", "愚人众"),
-    ("CODEX_SUBTYPE_AUTOMATRON", "自律机关"),
-    ("CODEX_SUBTYPE_HUMAN", "人类势力"),
-    ("CODEX_SUBTYPE_BEAST", "异种魔兽"),
-    ("CODEX_SUBTYPE_BOSS", "首领"),
-    ("CODEX_SUBTYPE_ANIMAL", "走兽"),
-    ("CODEX_SUBTYPE_AVIARY", "飞禽"),
-    ("CODEX_SUBTYPE_FISH", "鱼类"),
-    ("CODEX_SUBTYPE_CRITTER", "小型生物"),
+const CREATURE_TYPE_LABELS: [(&str, &str, &str); 2] = [
+    ("CODEX_MONSTER", "魔物", "Monsters"),
+    ("CODEX_ANIMAL", "野生生物", "Wildlife"),
+];
+const CREATURE_SUBTYPE_LABELS: [(&str, &str, &str); 12] = [
+    ("CODEX_SUBTYPE_ELEMENTAL", "元素生命", "Elemental Lifeforms"),
+    ("CODEX_SUBTYPE_HILICHURL", "丘丘部族", "Hilichurls"),
+    ("CODEX_SUBTYPE_ABYSS", "深渊", "The Abyss"),
+    ("CODEX_SUBTYPE_FATUI", "愚人众", "Fatui"),
+    ("CODEX_SUBTYPE_AUTOMATRON", "自律机关", "Automatons"),
+    ("CODEX_SUBTYPE_HUMAN", "人类势力", "Human Factions"),
+    ("CODEX_SUBTYPE_BEAST", "异种魔兽", "Mystical Beasts"),
+    ("CODEX_SUBTYPE_BOSS", "首领", "Bosses"),
+    ("CODEX_SUBTYPE_ANIMAL", "走兽", "Beasts"),
+    ("CODEX_SUBTYPE_AVIARY", "飞禽", "Avian Kind"),
+    ("CODEX_SUBTYPE_FISH", "鱼类", "Fish"),
+    ("CODEX_SUBTYPE_CRITTER", "小型生物", "Critters"),
 ];
 
-fn label_of(table: &[(&str, &'static str)], key: &str) -> Result<&'static str> {
+fn label_of(
+    table: &[(&str, &'static str, &'static str)],
+    key: &str,
+    language: Language,
+) -> Result<&'static str> {
     table
         .iter()
-        .find(|(k, _)| *k == key)
-        .map(|(_, v)| *v)
+        .find(|(k, _, _)| *k == key)
+        .map(|(_, chs, eng)| match language {
+            Language::Chs => *chs,
+            Language::Eng => *eng,
+        })
         .ok_or_else(|| anyhow!("unknown codex label {key}"))
 }
 
@@ -137,8 +147,12 @@ pub fn process(repo: &Repo, scope: &Scope, subtype: &str) -> Result<Option<Rende
     if entries.is_empty() {
         bail!("No creatures found for codex subType {subtype:?}");
     }
-    let type_label = label_of(&CREATURE_TYPE_LABELS, entries[0].2.s("type")?)?;
-    let subtype_label = label_of(&CREATURE_SUBTYPE_LABELS, subtype)?;
+    let type_label = label_of(
+        &CREATURE_TYPE_LABELS,
+        entries[0].2.s("type")?,
+        repo.language,
+    )?;
+    let subtype_label = label_of(&CREATURE_SUBTYPE_LABELS, subtype, repo.language)?;
     let creatures: Vec<CreatureInfo> = entries
         .iter()
         .map(|(_, id, _)| creature_info(repo, scope, *id))
