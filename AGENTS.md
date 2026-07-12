@@ -104,11 +104,17 @@ istaroth/
   individual commit messages. So keep the PR description accurate and complete —
   it becomes the permanent commit message — and treat per-commit messages on the
   branch as throwaway.
-- Address review feedback as NEW commits — one per review round — rather than
-  amending or squashing into existing commits. Stacking each round as its own
-  commit lets the reviewer see exactly what changed in response to their
-  feedback; squash-merge collapses them on merge, so the extra commits cost
-  nothing. Only re-squash the branch when explicitly asked.
+- Keep each PR to a SINGLE commit — one commit, one PR — including across review
+  rounds: amend the existing commit with `gt modify` rather than stacking a new
+  commit per round. Graphite lets reviewers diff a PR's earlier submitted version
+  against its current one, so incremental commits aren't needed to show what
+  changed. Keep the commit message (which is the PR description) accurate as you
+  amend.
+- Put PRs up with the Graphite CLI (`gt`): `gt create` makes a tracked branch
+  with your commit off `main`, `gt modify` folds follow-up edits into it, and
+  `gt submit` pushes the branch and opens/updates the PR. The branch's commit
+  message becomes the PR title/description — and thus the squash-merge commit —
+  so keep it complete and accurate.
 - For creating or updating a pull request, follow the `pr` skill
   (`.agents/skills/pr/SKILL.md`): the initial squash into a clean commit, running
   pre-commit, passing commit/PR bodies via a file, issue-closing keywords, and
