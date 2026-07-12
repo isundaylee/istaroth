@@ -783,6 +783,74 @@ pub fn process(repo: &Repo, scope: &Scope, talk_id: i64) -> Result<Option<Render
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::textmap::TextMaps;
+    use serde_json::json;
+
+    fn maps(language: Language, current: &[(i64, &str)], fallback: &[(i64, &str)]) -> TextMaps {
+        TextMaps::for_tests(
+            language,
+            current
+                .iter()
+                .map(|(id, text)| (*id, text.to_string()))
+                .collect(),
+            fallback
+                .iter()
+                .map(|(id, text)| (*id, text.to_string()))
+                .collect(),
+            FxHashMap::default(),
+        )
+    }
+
+    #[test]
+    fn role_name_hash_ignores_fallback_text() {
+        let repo = Repo {
+            tm: maps(Language::Eng, &[(10, "Hello")], &[(20, "Stale Name")]),
+            talk_files: [(
+                "talk.json".to_string(),
+                json!({"dialogList": [{
+                    "id": 1,
+                    "talkContentTextMapHash": 10,
+                    "talkRoleNameTextMapHash": 20,
+                    "talkRole": {"type": "TALK_ROLE_NPC", "_id": "7"}
+                }]}),
+            )]
+            .into_iter()
+            .collect(),
+            npc_id_to_name: [(7, "Current NPC".to_string())].into_iter().collect(),
+            ..Default::default()
+        };
+        assert_eq!(
+            get_talk_info(&repo, &Scope::default(), "talk.json")
+                .unwrap()
+                .text[0]
+                .role,
+            Some("Current NPC".to_string())
+        );
+    }
+
+    #[test]
+    fn untranslated_source_test_placeholder_is_skipped() {
+        let repo = Repo {
+            language: Language::Eng,
+            tm: maps(Language::Eng, &[], &[]),
+            tm_chs: Some(maps(Language::Chs, &[(10, "(test) placeholder")], &[])),
+            talk_files: [(
+                "talk.json".to_string(),
+                json!({"dialogList": [{
+                    "id": 1,
+                    "talkContentTextMapHash": 10,
+                    "talkRole": {"type": "TALK_ROLE_NONE"}
+                }]}),
+            )]
+            .into_iter()
+            .collect(),
+            ..Default::default()
+        };
+        let scope = Scope::default();
+        let info = get_talk_info(&repo, &scope, "talk.json").unwrap();
+        assert!(info.text[0].skip);
+        assert!(scope.issues.borrow().is_empty());
+    }
 
     fn t(role: Option<&str>, message: &str, next: &[i64], dialog_id: i64) -> TalkText {
         TalkText {

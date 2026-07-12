@@ -39,6 +39,7 @@ const GROUP_DIRECTORIES: [&str; 4] = [
     "StoryboardGroup",
 ];
 
+#[derive(Default)]
 pub struct TalkParseResult {
     pub talk_id_to_path: FxHashMap<i64, String>,
     pub talk_group_id_to_path: IndexMap<(String, String), String>,
