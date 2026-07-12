@@ -27,12 +27,12 @@ byte-identically in ~7 s (snapshot scans run in parallel).
 source .env.common   # AGD_PATH
 cargo build --release --manifest-path rust/Cargo.toml
 # from the repo root, so text/first_seen resolves (or set FIRST_SEEN_DIR)
-./rust/target/release/istaroth-agd-regen generate-all -f tmp-local/rust-chs
+./rust/target/release/istaroth-agd-regen generate-all --language CHS -f tmp-local/rust-chs
 # -v additionally prints per-phase [load] timing details
-# ENG (language comes from AGD_LANGUAGE, like the Python pipeline;
-# --allow-errors exits 0 even with per-item failures, also like Python):
-AGD_LANGUAGE=ENG ./rust/target/release/istaroth-agd-regen \
-  generate-all -f --allow-errors tmp-local/rust-eng
+# ENG (--allow-errors exits 0 even with per-item failures, like the retired
+# Python pipeline):
+./rust/target/release/istaroth-agd-regen \
+  generate-all --language ENG -f --allow-errors tmp-local/rust-eng
 
 # first-seen delta files (writes to FIRST_SEEN_DIR, default text/first_seen):
 ./rust/target/release/istaroth-agd-regen build-first-seen [--rebuild-all]
