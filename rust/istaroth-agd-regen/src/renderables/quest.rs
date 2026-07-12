@@ -680,3 +680,68 @@ pub fn render_quest(repo: &Repo, scope: &Scope, quest: &QuestInfo) -> Result<Ren
         content_lines.join("\n"),
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn common_prefix_name_cases() {
+        for (titles, expected) in [
+            // CHS ·-separated ordinals.
+            (
+                vec!["山中好长日·序章 魔山", "山中好长日·第一章 天堂"],
+                Some("山中好长日"),
+            ),
+            // Space-separated CHS ordinals.
+            (
+                vec!["森林书 第一章 林中奇遇", "森林书 第二章 梦中的苗圃"],
+                Some("森林书"),
+            ),
+            // Roman numerals are prefix-closed (I/II); cut at the strong separator.
+            (
+                vec![
+                    "Aranyaka: Part I Woodland Encounter",
+                    "Aranyaka: Part II Dream Nursery",
+                ],
+                Some("Aranyaka"),
+            ),
+            // Divergence right at the separator (with/without colon) needs no cut.
+            (
+                vec![
+                    "Canticles of Harmony Prelude Petrichorror Dream",
+                    "Canticles of Harmony: Finale Requiem",
+                ],
+                Some("Canticles of Harmony"),
+            ),
+            // No strong separator: cut back to the last non-alphanumeric character.
+            (
+                vec![
+                    "欢夏！邪龙？童话国！第一页 A",
+                    "欢夏！邪龙？童话国！第二页 B",
+                ],
+                Some("欢夏！邪龙？童话国！"),
+            ),
+            // Hyphen works as a strong separator too.
+            (
+                vec![
+                    "Fabulous Fungus Frenzy - Act I X",
+                    "Fabulous Fungus Frenzy - Act II Y",
+                ],
+                Some("Fabulous Fungus Frenzy"),
+            ),
+            // Nothing in common.
+            (
+                vec!["夏活 夏活beta测试任务", "绘夏！烈日？度假村！其一 C"],
+                None,
+            ),
+        ] {
+            let titles: Vec<String> = titles.iter().map(|s| s.to_string()).collect();
+            assert_eq!(
+                common_prefix_name(&titles),
+                expected.map(str::to_string),
+                "{titles:?}"
+            );
+        }
+    }
+}

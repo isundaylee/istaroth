@@ -144,3 +144,75 @@ pub fn path_stem(path: &str) -> &str {
 pub fn path_name(path: &str) -> &str {
     path.rsplit('/').next().unwrap_or(path)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn safe_filename_part_truncates_sanitizes_collapses() {
+        // Truncation is 50 code points, before sanitization.
+        assert_eq!(make_safe_filename_part(&"字".repeat(60)), "字".repeat(50));
+        assert_eq!(
+            make_safe_filename_part("神霄折戟录·第六卷"),
+            "神霄折戟录第六卷"
+        );
+        assert_eq!(
+            make_safe_filename_part("「这是引号」—还有破折号！"),
+            "这是引号还有破折号"
+        );
+        assert_eq!(
+            make_safe_filename_part("  Title   With   Spaces  "),
+            "Title_With_Spaces"
+        );
+    }
+
+    #[test]
+    fn skip_text_markers() {
+        for text in [
+            "(test)一阶段结束$HIDDEN",
+            "（test）旅人兰那罗",
+            "TEST quest",
+            "夏活beta测试任务",
+            "含$UNRELEASED标记",
+        ] {
+            assert!(should_skip_text(text), "{text}");
+        }
+        for text in ["山中好长日·第一章", "放假一天！"] {
+            assert!(!should_skip_text(text), "{text}");
+        }
+    }
+
+    #[test]
+    fn skip_readable_content_placeholders_only() {
+        for content in ["？？？", " ？？？ ", "", "  ", "测试", "暂缺", "N/A"] {
+            assert!(should_skip_readable_content(content), "{content:?}");
+        }
+        for content in ["放假一天！", "我的宝物", "？？", "Real book text."] {
+            assert!(!should_skip_readable_content(content), "{content:?}");
+        }
+    }
+
+    #[test]
+    fn sha256_id_is_stable() {
+        // Creature/subtitle/material file ids derive from this; the committed
+        // corpus filenames pin these exact values.
+        assert_eq!(sha256_id("CODEX_SUBTYPE_AUTOMATRON"), 97990234451511);
+        assert_eq!(
+            sha256_id("Subtitle/CHS/Cs_Mengde_EQ401260901_AA_CHS.srt"),
+            117369531083246
+        );
+    }
+
+    #[test]
+    fn strip_language_suffix_variants() {
+        for (stem, expected) in [
+            ("Book100_EN", "Book100"),
+            ("Book100", "Book100"),
+            ("Wanderer_Log_CHS", "Wanderer_Log"),
+            ("Cs_Inazuma_JP", "Cs_Inazuma"),
+        ] {
+            assert_eq!(strip_language_suffix(stem), expected);
+        }
+    }
+}

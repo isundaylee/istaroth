@@ -176,3 +176,112 @@ fn walk_from(
     }
     Ok(steps)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn walk(story: Value) -> Vec<PlayStep> {
+        walk_play_order(&build_story_graph(&story).unwrap()).unwrap()
+    }
+
+    fn talk_id(step: &PlayStep) -> i64 {
+        match step {
+            PlayStep::Talk { local_talk_id } => *local_talk_id,
+            _ => panic!("expected Talk step"),
+        }
+    }
+
+    fn branches(step: &PlayStep) -> &[ChoiceBranch] {
+        match step {
+            PlayStep::Choice { branches } => branches,
+            _ => panic!("expected Choice step"),
+        }
+    }
+
+    #[test]
+    fn walk_play_order_branches_and_convergence() {
+        // A SELECT fans into branches; a node both branches reach is emitted once.
+        let steps = walk(json!({
+            "id": 999,
+            "startNodeId": 1,
+            "coopMap": {
+                "1": {"coopNodeId": 1, "coopNodeType": "COOP_NODE_TALK", "nextNodeArray": [2]},
+                "2": {"coopNodeId": 2, "coopNodeType": "COOP_NODE_SELECT", "nextNodeArray": [3, 4],
+                      "selectList": [
+                          {"dialogId": 111, "showCond": {}, "enableCond": {}},
+                          {"dialogId": 222, "showCond": {}, "enableCond": {}},
+                      ]},
+                "3": {"coopNodeId": 3, "coopNodeType": "COOP_NODE_TALK", "nextNodeArray": [5]},
+                "4": {"coopNodeId": 4, "coopNodeType": "COOP_NODE_TALK", "nextNodeArray": [5]},
+                "5": {"coopNodeId": 5, "coopNodeType": "COOP_NODE_END", "nextNodeArray": []},
+            },
+        }));
+        assert_eq!(steps.len(), 2);
+        assert_eq!(talk_id(&steps[0]), 1);
+        let choice = branches(&steps[1]);
+        let flat: Vec<(Option<i64>, Vec<i64>)> = choice
+            .iter()
+            .map(|b| (b.dialog_id, b.steps.iter().map(talk_id).collect()))
+            .collect();
+        assert_eq!(flat, vec![(Some(111), vec![3]), (Some(222), vec![4])]);
+    }
+
+    #[test]
+    fn walk_play_order_skips_action_and_branches_cond() {
+        // ACTION nodes pass through (no step); COND fans out with no prompts.
+        let steps = walk(json!({
+            "id": 999,
+            "startNodeId": 1,
+            "coopMap": {
+                "1": {"coopNodeId": 1, "coopNodeType": "COOP_NODE_ACTION", "nextNodeArray": [2]},
+                "2": {"coopNodeId": 2, "coopNodeType": "COOP_NODE_TALK", "nextNodeArray": [3]},
+                "3": {"coopNodeId": 3, "coopNodeType": "COOP_NODE_COND", "nextNodeArray": [4, 5],
+                      "coopCondGrp": {
+                          "condCombType": "LOGIC_AND",
+                          "coopCondList": [{"type": "COOP_COND_QUEST_FINISH", "param": [1901503]}],
+                      }},
+                "4": {"coopNodeId": 4, "coopNodeType": "COOP_NODE_TALK", "nextNodeArray": []},
+                "5": {"coopNodeId": 5, "coopNodeType": "COOP_NODE_TALK", "nextNodeArray": []},
+            },
+        }));
+        assert_eq!(steps.len(), 2);
+        assert_eq!(talk_id(&steps[0]), 2);
+        let cond = branches(&steps[1]);
+        assert!(cond.iter().all(|b| b.dialog_id.is_none()));
+        assert_eq!(talk_id(&cond[0].steps[0]), 4);
+        assert_eq!(talk_id(&cond[1].steps[0]), 5);
+        // Branch 0 carries the routing cond_grp; branch 1 is else.
+        assert_eq!(
+            cond[0].cond_grp.as_ref().unwrap()["condCombType"],
+            "LOGIC_AND"
+        );
+        assert!(cond[1].cond_grp.is_none());
+    }
+
+    #[test]
+    fn end_node_emits_end_step() {
+        // Walking to an END node with savePointId emits an End step.
+        let steps = walk(json!({
+            "id": 999,
+            "startNodeId": 1,
+            "coopMap": {
+                "1": {"coopNodeId": 1, "coopNodeType": "COOP_NODE_TALK", "nextNodeArray": [2]},
+                "2": {"coopNodeId": 2, "coopNodeType": "COOP_NODE_COND", "nextNodeArray": [3, 4],
+                      "coopCondGrp": {"condCombType": "LOGIC_NONE", "coopCondList": []}},
+                "3": {"coopNodeId": 3, "coopNodeType": "COOP_NODE_END", "nextNodeArray": [],
+                      "savePointId": 90501},
+                "4": {"coopNodeId": 4, "coopNodeType": "COOP_NODE_TALK", "nextNodeArray": []},
+            },
+        }));
+        let cond = branches(&steps[1]);
+        assert!(matches!(
+            cond[0].steps[..],
+            [PlayStep::End {
+                save_point_id: 90501
+            }]
+        ));
+        assert_eq!(talk_id(&cond[1].steps[0]), 4);
+    }
+}

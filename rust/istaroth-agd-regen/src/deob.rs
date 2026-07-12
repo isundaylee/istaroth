@@ -404,3 +404,84 @@ pub fn deobfuscate_anecdote_excel_config_data(data: Vec<Value>) -> Result<Vec<Va
         .map(|i| deob_map(i, &ANECDOTE, &[]))
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn coop_cond_node() {
+        let deobf = deobfuscate_coop_node(json!({
+            "DACOOAMDHDE": 101, // coopNodeId
+            "HMLLJAMHHHG": "COOP_NODE_COND",
+            "MPEMBNCPNJO": [201, 202],
+            "AJBJJLPHHOH": {
+                "ONIPBCHBDBF": "LOGIC_AND",
+                "POJHMDGHNLM": [
+                    {"DLPKMDPABFM": "COOP_COND_QUEST_FINISH", "IEKGEJMAOCN": [1901503]},
+                ],
+            },
+        }))
+        .unwrap();
+        assert_eq!(deobf["coopNodeId"], 101);
+        assert_eq!(deobf["coopNodeType"], "COOP_NODE_COND");
+        assert_eq!(deobf["nextNodeArray"], json!([201, 202]));
+        assert_eq!(
+            deobf["coopCondGrp"],
+            json!({
+                "condCombType": "LOGIC_AND",
+                "coopCondList": [{"type": "COOP_COND_QUEST_FINISH", "param": [1901503]}],
+            })
+        );
+    }
+
+    #[test]
+    fn coop_select_node() {
+        let deobf = deobfuscate_coop_node(json!({
+            "DACOOAMDHDE": 201,
+            "HMLLJAMHHHG": "COOP_NODE_SELECT",
+            "MPEMBNCPNJO": [301, 302],
+            "ICBFHNOKIDE": [
+                {
+                    "LNKEDDLBLEP": 1001, // dialogId
+                    "DDBMPGNIHFD": {"ONIPBCHBDBF": "LOGIC_NONE", "POJHMDGHNLM": []}, // showCond
+                },
+                {
+                    "LNKEDDLBLEP": 1002,
+                    "OPDLPCGPPIL": { // enableCond
+                        "ONIPBCHBDBF": "LOGIC_AND",
+                        "POJHMDGHNLM": [
+                            {"DLPKMDPABFM": "COOP_COND_QUEST_FINISH", "IEKGEJMAOCN": [1904714]},
+                        ],
+                    },
+                },
+            ],
+        }))
+        .unwrap();
+        let select = deobf["selectList"].as_array().unwrap();
+        assert_eq!(select[0]["dialogId"], 1001);
+        assert_eq!(select[0]["showCond"]["condCombType"], "LOGIC_NONE");
+        assert_eq!(select[0]["showCond"]["coopCondList"], json!([]));
+        assert_eq!(select[1]["dialogId"], 1002);
+        assert_eq!(select[1]["enableCond"]["condCombType"], "LOGIC_AND");
+        assert_eq!(
+            select[1]["enableCond"]["coopCondList"],
+            json!([{"type": "COOP_COND_QUEST_FINISH", "param": [1904714]}])
+        );
+    }
+
+    #[test]
+    fn coop_end_node() {
+        let deobf = deobfuscate_coop_node(json!({
+            "DACOOAMDHDE": 401,
+            "HMLLJAMHHHG": "COOP_NODE_END",
+            "MPEMBNCPNJO": [],
+            "AOOCCGGPPAI": 90501, // savePointId
+        }))
+        .unwrap();
+        assert_eq!(deobf["coopNodeId"], 401);
+        assert_eq!(deobf["coopNodeType"], "COOP_NODE_END");
+        assert_eq!(deobf["savePointId"], 90501);
+    }
+}

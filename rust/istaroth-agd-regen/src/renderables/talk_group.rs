@@ -275,3 +275,81 @@ pub fn process(
         repo, scope, group_type, group_id, &info, group_name,
     )?))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::renderables::talk::TalkText;
+
+    /// One-line-per-role TalkGroupInfo for speaker-name derivation tests.
+    fn group(roles: &[Option<&str>], skip_roles: &[&str]) -> TalkGroupInfo {
+        let text = roles
+            .iter()
+            .enumerate()
+            .map(|(i, role)| TalkText {
+                role: role.map(str::to_string),
+                message: "msg".to_string(),
+                next_dialog_ids: vec![],
+                dialog_id: i as i64,
+                skip: role.is_some_and(|r| skip_roles.contains(&r)),
+            })
+            .collect();
+        TalkGroupInfo {
+            talks: vec![(TalkInfo { text }, vec![])],
+            talk_ids: vec![1],
+        }
+    }
+
+    #[test]
+    fn derive_speaker_group_name_cases() {
+        // Generic-only speakers give no name.
+        assert_eq!(
+            derive_speaker_group_name(&group(
+                &[Some("旅行者"), Some("派蒙"), Some("???"), None],
+                &[],
+            )),
+            None
+        );
+        assert_eq!(
+            derive_speaker_group_name(&group(&[Some("告示板")], &[])),
+            Some("告示板".to_string())
+        );
+        // Most talkative first; more than three named speakers get an ellipsis.
+        assert_eq!(
+            derive_speaker_group_name(&group(
+                &[Some("甲"), Some("乙"), Some("乙"), Some("丙"), Some("丁")],
+                &[],
+            )),
+            Some("乙 / 甲 / 丙 / ...".to_string())
+        );
+        // A generic-half composite counts as its specific half; a named-half
+        // composite dedups with the plain name.
+        assert_eq!(
+            derive_speaker_group_name(&group(&[Some("旅行者 (观察花卉)")], &[])),
+            Some("观察花卉".to_string())
+        );
+        assert_eq!(
+            derive_speaker_group_name(&group(
+                &[Some("遗迹的铭文 (铭文)"), Some("遗迹的铭文")],
+                &[],
+            )),
+            Some("遗迹的铭文".to_string())
+        );
+        // Placeholder roles and skip-flagged (dev/test) lines are dropped.
+        assert_eq!(
+            derive_speaker_group_name(&group(&[Some("Unknown Role (TALK_ROLE_GADGET)")], &[])),
+            None
+        );
+        assert_eq!(
+            derive_speaker_group_name(&group(&[Some("[Missing Talk]")], &[])),
+            None
+        );
+        assert_eq!(
+            derive_speaker_group_name(&group(
+                &[Some("（test）阿圆 (阿圆)"), Some("阿圆")],
+                &["（test）阿圆 (阿圆)"],
+            )),
+            Some("阿圆".to_string())
+        );
+    }
+}

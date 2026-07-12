@@ -455,3 +455,169 @@ pub fn parse_talks(
         free_group_quest_to_paths,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn free_group_quest_id_heuristic() {
+        for (talk_id, expected) in [
+            ("7407804", Some(74078)), // 7-digit: drop trailing index
+            ("1000401", Some(10004)),
+            ("602708", Some(6027)),     // 6-digit
+            ("100089906", Some(10008)), // 9-digit "99" ambient bucket: drop 4
+            ("402217", Some(4022)),
+            ("7", None), // degenerate id too short to contain a quest id
+        ] {
+            assert_eq!(free_group_quest_id(talk_id), expected, "{talk_id}");
+        }
+    }
+
+    fn empty_tm() -> TextMaps {
+        TextMaps::for_tests(
+            FxHashMap::default(),
+            FxHashMap::default(),
+            FxHashMap::default(),
+        )
+    }
+
+    fn parse(files: &[(&str, Value)], tm: &TextMaps) -> TalkParseResult {
+        let talk_files: FxHashMap<String, Value> = files
+            .iter()
+            .map(|(rel, data)| (rel.to_string(), data.clone()))
+            .collect();
+        let mut sorted_rels: Vec<String> = talk_files.keys().cloned().collect();
+        sorted_rels.sort();
+        parse_talks(&talk_files, &sorted_rels, tm, &FxHashMap::default()).unwrap()
+    }
+
+    #[test]
+    fn npc_group_duplicate_prefers_canonical_id_path() {
+        let data = json!({"talks": [{}], "npcId": 1292});
+        let result = parse(
+            &[
+                ("BinOutput/Talk/NpcGroup/cc9d0cc9.json", data.clone()),
+                ("BinOutput/Talk/NpcGroup/1292.json", data),
+            ],
+            &empty_tm(),
+        );
+        assert_eq!(
+            result.talk_group_id_to_path[&("NpcGroup".to_string(), "1292".to_string())],
+            "BinOutput/Talk/NpcGroup/1292.json"
+        );
+    }
+
+    #[test]
+    fn gadget_group_composite_config_group_key() {
+        // A configId alone is not unique across GadgetGroup files (issue #186):
+        // files sharing configId 1003 survive as distinct composite keys.
+        let result = parse(
+            &[
+                (
+                    "BinOutput/Talk/GadgetGroup/1003_201096001.json",
+                    json!({"talks": [{}], "configId": 1003, "groupId": 201096001}),
+                ),
+                (
+                    "BinOutput/Talk/GadgetGroup/1003_220200001.json",
+                    json!({"talks": [{}], "configId": 1003, "groupId": 220200001}),
+                ),
+            ],
+            &empty_tm(),
+        );
+        assert_eq!(result.talk_group_id_to_path.len(), 2);
+        for group_id in ["1003_201096001", "1003_220200001"] {
+            assert_eq!(
+                result.talk_group_id_to_path[&("GadgetGroup".to_string(), group_id.to_string())],
+                format!("BinOutput/Talk/GadgetGroup/{group_id}.json")
+            );
+        }
+    }
+
+    #[test]
+    fn gadget_group_prefers_canonical_named_composite() {
+        // A hash-named file claiming the same (configId, groupId) composite
+        // loses to the canonically-named copy.
+        let data = json!({"talks": [{}], "configId": 4242, "groupId": 99});
+        let result = parse(
+            &[
+                ("BinOutput/Talk/GadgetGroup/4242_99.json", data.clone()),
+                ("BinOutput/Talk/GadgetGroup/26e54092.json", data),
+            ],
+            &empty_tm(),
+        );
+        assert_eq!(result.talk_group_id_to_path.len(), 1);
+        assert_eq!(
+            result.talk_group_id_to_path[&("GadgetGroup".to_string(), "4242_99".to_string())],
+            "BinOutput/Talk/GadgetGroup/4242_99.json"
+        );
+    }
+
+    fn collision_tm() -> TextMaps {
+        TextMaps::for_tests(
+            [
+                (100, "Same"),
+                (101, "Same"),
+                (200, "Tail"),
+                (201, "Tail"),
+                (300, "Only fuller"),
+            ]
+            .into_iter()
+            .map(|(k, v)| (k, v.to_string()))
+            .collect(),
+            FxHashMap::default(),
+            FxHashMap::default(),
+        )
+    }
+
+    #[test]
+    fn talk_collision_dedupes_identical_resolved_text() {
+        // Different hashes are duplicate content when they resolve to the same
+        // text; the canonically-named copy wins.
+        let result = parse(
+            &[
+                (
+                    "BinOutput/Talk/Quest/42.json",
+                    json!({"talkId": 42, "dialogList": [
+                        {"id": 1, "talkContentTextMapHash": 100},
+                        {"id": 2, "talkContentTextMapHash": 200},
+                    ]}),
+                ),
+                (
+                    "BinOutput/Talk/Quest/8dc4251a.json",
+                    json!({"talkId": 42, "dialogList": [
+                        {"id": 1, "talkContentTextMapHash": 101},
+                        {"id": 2, "talkContentTextMapHash": 201},
+                    ]}),
+                ),
+            ],
+            &collision_tm(),
+        );
+        assert_eq!(result.talk_id_to_path[&42], "BinOutput/Talk/Quest/42.json");
+    }
+
+    #[test]
+    fn talk_collision_prefers_resolved_text_superset() {
+        // A fuller candidate wins even when ids and hashes were remapped.
+        let result = parse(
+            &[
+                (
+                    "BinOutput/Talk/Quest/42.json",
+                    json!({"talkId": 42, "dialogList": [
+                        {"id": 1, "talkContentTextMapHash": 100},
+                    ]}),
+                ),
+                (
+                    "BinOutput/Talk/Npc/42.json",
+                    json!({"talkId": 42, "dialogList": [
+                        {"id": 9, "talkContentTextMapHash": 101},
+                        {"id": 10, "talkContentTextMapHash": 300},
+                    ]}),
+                ),
+            ],
+            &collision_tm(),
+        );
+        assert_eq!(result.talk_id_to_path[&42], "BinOutput/Talk/Npc/42.json");
+    }
+}
