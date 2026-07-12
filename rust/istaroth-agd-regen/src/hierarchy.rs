@@ -17,7 +17,7 @@ use serde_json::Value;
 /// (`istaroth/agd/processed_types.py`) and mirrored by the frontend
 /// (`frontend/src/utils/hierarchy.ts`). Parity is pinned byte-exactly by
 /// `tests/contract.rs` and `tests/test_schema_contract.py` (repo root),
-/// sharing `tests/fixtures/contract/`.
+/// sharing `tests/fixtures/rust_agd_regen_contract/`.
 #[derive(Serialize)]
 pub struct HierarchyNode {
     pub key: String,

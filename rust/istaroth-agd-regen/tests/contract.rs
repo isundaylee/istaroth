@@ -1,6 +1,6 @@
 //! Byte-exact contract tests for the JSON schemas the Python readers rely on.
 //!
-//! The fixtures under `tests/fixtures/contract/` (repo root) are shared with
+//! The fixtures under `tests/fixtures/rust_agd_regen_contract/` (repo root) are shared with
 //! the Python half (`tests/test_schema_contract.py`): this side pins the
 //! writer's serialization, that side pins the readers' round-trip. Either
 //! side drifting breaks its own CI until the fixture is updated consciously.
@@ -18,7 +18,7 @@ fn dumps_indented<T: serde::Serialize>(value: &T) -> Vec<u8> {
 
 fn fixture(name: &str) -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../tests/fixtures/contract")
+        .join("../../tests/fixtures/rust_agd_regen_contract")
         .join(name);
     String::from_utf8(std::fs::read(&path).unwrap()).unwrap()
 }

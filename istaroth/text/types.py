@@ -103,7 +103,7 @@ class TextMetadata:
     Parity is pinned byte-exactly by the contract tests on both sides
     (``tests/test_schema_contract.py`` and
     ``rust/istaroth-agd-regen/tests/contract.rs``, sharing
-    ``tests/fixtures/contract/``).
+    ``tests/fixtures/rust_agd_regen_contract/``).
     """
 
     category: TextCategory

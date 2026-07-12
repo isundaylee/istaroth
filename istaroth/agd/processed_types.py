@@ -6,7 +6,7 @@ the frontend's ``frontend/src/utils/hierarchy.ts`` mirrors them too. Parity
 with the Rust side is pinned byte-exactly by the contract tests
 (``tests/test_schema_contract.py`` and
 ``rust/istaroth-agd-regen/tests/contract.rs``, sharing
-``tests/fixtures/contract/``).
+``tests/fixtures/rust_agd_regen_contract/``).
 """
 
 from __future__ import annotations

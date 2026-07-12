@@ -1,6 +1,6 @@
 """Contract tests for the JSON schemas shared between the Rust writer and Python readers.
 
-The fixtures under ``tests/fixtures/contract/`` are shared with the Rust half
+The fixtures under ``tests/fixtures/rust_agd_regen_contract/`` are shared with the Rust half
 (``rust/istaroth-agd-regen/tests/contract.rs``): that side pins the writer's
 serialization byte-exactly, this side pins the strict readers' round-trip. The
 corpus tests additionally exercise the real committed ``text/`` submodule — the
@@ -18,7 +18,7 @@ from istaroth.agd import processed_types
 from istaroth.services.backend import models
 from istaroth.text import types
 
-_FIXTURE_DIR = pathlib.Path(__file__).parent / "fixtures" / "contract"
+_FIXTURE_DIR = pathlib.Path(__file__).parent / "fixtures" / "rust_agd_regen_contract"
 _TEXT_DIR = pathlib.Path(__file__).parent.parent / "text"
 
 _requires_corpus = pytest.mark.skipif(
