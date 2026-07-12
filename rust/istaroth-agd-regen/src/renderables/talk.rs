@@ -4,13 +4,11 @@
 use crate::firstseen;
 use crate::issues::{IssueType, Scope};
 use crate::lang::Language;
-use crate::pyset::PySet;
 use crate::rendered_item::RenderedItem;
 use crate::repo::Repo;
 use crate::util;
 use crate::vh::ValueExt;
 use anyhow::{Result, anyhow, bail};
-use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 
@@ -128,8 +126,8 @@ fn role_npc_id(talk_role: &Value) -> Result<Option<i64>> {
     let Some(s) = raw.as_str() else {
         bail!("non-str talk role id {raw:?}");
     };
-    if util::py_isdigit(s) {
-        Ok(Some(util::py_int(s)?))
+    if util::is_ascii_digits(s) {
+        Ok(Some(util::parse_i64(s)?))
     } else {
         Ok(None)
     }
@@ -381,12 +379,27 @@ fn render_dialog_line(t: &TalkText, language: Language) -> Option<String> {
     }
 }
 
-/// defaultdict(set)-style access into an IndexMap keyed by Option<i64>.
-fn dd(
-    map: &mut IndexMap<Option<i64>, FxHashSet<usize>>,
-    key: Option<i64>,
-) -> &mut FxHashSet<usize> {
-    map.entry(key).or_default()
+/// Map from dialog id (None = "path ended") to the paths that visited it,
+/// preserving first-visit order: when several convergence candidates qualify,
+/// the earliest-discovered one wins. Branch fan-outs are small, so linear
+/// lookups are fine.
+#[derive(Default)]
+struct DialogPaths(Vec<(Option<i64>, FxHashSet<usize>)>);
+
+impl DialogPaths {
+    fn entry(&mut self, key: Option<i64>) -> &mut FxHashSet<usize> {
+        match self.0.iter().position(|(k, _)| *k == key) {
+            Some(i) => &mut self.0[i].1,
+            None => {
+                self.0.push((key, FxHashSet::default()));
+                &mut self.0.last_mut().unwrap().1
+            }
+        }
+    }
+
+    fn contains_key(&self, key: &Option<i64>) -> bool {
+        self.0.iter().any(|(k, _)| k == key)
+    }
 }
 
 /// Process multiple branches until their convergence point.
@@ -407,16 +420,10 @@ fn process_branch(
         .map(|_| next_dialog_ids.iter().copied().collect())
         .collect();
     let mut cycle_pis: FxHashSet<usize> = FxHashSet::default();
-    let mut dialog_paths: IndexMap<Option<i64>, FxHashSet<usize>> = IndexMap::new();
-    {
-        // dict comprehension {di: {i}} — duplicate keys keep first position, last value.
-        let mut tmp: IndexMap<Option<i64>, FxHashSet<usize>> = IndexMap::new();
-        for (i, &di) in next_dialog_ids.iter().enumerate() {
-            let mut s = FxHashSet::default();
-            s.insert(i);
-            *tmp.entry(Some(di)).or_default() = s;
-        }
-        dialog_paths.extend(tmp);
+    let mut dialog_paths = DialogPaths::default();
+    // A dialog id seeding several paths keeps only the last path index.
+    for (i, &di) in next_dialog_ids.iter().enumerate() {
+        *dialog_paths.entry(Some(di)) = std::iter::once(i).collect();
     }
     let seeds: FxHashSet<i64> = next_dialog_ids.iter().copied().collect();
 
@@ -445,10 +452,10 @@ fn process_branch(
             let next_dis: Vec<i64> = graph.graph.get(&curr_di).cloned().unwrap_or_default();
             if next_dis.is_empty() {
                 paths[pi].push(None);
-                if dd(&mut dialog_paths, None).contains(&pi) {
+                if dialog_paths.entry(None).contains(&pi) {
                     bail!("Path ended multiple times");
                 }
-                dd(&mut dialog_paths, None).insert(pi);
+                dialog_paths.entry(None).insert(pi);
             } else {
                 let uncovered: Vec<i64> = next_dis
                     .iter()
@@ -468,7 +475,7 @@ fn process_branch(
                         pis_to_extend.push(new_pi);
                         let elems: Vec<Option<i64>> = paths[new_pi].clone();
                         for di in elems {
-                            let set = dd(&mut dialog_paths, di);
+                            let set = dialog_paths.entry(di);
                             if set.contains(&new_pi) {
                                 bail!("Found cycle in branch paths");
                             }
@@ -482,7 +489,7 @@ fn process_branch(
                             cycle_pis.insert(pi_to_extend);
                             continue;
                         }
-                        dd(&mut dialog_paths, Some(di_to_extend)).insert(pi_to_extend);
+                        dialog_paths.entry(Some(di_to_extend)).insert(pi_to_extend);
                     }
                 }
             }
@@ -497,6 +504,7 @@ fn process_branch(
             .filter(|pi| !cycle_pis.contains(pi))
             .collect();
         let potential: Vec<Option<i64>> = dialog_paths
+            .0
             .iter()
             .filter(|(_, visited)| needed.iter().all(|pi| visited.contains(pi)))
             .map(|(di, _)| *di)
@@ -507,7 +515,7 @@ fn process_branch(
             }
             break potential[0];
         }
-        let mut waits: IndexMap<usize, i64> = IndexMap::new();
+        let mut waits: Vec<(usize, i64)> = Vec::new();
         let mut movers: Vec<usize> = Vec::new();
         for pi in 0..paths.len() {
             if cycle_pis.contains(&pi) {
@@ -524,7 +532,7 @@ fn process_branch(
                 .flatten()
                 .any(|d| !path_offered[pi].contains(d));
             if !seeds.contains(&curr_di) && incoming >= 2 && has_unoffered {
-                waits.insert(pi, curr_di);
+                waits.push((pi, curr_di));
             } else {
                 movers.push(pi);
             }
@@ -535,18 +543,19 @@ fn process_branch(
             }
             continue;
         }
-        let waiting_nodes = PySet::from_iter_py(waits.values().copied());
+        let mut waiting_nodes: Vec<i64> = waits.iter().map(|(_, node)| *node).collect();
+        waiting_nodes.sort();
+        waiting_nodes.dedup();
         let mut deepest: Option<i64> = None;
         if cycle_pis.is_empty() && !dialog_paths.contains_key(&None) && waiting_nodes.len() > 1 {
-            deepest = waiting_nodes.iter().find(|&node| {
+            deepest = waiting_nodes.iter().copied().find(|&node| {
                 waiting_nodes
                     .iter()
-                    .filter(|&o| o != node)
-                    .all(|o| reachable(o).contains(&node))
+                    .filter(|&&o| o != node)
+                    .all(|&o| reachable(o).contains(&node))
             });
         }
-        let waits_snapshot: Vec<(usize, i64)> = waits.iter().map(|(k, v)| (*k, *v)).collect();
-        for (pi, node) in waits_snapshot {
+        for (pi, node) in waits {
             if Some(node) != deepest {
                 advance!(pi);
             }
@@ -674,14 +683,19 @@ pub fn render_talk_content(
         all_lines.extend(lines);
     }
 
-    // Dialogs unreachable from any entrypoint are appended as orphans; the
-    // `{dialog ids} - rendered` difference must iterate in CPython set order
-    // (see pyset.rs) for byte-identical output.
-    let all_ids = PySet::from_iter_py(talk.text.iter().map(|t| t.dialog_id));
-    let orphaned = all_ids.difference(&rendered);
+    // Dialogs unreachable from any entrypoint are appended as orphans, in
+    // dialog-id order.
+    let mut orphaned: Vec<i64> = talk
+        .text
+        .iter()
+        .map(|t| t.dialog_id)
+        .filter(|id| !rendered.contains(id))
+        .collect();
+    orphaned.sort();
+    orphaned.dedup();
     if !orphaned.is_empty() {
         all_lines.push(String::new());
-        for orphaned_id in orphaned.iter() {
+        for orphaned_id in orphaned {
             let text = graph
                 .dialog_id_to_text
                 .get(&orphaned_id)
@@ -712,21 +726,19 @@ pub fn render_talk_body(
     scope: &Scope,
 ) -> Result<Option<RenderedTalk>> {
     let body_lines = render_talk_content(talk, language, scope)?;
-    if !body_lines.iter().any(|l| !util::py_strip(l).is_empty()) {
+    if !body_lines.iter().any(|l| !l.trim().is_empty()) {
         return Ok(None);
     }
     let first_message = talk
         .text
         .iter()
-        .find(|t| {
-            render_dialog_line(t, language).is_some() && !util::py_strip(&t.message).is_empty()
-        })
+        .find(|t| render_dialog_line(t, language).is_some() && !t.message.trim().is_empty())
         .map(|t| t.message.clone());
     let (filename, title) = match first_message {
         Some(msg) => {
             let safe_title = util::make_safe_filename_part(&msg);
             let title = if msg.chars().count() > 100 {
-                util::py_slice(&msg, 100)
+                msg.chars().take(100).collect()
             } else {
                 msg.clone()
             };

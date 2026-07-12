@@ -10,7 +10,6 @@ use crate::textmap::TextMaps;
 use crate::vh::{ValueExt, int_array};
 use crate::{coop, deob, talkparse, util};
 use anyhow::{Context, Result, anyhow, bail};
-use indexmap::IndexMap;
 use rayon::prelude::*;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
@@ -26,13 +25,13 @@ pub struct Excels {
     pub talk: Vec<Value>,
     pub npc: Vec<Value>,
     pub localization: Vec<Value>,
-    pub document: IndexMap<i64, Value>,
+    pub document: FxHashMap<i64, Value>,
     pub book_suit: FxHashMap<i64, Value>,
     pub books_codex: Vec<Value>,
-    pub material: IndexMap<i64, Value>,
+    pub material: FxHashMap<i64, Value>,
     pub achievement: Vec<Value>,
     pub achievement_goal: Vec<Value>,
-    pub anecdote: IndexMap<i64, Value>,
+    pub anecdote: FxHashMap<i64, Value>,
     pub blossom_talk: Vec<Value>,
     pub blossom_refresh: FxHashMap<i64, Value>,
     pub city_config: FxHashMap<i64, Value>,
@@ -44,18 +43,18 @@ pub struct Excels {
     pub skill: FxHashMap<i64, Value>,
     pub fetter_story: Vec<Value>,
     pub fetters: Vec<Value>,
-    pub animal_codex: IndexMap<i64, Value>,
+    pub animal_codex: FxHashMap<i64, Value>,
     pub monster_describe: FxHashMap<i64, Value>,
     pub monster_title: FxHashMap<i64, Value>,
     pub monster_special_name: Vec<Value>,
     pub animal_describe: FxHashMap<i64, Value>,
-    pub main_quest: IndexMap<i64, Value>,
-    pub chapter: IndexMap<i64, Value>,
-    pub new_activity: IndexMap<i64, Value>,
+    pub main_quest: FxHashMap<i64, Value>,
+    pub chapter: FxHashMap<i64, Value>,
+    pub new_activity: FxHashMap<i64, Value>,
     pub reliquary_set: Vec<Value>,
     pub reliquary: Vec<Value>,
     pub equip_affix: Vec<Value>,
-    pub weapon: IndexMap<i64, Value>,
+    pub weapon: FxHashMap<i64, Value>,
     pub quest: Vec<Value>,
     pub home_world_npc: Vec<Value>,
     pub role_combat_tarot: Vec<Value>,
@@ -88,8 +87,8 @@ pub struct Repo {
     pub readable_stem_to_loc_id: FxHashMap<String, i64>,
     pub loc_id_to_readable_filename: FxHashMap<i64, String>,
     pub loc_id_to_title_hash: FxHashMap<i64, i64>,
-    pub book_series: IndexMap<i64, Vec<String>>,
-    pub achievement_sections: IndexMap<i64, (Value, Vec<Value>)>,
+    pub book_series: FxHashMap<i64, Vec<String>>,
+    pub achievement_sections: FxHashMap<i64, (Value, Vec<Value>)>,
     pub storyboard_quest_to_talk_ids: FxHashMap<i64, Vec<i64>>,
     pub coop_graphs: FxHashMap<i64, CoopStoryGraph>,
     pub hangout_quest_to_stories: FxHashMap<i64, Vec<i64>>,
@@ -202,8 +201,8 @@ fn index_unique(
     data: Vec<Value>,
     key: impl Fn(&Value) -> Result<i64>,
     what: &str,
-) -> Result<IndexMap<i64, Value>> {
-    let mut map = IndexMap::with_capacity(data.len());
+) -> Result<FxHashMap<i64, Value>> {
+    let mut map = FxHashMap::with_capacity_and_hasher(data.len(), Default::default());
     for item in data {
         let k = key(&item)?;
         if map.contains_key(&k) {
@@ -212,10 +211,6 @@ fn index_unique(
         map.insert(k, item);
     }
     Ok(map)
-}
-
-fn to_fx(map: IndexMap<i64, Value>) -> FxHashMap<i64, Value> {
-    map.into_iter().collect()
 }
 
 /// File names directly under `dir` (empty for a missing dir); any other read
@@ -291,8 +286,9 @@ fn build_quest_mapping(quest_files: &FxHashMap<String, Value>) -> Result<FxHashM
     Ok(quest_mapping)
 }
 
-/// Language-scoped readable path values of one localization entry (JSON key
-/// order): paths ending in `_<lang>` or containing a `<lang>` path component.
+/// Language-scoped readable path values of one localization entry (sorted
+/// field order): paths ending in `_<lang>` or containing a `<lang>` path
+/// component.
 fn localization_readable_paths<'a>(
     entry: &'a Value,
     language_short: &str,
@@ -307,9 +303,9 @@ fn localization_readable_paths<'a>(
         .filter(move |p| p.ends_with(&suffix) || p.split('/').any(|part| part == language_short))
 }
 
-/// Localization-derived maps (single pass, JSON key order): readable stem ->
-/// localization id, and localization id -> readable filename. First match
-/// wins for each key (break-on-first-match semantics).
+/// Localization-derived maps (single pass, sorted field order per entry):
+/// readable stem -> localization id, and localization id -> readable
+/// filename. First match wins for each key.
 fn build_readable_localization_maps(
     localization: &[Value],
     language_short: &str,
@@ -331,10 +327,13 @@ fn build_readable_localization_maps(
     Ok((readable_stem_to_loc_id, loc_id_to_readable_filename))
 }
 
-/// Localization id -> document title hash; first document wins per id.
-fn build_loc_id_to_title_hash(document: &IndexMap<i64, Value>) -> Result<FxHashMap<i64, i64>> {
+/// Localization id -> document title hash; the lowest-id document wins per
+/// loc id (documents are visited in id order, so first-wins is deterministic).
+fn build_loc_id_to_title_hash(document: &FxHashMap<i64, Value>) -> Result<FxHashMap<i64, i64>> {
     let mut loc_id_to_title_hash = FxHashMap::default();
-    for doc in document.values() {
+    let mut doc_ids: Vec<&i64> = document.keys().collect();
+    doc_ids.sort();
+    for doc in doc_ids.into_iter().map(|id| &document[id]) {
         let title_hash = doc.i("titleTextMapHash")?;
         let mut ids: Vec<i64> = Vec::new();
         if let Some(addl) = doc.get("CUSTOM_addlLocalID") {
@@ -361,8 +360,8 @@ fn build_loc_id_to_title_hash(document: &IndexMap<i64, Value>) -> Result<FxHashM
 fn build_book_series(
     excel: &Excels,
     loc_id_to_readable_filename: &FxHashMap<i64, String>,
-) -> Result<IndexMap<i64, Vec<String>>> {
-    let mut book_series_grouped: IndexMap<i64, Vec<String>> = IndexMap::new();
+) -> Result<FxHashMap<i64, Vec<String>>> {
+    let mut book_series_grouped: FxHashMap<i64, Vec<String>> = FxHashMap::default();
     let mut codexes: Vec<(i64, &Value)> = excel
         .books_codex
         .iter()
@@ -410,8 +409,8 @@ fn build_book_series(
 }
 
 /// Achievement sections: goal entry plus its (orderId, id)-sorted achievements.
-fn build_achievement_sections(excel: &Excels) -> Result<IndexMap<i64, (Value, Vec<Value>)>> {
-    let mut achievement_sections: IndexMap<i64, (Value, Vec<Value>)> = IndexMap::new();
+fn build_achievement_sections(excel: &Excels) -> Result<FxHashMap<i64, (Value, Vec<Value>)>> {
+    let mut achievement_sections: FxHashMap<i64, (Value, Vec<Value>)> = FxHashMap::default();
     for section in &excel.achievement_goal {
         let id = section.i("id")?;
         if achievement_sections
@@ -516,9 +515,8 @@ fn build_id_to_name(
     Ok(id_to_name)
 }
 
-/// Like `build_id_to_name` against the CHS source map, untracked: the source
-/// tracker is not scope-observed in the reference pipeline, so its accesses
-/// never reach usage stats.
+/// Like `build_id_to_name` against the CHS source map, untracked: source-map
+/// lookups never count toward text-map usage stats.
 fn build_id_to_chs_name(entries: &[Value], tm_chs: &TextMaps) -> Result<FxHashMap<i64, String>> {
     let mut id_to_name = FxHashMap::default();
     for entry in entries {
@@ -530,7 +528,7 @@ fn build_id_to_chs_name(entries: &[Value], tm_chs: &TextMaps) -> Result<FxHashMa
 }
 
 fn build_activity_id_to_name(
-    new_activity: &IndexMap<i64, Value>,
+    new_activity: &FxHashMap<i64, Value>,
     tm: &TextMaps,
     scope: &Scope,
 ) -> Result<FxHashMap<i64, String>> {
@@ -981,7 +979,7 @@ impl Repo {
                 };
                 if let Some(field) = inject {
                     let stem = util::path_stem(rel);
-                    if util::py_isdigit(stem)
+                    if util::is_ascii_digits(stem)
                         && let Some(obj) = data.as_object_mut()
                         && !obj.contains_key(field)
                     {
@@ -1088,9 +1086,8 @@ impl Repo {
             |d| d.i("id"),
             "document ID",
         )?;
-        // Materials keyed by id: duplicates keep the LAST value at the FIRST
-        // insertion position (reference dict semantics).
-        let mut material: IndexMap<i64, Value> = IndexMap::new();
+        // Materials keyed by id: duplicates keep the LAST value.
+        let mut material: FxHashMap<i64, Value> = FxHashMap::default();
         for m in list("MaterialExcelConfigData.json")? {
             let id = m.i("id")?;
             material.insert(id, m);
@@ -1106,45 +1103,41 @@ impl Repo {
             npc: list("NpcExcelConfigData.json")?,
             localization,
             document,
-            book_suit: to_fx(index_unique(
+            book_suit: index_unique(
                 list("BookSuitExcelConfigData.json")?,
                 |d| d.i("id"),
                 "book suit ID",
-            )?),
+            )?,
             books_codex: list("BooksCodexExcelConfigData.json")?,
             material,
             achievement: list("AchievementExcelConfigData.json")?,
             achievement_goal: list("AchievementGoalExcelConfigData.json")?,
             anecdote,
             blossom_talk: list("BlossomTalkExcelConfigData.json")?,
-            blossom_refresh: to_fx(index_unique(
+            blossom_refresh: index_unique(
                 list("BlossomRefreshExcelConfigData.json")?,
                 |d| d.i("id"),
                 "blossom refresh ID",
-            )?),
-            city_config: to_fx(index_unique(
-                list("CityConfigData.json")?,
-                |d| d.i("cityId"),
-                "city ID",
-            )?),
+            )?,
+            city_config: index_unique(list("CityConfigData.json")?, |d| d.i("cityId"), "city ID")?,
             coop_interaction: list("CoopInteractionExcelConfigData.json")?,
             coop_chapter: list("CoopChapterExcelConfigData.json")?,
             avatar: list("AvatarExcelConfigData.json")?,
-            skill_depot: to_fx(index_unique(
+            skill_depot: index_unique(
                 list("AvatarSkillDepotExcelConfigData.json")?,
                 |d| d.i("id"),
                 "skill depot ID",
-            )?),
-            talent: to_fx(index_unique(
+            )?,
+            talent: index_unique(
                 list("AvatarTalentExcelConfigData.json")?,
                 |d| d.i("talentId"),
                 "talent ID",
-            )?),
-            skill: to_fx(index_unique(
+            )?,
+            skill: index_unique(
                 list("AvatarSkillExcelConfigData.json")?,
                 |d| d.i("id"),
                 "skill ID",
-            )?),
+            )?,
             fetter_story: list("FetterStoryExcelConfigData.json")?,
             fetters: list("FettersExcelConfigData.json")?,
             animal_codex: index_unique(
@@ -1152,22 +1145,22 @@ impl Repo {
                 |d| d.i("id"),
                 "animal codex ID",
             )?,
-            monster_describe: to_fx(index_unique(
+            monster_describe: index_unique(
                 list("MonsterDescribeExcelConfigData.json")?,
                 |d| d.i("id"),
                 "monster describe ID",
-            )?),
-            monster_title: to_fx(index_unique(
+            )?,
+            monster_title: index_unique(
                 list("MonsterTitleExcelConfigData.json")?,
                 |d| d.i("titleID"),
                 "monster title ID",
-            )?),
+            )?,
             monster_special_name: list("MonsterSpecialNameExcelConfigData.json")?,
-            animal_describe: to_fx(index_unique(
+            animal_describe: index_unique(
                 list("AnimalDescribeExcelConfigData.json")?,
                 |d| d.i("id"),
                 "animal describe ID",
-            )?),
+            )?,
             main_quest: index_unique(
                 list("MainQuestExcelConfigData.json")?,
                 |d| d.i("id"),
@@ -1210,7 +1203,7 @@ impl Repo {
             .map(|name| {
                 let content = std::fs::read_to_string(readable_dir.join(name))
                     .with_context(|| format!("read readable {name}"))?;
-                Ok((name.clone(), util::py_strip(&content).to_string()))
+                Ok((name.clone(), content.trim().to_string()))
             })
             .collect::<Result<_>>()?;
 
@@ -1274,10 +1267,10 @@ impl Repo {
 
     // --- CHS (source) text map accessors ---
     //
-    // The reference pipeline resolves dev/test markers against the CHS source
-    // tracker, which is scope-observed only when it IS the output tracker
-    // (CHS run). So CHS-run lookups track into the scope while non-CHS-run
-    // source lookups never do; the tracked/untracked split below encodes that.
+    // Dev/test markers resolve against the CHS source map, which counts
+    // toward usage stats only when it IS the output map (CHS run). So CHS-run
+    // lookups track into the scope while non-CHS-run source lookups never do;
+    // the tracked/untracked split below encodes that.
 
     pub fn chs_get_optional(&self, key: i64, scope: &Scope) -> Result<Option<String>> {
         match &self.tm_chs {
@@ -1346,7 +1339,7 @@ mod tests {
                 vec!["Book101_EN.txt".to_string(), "Book102_EN.txt".to_string()]
             )]
             .into_iter()
-            .collect::<IndexMap<_, _>>()
+            .collect::<FxHashMap<_, _>>()
         );
     }
 

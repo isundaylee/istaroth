@@ -1,4 +1,4 @@
-//! Small typed accessors over serde_json::Value with Python-KeyError-like errors.
+//! Small typed accessors over serde_json::Value that error on missing keys.
 
 use anyhow::{Result, anyhow};
 use serde_json::Value;
@@ -52,18 +52,6 @@ impl ValueExt for Value {
     }
     fn has(&self, key: &str) -> bool {
         self.get(key).is_some()
-    }
-}
-
-/// Python truthiness for a JSON value.
-pub fn truthy(v: &Value) -> bool {
-    match v {
-        Value::Null => false,
-        Value::Bool(b) => *b,
-        Value::Number(n) => n.as_f64() != Some(0.0),
-        Value::String(s) => !s.is_empty(),
-        Value::Array(a) => !a.is_empty(),
-        Value::Object(o) => !o.is_empty(),
     }
 }
 

@@ -8,9 +8,8 @@ use crate::util;
 use crate::vh::{ValueExt, int_array};
 use anyhow::{Result, anyhow};
 
-/// (CHS, non-CHS) per-pass error limits (reference `error_limit` /
-/// `error_limit_non_chinese`): non-CHS output legitimately hits per-item
-/// failures (untranslated text), so its ceiling is higher.
+/// (CHS, non-CHS) per-pass error limits: non-CHS output legitimately hits
+/// per-item failures (untranslated text), so its ceiling is higher.
 pub const ERROR_LIMITS: (usize, usize) = (0, 0);
 
 /// Resolve a reliquary piece's relic story from its storyId.
@@ -146,6 +145,6 @@ pub fn process(repo: &Repo, scope: &Scope, set_id: i64) -> Result<Option<Rendere
         set_id,
         format!("{set_id}_{safe_name}.txt"),
         versions,
-        util::py_rstrip(&content_lines.join("\n")).to_string(),
+        content_lines.join("\n").trim_end().to_string(),
     )))
 }

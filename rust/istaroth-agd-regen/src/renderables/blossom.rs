@@ -8,8 +8,7 @@ use crate::repo::Repo;
 use crate::util;
 use crate::vh::{ValueExt, int_array};
 use anyhow::{Result, anyhow, bail};
-use indexmap::IndexMap;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 
 /// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
@@ -50,8 +49,8 @@ pub fn process(repo: &Repo, scope: &Scope, city_id: i64) -> Result<Option<Render
     // Sections key on the resolved blurb text (not its hash): several
     // refreshes share one blurb (e.g. crystal pools at different unlock
     // levels), and even same-text blurbs ship under distinct hashes.
-    let mut section_order: IndexMap<String, i64> = IndexMap::new();
-    let mut section_talk_ids: IndexMap<String, FxHashSet<i64>> = IndexMap::new();
+    let mut section_order: FxHashMap<String, i64> = FxHashMap::default();
+    let mut section_talk_ids: FxHashMap<String, FxHashSet<i64>> = FxHashMap::default();
     for (refresh, row_talk_ids) in intel_rows(repo)? {
         if refresh.i("cityId")? != city_id {
             continue;
@@ -86,8 +85,8 @@ pub fn process(repo: &Repo, scope: &Scope, city_id: i64) -> Result<Option<Render
     }
     let mut sections: Vec<Section> = Vec::new();
     let mut talk_ids: Vec<i64> = Vec::new();
-    // Sections ordered by lowest refresh id; the sort must be stable by
-    // insertion order on ties.
+    // Sections ordered by lowest refresh id (refresh ids are unique, so each
+    // section's minimum is distinct and the order is total).
     let mut descs: Vec<(&String, i64)> = section_order.iter().map(|(d, v)| (d, *v)).collect();
     descs.sort_by_key(|(_, v)| *v);
     for (desc, _) in descs {
@@ -157,6 +156,6 @@ pub fn process(repo: &Repo, scope: &Scope, city_id: i64) -> Result<Option<Render
         city_id,
         filename,
         versions,
-        util::py_rstrip(&content_lines.join("\n")).to_string(),
+        content_lines.join("\n").trim_end().to_string(),
     )))
 }

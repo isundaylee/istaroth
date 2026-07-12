@@ -102,6 +102,6 @@ pub fn process(
         activity_id,
         filename,
         versions,
-        util::py_rstrip(&content_lines.join("\n")).to_string(),
+        content_lines.join("\n").trim_end().to_string(),
     )))
 }

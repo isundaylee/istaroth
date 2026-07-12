@@ -9,8 +9,7 @@ use crate::repo::Repo;
 use crate::util;
 use crate::vh::{ValueExt, int_array};
 use anyhow::{Result, anyhow, bail};
-use indexmap::IndexMap;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 
 /// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
@@ -173,8 +172,8 @@ pub fn process_story(repo: &Repo, scope: &Scope, avatar_id: i64) -> Result<Optio
         let Some(title) = title else {
             bail!("Missing story title for avatar ID {avatar_id}");
         };
-        // The recorded issue detail is the raw field's string form — "None"
-        // when absent — to match the reference issue output.
+        // The recorded issue detail is the raw field's string form ("None"
+        // when the field is absent).
         let context_hash_raw = story.get_i("storyContextTextMapHash");
         let content = match context_hash_raw.filter(|&h| h != 0) {
             Some(h) => repo.tm.get_optional(h, scope)?,
@@ -275,7 +274,10 @@ pub fn process_voiceline(
         bail!("Unknown character for avatar ID {avatar_id}");
     };
 
-    let mut voicelines: IndexMap<String, String> = IndexMap::new();
+    // Voicelines in file order; a repeated title keeps its first position but
+    // the latest content.
+    let mut voicelines: Vec<(String, String)> = Vec::new();
+    let mut title_index: FxHashMap<String, usize> = FxHashMap::default();
     for fetter in &repo.excel.fetters {
         if fetter.i("avatarId")? != avatar_id {
             continue;
@@ -287,7 +289,13 @@ pub fn process_voiceline(
             .tm
             .get_or(fetter.i("voiceFileTextTextMapHash")?, "", scope)?;
         if !content.is_empty() {
-            voicelines.insert(title, content);
+            match title_index.get(&title) {
+                Some(&i) => voicelines[i].1 = content,
+                None => {
+                    title_index.insert(title.clone(), voicelines.len());
+                    voicelines.push((title, content));
+                }
+            }
         }
     }
     if voicelines.is_empty() {
@@ -301,7 +309,7 @@ pub fn process_voiceline(
         content_lines.push(content.clone());
         content_lines.push(String::new());
     }
-    let content = util::py_rstrip(&content_lines.join("\n")).to_string();
+    let content = content_lines.join("\n").trim_end().to_string();
     let versions = repo.first_seen.resolve_int(Domain::Avatar, avatar_id)?;
     Ok(Some(RenderedItem::new(
         "agd_voiceline",

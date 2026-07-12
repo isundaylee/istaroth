@@ -9,8 +9,8 @@ use crate::repo::Repo;
 use crate::util;
 use crate::vh::ValueExt;
 use anyhow::{Result, anyhow, bail};
-use indexmap::IndexMap;
 use regex::Regex;
+use rustc_hash::FxHashMap;
 use serde_json::Value;
 use std::sync::LazyLock;
 
@@ -88,7 +88,7 @@ pub fn get_talk_group_info(
 fn entry_int(v: &Value) -> Result<i64> {
     match v {
         Value::Number(_) => crate::vh::as_i64(v),
-        Value::String(s) => util::py_int(s),
+        Value::String(s) => util::parse_i64(s),
         other => bail!("cannot int() {other:?}"),
     }
 }
@@ -111,7 +111,9 @@ pub fn derive_speaker_group_name(info: &TalkGroupInfo, language: Language) -> Op
         "???",
         "？？？",
     ];
-    let mut speakers: IndexMap<String, usize> = IndexMap::new();
+    // name -> (first-seen sequence, line count); the sequence breaks count
+    // ties so equally-talkative speakers list in first-appearance order.
+    let mut speakers: FxHashMap<String, (usize, usize)> = FxHashMap::default();
     for (talk_info, next_talks) in &info.talks {
         for t in std::iter::once(talk_info).chain(next_talks.iter()) {
             for talk_text in &t.text {
@@ -140,16 +142,17 @@ pub fn derive_speaker_group_name(info: &TalkGroupInfo, language: Language) -> Op
                 {
                     continue;
                 }
-                *speakers.entry(name).or_insert(0) += 1;
+                let next_seq = speakers.len();
+                speakers.entry(name).or_insert((next_seq, 0)).1 += 1;
             }
         }
     }
     if speakers.is_empty() {
         return None;
     }
-    // Counter.most_common: stable sort descending by count.
-    let mut items: Vec<(&String, usize)> = speakers.iter().map(|(k, v)| (k, *v)).collect();
-    items.sort_by_key(|item| std::cmp::Reverse(item.1));
+    // Descending by count, first-appearance order on ties.
+    let mut items: Vec<(&String, (usize, usize))> = speakers.iter().map(|(k, v)| (k, *v)).collect();
+    items.sort_by_key(|(_, (seq, count))| (std::cmp::Reverse(*count), *seq));
     let mut top: Vec<String> = items
         .iter()
         .take(SPEAKER_TITLE_LIMIT)
@@ -199,7 +202,7 @@ pub fn render_talk_group(
             content_lines.push(String::new());
         }
     }
-    let content = util::py_rstrip(&content_lines.join("\n")).to_string();
+    let content = content_lines.join("\n").trim_end().to_string();
 
     let metadata_id = match group_type {
         "GadgetGroup" => {
@@ -210,8 +213,8 @@ pub fn render_talk_group(
             let gadget_group_id: i64 = group_str.parse()?;
             config_id * 10i64.pow(GADGET_GROUP_ID_DIGITS) + gadget_group_id
         }
-        "ActivityGroup" => ACTIVITY_GROUP_METADATA_ID_OFFSET + util::py_int(group_id)?,
-        "NpcGroup" => util::py_int(group_id)?,
+        "ActivityGroup" => ACTIVITY_GROUP_METADATA_ID_OFFSET + util::parse_i64(group_id)?,
+        "NpcGroup" => util::parse_i64(group_id)?,
         other => bail!("unsupported talk group type {other}"),
     };
 
@@ -249,7 +252,7 @@ pub fn process(
     }
     let group_name: Option<String> = match group_type {
         "NpcGroup" => {
-            let npc_id = util::py_int(group_id)?;
+            let npc_id = util::parse_i64(group_id)?;
             match repo.npc_chs_name(npc_id) {
                 Some(chs_name) => {
                     if util::should_skip_text(chs_name, Language::Chs) {
@@ -270,7 +273,7 @@ pub fn process(
         }
         "ActivityGroup" => repo
             .activity_id_to_name
-            .get(&util::py_int(group_id)?)
+            .get(&util::parse_i64(group_id)?)
             .cloned(),
         "GadgetGroup" => derive_speaker_group_name(&info, repo.language),
         other => bail!("unsupported talk group type {other}"),

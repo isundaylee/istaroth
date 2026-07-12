@@ -15,7 +15,6 @@ use crate::textmap::TextMaps;
 use crate::util;
 use crate::vh::{ValueExt, as_i64};
 use anyhow::{Context, Result, anyhow, bail};
-use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 use std::collections::HashMap;
@@ -42,7 +41,7 @@ const GROUP_DIRECTORIES: [&str; 4] = [
 #[derive(Default)]
 pub struct TalkParseResult {
     pub talk_id_to_path: FxHashMap<i64, String>,
-    pub talk_group_id_to_path: IndexMap<(String, String), String>,
+    pub talk_group_id_to_path: FxHashMap<(String, String), String>,
     pub coop_story_to_paths: FxHashMap<i64, Vec<String>>,
     pub free_group_quest_to_paths: FxHashMap<i64, Vec<String>>,
 }
@@ -68,7 +67,7 @@ fn free_group_quest_id(talk_id: &str) -> Option<i64> {
 
 /// Content fingerprint of a talk file used to resolve talkId collisions.
 struct TalkSignature {
-    /// The (dialog id, content hash) sequence, for byte-identity checks.
+    /// The (dialog id, content hash) sequence, for exact-equality checks.
     dialogs: Vec<(i64, i64)>,
     /// The (dialog id, resolved text) sequence for hashes that resolve.
     dialog_texts: Vec<(i64, String)>,
@@ -129,7 +128,7 @@ fn preference_key(group_id: &str, path: &str) -> (i64, i64, String) {
     }
     if let Some((prefix, suffix)) = stem.split_once('_')
         && prefix == group_id
-        && util::py_isdigit(suffix)
+        && util::is_ascii_digits(suffix)
     {
         return (1, -suffix.parse::<i64>().unwrap(), path.to_string());
     }
@@ -168,22 +167,8 @@ fn sorted_counter(a: &FxHashMap<String, usize>) -> Vec<(String, usize)> {
     v
 }
 
-/// max() that returns the FIRST maximal element on ties (the reference
-/// output depends on this, unlike `Iterator::max_by_key` which keeps the last).
-fn py_max_by_key<T, K: Ord>(items: &[T], key: impl Fn(&T) -> K) -> &T {
-    let mut best = &items[0];
-    let mut best_key = key(best);
-    for item in &items[1..] {
-        let k = key(item);
-        if k > best_key {
-            best = item;
-            best_key = k;
-        }
-    }
-    best
-}
-
-/// min(paths, key=(stem != talk_id_str, path)) — the canonical-name tie-break.
+/// Canonical-name tie-break: prefer the `<talkId>.json`-named path, then the
+/// lexicographically smallest.
 fn min_by_canonical<'a>(paths: impl Iterator<Item = &'a String>, talk_id_str: &str) -> String {
     paths
         .map(|p| ((util::path_stem(p) != talk_id_str, p.clone()), p))
@@ -198,15 +183,15 @@ pub fn parse_talks(
     tm: &TextMaps,
     init_dialogs: &FxHashMap<i64, i64>,
 ) -> Result<TalkParseResult> {
-    let mut talk_group_candidates: IndexMap<(String, String), Vec<String>> = IndexMap::new();
+    let mut talk_group_candidates: FxHashMap<(String, String), Vec<String>> = FxHashMap::default();
     let mut coop_group: FxHashMap<i64, Vec<(i64, String)>> = FxHashMap::default();
-    let mut talk_candidates: IndexMap<i64, Vec<String>> = IndexMap::new();
+    let mut talk_candidates: FxHashMap<i64, Vec<String>> = FxHashMap::default();
     let mut free_group: FxHashMap<i64, Vec<(i64, String)>> = FxHashMap::default();
 
     let handle_group = |group_type: &str,
                         rel: &str,
                         data: &Value,
-                        candidates: &mut IndexMap<(String, String), Vec<String>>|
+                        candidates: &mut FxHashMap<(String, String), Vec<String>>|
      -> Result<()> {
         let talks = data.arr("talks").with_context(|| rel.to_string())?;
         if talks.is_empty() {
@@ -214,19 +199,19 @@ pub fn parse_talks(
         }
         let key_id = match group_type {
             "ActivityGroup" | "NpcGroup" | "StoryboardGroup" => {
-                // First truthy of activityId/npcId/storyboardId, else the last
-                // (or-chain semantics: 0 falls through).
-                let chain = [
-                    data.get("activityId"),
-                    data.get("npcId"),
-                    data.get("storyboardId"),
-                ];
-                let chosen = chain
-                    .iter()
-                    .find(|v| v.is_some_and(crate::vh::truthy))
-                    .copied()
-                    .unwrap_or(chain[2]);
-                match chosen.and_then(|v| v.as_i64()) {
+                // First nonzero of activityId/npcId/storyboardId; a present
+                // non-int field is a schema change and errors.
+                let mut chosen = None;
+                for key in ["activityId", "npcId", "storyboardId"] {
+                    if let Some(v) = data.get(key) {
+                        let id = as_i64(v).with_context(|| format!("{key} in {rel}"))?;
+                        if id != 0 {
+                            chosen = Some(id);
+                            break;
+                        }
+                    }
+                }
+                match chosen {
                     Some(id) => id.to_string(),
                     None => bail!("no int group id in {rel}"),
                 }
@@ -265,7 +250,7 @@ pub fn parse_talks(
             let Some((story, local)) = stem.split_once('_') else {
                 bail!("Malformed Coop talk filename {rel}");
             };
-            if !(util::py_isdigit(story) && util::py_isdigit(local)) {
+            if !(util::is_ascii_digits(story) && util::is_ascii_digits(local)) {
                 bail!("Malformed Coop talk filename {rel}");
             }
             coop_group
@@ -278,7 +263,7 @@ pub fn parse_talks(
         if subdir == "FreeGroup" {
             let talk_id = match data.f("talkId")? {
                 Value::Number(n) => as_i64(&Value::Number(n.clone()))?,
-                Value::String(s) => util::py_int(s)?,
+                Value::String(s) => util::parse_i64(s)?,
                 other => bail!("bad talkId {other:?} in {rel}"),
             };
             if let Some(quest_id) = free_group_quest_id(&talk_id.to_string()) {
@@ -292,7 +277,7 @@ pub fn parse_talks(
         } else if is_talk_file(data) {
             let talk_id = match data.f("talkId")? {
                 Value::Number(n) => as_i64(&Value::Number(n.clone()))?,
-                Value::String(s) => util::py_int(s)?,
+                Value::String(s) => util::parse_i64(s)?,
                 other => bail!("bad talkId {other:?} in {rel}"),
             };
             talk_candidates
@@ -309,7 +294,7 @@ pub fn parse_talks(
     }
 
     // Resolve group candidates.
-    let mut talk_group_id_to_path = IndexMap::new();
+    let mut talk_group_id_to_path = FxHashMap::default();
     for ((group_type, group_id), candidates) in &talk_group_candidates {
         let winner = candidates
             .iter()
@@ -410,7 +395,10 @@ pub fn parse_talks(
         // (issue #75). Comparing the (id, content-hash) pairs of text-bearing
         // dialogs — not dialog ids alone — keeps distinct talks that merely
         // reuse local dialog ids (e.g. Coop hangouts) ambiguous.
-        let superset = py_max_by_key(&textful, |p| signatures[*p].text_dialogs.len());
+        let superset = textful
+            .iter()
+            .max_by_key(|p| signatures[**p].text_dialogs.len())
+            .unwrap();
         if textful.iter().all(|p| {
             signatures[*p]
                 .text_dialogs
@@ -425,9 +413,10 @@ pub fn parse_talks(
         }
 
         // Multiset superset over resolved texts.
-        let text_superset = py_max_by_key(&textful, |p| {
-            signatures[*p].text_counts.values().sum::<usize>()
-        });
+        let text_superset = textful
+            .iter()
+            .max_by_key(|p| signatures[**p].text_counts.values().sum::<usize>())
+            .unwrap();
         if textful.iter().all(|p| {
             counter_le(
                 &signatures[*p].text_counts,

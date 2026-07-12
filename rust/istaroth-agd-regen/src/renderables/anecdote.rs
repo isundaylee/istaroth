@@ -85,6 +85,6 @@ pub fn process(repo: &Repo, scope: &Scope, anecdote_id: i64) -> Result<Option<Re
         anecdote_id,
         filename,
         versions,
-        util::py_rstrip(&content_lines.join("\n")).to_string(),
+        content_lines.join("\n").trim_end().to_string(),
     )))
 }

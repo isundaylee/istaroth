@@ -1,6 +1,5 @@
-//! Rust port of `scripts/agd_tools.py generate-all` (and the first-seen index
-//! builder), producing byte-identical output to the Python pipeline for both
-//! CHS and ENG.
+//! AGD text-corpus generation (`generate-all` and the first-seen index
+//! builder) for CHS and ENG.
 
 pub mod cleanup;
 pub mod coop;
@@ -12,7 +11,6 @@ pub mod git;
 pub mod hierarchy;
 pub mod issues;
 pub mod lang;
-pub mod pyset;
 pub mod renderables;
 pub mod rendered_item;
 pub mod repo;

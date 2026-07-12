@@ -9,7 +9,7 @@ use crate::renderables::talk::{self, TalkInfo};
 use crate::rendered_item::RenderedItem;
 use crate::repo::Repo;
 use crate::util;
-use crate::vh::{ValueExt, int_array, truthy};
+use crate::vh::{ValueExt, int_array};
 use anyhow::{Result, anyhow, bail};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
@@ -31,6 +31,17 @@ fn parse_cond_grp(raw: &Value) -> Result<CondGrp> {
         logic: raw.s("condCombType")?.to_string(),
         conds,
     })
+}
+
+/// Parse an optional condition group; null and `{}` both mean "no condition",
+/// anything else must be a condition-group object.
+fn parse_optional_cond_grp(raw: Option<&Value>) -> Result<Option<CondGrp>> {
+    match raw {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::Object(m)) if m.is_empty() => Ok(None),
+        Some(v @ Value::Object(_)) => Ok(Some(parse_cond_grp(v)?)),
+        Some(other) => bail!("condition group must be an object, got {other}"),
+    }
 }
 
 fn render_cond(cond: &CondGrp) -> String {
@@ -128,20 +139,10 @@ fn resolve_coop_option(
         None => None,
     };
     let steps = resolve_coop_steps(repo, scope, &branch.steps, local_map, seen, next_choice_id)?;
-    let cond = match &branch.cond_grp {
-        Some(v) if truthy(v) => Some(parse_cond_grp(v)?),
-        _ => None,
-    };
-    let show_cond = match &branch.show_cond {
-        Some(v) if truthy(v) => Some(parse_cond_grp(v)?),
-        _ => None,
-    };
+    let cond = parse_optional_cond_grp(branch.cond_grp.as_ref())?;
+    let show_cond = parse_optional_cond_grp(branch.show_cond.as_ref())?;
     // enableCondGrp is parsed for strict-shape validation but never rendered.
-    if let Some(v) = &branch.enable_cond
-        && truthy(v)
-    {
-        parse_cond_grp(v)?;
-    }
+    parse_optional_cond_grp(branch.enable_cond.as_ref())?;
     Ok(CoopOption {
         prompt,
         steps,
@@ -198,7 +199,7 @@ pub fn get_hangout_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Opt
                 .split_once('_')
                 .ok_or_else(|| anyhow!("bad coop stem {stem}"))?
                 .1;
-            local_map.insert(util::py_int(local_id)?, path.clone());
+            local_map.insert(util::parse_i64(local_id)?, path.clone());
         }
         let mut seen: FxHashSet<i64> = FxHashSet::default();
         let mut steps = match repo.coop_graphs.get(coop_story_id) {
@@ -350,7 +351,7 @@ fn render_coop_steps(
             CoopStep::Talk(talk_info) => {
                 let talk_lines = talk::render_talk_content(talk_info, language, scope)?;
                 if !talk_lines.is_empty() {
-                    let title = util::py_rstrip(&talk_lines[0]).to_string();
+                    let title = talk_lines[0].trim_end().to_string();
                     lines.push(format!("### Talk: {title}"));
                     lines.push(String::new());
                     lines.extend(talk_lines);
@@ -406,7 +407,7 @@ pub fn render_hangout(repo: &Repo, scope: &Scope, hangout: &HangoutInfo) -> Resu
         hangout.quest_id,
         filename,
         versions,
-        util::py_rstrip(&content_lines.join("\n")).to_string(),
+        content_lines.join("\n").trim_end().to_string(),
     ))
 }
 
