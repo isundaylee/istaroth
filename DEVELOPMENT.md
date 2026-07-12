@@ -1,5 +1,28 @@
 # Development Guide
 
+## Prerequisites
+
+- [uv](https://docs.astral.sh/uv/) for Python dependency management (`uv sync`).
+- [rustup](https://rustup.rs) for the Rust regen tool (`rust/istaroth-agd-regen`).
+  The toolchain version is pinned in the repo-root `rust-toolchain.toml`; rustup
+  installs it automatically on the first `cargo` invocation.
+
+## Rust Regen Tool
+
+`rust/istaroth-agd-regen` is the Rust port of `scripts/agd_tools.py generate-all`
+(see its [README](rust/istaroth-agd-regen/README.md)). Build it with the `fast`
+profile for everything — output is byte-identical to `--release` and runtime is
+equal within noise (~2.8–2.9s), but incremental rebuilds take ~1s instead of
+~15s for release thin-LTO:
+
+```bash
+cargo build --profile fast --manifest-path rust/Cargo.toml
+# binary: rust/target/fast/istaroth-agd-regen
+```
+
+`scripts/dev-compose.sh setup` runs this build automatically, so a fresh
+worktree can regen immediately.
+
 ## Regenerating Text Data
 
 When you need to regenerate text files from source data (e.g., after updating AGD or TPS data):

@@ -136,6 +136,20 @@ _sync_uv_venv() {
   echo "dev-compose.sh: .venv ready."
 }
 
+# Build the Rust regen binary with the fast profile (the standard profile for
+# all regens: byte-identical output, release-equal runtime, ~1s incremental
+# rebuilds) so a fresh worktree can regen immediately.
+_build_regen_binary() {
+  local PATH="$HOME/.cargo/bin:$PATH"
+  if ! command -v cargo >/dev/null; then
+    echo "dev-compose.sh: cargo not found — install rustup (https://rustup.rs) to build the regen binary" >&2
+    return 1
+  fi
+  echo "dev-compose.sh: building istaroth-agd-regen (fast profile) ..."
+  cargo build --quiet --profile fast --manifest-path "$REPO_ROOT/rust/Cargo.toml"
+  echo "dev-compose.sh: regen binary ready (rust/target/fast/istaroth-agd-regen)."
+}
+
 _setup_job_pids=()
 _setup_job_names=()
 
@@ -213,6 +227,7 @@ cmd_setup() {
   _start_setup_job "text submodule checkout" _checkout_text_submodule
   _start_setup_job "frontend node_modules sync" _sync_frontend_node_modules
   _start_setup_job "uv venv sync" _sync_uv_venv
+  _start_setup_job "rust regen binary build" _build_regen_binary
   _resolve_identity
   _export_ports
   _write_env_file
