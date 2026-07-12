@@ -60,6 +60,19 @@ fn parse_text_map(bytes: &[u8]) -> Result<FxHashMap<i64, String>> {
 }
 
 impl TextMaps {
+    #[cfg(test)]
+    pub(crate) fn for_tests(
+        current: FxHashMap<i64, String>,
+        fallback: FxHashMap<i64, String>,
+        pronouns: FxHashMap<String, i64>,
+    ) -> TextMaps {
+        TextMaps {
+            current,
+            fallback,
+            pronouns,
+        }
+    }
+
     pub fn load(agd_path: &Path, language_short: &str) -> Result<TextMaps> {
         let (current, (fallback, pronouns)) = rayon::join(
             || Self::load_current(agd_path, language_short),
@@ -250,5 +263,80 @@ impl TextMaps {
             .collect();
         unused.sort();
         unused
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn string_map(entries: &[(i64, &str)]) -> FxHashMap<i64, String> {
+        entries.iter().map(|(k, v)| (*k, v.to_string())).collect()
+    }
+
+    #[test]
+    fn fallback_only_on_current_miss() {
+        let tm = TextMaps::for_tests(
+            string_map(&[(100, "Current"), (200, "Current wins")]),
+            string_map(&[(200, "Fallback loses"), (300, "Fallback")]),
+            FxHashMap::default(),
+        );
+        let scope = Scope::default();
+        assert_eq!(
+            tm.get_optional(100, &scope).unwrap(),
+            Some("Current".to_string())
+        );
+        assert_eq!(
+            tm.get_optional(200, &scope).unwrap(),
+            Some("Current wins".to_string())
+        );
+        assert_eq!(
+            tm.get_optional(300, &scope).unwrap(),
+            Some("Fallback".to_string())
+        );
+        assert_eq!(tm.get_current_optional(300, &scope).unwrap(), None);
+        assert_eq!(
+            tm.get_optional_untracked(300).unwrap(),
+            Some("Fallback".to_string())
+        );
+        assert_eq!(tm.get_or(400, "Default", &scope).unwrap(), "Default");
+        // Every resolving lookup (current or fallback) was tracked; the
+        // untracked variant and the miss were not.
+        let accessed = scope.text_map.borrow();
+        assert_eq!(
+            *accessed,
+            [100, 200, 300]
+                .into_iter()
+                .collect::<rustc_hash::FxHashSet<i64>>()
+        );
+    }
+
+    #[test]
+    fn get_required_errors_on_miss() {
+        let tm = TextMaps::for_tests(
+            FxHashMap::default(),
+            FxHashMap::default(),
+            FxHashMap::default(),
+        );
+        let err = tm.get_required(202, &Scope::default()).unwrap_err();
+        assert!(err.to_string().contains("Unresolvable text map hash 202"));
+    }
+
+    #[test]
+    fn sexpro_resolves_via_pronoun_hashes() {
+        // 6.x dropped the pronoun TextMap rows, so both the token -> hash
+        // pairing and the hash -> text live in the fallback maps.
+        let tm = TextMaps::for_tests(
+            FxHashMap::default(),
+            string_map(&[(500, "他")]),
+            [("INFO_MALE_PRONOUN_HE".to_string(), 500)]
+                .into_iter()
+                .collect(),
+        );
+        assert_eq!(
+            tm.clean_text("找{PLAYERAVATAR#SEXPRO[INFO_MALE_PRONOUN_HE|INFO_FEMALE_PRONOUN_SHE]}")
+                .unwrap(),
+            "找他"
+        );
     }
 }

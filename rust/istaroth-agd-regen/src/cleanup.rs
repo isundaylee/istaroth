@@ -113,3 +113,111 @@ pub fn clean_text_markers(text: &str) -> Result<String> {
     }
     Ok(text)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn clean_text_markers_cases() {
+        for (input, expected) in [
+            ("你好{NICKNAME}，你好吗？", "你好旅行者，你好吗？"),
+            ("{M#哥哥}{F#姐姐}来了。", "哥哥来了。"),
+            (
+                "This is <color=#FF0000FF>red</color> and <color=#37FFFF>cyan</color>.",
+                "This is *red* and *cyan*.",
+            ),
+            (
+                "This is <i>italic</i> and <I>also italic</I>.",
+                "This is *italic* and *also italic*.",
+            ),
+            // <i> nested inside <color> resolves fully rather than leaking raw tags.
+            (
+                "<color=#37FFFFFF><I>emphasized</I></color>",
+                "**emphasized**",
+            ),
+            (
+                "<center>Centered line</center>\n<right>Signed</right>",
+                "Centered line\nSigned",
+            ),
+            // <center> can wrap multiple paragraphs.
+            (
+                "<center>Line one\n\nLine two</center>",
+                "Line one\n\nLine two",
+            ),
+            (
+                "Before.\n<image name=UI_Example />\nAfter.",
+                "Before.\nAfter.",
+            ),
+            // Literal \n sequences normalize to newlines.
+            (r"Line 1\nLine 2", "Line 1\nLine 2"),
+            // All markers combined.
+            (
+                "你好{NICKNAME}，{M#国王}{F#女王}说<color=#FFD700FF>欢迎</color>！",
+                "你好旅行者，国王说*欢迎*！",
+            ),
+            // REALNAME as speaker label, inline, and standalone.
+            (
+                "#{REALNAME[ID(1)|HOSTONLY(true)]}: 在经历那么多次徒劳之后，你应该明白吧？",
+                "流浪者: 在经历那么多次徒劳之后，你应该明白吧？",
+            ),
+            (
+                "#{REALNAME[ID(2)|SHOWHOST(true)]}摆出了进攻的架势！",
+                "小龙摆出了进攻的架势！",
+            ),
+            ("#{REALNAME[ID(2)|SHOWHOST(true)]}", "小龙"),
+        ] {
+            assert_eq!(clean_text_markers(input).unwrap(), expected, "{input:?}");
+        }
+    }
+
+    #[test]
+    fn clean_text_markers_unmapped_realname_errors() {
+        assert!(clean_text_markers("#{REALNAME[ID(99)|HOSTONLY(true)]}: x").is_err());
+    }
+
+    fn pronoun(token: &str) -> Result<String> {
+        match token {
+            "INFO_MALE_PRONOUN_HE" => Ok("He".to_string()),
+            "INFO_FEMALE_PRONOUN_SISTER" => Ok("Sister".to_string()),
+            other => anyhow::bail!("unknown token {other}"),
+        }
+    }
+
+    #[test]
+    fn resolve_sexpro_takes_first_branch() {
+        // The positional first token wins even when its prefix looks female,
+        // and the {MATEAVATAR#...} sibling variant is handled the same way.
+        for (input, expected) in [
+            (
+                "Says {PLAYERAVATAR#SEXPRO[INFO_MALE_PRONOUN_HE|INFO_FEMALE_PRONOUN_SHE]} is here.",
+                "Says He is here.",
+            ),
+            (
+                "Find your {PLAYERAVATAR#SEXPRO[INFO_FEMALE_PRONOUN_SISTER|INFO_MALE_PRONOUN_BROTHER]}.",
+                "Find your Sister.",
+            ),
+            (
+                "My {MATEAVATAR#SEXPRO[INFO_FEMALE_PRONOUN_SISTER|INFO_MALE_PRONOUN_BROTHER]}.",
+                "My Sister.",
+            ),
+        ] {
+            assert_eq!(
+                resolve_sexpro(input, pronoun).unwrap(),
+                expected,
+                "{input:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn resolve_sexpro_unmapped_token_errors() {
+        assert!(
+            resolve_sexpro(
+                "{PLAYERAVATAR#SEXPRO[INFO_MALE_PRONOUN_NOPE|INFO_FEMALE_PRONOUN_NOPE]}",
+                pronoun,
+            )
+            .is_err()
+        );
+    }
+}

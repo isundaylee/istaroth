@@ -30,68 +30,28 @@ class _StubFirstSeenIndex(first_seen.FirstSeenIndex):
 _FAKE_FIRST_SEEN_INDEX = _StubFirstSeenIndex(versions={})
 
 
-def test_render_readable_basic() -> None:
-    """Test basic readable rendering functionality."""
-    content = "This is some readable content.\nWith multiple lines."
-    metadata = processed_types.ReadableMetadata(
-        localization_id=0, title="Test Book Title"
-    )
-
+@pytest.mark.parametrize(
+    "title,expected_path",
+    [
+        # Plain title, special characters, and whitespace-collapsing filename
+        # sanitization.
+        ("Test Book Title", "agd_readable/0_Test_Book_Title.txt"),
+        ("神霄折戟录·第六卷", "agd_readable/0_神霄折戟录第六卷.txt"),
+        ("  Title   With   Spaces  ", "agd_readable/0_Title_With_Spaces.txt"),
+    ],
+)
+def test_render_readable(title: str, expected_path: str) -> None:
+    """Readable rendering: verbatim title header plus sanitized filename."""
     rendered = readable.render_readable_like(
-        content,
-        metadata,
-        "Test_EN.txt",
-        category=text_types.TextCategory.AGD_READABLE,
-        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
-    )
-
-    assert rendered.text_metadata.relative_path == "agd_readable/0_Test_Book_Title.txt"
-    assert (
-        rendered.content
-        == "# Test Book Title\n\nThis is some readable content.\nWith multiple lines."
-    )
-    assert rendered.text_metadata.id == 0
-
-
-def test_render_readable_special_characters() -> None:
-    """Test readable rendering with special characters in title."""
-    content = "Content here."
-    metadata = processed_types.ReadableMetadata(
-        localization_id=0, title="神霄折戟录·第六卷"
-    )
-
-    rendered = readable.render_readable_like(
-        content,
-        metadata,
+        "Some content.",
+        processed_types.ReadableMetadata(localization_id=0, title=title),
         "Book999.txt",
         category=text_types.TextCategory.AGD_READABLE,
         first_seen_index=_FAKE_FIRST_SEEN_INDEX,
     )
 
-    assert rendered.text_metadata.relative_path == "agd_readable/0_神霄折戟录第六卷.txt"
-    assert rendered.content == "# 神霄折戟录·第六卷\n\nContent here."
-    assert rendered.text_metadata.id == 0
-
-
-def test_render_readable_whitespace() -> None:
-    """Test readable rendering with excessive whitespace in title."""
-    content = "Some content."
-    metadata = processed_types.ReadableMetadata(
-        localization_id=0, title="  Title   With   Spaces  "
-    )
-
-    rendered = readable.render_readable_like(
-        content,
-        metadata,
-        "Book998.txt",
-        category=text_types.TextCategory.AGD_READABLE,
-        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
-    )
-
-    assert (
-        rendered.text_metadata.relative_path == "agd_readable/0_Title_With_Spaces.txt"
-    )
-    assert rendered.content == "#   Title   With   Spaces  \n\nSome content."
+    assert rendered.text_metadata.relative_path == expected_path
+    assert rendered.content == f"# {title}\n\nSome content."
     assert rendered.text_metadata.id == 0
 
 
@@ -239,42 +199,6 @@ def test_render_talk_all_skipped_returns_none() -> None:
         )
         is None
     )
-
-
-def test_render_talk_long_message() -> None:
-    """Test talk rendering with long first message."""
-    long_message = (
-        "这是一个非常长的消息，超过了五十个字符的限制，应该被截断以创建合适的文件名。"
-    )
-    talk_texts = [
-        processed_types.TalkText(
-            role="NPC",
-            message=long_message,
-            next_dialog_ids=[],
-            dialog_id=1,
-            skip=False,
-        )
-    ]
-    talk_info = processed_types.TalkInfo(text=talk_texts)
-
-    rendered = _talk.render_talk(
-        talk_info,
-        talk_id=67890,
-        language=localization.Language.CHS,
-        talk_file_path="BinOutput/Talk/NPC/67890.json",
-        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
-    )
-    assert rendered is not None
-
-    assert (
-        rendered.text_metadata.relative_path
-        == "agd_talk/67890_这是一个非常长的消息超过了五十个字符的限制应该被截断以创建合适的文件名.txt"
-    )
-    assert (
-        "这是一个非常长的消息，超过了五十个字符的限制，应该被截断以创建合适的文件名。"
-        in rendered.content
-    )
-    assert rendered.text_metadata.id == 67890
 
 
 def test_render_talk_empty() -> None:
@@ -1136,30 +1060,6 @@ def test_render_creature_group_monster() -> None:
         "## 遗迹守卫\n\n"
         "古代文明的造物。"
     )
-
-
-def test_render_creature_group_stable_id() -> None:
-    """The group id/filename derive deterministically from the subType enum."""
-    a = creature.render_creature_group(
-        processed_types.CreatureGroupInfo(
-            subtype="CODEX_SUBTYPE_FISH",
-            type_label="野生生物",
-            subtype_label="鱼类",
-            creatures=[
-                processed_types.CreatureInfo(
-                    codex_id=28040101,
-                    name="黑背鲈鱼",
-                    special_name=None,
-                    title=None,
-                    description="常见的鱼类。",
-                )
-            ],
-        ),
-        first_seen_index=_FAKE_FIRST_SEEN_INDEX,
-    )
-
-    assert a.text_metadata.relative_path.endswith("_CODEX_SUBTYPE_FISH.txt")
-    assert a.content == "# 鱼类 (野生生物)\n\n## 黑背鲈鱼\n\n常见的鱼类。"
 
 
 def test_render_book_series_english() -> None:

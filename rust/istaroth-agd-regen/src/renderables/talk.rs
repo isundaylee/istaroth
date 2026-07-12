@@ -758,3 +758,246 @@ pub fn process(repo: &Repo, scope: &Scope, talk_id: i64) -> Result<Option<Render
         rendered.content,
     )))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn t(role: Option<&str>, message: &str, next: &[i64], dialog_id: i64) -> TalkText {
+        TalkText {
+            role: role.map(str::to_string),
+            message: message.to_string(),
+            next_dialog_ids: next.to_vec(),
+            dialog_id,
+            skip: false,
+        }
+    }
+
+    fn render(text: Vec<TalkText>, talk_id: i64) -> Option<RenderedTalk> {
+        render_talk_body(&TalkInfo { text }, talk_id, &Scope::default()).unwrap()
+    }
+
+    #[test]
+    fn basic_linear_talk() {
+        let rendered = render(
+            vec![
+                t(Some("派蒙"), "这里看起来很神秘呢！", &[2], 1),
+                t(Some("旅行者"), "我们小心一点。", &[3], 2),
+                t(Some("神秘声音"), "欢迎来到这里...", &[], 3),
+            ],
+            12345,
+        )
+        .unwrap();
+        assert_eq!(rendered.filename, "12345_这里看起来很神秘呢.txt");
+        assert_eq!(rendered.title, "这里看起来很神秘呢！");
+        assert_eq!(
+            rendered.content,
+            "# Talk Dialog\n\n派蒙: 这里看起来很神秘呢！\n旅行者: 我们小心一点。\n神秘声音: 欢迎来到这里..."
+        );
+    }
+
+    #[test]
+    fn empty_talk_renders_nothing() {
+        assert!(render(vec![], 99999).is_none());
+    }
+
+    #[test]
+    fn all_skipped_talk_renders_nothing() {
+        // A talk whose every line is dev/test-skipped emits no file at all:
+        // one line arrives skip-flagged, the other trips the (test) marker.
+        let mut skipped = t(None, "test台词文本", &[], 1);
+        skipped.skip = true;
+        assert!(
+            render(
+                vec![
+                    skipped,
+                    t(
+                        Some("(test)旅人兰那罗"),
+                        "(test)好汉不吃眼前亏，我先去东南方向的洞里躲一躲",
+                        &[],
+                        2,
+                    ),
+                ],
+                6863205,
+            )
+            .is_none()
+        );
+    }
+
+    #[test]
+    fn branching_convergence() {
+        // 1 branches into two options that converge at 4.
+        let rendered = render(
+            vec![
+                t(Some("NPC"), "Line 1", &[2, 5], 1),
+                t(Some("Player"), "Line 2a", &[3], 2),
+                t(Some("NPC"), "Line 3a", &[4], 3),
+                t(Some("NPC"), "Line 4", &[], 4),
+                t(Some("Player"), "Line 2b", &[6], 5),
+                t(Some("NPC"), "Line 3b", &[4], 6),
+            ],
+            99999,
+        )
+        .unwrap();
+        assert_eq!(
+            rendered.content,
+            "# Talk Dialog\n\nNPC: Line 1\n\nOption 1:\n\n> Player: Line 2a\n> NPC: Line 3a\n\nOption 2:\n\n> Player: Line 2b\n> NPC: Line 3b\n\nNPC: Line 4"
+        );
+    }
+
+    #[test]
+    fn nested_branches() {
+        // Option 1 (2) itself branches into 4/5; everything converges at 6.
+        let rendered = render(
+            vec![
+                t(Some("NPC"), "Line 1", &[2, 3], 1),
+                t(Some("Player"), "Line 2", &[4, 5], 2),
+                t(Some("Player"), "Line 3", &[6], 3),
+                t(Some("NPC"), "Line 4", &[6], 4),
+                t(Some("NPC"), "Line 5", &[6], 5),
+                t(Some("NPC"), "Line 6", &[], 6),
+            ],
+            88888,
+        )
+        .unwrap();
+        assert_eq!(
+            rendered.content,
+            "# Talk Dialog\n\nNPC: Line 1\n\nOption 1:\n\n> Player: Line 2\n> NPC: Line 4\n\nOption 2:\n\n> Player: Line 3\n\nOption 3:\n\n> Player: Line 2\n> NPC: Line 5\n\nNPC: Line 6"
+        );
+    }
+
+    #[test]
+    fn nested_branches_with_intermediate_convergence() {
+        // Branch 2's sub-branches converge at X before the global convergence Y.
+        let rendered = render(
+            vec![
+                t(Some("NPC"), "Start", &[2, 3], 1),
+                t(Some("Player"), "Branch 1", &[7], 2),
+                t(Some("Player"), "Branch 2", &[4, 5], 3),
+                t(Some("NPC"), "Branch 2a", &[6], 4),
+                t(Some("NPC"), "Branch 2b", &[6], 5),
+                t(Some("NPC"), "Convergence X", &[7], 6),
+                t(Some("NPC"), "Convergence Y", &[], 7),
+            ],
+            77777,
+        )
+        .unwrap();
+        assert_eq!(
+            rendered.content,
+            "# Talk Dialog\n\nNPC: Start\n\nOption 1:\n\n> Player: Branch 1\n\nOption 2:\n\n> Player: Branch 2\n> NPC: Branch 2a\n> NPC: Convergence X\n\nOption 3:\n\n> Player: Branch 2\n> NPC: Branch 2b\n> NPC: Convergence X\n\nNPC: Convergence Y"
+        );
+    }
+
+    #[test]
+    fn rebranching_convergence_no_duplicate_options() {
+        // Mirrors quest 76011 (issue #62): a 2-option choice converges at a
+        // node that has its own outgoing branch. The short option reaches the
+        // convergence node long before the long option; without pausing there
+        // it would walk through and split on the convergence node's out-edges,
+        // emitting copies of the short option sharing its prefix.
+        let rendered = render(
+            vec![
+                t(Some("NPC"), "Menu", &[2, 4], 1),
+                t(Some("Player"), "Short", &[6], 2),
+                t(Some("Player"), "Long", &[5], 4),
+                t(Some("NPC"), "Long tail", &[6], 5),
+                t(Some("NPC"), "Converged", &[7, 8], 6),
+                t(Some("Player"), "After A", &[9], 7),
+                t(Some("Player"), "After B", &[9], 8),
+                t(Some("NPC"), "End", &[], 9),
+            ],
+            66666,
+        )
+        .unwrap();
+        // Exactly two options at the first choice, neither duplicated.
+        assert_eq!(rendered.content.matches("Player: Short").count(), 1);
+        assert_eq!(rendered.content.matches("Player: Long").count(), 1);
+        // The convergence node's own branch still renders after the options.
+        for line in ["NPC: Converged", "Player: After A", "Player: After B"] {
+            assert!(rendered.content.contains(line), "{}", rendered.content);
+        }
+    }
+
+    #[test]
+    fn menu_hub_no_blowup() {
+        // Mirrors the "ask about X" hub shape (e.g. quest 6000): answers loop
+        // back to a re-presented menu that adds an exit option. Without menu
+        // re-entry detection, path enumeration through the cyclic hub renders
+        // each answer once per topic ordering (combinatorial blow-up).
+        let rendered = render(
+            vec![
+                t(Some("NPC"), "Ask away", &[2, 4], 1),
+                t(Some("Player"), "Topic A?", &[3], 2),
+                t(Some("NPC"), "Answer A", &[7], 3),
+                t(Some("Player"), "Topic B?", &[5], 4),
+                t(Some("NPC"), "Answer B", &[8], 5),
+                t(Some("Player"), "Nothing", &[9], 6),
+                t(Some("NPC"), "Goodbye", &[], 9),
+                t(Some("NPC"), "More?", &[2, 4, 6], 7),
+                t(Some("NPC"), "More?", &[2, 4, 6], 8),
+            ],
+            88888,
+        )
+        .unwrap();
+        // Each unique answer renders exactly once, and the exit branch
+        // (reachable only from a re-presented menu) is still present.
+        for line in ["NPC: Answer A", "NPC: Answer B", "NPC: Goodbye"] {
+            assert_eq!(
+                rendered.content.matches(line).count(),
+                1,
+                "{}",
+                rendered.content
+            );
+        }
+    }
+
+    #[test]
+    fn cascaded_correct_answer_menus_no_spurious_options() {
+        // Mirrors quest 11008's evidence menus: each wrong-answer tail
+        // re-offers exactly the seed options (a back-edge join whose out-edges
+        // are all covered), and the correct answer runs on into the next such
+        // menu. The convergence-wait must not stall at those back-edge joins,
+        // or each menu spawns extra empty option branches.
+        let rendered = render(
+            vec![
+                t(Some("NPC"), "M1", &[12, 13, 14], 11),
+                t(Some("Player"), "1-correct", &[15], 12),
+                t(Some("Player"), "1-wrongA", &[16], 13),
+                t(Some("Player"), "1-wrongB", &[16], 14),
+                t(Some("NPC"), "right1", &[17], 15),
+                t(Some("NPC"), "wrong1", &[12, 13, 14], 16),
+                t(Some("NPC"), "mid17", &[18], 17),
+                t(Some("NPC"), "mid18", &[22], 18),
+                t(Some("NPC"), "M2", &[23, 24, 25], 22),
+                t(Some("Player"), "2-correct", &[26], 23),
+                t(Some("Player"), "2-wrongA", &[27], 24),
+                t(Some("Player"), "2-wrongB", &[27], 25),
+                t(Some("NPC"), "right2", &[28], 26),
+                t(Some("NPC"), "wrong2", &[23, 24, 25], 27),
+                t(Some("NPC"), "End", &[], 28),
+            ],
+            55555,
+        )
+        .unwrap();
+        // Three options per menu, two menus -> six options; no spurious extras.
+        assert_eq!(
+            rendered.content.matches("Option ").count(),
+            6,
+            "{}",
+            rendered.content
+        );
+        for line in [
+            "Player: 1-wrongA",
+            "Player: 2-wrongA",
+            "NPC: right1",
+            "NPC: End",
+        ] {
+            assert_eq!(
+                rendered.content.matches(line).count(),
+                1,
+                "{}",
+                rendered.content
+            );
+        }
+    }
+}
