@@ -6,7 +6,12 @@ from istaroth.text import types as text_types
 
 
 class Language(Enum):
-    """Supported corpus languages."""
+    """Supported corpus languages.
+
+    Values must match ``Language::value()`` in
+    ``rust/istaroth-agd-regen/src/lang.rs``, which the Rust regen writes into
+    ``stats/agd/metadata.json``'s ``language`` field.
+    """
 
     CHS = "CHS"
     ENG = "ENG"

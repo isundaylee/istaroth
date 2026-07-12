@@ -13,6 +13,9 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use serde_json::Value;
 
+/// Serialized hierarchy schema, deserialized by the Python readers
+/// (`istaroth/agd/processed_types.py`) and mirrored by the frontend
+/// (`frontend/src/utils/hierarchy.ts`) — keep the field sets in parity.
 #[derive(Serialize)]
 pub struct HierarchyNode {
     pub key: String,

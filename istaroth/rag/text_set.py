@@ -37,6 +37,8 @@ _CATEGORY_DISPLAY_ORDER = (
 
 
 def _version_sort_key(version: str) -> tuple[int, ...]:
+    # Mirrors version_key in rust/istaroth-agd-regen/src/util.rs; keep the
+    # ordering semantics in parity.
     return tuple(int(part) for part in version.split("."))
 
 

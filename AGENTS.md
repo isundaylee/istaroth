@@ -49,14 +49,15 @@ istaroth/
 - `<AGD>` is used to refer to a separate AnimeGameData path containing the actual data extracted from the game. Its location on disk is `AGD_PATH` in `.env.common`; check there to find the AGD repo.
 
 ## AGD Deobfuscation
-- Current AGD JSON uses obfuscated field names (random keys); `istaroth/agd/deobfuscation.py` maps them to cleartext per game version.
+- Current AGD JSON uses obfuscated field names (random keys); the `COMMON` mapping in `rust/istaroth-agd-regen/src/deob.rs` maps them to cleartext per game version.
 - To determine the cleartext name for an obfuscated field, check out an older (~4.8–5.8) AnimeGameData version of the SAME file in the `<AGD>` git history — those builds had cleartext field names (e.g. `git show <5.x-commit>:BinOutput/Quest/74078.json`). 6.x onward is obfuscated.
 - Obfuscation is a global bijection within a build: one obfuscated key ↔ one cleartext name across ALL file types. So a key shared by quest and talk files resolves to the same cleartext name everywhere, and a global mapping entry is safe even if it touches multiple data types.
 - Some legacy cleartext names are misleading (e.g. the finish-condition `_type` enum is literally named `damageRatio`); keep the legacy name for consistency but note the discrepancy.
 - Deobfuscation is one step of ingesting a new AGD build. Use the
   `agd-version-upgrade` skill (`.agents/skills/agd-version-upgrade/SKILL.md`) to
   run the full sequence — deobfuscation mappings, a TextMap fallback-list audit
-  (`_TEXT_MAP_FALLBACK_REFS` in `istaroth/agd/repo.py`), then the corpus regen.
+  (`FALLBACK_REFS` in `rust/istaroth-agd-regen/src/textmap.rs`), then the corpus
+  regen.
 
 ## Project Conventions
 - Parsing of a single item (a quest, talk, readable, etc.) should be STRICT by default: when the data is shaped unexpectedly, let it raise a parsing error for that one item rather than silently ignoring/falling back. The per-item failure then surfaces (and can be flagged/skipped at the batch level), instead of producing quietly-wrong output. Only tolerate a known, explicitly-justified case (e.g. a FINISH_PLOT condition that legitimately points at a silent cutscene with no talk file).
@@ -71,7 +72,6 @@ istaroth/
 - ALWAYS be strict with error handling and prefer raising exception than falling back to implicit default values
 - ALWAYS be strict with data typing; use `NotRequired`/`None` sparingly and only when a field/value is genuinely optional in the data. If every record has a field, type it as required (let a missing key raise) rather than hedging with `NotRequired`.
 - NEVER give a class field/constructor parameter a default value to avoid updating existing call sites; make every call site pass the value explicitly instead, even when it means touching more files.
-- ALWAYS give every new AGD id its own documented `TypeAlias` in `istaroth/agd/id_types.py` (e.g. `TalentId`, `SkillDepotId`), and reference that alias from TypedDict fields, loader dict keys, and processing/rendering code rather than a bare `int`/`str`.
 - NEVER import individual symbols from modules and ALWAYS use module-level imports only; exceptions: it is okay to import individual symbols from the typing stdlib package.
 - NEVER use TYPE_CHECKING conditional imports
 - Write very concise docstring; don't list all args & return values when they are self-explanatory from the function signature and names
@@ -91,7 +91,7 @@ istaroth/
 - Integration/end-to-end tests that depend on external data (AGD, text corpus) should be `SKIP`-annotated without that data, not fail.
 
 ## Import Conventions
-- The former `istaroth/agd/types.py` is split into three focused modules, all imported plainly as `from istaroth.agd import <module>`: `id_types` (id `TypeAlias`es), `agd_types` (raw AGD wire/excel `TypedDict`s + `TextMap`), and `processed_types` (the processed/rendered `attrs` domain types).
+- The raw AGD parsing types now live in the Rust regen crate; on the Python side only `istaroth/agd/processed_types.py` remains (the processed `attrs` types the corpus readers deserialize), imported plainly as `from istaroth.agd import processed_types`.
 - ALWAYS use from package.subpackage import module import syntax; e.g. from istaroth.agd import processing
 
 ## Functional Programming Guidelines
@@ -197,9 +197,8 @@ Use the `regen-text` skill for corpus regeneration, diff auditing, commits, and
 the later push workflow. Its canonical path is
 `.agents/skills/regen-text/SKILL.md`; `.claude/skills` is a compatibility symlink.
 
-- ALWAYS regenerate the ENTIRE committed corpus for both languages. Never use
-  `--only` for committed output; it is allowed only for ad hoc output in a
-  throwaway directory.
+- ALWAYS regenerate the ENTIRE committed corpus for both languages. Ad hoc
+  regens for audits go into a throwaway directory, never `text/`.
 - Run the CHS and ENG regenerations in parallel; they write to independent
   directories (`text/chs` vs `text/eng`). Wait for both and require each to exit
   0 before auditing.

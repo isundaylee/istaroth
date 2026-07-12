@@ -113,7 +113,8 @@ pub fn common_prefix(strings: &[String]) -> String {
     first[..len].iter().collect()
 }
 
-/// Version string ("5.8") sort key.
+/// Version string ("5.8") sort key. Mirrors `_version_sort_key` in
+/// `istaroth/rag/text_set.py`; keep the ordering semantics in parity.
 pub fn version_key(v: &str) -> Vec<i64> {
     v.split('.')
         .map(|p| p.parse::<i64>().unwrap_or(0))

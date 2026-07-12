@@ -17,5 +17,10 @@ def dumps(obj: Any, *, default: Callable[[Any], Any] | None = None) -> bytes:
 
 
 def dumps_indented(obj: Any, *, default: Callable[[Any], Any] | None = None) -> bytes:
-    """Serialize to 2-space-indented UTF-8 JSON bytes."""
+    """Serialize to 2-space-indented UTF-8 JSON bytes.
+
+    Format parity with dumps_indented in
+    rust/istaroth-agd-regen/src/generate.rs: the Rust regen writes the AGD
+    manifest while Python writes the TPS manifest, and both must match.
+    """
     return json.dumps(obj, ensure_ascii=False, indent=2, default=default).encode()
