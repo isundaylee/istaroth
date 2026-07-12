@@ -115,6 +115,13 @@ istaroth/
   `gt submit` pushes the branch and opens/updates the PR. The branch's commit
   message becomes the PR title/description — and thus the squash-merge commit —
   so keep it complete and accurate.
+- For a change that splits into dependent pieces, stack the PRs with Graphite
+  instead of shipping one large PR: `gt create` repeatedly builds a stack where
+  each branch's parent is the branch below it, `gt submit --stack` opens/updates
+  every PR in the stack (each based on the one beneath it, the bottom based on
+  `main`), and `gt sync` pulls `main`, restacks the branches above, and deletes
+  ones whose PRs have merged. Reviewers merge bottom-up; keep each PR's
+  description accurate since each still squash-merges into its own commit.
 - For creating or updating a pull request, follow the `pr` skill
   (`.agents/skills/pr/SKILL.md`): the initial squash into a clean commit, running
   pre-commit, passing commit/PR bodies via a file, issue-closing keywords, and
