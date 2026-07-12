@@ -1,0 +1,71 @@
+{
+  "agd_quest": {
+    "nodes": [
+      {
+        "key": "AQ",
+        "title": "魔神任务",
+        "children": [
+          {
+            "key": "s1",
+            "title": null,
+            "children": [
+              {
+                "key": "c1001",
+                "title": "第一章",
+                "children": [
+                  {
+                    "key": "q74078",
+                    "title": "溪舟的尾波",
+                    "children": null,
+                    "file_id": 74078,
+                    "toc_eligible": false
+                  }
+                ],
+                "file_id": null,
+                "toc_eligible": true
+              }
+            ],
+            "file_id": null,
+            "toc_eligible": true
+          },
+          {
+            "key": "standalone",
+            "title": "独立任务",
+            "children": [
+              {
+                "key": "q12345",
+                "title": "Standalone Quest",
+                "children": null,
+                "file_id": 12345,
+                "toc_eligible": false
+              }
+            ],
+            "file_id": null,
+            "toc_eligible": false
+          }
+        ],
+        "file_id": null,
+        "toc_eligible": true
+      }
+    ]
+  },
+  "agd_hangout": {
+    "nodes": [
+      {
+        "key": "a10000048",
+        "title": "烟绯",
+        "children": [
+          {
+            "key": "q19017",
+            "title": "郊野觅芳踪",
+            "children": null,
+            "file_id": 19017,
+            "toc_eligible": false
+          }
+        ],
+        "file_id": null,
+        "toc_eligible": true
+      }
+    ]
+  }
+}

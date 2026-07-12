@@ -1,0 +1,18 @@
+[
+  {
+    "category": "agd_quest",
+    "title": "溪舟的尾波",
+    "id": 74078,
+    "relative_path": "agd_quest/74078_溪舟的尾波.txt",
+    "min_version": "4.1",
+    "max_version": "4.2"
+  },
+  {
+    "category": "agd_talk_group",
+    "title": "Ruins Inscription",
+    "id": 1255,
+    "relative_path": "agd_talk_group/1255_NpcGroup.txt",
+    "min_version": "1.0",
+    "max_version": "1.0"
+  }
+]

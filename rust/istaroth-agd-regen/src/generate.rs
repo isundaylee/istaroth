@@ -17,7 +17,6 @@ use crate::{hierarchy, stats};
 use anyhow::{Context, Result, bail};
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
-use serde::Serialize;
 use std::io::Write;
 use std::path::Path;
 use std::time::Instant;
@@ -606,12 +605,7 @@ pub fn generate_all(
         if coop_items.is_empty() {
             bail!("hangout generation produced no coop manifest items");
         }
-        #[derive(Serialize)]
-        struct Hierarchies {
-            agd_quest: hierarchy::Hierarchy,
-            agd_hangout: hierarchy::Hierarchy,
-        }
-        let hierarchies = Hierarchies {
+        let hierarchies = hierarchy::Hierarchies {
             agd_quest: hierarchy::build_quest_hierarchy(&repo, &quest_items)?,
             agd_hangout: hierarchy::build_coop_hierarchy(&repo, &coop_items)?,
         };
