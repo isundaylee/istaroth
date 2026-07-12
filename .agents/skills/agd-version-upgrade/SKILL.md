@@ -37,8 +37,8 @@ a fallback source when the current TextMap lacks a hash.
 
    ```bash
    cargo build --profile fast --manifest-path rust/Cargo.toml
-   AGD_PATH=<AGD> ./rust/target/fast/istaroth-agd-regen generate-all -f /tmp/audit_chs
-   AGD_PATH=<AGD> AGD_LANGUAGE=ENG ./rust/target/fast/istaroth-agd-regen generate-all -f /tmp/audit_eng
+   AGD_PATH=<AGD> ./rust/target/fast/istaroth-agd-regen generate-all --language CHS -f /tmp/audit_chs
+   AGD_PATH=<AGD> ./rust/target/fast/istaroth-agd-regen generate-all --language ENG -f /tmp/audit_eng
    ```
 
    If the run fails because the new build has ids missing from the

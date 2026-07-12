@@ -30,8 +30,8 @@ When you need to regenerate text files from source data (e.g., after updating AG
 ### AGD (AnimeGameData)
 
 ```bash
-./rust/target/fast/istaroth-agd-regen generate-all -f text/chs
-AGD_LANGUAGE=ENG ./rust/target/fast/istaroth-agd-regen generate-all -f text/eng
+./rust/target/fast/istaroth-agd-regen generate-all --language CHS -f text/chs
+./rust/target/fast/istaroth-agd-regen generate-all --language ENG -f text/eng
 ```
 
 The `-f` flag forces regeneration by deleting existing output directories.
@@ -58,7 +58,6 @@ Set up your environment variables:
 
 ```bash
 export AGD_PATH="/path/to/AnimeGameData"
-export AGD_LANGUAGE="CHS"  # or "ENG" for English
 ```
 
 ### Build Process
@@ -66,7 +65,7 @@ export AGD_LANGUAGE="CHS"  # or "ENG" for English
 1. **Process AGD data** to extract and clean text files:
 
 ```bash
-./rust/target/fast/istaroth-agd-regen generate-all /path/to/text/files/output
+./rust/target/fast/istaroth-agd-regen generate-all --language CHS /path/to/text/files/output
 ```
 
 2. **Build a checkpoint** from the processed text files:

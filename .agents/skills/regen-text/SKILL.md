@@ -36,9 +36,9 @@ When the user asks to **regen corpus**:
    ```bash
    source .env.common   # provides AGD_PATH; without it both runs fail instantly
    cargo build --profile fast --manifest-path rust/Cargo.toml
-   ./rust/target/fast/istaroth-agd-regen generate-all -f text/chs > /tmp/regen-chs.log 2>&1 &
+   ./rust/target/fast/istaroth-agd-regen generate-all --language CHS -f text/chs > /tmp/regen-chs.log 2>&1 &
    chs_pid=$!
-   AGD_LANGUAGE=ENG ./rust/target/fast/istaroth-agd-regen generate-all -f text/eng > /tmp/regen-eng.log 2>&1 &
+   ./rust/target/fast/istaroth-agd-regen generate-all --language ENG -f text/eng > /tmp/regen-eng.log 2>&1 &
    eng_pid=$!
    wait "$chs_pid"; chs_status=$?
    wait "$eng_pid"; eng_status=$?

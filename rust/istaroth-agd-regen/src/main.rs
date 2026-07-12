@@ -10,6 +10,10 @@ use std::path::PathBuf;
 #[global_allocator]
 static GLOBAL: MiMalloc = MiMalloc;
 
+fn parse_language(value: &str) -> Result<lang::Language, String> {
+    lang::Language::from_value(value).ok_or_else(|| format!("unsupported language {value}"))
+}
+
 #[derive(Parser)]
 #[command(about = "Istaroth AGD corpus generation")]
 struct Cli {
@@ -19,10 +23,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Generate the full text corpus into OUTPUT_DIR (language from
-    /// AGD_LANGUAGE, default CHS).
+    /// Generate the full text corpus into OUTPUT_DIR.
     GenerateAll {
         output_dir: PathBuf,
+        /// Output language.
+        #[arg(short, long, value_parser = parse_language)]
+        language: lang::Language,
         /// Delete existing AGD-owned output in OUTPUT_DIR first.
         #[arg(short, long)]
         force: bool,
@@ -52,23 +58,19 @@ fn main() -> Result<()> {
     match cli.command {
         Command::GenerateAll {
             output_dir,
+            language,
             force,
             verbose,
             allow_errors,
-        } => {
-            let language_str = std::env::var("AGD_LANGUAGE").unwrap_or_else(|_| "CHS".to_string());
-            let language = lang::Language::from_value(&language_str)
-                .with_context(|| format!("unsupported AGD_LANGUAGE {language_str}"))?;
-            generate::generate_all(
-                &agd_path,
-                &first_seen_dir,
-                &output_dir,
-                language,
-                force,
-                verbose,
-                allow_errors,
-            )
-        }
+        } => generate::generate_all(
+            &agd_path,
+            &first_seen_dir,
+            &output_dir,
+            language,
+            force,
+            verbose,
+            allow_errors,
+        ),
         Command::BuildFirstSeen { rebuild_all } => {
             let t0 = std::time::Instant::now();
             firstseen_build::build_first_seen(&agd_path, &first_seen_dir, rebuild_all)?;
