@@ -638,10 +638,10 @@ fn activity_5295_groups_loose_talks() {
     // Loose TALK_ACTIVITY talks group under their owning activity's id and name.
     let repo = require_repo!();
     let scope = Scope::default();
-    let no_used = Default::default();
-    assert!(activity::discover(repo, &no_used).unwrap().contains(&5295));
+    let loose_talks = activity::discover(repo, &Default::default()).unwrap();
+    assert!(loose_talks.contains_key(&5295));
 
-    let rendered = activity::process(repo, &scope, &no_used, 5295)
+    let rendered = activity::process(repo, &scope, &loose_talks, 5295)
         .unwrap()
         .unwrap();
     assert!(

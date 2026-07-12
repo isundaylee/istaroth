@@ -86,19 +86,16 @@ fn creature_info(repo: &Repo, scope: &Scope, codex_id: i64) -> Result<CreatureIn
                 .tm
                 .get_optional(title_entry.i("titleNameTextMapHash")?, scope)?;
             let lab_id = describe.i("specialNameLabID")?;
-            let mut matches: Vec<&Value> = Vec::new();
-            for entry in &repo.excel.monster_special_name {
-                if entry.i("specialNameLabID")? == lab_id {
-                    matches.push(entry);
-                }
-            }
-            if matches.is_empty() {
-                bail!("Missing monster special-name lab ID {lab_id}");
-            }
-            if matches.len() == 1 {
+            let matches = repo
+                .excel
+                .monster_special_name
+                .get(&lab_id)
+                .ok_or_else(|| anyhow!("Missing monster special-name lab ID {lab_id}"))?;
+            // Ambiguous lab ids (several special names) render no special name.
+            if let [only] = matches.as_slice() {
                 special_name = repo
                     .tm
-                    .get_optional(matches[0].i("specialNameTextMapHash")?, scope)?;
+                    .get_optional(only.i("specialNameTextMapHash")?, scope)?;
             }
             name_hash = describe.i("nameTextMapHash")?;
         }

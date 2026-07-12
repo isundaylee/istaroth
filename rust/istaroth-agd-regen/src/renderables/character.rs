@@ -137,20 +137,15 @@ pub fn discover_stories(repo: &Repo) -> Result<Vec<i64>> {
 
 /// CharacterStories.
 pub fn process_story(repo: &Repo, scope: &Scope, avatar_id: i64) -> Result<Option<RenderedItem>> {
-    let mut matched_avatar = None;
-    for avatar in &repo.excel.avatar {
-        if avatar.i("id")? == avatar_id {
-            matched_avatar = Some(avatar);
-            break;
-        }
-    }
-    let character_name = match matched_avatar {
-        None => None,
-        Some(avatar) => repo.tm.get_optional(avatar.i("nameTextMapHash")?, scope)?,
-    };
-    let (Some(avatar), Some(character_name)) = (matched_avatar, character_name) else {
-        bail!("Unknown character for avatar ID {avatar_id}");
-    };
+    let avatar = repo
+        .excel
+        .avatar
+        .get(&avatar_id)
+        .ok_or_else(|| anyhow!("Unknown character for avatar ID {avatar_id}"))?;
+    let character_name = repo
+        .tm
+        .get_optional(avatar.i("nameTextMapHash")?, scope)?
+        .ok_or_else(|| anyhow!("Unknown character for avatar ID {avatar_id}"))?;
 
     let constellations = get_constellations(repo, scope, avatar)?;
 
@@ -263,16 +258,11 @@ pub fn process_voiceline(
     scope: &Scope,
     avatar_id: i64,
 ) -> Result<Option<RenderedItem>> {
-    let mut character_name = None;
-    for avatar in &repo.excel.avatar {
-        if avatar.i("id")? == avatar_id {
-            character_name = repo.tm.get_optional(avatar.i("nameTextMapHash")?, scope)?;
-            break;
-        }
+    let character_name = match repo.excel.avatar.get(&avatar_id) {
+        Some(avatar) => repo.tm.get_optional(avatar.i("nameTextMapHash")?, scope)?,
+        None => None,
     }
-    let Some(character_name) = character_name else {
-        bail!("Unknown character for avatar ID {avatar_id}");
-    };
+    .ok_or_else(|| anyhow!("Unknown character for avatar ID {avatar_id}"))?;
 
     // Voicelines in file order; a repeated title keeps its first position but
     // the latest content.

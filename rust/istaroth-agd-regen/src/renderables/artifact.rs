@@ -7,29 +7,66 @@ use crate::repo::Repo;
 use crate::util;
 use crate::vh::{ValueExt, int_array};
 use anyhow::{Result, anyhow};
+use rustc_hash::{FxHashMap, FxHashSet};
+use serde_json::Value;
 
 /// (CHS, non-CHS) per-pass error limits: non-CHS output legitimately hits
 /// per-item failures (untranslated text), so its ceiling is higher.
 pub const ERROR_LIMITS: (usize, usize) = (0, 0);
+
+/// Pass-wide indexes built once before the pass: set configs by setId (first
+/// row wins) and localization entries by id with their file positions, so
+/// per-piece story resolution keeps the file-order scan semantics without
+/// rescanning the whole table.
+pub struct PassIndexes<'a> {
+    sets: FxHashMap<i64, &'a Value>,
+    loc_entries: FxHashMap<i64, Vec<(usize, &'a Value)>>,
+}
+
+pub fn build_indexes(repo: &Repo) -> Result<PassIndexes<'_>> {
+    let mut sets: FxHashMap<i64, &Value> = FxHashMap::default();
+    for set_entry in &repo.excel.reliquary_set {
+        sets.entry(set_entry.i("setId")?).or_insert(set_entry);
+    }
+    let mut loc_entries: FxHashMap<i64, Vec<(usize, &Value)>> = FxHashMap::default();
+    for (position, entry) in repo.excel.localization.iter().enumerate() {
+        loc_entries
+            .entry(entry.i("id")?)
+            .or_default()
+            .push((position, entry));
+    }
+    Ok(PassIndexes { sets, loc_entries })
+}
 
 /// Resolve a reliquary piece's relic story from its storyId.
 ///
 /// Follows storyId -> DocumentExcelConfigData -> questIDList ->
 /// LocalizationExcelConfigData -> readable file, returning None when the
 /// piece has no story (storyId 0, no document, or no readable on disk).
-fn relic_story_by_story_id(repo: &Repo, scope: &Scope, story_id: i64) -> Result<Option<String>> {
+fn relic_story_by_story_id(
+    repo: &Repo,
+    indexes: &PassIndexes,
+    scope: &Scope,
+    story_id: i64,
+) -> Result<Option<String>> {
     if story_id == 0 {
         return Ok(None);
     }
     let Some(doc_item) = repo.excel.document.get(&story_id) else {
         return Ok(None);
     };
-    let localization_ids: rustc_hash::FxHashSet<i64> =
+    let localization_ids: FxHashSet<i64> =
         int_array(doc_item.f("questIDList")?)?.into_iter().collect();
-    for entry in &repo.excel.localization {
-        if !localization_ids.contains(&entry.i("id")?) {
-            continue;
-        }
+    let mut entries: Vec<(usize, &Value)> = localization_ids
+        .iter()
+        .filter_map(|id| indexes.loc_entries.get(id))
+        .flatten()
+        .copied()
+        .collect();
+    entries.sort_unstable_by_key(|(position, _)| *position);
+    let lang = repo.language.short();
+    let suffix = format!("_{lang}");
+    for (_, entry) in entries {
         for path_value in entry.as_object().into_iter().flat_map(|o| o.values()) {
             let Some(path_str) = path_value.as_str() else {
                 continue;
@@ -37,8 +74,7 @@ fn relic_story_by_story_id(repo: &Repo, scope: &Scope, story_id: i64) -> Result<
             if path_str.is_empty() {
                 continue;
             }
-            let lang = repo.language.short();
-            if path_str.ends_with(&format!("_{lang}")) || path_str.split('/').any(|p| p == lang) {
+            if path_str.ends_with(&suffix) || path_str.split('/').any(|p| p == lang) {
                 let name = util::path_name(path_str);
                 if let Some(content) = repo.readable_content(&format!("{name}.txt"), scope) {
                     return Ok(Some(content.clone()));
@@ -59,15 +95,15 @@ pub fn discover(repo: &Repo) -> Result<Vec<i64>> {
 }
 
 /// ArtifactSets.
-pub fn process(repo: &Repo, scope: &Scope, set_id: i64) -> Result<Option<RenderedItem>> {
-    let mut set_config = None;
-    for set_entry in &repo.excel.reliquary_set {
-        if set_entry.i("setId")? == set_id {
-            set_config = Some(set_entry);
-            break;
-        }
-    }
-    let set_config = set_config
+pub fn process(
+    repo: &Repo,
+    indexes: &PassIndexes,
+    scope: &Scope,
+    set_id: i64,
+) -> Result<Option<RenderedItem>> {
+    let set_config = *indexes
+        .sets
+        .get(&set_id)
         .ok_or_else(|| anyhow!("Artifact set configuration not found for set ID: {set_id}"))?;
     let artifact_ids = int_array(set_config.f("containsList")?)?;
 
@@ -78,14 +114,7 @@ pub fn process(repo: &Repo, scope: &Scope, set_id: i64) -> Result<Option<Rendere
     }
     let mut artifacts: Vec<ArtifactInfo> = Vec::new();
     for artifact_id in artifact_ids {
-        let mut artifact_config = None;
-        for reliquary in &repo.excel.reliquary {
-            if reliquary.i("id")? == artifact_id {
-                artifact_config = Some(reliquary);
-                break;
-            }
-        }
-        let artifact_config = artifact_config.ok_or_else(|| {
+        let artifact_config = repo.excel.reliquary.get(&artifact_id).ok_or_else(|| {
             anyhow!(
                 "Artifact configuration not found for artifact ID: {artifact_id} in set {set_id}"
             )
@@ -96,7 +125,7 @@ pub fn process(repo: &Repo, scope: &Scope, set_id: i64) -> Result<Option<Rendere
         let description = repo
             .tm
             .get_or(artifact_config.i("descTextMapHash")?, "", scope)?;
-        let story = relic_story_by_story_id(repo, scope, artifact_config.i("storyId")?)?
+        let story = relic_story_by_story_id(repo, indexes, scope, artifact_config.i("storyId")?)?
             .unwrap_or_default();
         artifacts.push(ArtifactInfo {
             name,
@@ -112,16 +141,12 @@ pub fn process(repo: &Repo, scope: &Scope, set_id: i64) -> Result<Option<Rendere
     }
 
     let affix_id = set_config.i("equipAffixId")?;
-    let mut affix_name_hash = None;
-    for affix in &repo.excel.equip_affix {
-        if affix.i("id")? == affix_id {
-            affix_name_hash = Some(affix.i("nameTextMapHash")?);
-            break;
-        }
-    }
-    let affix_name_hash = affix_name_hash
+    let affix = repo
+        .excel
+        .equip_affix
+        .get(&affix_id)
         .ok_or_else(|| anyhow!("Equip affix {affix_id} not found for set {set_id}"))?;
-    let set_name = repo.tm.get_required(affix_name_hash, scope)?;
+    let set_name = repo.tm.get_required(affix.i("nameTextMapHash")?, scope)?;
 
     let safe_name = util::make_safe_filename_part(&set_name);
     let mut content_lines = vec![format!("# {set_name}\n")];

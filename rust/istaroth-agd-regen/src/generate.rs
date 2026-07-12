@@ -241,6 +241,7 @@ pub fn generate_all(
 
     // 1. ArtifactSets (discovery: file order).
     let artifact_set_ids = artifact::discover(&repo)?;
+    let artifact_indexes = artifact::build_indexes(&repo)?;
     run_pass(
         &mut state,
         output_dir,
@@ -249,7 +250,7 @@ pub fn generate_all(
         error_limit(artifact::ERROR_LIMITS),
         &artifact_set_ids,
         |k| k.to_string(),
-        |&set_id, scope| artifact::process(&repo, scope, set_id),
+        |&set_id, scope| artifact::process(&repo, &artifact_indexes, scope, set_id),
     )?;
 
     // 2. Creatures.
@@ -396,8 +397,9 @@ pub fn generate_all(
     )?;
 
     // 13. Activities (used talk ids snapshot at pass creation).
-    let activities_used_talks = state.used_talks.clone();
-    let activity_ids = activity::discover(&repo, &activities_used_talks)?;
+    let activity_talks = activity::discover(&repo, &state.used_talks)?;
+    let mut activity_ids: Vec<i64> = activity_talks.keys().copied().collect();
+    activity_ids.sort();
     run_pass(
         &mut state,
         output_dir,
@@ -406,7 +408,7 @@ pub fn generate_all(
         error_limit(activity::ERROR_LIMITS),
         &activity_ids,
         |k| k.to_string(),
-        |&activity_id, scope| activity::process(&repo, scope, &activities_used_talks, activity_id),
+        |&activity_id, scope| activity::process(&repo, scope, &activity_talks, activity_id),
     )?;
 
     // 14. Books: series then standalone.
@@ -521,13 +523,13 @@ pub fn generate_all(
             },
             readables: {
                 let mut v: Vec<String> = repo
-                    .readable_filenames
-                    .iter()
+                    .readable_contents
+                    .keys()
                     .filter(|f| !state.used_readables.contains(*f))
                     .cloned()
                     .collect();
                 v.sort();
-                (v, repo.readable_filenames.len())
+                (v, repo.readable_contents.len())
             },
         };
         unused_stats.echo();
