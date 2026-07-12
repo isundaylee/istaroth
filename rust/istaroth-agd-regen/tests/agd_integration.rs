@@ -398,9 +398,18 @@ fn furina_constellations_flat_list() {
         .unwrap()
         .unwrap();
 
-    assert!(rendered.content.contains("## Constellations\n"));
     assert!(rendered.content.contains("秘密藏心间，无人知我名。"));
     assert!(!rendered.content.contains("###"));
+    // Exactly six constellations, each on a single `name: description` line —
+    // multiline descriptions are flattened, none spill onto extra lines.
+    let section = rendered
+        .content
+        .split("## Constellations\n")
+        .nth(1)
+        .unwrap();
+    let lines: Vec<&str> = section.lines().filter(|l| !l.trim().is_empty()).collect();
+    assert_eq!(lines.len(), 6, "{section}");
+    assert!(lines.iter().all(|l| l.contains(": ")), "{section}");
 }
 
 #[test]
@@ -412,12 +421,28 @@ fn traveler_constellations_grouped_by_element() {
         .unwrap()
         .unwrap();
 
-    let element_headers = rendered
+    // Every constellation line sits under an element header (nothing precedes
+    // the first ###), each released element carries its full set of six, and
+    // each entry is a single flattened `name: description` line.
+    let section = rendered
         .content
-        .lines()
-        .filter(|l| l.starts_with("### "))
-        .count();
-    assert!(element_headers >= 2, "{}", rendered.content);
+        .split("## Constellations\n")
+        .nth(1)
+        .unwrap();
+    let mut blocks: Vec<(&str, usize)> = Vec::new();
+    for line in section.lines() {
+        if let Some(element) = line.strip_prefix("### ") {
+            blocks.push((element, 0));
+        } else if !line.trim().is_empty() {
+            assert!(line.contains(": "), "{line}");
+            blocks
+                .last_mut()
+                .expect("constellation before first element header")
+                .1 += 1;
+        }
+    }
+    assert!(blocks.len() >= 2, "{blocks:?}");
+    assert!(blocks.iter().all(|(_, n)| *n == 6), "{blocks:?}");
 }
 
 #[test]
@@ -458,6 +483,9 @@ fn drunkards_tale_series_grouped() {
     // Each volume carries a localized annotation naming the series and its
     // position, so a chunk retrieved in isolation keeps its series context.
     assert!(rendered.content.contains("*醉客轶事·第 1 卷，共 4 卷*"));
+    // Series grouping only ever forms multi-volume series; single-volume
+    // suits are excluded from the mapping.
+    assert!(repo.book_series.values().all(|volumes| volumes.len() >= 2));
 }
 
 #[test]
@@ -805,5 +833,47 @@ fn weapon_11431_multi_page_story() {
         rendered.content.contains("\n\n---\n\n"),
         "{}",
         rendered.content
+    );
+}
+
+#[test]
+fn weapon_11101_single_page_no_description() {
+    // 无锋剑 has no excel description and a single story page: the story
+    // follows the title header directly (no description block) and there is
+    // no --- page separator.
+    let repo = require_repo!();
+    let scope = Scope::default();
+    let rendered = weapon::process(repo, &scope, "11101").unwrap().unwrap();
+
+    assert!(
+        rendered.content.starts_with("# 无锋剑\n\n少年人的梦想、"),
+        "{}",
+        rendered.content
+    );
+    assert!(
+        !rendered.content.contains("\n---\n"),
+        "{}",
+        rendered.content
+    );
+}
+
+#[test]
+fn readable_render_keeps_raw_title_in_header() {
+    // The document header keeps the unsanitized title (with ·) while only the
+    // filename is sanitized.
+    let repo = require_repo!();
+    let scope = Scope::default();
+    let rendered = readable::process(repo, &scope, "Book100.txt", "agd_readable")
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(rendered.meta.title, "神霄折戟录·第六卷");
+    assert!(rendered.content.starts_with("# 神霄折戟录·第六卷\n\n"));
+    assert!(rendered.meta.relative_path.starts_with("agd_readable/"));
+    assert!(
+        rendered
+            .meta
+            .relative_path
+            .ends_with("_神霄折戟录第六卷.txt")
     );
 }
