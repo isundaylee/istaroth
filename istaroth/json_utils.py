@@ -1,14 +1,12 @@
-"""JSON helpers: msgspec-backed decode, stdlib dumps matching old orjson output."""
+"""JSON helpers returning UTF-8 bytes for serialization."""
 
 import json
 from typing import Any, Callable
 
-import msgspec
-
 
 def loads(data: bytes | str) -> Any:
-    """Deserialize JSON via msgspec (~2x faster than stdlib on AGD-sized files)."""
-    return msgspec.json.decode(data)
+    """Deserialize JSON data."""
+    return json.loads(data)
 
 
 def dumps(obj: Any, *, default: Callable[[Any], Any] | None = None) -> bytes:

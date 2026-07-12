@@ -172,7 +172,7 @@ Istaroth is a **Retrieval-Augmented Generation (RAG) system** for Genshin Impact
 **AGD extraction** — Extract game text from AnimeGameData:
 ```bash
 export AGD_PATH="/path/to/AnimeGameData" AGD_LANGUAGE="CHS"
-python scripts/agd_tools.py generate-all text/chs/
+./rust/target/fast/istaroth-agd-regen generate-all text/chs/
 ```
 
 **TPS Shishu** — Extract lore manual from PDF:

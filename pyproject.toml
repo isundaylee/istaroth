@@ -30,7 +30,6 @@ dependencies = [
     "langchain-openai",
     "langgraph>=1.0.9",
     "mcp",
-    "msgspec>=0.21.1",
     "openai",
     "opentelemetry-exporter-otlp-proto-grpc",
     "opentelemetry-instrumentation-fastapi",
@@ -48,18 +47,6 @@ dependencies = [
 ]
 
 [dependency-groups]
-# Minimal deps for scripts/agd_tools.py corpus regen; everything here must
-# ship free-threaded (3.14t) wheels so the regen can run on a free-threaded
-# interpreter via a uv ephemeral environment
-# (uv run --isolated --python 3.14t --only-group regen scripts/agd_tools.py ...)
-# with no separate venv to maintain.
-regen = [
-    "attrs",
-    "click",
-    "msgspec>=0.21.1",
-    "tabulate",
-    "tqdm",
-]
 ml = [
     "faiss-cpu",
     "huggingface-hub",

@@ -15,7 +15,7 @@ from typing import Any
 import attrs
 
 from istaroth import json_utils
-from istaroth.agd import first_seen, localization
+from istaroth.agd import localization
 from istaroth.text import manifest as text_manifest
 from istaroth.text import types as text_types
 
@@ -34,6 +34,10 @@ _CATEGORY_DISPLAY_ORDER = (
     text_types.TextCategory.AGD_VOICELINE,
     text_types.TextCategory.AGD_READABLE,
 )
+
+
+def _version_sort_key(version: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in version.split("."))
 
 
 def _category_display_order(category: text_types.TextCategory) -> tuple[int, str]:
@@ -63,7 +67,7 @@ def _sort_nodes_by_version(
         else:
             version = max_versions[node["file_id"]]
             node = node | {"max_version": version}
-        key = first_seen.version_sort_key(version) if version is not None else None
+        key = _version_sort_key(version) if version is not None else None
         keyed.append((key, version, node))
     keyed.sort(
         key=lambda kvn: (1, ()) if kvn[0] is None else (0, tuple(-p for p in kvn[0]))
@@ -193,7 +197,7 @@ class TextSet:
         """Newest first-seen game version across the manifest; None if all versionless."""
         return max(
             (v for item in self._manifest if (v := item.max_version) is not None),
-            key=first_seen.version_sort_key,
+            key=_version_sort_key,
             default=None,
         )
 

@@ -12,8 +12,8 @@ from opentelemetry.sdk import trace as sdk_trace
 from opentelemetry.sdk.trace import export as sdk_trace_export
 from opentelemetry.sdk.trace.export import in_memory_span_exporter
 
-from istaroth import json_utils, utils
-from istaroth.agd import localization, repo
+from istaroth import json_utils
+from istaroth.agd import localization
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -60,33 +60,6 @@ def span_exporter() -> in_memory_span_exporter.InMemorySpanExporter:
         trace.set_tracer_provider(provider)
     _SPAN_EXPORTER.clear()
     return _SPAN_EXPORTER
-
-
-@pytest.fixture
-def agd_path() -> str:
-    """Get AGD path from environment variable."""
-    agd_path_value = os.environ.get("AGD_PATH")
-    if not agd_path_value:
-        pytest.skip("AGD_PATH environment variable not set")
-    return utils.assert_not_none(agd_path_value)
-
-
-@pytest.fixture
-def data_repo() -> repo.DataRepo:
-    """Create DataRepo instance from environment.
-
-    Tests using this fixture assume the CHS corpus (the default when
-    AGD_LANGUAGE is unset) and assert against Chinese source text directly. Do
-    not switch this away from CHS — English-specific tests build their own
-    ENG ``DataRepo`` instead.
-    """
-    try:
-        return repo.DataRepo.from_env()
-    except ValueError:
-        pytest.skip("AGD_PATH environment variable not set")
-        # This line will never be reached due to pytest.skip() raising an exception
-        # but mypy doesn't understand that, so we need a return statement
-        raise  # pragma: no cover
 
 
 _PROJECT_ROOT = pathlib.Path(__file__).parent.parent
