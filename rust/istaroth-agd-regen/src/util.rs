@@ -194,6 +194,17 @@ mod tests {
     }
 
     #[test]
+    fn sha256_id_is_stable() {
+        // Creature/subtitle/material file ids derive from this; the committed
+        // corpus filenames pin these exact values.
+        assert_eq!(sha256_id("CODEX_SUBTYPE_AUTOMATRON"), 97990234451511);
+        assert_eq!(
+            sha256_id("Subtitle/CHS/Cs_Mengde_EQ401260901_AA_CHS.srt"),
+            117369531083246
+        );
+    }
+
+    #[test]
     fn strip_language_suffix_variants() {
         for (stem, expected) in [
             ("Book100_EN", "Book100"),

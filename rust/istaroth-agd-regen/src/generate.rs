@@ -134,6 +134,21 @@ fn dumps_indented<T: Serialize>(value: &T) -> Result<Vec<u8>> {
     Ok(serde_json::to_vec_pretty(value)?)
 }
 
+/// Error on duplicate manifest (category, id) keys before writing the manifest.
+fn check_manifest_unique(manifest: &[TextMetadata]) -> Result<()> {
+    let mut seen: FxHashSet<(&str, i64)> = FxHashSet::default();
+    for item in manifest {
+        if !seen.insert((item.category, item.id)) {
+            bail!(
+                "Duplicate manifest (category, id) keys: ({}, {})",
+                item.category,
+                item.id
+            );
+        }
+    }
+    Ok(())
+}
+
 /// Run the full generation. Exits the process directly to skip freeing the
 /// huge shared caches.
 pub fn generate_all(
@@ -522,16 +537,7 @@ pub fn generate_all(
 
     // Manifest: duplicate (category, id) check, then write.
     {
-        let mut seen: FxHashSet<(&str, i64)> = FxHashSet::default();
-        for item in &state.manifest {
-            if !seen.insert((item.category, item.id)) {
-                bail!(
-                    "Duplicate manifest (category, id) keys: ({}, {})",
-                    item.category,
-                    item.id
-                );
-            }
-        }
+        check_manifest_unique(&state.manifest)?;
         let manifest_dir = output_dir.join("manifest");
         std::fs::create_dir_all(&manifest_dir)?;
         let manifest_path = manifest_dir.join("agd.json");
@@ -597,4 +603,41 @@ pub fn generate_all(
     let code = if state.errors > 0 { 1 } else { 0 };
     std::io::Write::flush(&mut std::io::stderr()).ok();
     std::process::exit(code);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn item(category: &'static str, id: i64) -> TextMetadata {
+        TextMetadata {
+            category,
+            title: format!("Item {id}"),
+            id,
+            relative_path: format!("{category}/{id}.txt"),
+            min_version: "1.4".to_string(),
+            max_version: "1.4".to_string(),
+        }
+    }
+
+    #[test]
+    fn manifest_rejects_duplicate_category_id() {
+        // The same id under different categories is fine; a repeat within one
+        // category (e.g. an ActivityGroup/NpcGroup id collision, issue #294)
+        // must fail the run before the manifest is written.
+        check_manifest_unique(&[
+            item("agd_talk_group", 2001),
+            item("agd_talk", 2001),
+            item("agd_talk_group", 2002),
+        ])
+        .unwrap();
+
+        let err =
+            check_manifest_unique(&[item("agd_talk_group", 2001), item("agd_talk_group", 2001)])
+                .unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("Duplicate manifest (category, id) keys: (agd_talk_group, 2001)")
+        );
+    }
 }

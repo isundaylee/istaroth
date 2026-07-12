@@ -455,6 +455,47 @@ fn drunkards_tale_series_grouped() {
     .map(|volume| rendered.content.find(volume).unwrap())
     .collect();
     assert!(positions.is_sorted(), "{positions:?}");
+    // Each volume carries a localized annotation naming the series and its
+    // position, so a chunk retrieved in isolation keeps its series context.
+    assert!(rendered.content.contains("*醉客轶事·第 1 卷，共 4 卷*"));
+}
+
+#[test]
+fn quest_render_variant_and_lead_in_headers() {
+    // Multiple completing talks at one order get `(variant N)`; a lead-in talk
+    // at an order that also has a completing talk gets `(alternative/additional)`.
+    let repo = require_repo!();
+    let scope = Scope::default();
+
+    let variants = quest::process(repo, &scope, 75086).unwrap().unwrap();
+    assert!(variants.content.contains("## Talk 5 (variant 1)"));
+    assert!(variants.content.contains("## Talk 5 (variant 2)"));
+
+    let lead_in = quest::process(repo, &scope, 10006).unwrap().unwrap();
+    assert!(
+        lead_in
+            .content
+            .contains("## Talk 4 (alternative/additional)")
+    );
+    assert!(lead_in.content.contains("## Talk 4\n"));
+}
+
+#[test]
+fn quest_render_group_line_before_chapter_line() {
+    // A quest in a chapter group renders the group line above the chapter line.
+    let repo = require_repo!();
+    let scope = Scope::default();
+    let rendered = quest::process(repo, &scope, 1002).unwrap().unwrap();
+
+    let group = rendered
+        .content
+        .find("(Quest is part of group: 第一章)")
+        .unwrap();
+    let chapter = rendered
+        .content
+        .find("(Quest is part of chapter: 第一章 第一幕 浮世浮生千岩间)")
+        .unwrap();
+    assert!(group < chapter);
 }
 
 #[test]
@@ -468,11 +509,35 @@ fn creature_group_automatron() {
         .unwrap();
 
     assert_eq!(rendered.meta.title, "自律机关");
+    // The group id/filename derive deterministically from the subType enum
+    // (sha256_id), pinned by the committed corpus filename.
+    assert_eq!(rendered.meta.id, 97990234451511);
+    assert_eq!(
+        rendered.meta.relative_path,
+        "agd_creature/97990234451511_CODEX_SUBTYPE_AUTOMATRON.txt"
+    );
     assert!(rendered.content.starts_with("# 自律机关 (魔物)\n"));
     assert!(
         rendered
             .content
             .contains("## 攻坚特化型机关\n谢尔比乌斯式机关\nAlso known as: 攻坚特化型")
+    );
+}
+
+#[test]
+fn creature_wildlife_has_no_monster_names() {
+    // Wildlife entries carry only a name: no special-name line or "Also known
+    // as" title between the header and the blank line before the description.
+    let repo = require_repo!();
+    let scope = Scope::default();
+    let rendered = creature::process(repo, &scope, "CODEX_SUBTYPE_ANIMAL")
+        .unwrap()
+        .unwrap();
+
+    assert!(
+        rendered.content.contains("## 雪狐\n\n"),
+        "{}",
+        rendered.content
     );
 }
 
