@@ -1,14 +1,13 @@
 //! Port of scripts/agd_build_first_seen.py: build the per-version first-seen
 //! delta files from AGD git history.
 
-use crate::textmap::git_show;
+use crate::git::{git_ls_tree, git_show};
 use crate::util;
 use anyhow::{Context, Result, anyhow, bail};
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 use serde_json::Value;
 use std::path::Path;
-use std::process::Command;
 
 /// The last AGD snapshot commit of each game version, oldest first (see the
 /// curation notes in the original Python script's docstring).
@@ -117,31 +116,6 @@ fn row_id(row: &Value, id_key: &str) -> Result<i64> {
         }
     }
     bail!("No {id_key:?} field in excel row")
-}
-
-/// `git ls-tree --name-only REF dir/` file names (empty for a missing dir).
-fn git_ls_tree(agd_path: &Path, git_ref: &str, dir: &str) -> Result<Vec<String>> {
-    let out = Command::new("git")
-        .arg("-C")
-        .arg(agd_path)
-        .arg("ls-tree")
-        .arg("--name-only")
-        .arg(git_ref)
-        .arg(format!("{dir}/"))
-        .output()?;
-    if !out.status.success() {
-        bail!(
-            "git ls-tree {git_ref} {dir} failed: {}",
-            String::from_utf8_lossy(&out.stderr).trim()
-        );
-    }
-    let mut names: Vec<String> = String::from_utf8(out.stdout)?
-        .lines()
-        .filter(|l| !l.is_empty())
-        .map(|l| l.rsplit('/').next().unwrap().to_string())
-        .collect();
-    names.sort();
-    Ok(names)
 }
 
 fn parse_rows(bytes: &[u8]) -> Result<Vec<Value>> {

@@ -1,7 +1,8 @@
 //! Ports of quest_hierarchy.py and coop_hierarchy.py.
 
-use crate::render_quest;
-use crate::repo::{Repo, Scope};
+use crate::issues::Scope;
+use crate::renderables::quest;
+use crate::repo::Repo;
 use crate::vh::ValueExt;
 use anyhow::Result;
 use indexmap::IndexMap;
@@ -45,7 +46,7 @@ fn order_quests(
         by_id.insert(q.file_id.unwrap(), q);
     }
     let next_of = |quest_id: i64| -> Result<Vec<i64>> {
-        let mut targets: Vec<i64> = repo.main_quest[&quest_id]
+        let mut targets: Vec<i64> = repo.excel.main_quest[&quest_id]
             .arr("suggestTrackMainQuestList")?
             .iter()
             .filter_map(|v| v.as_i64())
@@ -101,8 +102,8 @@ fn make_chapters(
     let mut by_chapter = by_chapter;
     let mut nodes = Vec::new();
     for cid in chapter_ids {
-        let chapter = &repo.chapter[&cid];
-        let title = render_quest::get_chapter_title(repo, scope, chapter)?;
+        let chapter = &repo.excel.chapter[&cid];
+        let title = quest::get_chapter_title(repo, scope, chapter)?;
         let begin_quest_id = chapter.i("beginQuestId")? / 100;
         let quests = by_chapter.shift_remove(&cid).unwrap();
         nodes.push(HierarchyNode {
@@ -128,7 +129,7 @@ pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Resu
     let mut standalone_buckets: IndexMap<String, Vec<HierarchyNode>> = IndexMap::new();
 
     for (quest_id, title) in quest_items {
-        let Some(main_quest) = repo.main_quest.get(quest_id) else {
+        let Some(main_quest) = repo.excel.main_quest.get(quest_id) else {
             continue;
         };
         let quest_type = main_quest.s("type")?.to_string();
@@ -139,6 +140,7 @@ pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Resu
             continue;
         }
         let series_id = repo
+            .excel
             .chapter
             .get(&chapter_id)
             .map(|c| c.i("groupId"))
@@ -206,16 +208,15 @@ pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Resu
                 let bucket = buckets.shift_remove(&series_id).unwrap();
                 let min_chapter = *bucket.keys().min().unwrap();
                 let series_chapters = make_chapters(repo, scope, bucket)?;
-                let series_title =
-                    match render_quest::get_quest_group_name(repo, scope, min_chapter)? {
-                        Some(name) => Some(name),
-                        None => match &series_chapters[0].title {
-                            Some(t) if !t.is_empty() => Some(t.clone()),
-                            _ => series_chapters[0].children.as_ref().unwrap()[0]
-                                .title
-                                .clone(),
-                        },
-                    };
+                let series_title = match quest::get_quest_group_name(repo, scope, min_chapter)? {
+                    Some(name) => Some(name),
+                    None => match &series_chapters[0].title {
+                        Some(t) if !t.is_empty() => Some(t.clone()),
+                        _ => series_chapters[0].children.as_ref().unwrap()[0]
+                            .title
+                            .clone(),
+                    },
+                };
                 series_nodes.push(HierarchyNode {
                     key: format!("s{series_id}"),
                     title: series_title,
@@ -257,6 +258,7 @@ pub fn build_coop_hierarchy(repo: &Repo, coop_items: &[(i64, String)]) -> Result
     let scope = Scope::default();
     let scope = &scope;
     let coop_chapters: FxHashMap<i64, &Value> = repo
+        .excel
         .coop_chapter
         .iter()
         .map(|c| Ok((c.i("id")?, c)))
@@ -264,7 +266,7 @@ pub fn build_coop_hierarchy(repo: &Repo, coop_items: &[(i64, String)]) -> Result
 
     let mut buckets: IndexMap<i64, IndexMap<i64, Vec<HierarchyNode>>> = IndexMap::new();
     for (quest_id, title) in coop_items {
-        let Some(main_quest) = repo.main_quest.get(quest_id) else {
+        let Some(main_quest) = repo.excel.main_quest.get(quest_id) else {
             continue;
         };
         let Some(chapter) = coop_chapters.get(&main_quest.i("chapterId")?) else {

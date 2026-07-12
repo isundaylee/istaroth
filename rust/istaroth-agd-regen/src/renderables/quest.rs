@@ -1,9 +1,10 @@
 //! Port of renderables/quest.py.
 
 use crate::firstseen::Domain;
-use crate::meta::RenderedItem;
-use crate::repo::{IssueType, Repo, Scope};
-use crate::talk::{self, TalkInfo, TalkNotFound};
+use crate::issues::{IssueType, Scope};
+use crate::renderables::talk::{self, TalkInfo, TalkNotFound};
+use crate::rendered_item::RenderedItem;
+use crate::repo::Repo;
 use crate::util;
 use crate::vh::ValueExt;
 use anyhow::{Result, anyhow, bail};
@@ -108,13 +109,14 @@ fn group_member_chapters<'r>(repo: &'r Repo, chapter: &Value) -> Result<Vec<&'r 
         // Return the same chapter object from the repo store.
         let id = chapter.i("id")?;
         return Ok(vec![
-            repo.chapter
+            repo.excel
+                .chapter
                 .get(&id)
                 .ok_or_else(|| anyhow!("unknown chapter {id}"))?,
         ]);
     }
     let mut members = Vec::new();
-    for c in repo.chapter.values() {
+    for c in repo.excel.chapter.values() {
         if c.i("groupId")? == group_id && !is_test_or_hidden_chapter(repo, c)? {
             members.push(c);
         }
@@ -124,6 +126,7 @@ fn group_member_chapters<'r>(repo: &'r Repo, chapter: &Value) -> Result<Vec<&'r 
 
 pub fn get_quest_group_name(repo: &Repo, scope: &Scope, chapter_id: i64) -> Result<Option<String>> {
     let chapter = repo
+        .excel
         .chapter
         .get(&chapter_id)
         .ok_or_else(|| anyhow!("unknown chapter {chapter_id}"))?;
@@ -259,6 +262,7 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
     let chapter_id = quest_data.i("chapterId")?;
     if chapter_id != 0 {
         let chapter = repo
+            .excel
             .chapter
             .get(&chapter_id)
             .ok_or_else(|| anyhow!("Unknown chapter {chapter_id} for quest {quest_path}"))?;
@@ -462,6 +466,26 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
         non_subquest_talks,
         associated_free_talks,
     }))
+}
+
+/// Quests pass discovery: main quest ids sorted as STRINGS.
+pub fn discover(repo: &Repo) -> Result<Vec<i64>> {
+    let mut ids: Vec<i64> = repo.excel.main_quest.keys().copied().collect();
+    ids.sort_by_key(|id| id.to_string());
+    Ok(ids)
+}
+
+/// Quests pass process: skip quests with no talk-bearing steps.
+pub fn process(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Option<RenderedItem>> {
+    let Some(quest_info) = get_quest_info(repo, scope, quest_id)? else {
+        return Ok(None);
+    };
+    if !quest_info.steps.iter().any(|s| s.talk.is_some())
+        && quest_info.non_subquest_talks.is_empty()
+    {
+        return Ok(None);
+    }
+    Ok(Some(render_quest(repo, scope, &quest_info)?))
 }
 
 pub fn render_quest(repo: &Repo, scope: &Scope, quest: &QuestInfo) -> Result<RenderedItem> {

@@ -1,24 +1,9 @@
 //! Run diagnostics under stats/agd/: git-provenance metadata, the per-type
 //! summary table, and unused-id statistics.
 
-use anyhow::{Context, Result, bail};
+use crate::git::git_output;
+use anyhow::Result;
 use std::path::Path;
-use std::process::Command;
-
-fn git_output(repo_path: &Path, args: &[&str]) -> Result<String> {
-    let out = Command::new("git")
-        .args(args)
-        .current_dir(repo_path)
-        .output()
-        .with_context(|| format!("git {args:?} in {repo_path:?}"))?;
-    if !out.status.success() {
-        bail!(
-            "git {args:?} failed in {repo_path:?}: {}",
-            String::from_utf8_lossy(&out.stderr).trim()
-        );
-    }
-    Ok(String::from_utf8(out.stdout)?)
-}
 
 /// Port of `_generate_metadata`: language + AGD/istaroth git provenance.
 pub fn generate_metadata(
@@ -43,17 +28,9 @@ pub fn generate_metadata(
     }))
 }
 
-/// Python `"{:^w}"` centering (tabulate's padboth): extra pad goes right.
-fn py_center(s: &str, width: usize) -> String {
-    let len = s.chars().count();
-    if len >= width {
-        return s.to_string();
-    }
-    let left = (width - len) / 2;
-    format!("{}{s}{}", " ".repeat(left), " ".repeat(width - len - left))
-}
-
-/// Port of `tabulate(..., tablefmt="pretty")` over the per-type summary rows.
+/// Left-aligned ASCII table over the per-type summary rows plus a TOTAL row.
+/// This deliberately diverges from the Python pipeline's tabulate "pretty"
+/// (centered) format; it is the one intended output difference.
 pub fn render_summary_table(summary: &[(&'static str, usize, usize, usize, usize)]) -> String {
     const HEADERS: [&str; 5] = ["Content Type", "Success", "Errors", "Skipped", "Issues"];
     let mut rows: Vec<[String; 5]> = summary
@@ -101,7 +78,8 @@ pub fn render_summary_table(summary: &[(&'static str, usize, usize, usize, usize
         let mut s = String::from("|");
         for (i, cell) in cells.iter().enumerate() {
             s.push(' ');
-            s.push_str(&py_center(cell, widths[i]));
+            s.push_str(cell);
+            s.push_str(&" ".repeat(widths[i] - cell.chars().count()));
             s.push_str(" |");
         }
         s

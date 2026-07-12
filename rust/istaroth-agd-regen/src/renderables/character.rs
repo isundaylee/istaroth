@@ -1,0 +1,289 @@
+//! Port of renderables/character.py: character stories (with constellations)
+//! and voicelines.
+
+use crate::firstseen::Domain;
+use crate::issues::{IssueType, Scope};
+use crate::rendered_item::RenderedItem;
+use crate::repo::Repo;
+use crate::util;
+use crate::vh::{ValueExt, int_array};
+use anyhow::{Result, anyhow, bail};
+use indexmap::IndexMap;
+use rustc_hash::FxHashSet;
+use serde_json::Value;
+
+const ELEMENT_NAMES: [(&str, &str); 7] = [
+    ("Fire", "火"),
+    ("Water", "水"),
+    ("Wind", "风"),
+    ("Rock", "岩"),
+    ("Electric", "雷"),
+    ("Grass", "草"),
+    ("Ice", "冰"),
+];
+
+fn element_name(cost_elem_type: &str) -> Result<&'static str> {
+    ELEMENT_NAMES
+        .iter()
+        .find(|(k, _)| *k == cost_elem_type)
+        .map(|(_, v)| *v)
+        .ok_or_else(|| anyhow!("unknown element {cost_elem_type}"))
+}
+
+struct Constellation {
+    name: String,
+    description: String,
+    element: Option<&'static str>,
+}
+
+fn resolve_constellations(
+    repo: &Repo,
+    scope: &Scope,
+    depot: &Value,
+    element: Option<&'static str>,
+) -> Result<Vec<Constellation>> {
+    let talent_ids: Vec<i64> = int_array(depot.f("talents")?)?
+        .into_iter()
+        .filter(|&t| t != 0)
+        .collect();
+    if talent_ids.len() != 6 {
+        bail!(
+            "Expected 6 constellation talents in depot {}, got {}",
+            depot.i("id")?,
+            talent_ids.len()
+        );
+    }
+    let mut constellations = Vec::new();
+    for talent_id in talent_ids {
+        let talent = repo
+            .excel
+            .talent
+            .get(&talent_id)
+            .ok_or_else(|| anyhow!("Unknown talent {talent_id}"))?;
+        constellations.push(Constellation {
+            name: repo.tm.get_required(talent.i("nameTextMapHash")?, scope)?,
+            description: repo.tm.get_required(talent.i("descTextMapHash")?, scope)?,
+            element,
+        });
+    }
+    Ok(constellations)
+}
+
+fn get_constellations(repo: &Repo, scope: &Scope, avatar: &Value) -> Result<Vec<Constellation>> {
+    let cand = avatar.f("candSkillDepotIds")?;
+    let cand_ids = int_array(cand)?;
+    let per_element = !cand_ids.is_empty();
+    let depot_ids: Vec<i64> = if per_element {
+        cand_ids
+    } else {
+        vec![avatar.i("skillDepotId")?]
+    };
+    let mut constellations = Vec::new();
+    for depot_id in depot_ids {
+        let depot = repo
+            .excel
+            .skill_depot
+            .get(&depot_id)
+            .ok_or_else(|| anyhow!("unknown depot {depot_id}"))?;
+        if !int_array(depot.f("talents")?)?.iter().any(|&t| t != 0) {
+            continue;
+        }
+        let element = if per_element {
+            let energy_skill = depot.i("energySkill")?;
+            let skill = repo
+                .excel
+                .skill
+                .get(&energy_skill)
+                .ok_or_else(|| anyhow!("Unknown energy skill {energy_skill} for {depot_id}"))?;
+            Some(element_name(skill.s("costElemType")?)?)
+        } else {
+            None
+        };
+        constellations.extend(resolve_constellations(repo, scope, depot, element)?);
+    }
+    Ok(constellations)
+}
+
+/// CharacterStories pass discovery: avatar ids with fetter stories.
+pub fn discover_stories(repo: &Repo) -> Result<Vec<i64>> {
+    let mut ids: FxHashSet<i64> = FxHashSet::default();
+    for story in &repo.excel.fetter_story {
+        if let Some(avatar_id) = story.get_i("avatarId")
+            && avatar_id != 0
+        {
+            ids.insert(avatar_id);
+        }
+    }
+    let mut v: Vec<i64> = ids.into_iter().collect();
+    v.sort();
+    Ok(v)
+}
+
+/// CharacterStories.
+pub fn process_story(repo: &Repo, scope: &Scope, avatar_id: i64) -> Result<Option<RenderedItem>> {
+    let mut matched_avatar = None;
+    for avatar in &repo.excel.avatar {
+        if avatar.i("id")? == avatar_id {
+            matched_avatar = Some(avatar);
+            break;
+        }
+    }
+    let character_name = match matched_avatar {
+        None => None,
+        Some(avatar) => repo.tm.get_optional(avatar.i("nameTextMapHash")?, scope)?,
+    };
+    let (Some(avatar), Some(character_name)) = (matched_avatar, character_name) else {
+        bail!("Unknown character for avatar ID {avatar_id}");
+    };
+
+    let constellations = get_constellations(repo, scope, avatar)?;
+
+    struct Story {
+        title: String,
+        content: String,
+    }
+    let mut stories = Vec::new();
+    for story in &repo.excel.fetter_story {
+        if story.i("avatarId")? != avatar_id {
+            continue;
+        }
+        // Python: .get(...) then `if title_hash else None` (0/absent both falsy).
+        let title_hash = story.get_i("storyTitleTextMapHash").filter(|&h| h != 0);
+        let title = match title_hash {
+            Some(h) => repo.tm.get_optional(h, scope)?,
+            None => None,
+        };
+        let Some(title) = title else {
+            bail!("Missing story title for avatar ID {avatar_id}");
+        };
+        // Python's issue detail is str() of the raw field: "None" when absent.
+        let context_hash_raw = story.get_i("storyContextTextMapHash");
+        let content = match context_hash_raw.filter(|&h| h != 0) {
+            Some(h) => repo.tm.get_optional(h, scope)?,
+            None => None,
+        };
+        let content = match content {
+            Some(content) => content,
+            None => {
+                scope.record_issue(
+                    IssueType::MissingStoryContent,
+                    context_hash_raw.map_or_else(|| "None".to_string(), |h| h.to_string()),
+                );
+                "Story content not found".to_string()
+            }
+        };
+        stories.push(Story { title, content });
+    }
+
+    let safe_name = util::make_safe_filename_part(&character_name);
+    let mut content_lines = vec![
+        format!("# {character_name} - Character Stories\n"),
+        format!("*{} stories for this character*\n", stories.len()),
+    ];
+    for (i, story) in stories.iter().enumerate() {
+        content_lines.push(format!("## {}. {}\n", i + 1, story.title));
+        content_lines.push(story.content.clone());
+        content_lines.push(String::new());
+    }
+    if !constellations.is_empty() {
+        content_lines.push("## Constellations\n".to_string());
+        // Python starts current_element at a unique sentinel object.
+        let mut current_element: Option<Option<&'static str>> = None;
+        let mut first_group = true;
+        for constellation in &constellations {
+            if current_element != Some(constellation.element) {
+                current_element = Some(constellation.element);
+                if let Some(element) = constellation.element {
+                    if !first_group {
+                        content_lines.push(String::new());
+                    }
+                    content_lines.push(format!("### {element}\n"));
+                }
+                first_group = false;
+            }
+            let description = constellation
+                .description
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
+            content_lines.push(format!("{}: {description}", constellation.name));
+        }
+        content_lines.push(String::new());
+    }
+
+    let versions = repo.first_seen.resolve_int(Domain::Avatar, avatar_id)?;
+    Ok(Some(RenderedItem::new(
+        "agd_character_story",
+        character_name,
+        avatar_id,
+        format!("{avatar_id}_{safe_name}.txt"),
+        versions,
+        content_lines.join("\n"),
+    )))
+}
+
+/// Voicelines pass discovery: avatar ids with fetter voicelines.
+pub fn discover_voicelines(repo: &Repo) -> Result<Vec<i64>> {
+    let mut ids: FxHashSet<i64> = FxHashSet::default();
+    for fetter in &repo.excel.fetters {
+        ids.insert(fetter.i("avatarId")?);
+    }
+    let mut v: Vec<i64> = ids.into_iter().collect();
+    v.sort();
+    Ok(v)
+}
+
+/// Voicelines.
+pub fn process_voiceline(
+    repo: &Repo,
+    scope: &Scope,
+    avatar_id: i64,
+) -> Result<Option<RenderedItem>> {
+    let mut character_name = None;
+    for avatar in &repo.excel.avatar {
+        if avatar.i("id")? == avatar_id {
+            character_name = repo.tm.get_optional(avatar.i("nameTextMapHash")?, scope)?;
+            break;
+        }
+    }
+    let Some(character_name) = character_name else {
+        bail!("Unknown character for avatar ID {avatar_id}");
+    };
+
+    let mut voicelines: IndexMap<String, String> = IndexMap::new();
+    for fetter in &repo.excel.fetters {
+        if fetter.i("avatarId")? != avatar_id {
+            continue;
+        }
+        let title = repo
+            .tm
+            .get_required(fetter.i("voiceTitleTextMapHash")?, scope)?;
+        let content = repo
+            .tm
+            .get_or(fetter.i("voiceFileTextTextMapHash")?, "", scope)?;
+        if !content.is_empty() {
+            voicelines.insert(title, content);
+        }
+    }
+    if voicelines.is_empty() {
+        return Ok(None);
+    }
+
+    let safe_name = util::make_safe_filename_part(&character_name);
+    let mut content_lines = vec![format!("# {character_name} Voicelines\n")];
+    for (title, content) in &voicelines {
+        content_lines.push(format!("## {title}"));
+        content_lines.push(content.clone());
+        content_lines.push(String::new());
+    }
+    let content = util::py_rstrip(&content_lines.join("\n")).to_string();
+    let versions = repo.first_seen.resolve_int(Domain::Avatar, avatar_id)?;
+    Ok(Some(RenderedItem::new(
+        "agd_voiceline",
+        character_name,
+        avatar_id,
+        format!("{avatar_id}_{safe_name}.txt"),
+        versions,
+        content,
+    )))
+}

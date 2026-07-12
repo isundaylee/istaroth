@@ -2,11 +2,11 @@
 //! (via `git show`), SEXPRO pronoun-hash resolution, and per-lookup cleaning.
 
 use crate::cleanup;
-use crate::repo::Scope;
+use crate::git::git_show;
+use crate::issues::Scope;
 use anyhow::{Result, anyhow};
 use rustc_hash::FxHashMap;
 use std::path::Path;
-use std::process::Command;
 
 pub const FALLBACK_REFS: [&str; 3] = ["4d9593eb73a", "f9a21406731", "8c3aecbd6ed"];
 
@@ -43,20 +43,6 @@ fn parse_text_map(bytes: &[u8]) -> Result<FxHashMap<i64, String>> {
     let result = serde::de::Deserializer::deserialize_map(&mut de, TmVisitor)?;
     de.end()?;
     Ok(result)
-}
-
-pub fn git_show(agd_path: &Path, git_ref: &str, path: &str) -> Result<Option<Vec<u8>>> {
-    let out = Command::new("git")
-        .arg("-C")
-        .arg(agd_path)
-        .arg("show")
-        .arg(format!("{git_ref}:{path}"))
-        .output()?;
-    if out.status.success() {
-        Ok(Some(out.stdout))
-    } else {
-        Ok(None)
-    }
 }
 
 impl TextMaps {

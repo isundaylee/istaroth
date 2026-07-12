@@ -35,9 +35,11 @@ static COMMON: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| 
         ("_type", "type"),
         ("_id", "_id"),
         ("id", "id"),
+        // OSRELWin4.3.0_R19706476_S19529137_D19702261
         ("CCFPGAKINNB", "id"),
         ("PCNNNPLAEAI", "talks"),
         ("JDOFKFPHIDC", "npcId"),
+        // OSRELWin6.3.0_R41701329_S41708913_D41667700
         ("ILHDNJDDEOP", "id"),
         ("CBBBCAKOFGO", "descTextMapHash"),
         ("MMOEEOFGHHG", "titleTextMapHash"),
@@ -53,6 +55,7 @@ static COMMON: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| 
         ("GABLFFECBDO", "talkContentTextMapHash"),
         ("LCECPDILLEE", "talkRole"),
         ("OBKPGBMNDJF", "configId"),
+        // CNRELWin6.4.0_R42630645_S42523468_D42623923
         ("BLKKAMEMBBJ", "id"),
         ("OCMKKHHNKJO", "descTextMapHash"),
         ("DMLOMLNJCNA", "titleTextMapHash"),
@@ -69,6 +72,7 @@ static COMMON: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| 
         ("PELBMPLIEKC", "talkRoleNameTextMapHash"),
         ("HJIPOJOECIF", "talkRole"),
         ("EOFLGOBJBCG", "configId"),
+        // OSRELWin6.5.0_R43466102_S43178437_D43466102
         ("HFIMFOOGLLF", "activityId"),
         ("NFIEHACCECI", "id"),
         ("AJGGCMPLKHK", "descTextMapHash"),
@@ -87,6 +91,7 @@ static COMMON: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| 
         ("PIBKEGJOJHN", "talkRole"),
         ("GBLICFDCPCK", "nextDialogs"),
         ("JJCCNELFGMF", "configId"),
+        // CNRELWin6.6.0_R44873995_S44916582_D44916582
         ("LBCEBBMAHEI", "activityId"),
         ("GMOMCKNPBGE", "id"),
         ("JDFENJAFCPF", "descTextMapHash"),
@@ -109,10 +114,19 @@ static COMMON: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| 
         ("BMLKAELPLNA", "groupId"),
         ("CPAPOLIHGCN", "CUSTOM_addlLocalID"),
         ("PGELADPAKLA", "finishCond"),
+        // NOTE: `damageRatio` is the (misleading) cleartext name used by the older
+        // 4.8-5.8 AGD dumps; the field is actually the generic enum `_type` reused
+        // across finishCond/failCond/guide/exec and even the talk/quest root, not a
+        // damage ratio. Kept as-is to match those cleartext dumps.
         ("MEGMIMEDODJ", "damageRatio"),
         ("KFDJJBPNIHG", "param"),
         ("EIOBNIHPLNG", "count"),
+        // 6.x-only finishCond string param (e.g. COMPLETE_ANY_TALK's talk-id list);
+        // no cleartext lineage name exists, so use the CUSTOM_ convention.
         ("PGEONGPJEPN", "CUSTOM_paramStr"),
+        // CNRELWin6.6.0 Coop story graph (BinOutput/Coop/Coop*.json) node-graph fields.
+        // `coopNodeType` values are already cleartext enums (COOP_NODE_TALK/SELECT/END);
+        // a TALK node's `coopNodeId` equals the local talk id, so `talkConfig` is unused.
         ("NGKBJGGOPEG", "coopInteractionMap"),
         ("CEKCHKLHGFL", "coopMap"),
         ("KNDKMMOMHOG", "startNodeId"),
@@ -121,15 +135,28 @@ static COMMON: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| 
         ("MPEMBNCPNJO", "nextNodeArray"),
         ("ICBFHNOKIDE", "selectList"),
         ("LNKEDDLBLEP", "dialogId"),
+        // CNRELWin6.6.0 Coop COND/SELECT/END node sub-fields.
+        // COND node: coopCondGrp is the routing predicate with nested conds.
         ("AJBJJLPHHOH", "coopCondGrp"),
         ("ONIPBCHBDBF", "condCombType"),
         ("POJHMDGHNLM", "coopCondList"),
+        // NOTE: `DLPKMDPABFM -> type` collides with the `_type -> type` entry above,
+        // but no single dict carries both (`_type` is on finishCond items,
+        // `DLPKMDPABFM` on coopCondList items), so the collision is safe.
         ("DLPKMDPABFM", "type"),
         ("IEKGEJMAOCN", "param"),
+        // SELECT option-level showCond/enableCond (cond-groups that gate visibility).
         ("DDBMPGNIHFD", "showCond"),
         ("OPDLPCGPPIL", "enableCond"),
+        // END node: the ending/save-point id.
         ("AOOCCGGPPAI", "savePointId"),
+        // DialogExcelConfigData dialog id (its other text fields are already cleartext).
         ("GFLDJMJKIKE", "id"),
+        // CNRELWin6.7.0_R45768959_S45393582_D45767575. Some Talk/Npc files still use
+        // the reshuffled Quest-family dialog schema below (mixed with older-scheme
+        // files in the same directory); NpcGroup's own talks-item schema, Coop, and
+        // DialogExcelConfigData were untouched this build and still resolve via
+        // earlier-version keys.
         ("ANKFNLMKOII", "id"),
         ("BMEACBBPBGK", "descTextMapHash"),
         ("OCCBMCOGDOO", "titleTextMapHash"),
@@ -149,18 +176,23 @@ static COMMON: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| 
         ("PALPAGCBFDI", "param"),
         ("KEHDEPAALMP", "count"),
         ("GFIAGOPKHAK", "CUSTOM_paramStr"),
+        // BinOutput/Talk/Quest and some Talk/Npc/Talk/Gadget files (shares the
+        // reshuffled Quest scheme).
         ("LDLMECNIJFC", "talkId"),
         ("GDDPNNHLGBL", "dialogList"),
         ("OMAHHDBCAPB", "nextDialogs"),
         ("EENIFNIGHCH", "talkRole"),
         ("DMIFDJDEFAL", "talkContentTextMapHash"),
         ("GBLIAGAIAAK", "talkRoleNameTextMapHash"),
+        // ExcelBinOutput/DocumentExcelConfigData.json page-2 localization id (rotates
+        // every build; see the CUSTOM_addlLocalID note on the earlier version blocks).
         ("GBAHMGGAMGH", "CUSTOM_addlLocalID"),
     ])
 });
 
 static ANECDOTE: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
     HashMap::from([
+        // CNRELWin6.7.0_R45768959_S45393582_D45767575
         ("GIJOCHMAJCI", "id"),
         ("AEEMNELFAIO", "questIds"),
         ("EHGEFIODFHD", "titleTextMapHash"),

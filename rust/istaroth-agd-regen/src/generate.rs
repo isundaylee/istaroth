@@ -1,11 +1,15 @@
 //! Port of `scripts/agd_tools.py generate-all`: the 19 renderable passes,
 //! manifest/hierarchy writes, and stats/agd/* diagnostics.
 
+use crate::issues::Scope;
 use crate::lang::Language;
-use crate::meta::{RenderedItem, TextMetadata};
-use crate::repo::{Repo, Scope};
-use crate::vh::ValueExt;
-use crate::{firstseen, hierarchy, render_groups, render_misc, render_quest, stats, talk};
+use crate::renderables::{
+    achievement, activity, anecdote, artifact, blossom, book, character, creature, hangout,
+    material, quest, readable, subtitle, talk, talk_group, weapon,
+};
+use crate::rendered_item::{RenderedItem, TextMetadata};
+use crate::repo::Repo;
+use crate::{hierarchy, stats};
 use anyhow::{Context, Result, bail};
 use rayon::prelude::*;
 use rustc_hash::FxHashSet;
@@ -199,11 +203,7 @@ pub fn generate_all(
     };
 
     // 1. ArtifactSets (discovery: file order).
-    let artifact_set_ids: Vec<i64> = repo
-        .reliquary_set
-        .iter()
-        .map(|s| s.i("setId"))
-        .collect::<Result<_>>()?;
+    let artifact_set_ids = artifact::discover(&repo)?;
     run_pass(
         &mut state,
         output_dir,
@@ -211,21 +211,11 @@ pub fn generate_all(
         "agd_artifact_set",
         &artifact_set_ids,
         |k| k.to_string(),
-        |&set_id, scope| render_misc::process_artifact_set(&repo, scope, set_id),
+        |&set_id, scope| artifact::process(&repo, scope, set_id),
     )?;
 
     // 2. Creatures.
-    let creature_subtypes: Vec<String> = {
-        let mut subtypes: FxHashSet<String> = FxHashSet::default();
-        for entry in repo.animal_codex.values() {
-            if !entry.b("isDisuse")? {
-                subtypes.insert(entry.s("subType")?.to_string());
-            }
-        }
-        let mut v: Vec<String> = subtypes.into_iter().collect();
-        v.sort();
-        v
-    };
+    let creature_subtypes = creature::discover(&repo)?;
     run_pass(
         &mut state,
         output_dir,
@@ -233,15 +223,11 @@ pub fn generate_all(
         "agd_creature",
         &creature_subtypes,
         |k| k.clone(),
-        |subtype, scope| render_misc::process_creature_group(&repo, scope, subtype),
+        |subtype, scope| creature::process(&repo, scope, subtype),
     )?;
 
-    // 3. Quests (discovery: main quest ids sorted as STRINGS).
-    let quest_ids: Vec<i64> = {
-        let mut ids: Vec<i64> = repo.main_quest.keys().copied().collect();
-        ids.sort_by_key(|id| id.to_string());
-        ids
-    };
+    // 3. Quests.
+    let quest_ids = quest::discover(&repo)?;
     run_pass(
         &mut state,
         output_dir,
@@ -249,33 +235,11 @@ pub fn generate_all(
         "agd_quest",
         &quest_ids,
         |k| k.to_string(),
-        |&quest_id, scope| {
-            let Some(quest_info) = render_quest::get_quest_info(&repo, scope, quest_id)? else {
-                return Ok(None);
-            };
-            if !quest_info.steps.iter().any(|s| s.talk.is_some())
-                && quest_info.non_subquest_talks.is_empty()
-            {
-                return Ok(None);
-            }
-            Ok(Some(render_quest::render_quest(&repo, scope, &quest_info)?))
-        },
+        |&quest_id, scope| quest::process(&repo, scope, quest_id),
     )?;
 
     // 4. CharacterStories.
-    let story_avatar_ids: Vec<i64> = {
-        let mut ids: FxHashSet<i64> = FxHashSet::default();
-        for story in &repo.fetter_story {
-            if let Some(avatar_id) = story.get_i("avatarId")
-                && avatar_id != 0
-            {
-                ids.insert(avatar_id);
-            }
-        }
-        let mut v: Vec<i64> = ids.into_iter().collect();
-        v.sort();
-        v
-    };
+    let story_avatar_ids = character::discover_stories(&repo)?;
     run_pass(
         &mut state,
         output_dir,
@@ -283,16 +247,11 @@ pub fn generate_all(
         "agd_character_story",
         &story_avatar_ids,
         |k| k.to_string(),
-        |&avatar_id, scope| render_misc::process_character_story(&repo, scope, avatar_id),
+        |&avatar_id, scope| character::process_story(&repo, scope, avatar_id),
     )?;
 
     // 5. Subtitles.
-    let subtitle_paths: Vec<String> = repo
-        .subtitle_names
-        .iter()
-        .filter(|n| n.ends_with(".srt"))
-        .map(|n| format!("Subtitle/{}/{n}", repo.language.short()))
-        .collect();
+    let subtitle_paths = subtitle::discover(&repo)?;
     run_pass(
         &mut state,
         output_dir,
@@ -300,19 +259,11 @@ pub fn generate_all(
         "agd_subtitle",
         &subtitle_paths,
         |k| k.clone(),
-        |path, scope| render_misc::process_subtitle(&repo, scope, path),
+        |path, scope| subtitle::process(&repo, scope, path),
     )?;
 
     // 6. MaterialTypes.
-    let material_types: Vec<String> = {
-        let mut types: FxHashSet<String> = FxHashSet::default();
-        for material in repo.material.values() {
-            types.insert(material.s("materialType")?.to_string());
-        }
-        let mut v: Vec<String> = types.into_iter().collect();
-        v.sort();
-        v
-    };
+    let material_types = material::discover(&repo)?;
     run_pass(
         &mut state,
         output_dir,
@@ -320,19 +271,11 @@ pub fn generate_all(
         "agd_material_type",
         &material_types,
         |k| k.clone(),
-        |material_type, scope| render_misc::process_material_type(&repo, scope, material_type),
+        |material_type, scope| material::process(&repo, scope, material_type),
     )?;
 
     // 7. Achievements (sections in configured display order).
-    let achievement_section_ids: Vec<i64> = {
-        let mut sections: Vec<(i64, i64)> = repo
-            .achievement_sections
-            .values()
-            .map(|(section, _)| Ok((section.i("orderId")?, section.i("id")?)))
-            .collect::<Result<_>>()?;
-        sections.sort();
-        sections.into_iter().map(|(_, id)| id).collect()
-    };
+    let achievement_section_ids = achievement::discover(&repo)?;
     run_pass(
         &mut state,
         output_dir,
@@ -340,19 +283,11 @@ pub fn generate_all(
         "agd_achievement",
         &achievement_section_ids,
         |k| k.to_string(),
-        |&section_id, scope| render_misc::process_achievement_section(&repo, scope, section_id),
+        |&section_id, scope| achievement::process(&repo, scope, section_id),
     )?;
 
     // 8. Voicelines.
-    let voiceline_avatar_ids: Vec<i64> = {
-        let mut ids: FxHashSet<i64> = FxHashSet::default();
-        for fetter in &repo.fetters {
-            ids.insert(fetter.i("avatarId")?);
-        }
-        let mut v: Vec<i64> = ids.into_iter().collect();
-        v.sort();
-        v
-    };
+    let voiceline_avatar_ids = character::discover_voicelines(&repo)?;
     run_pass(
         &mut state,
         output_dir,
@@ -360,16 +295,11 @@ pub fn generate_all(
         "agd_voiceline",
         &voiceline_avatar_ids,
         |k| k.to_string(),
-        |&avatar_id, scope| render_misc::process_voiceline(&repo, scope, avatar_id),
+        |&avatar_id, scope| character::process_voiceline(&repo, scope, avatar_id),
     )?;
 
     // 9. TalkGroups.
-    let talk_group_keys: Vec<(String, String)> = {
-        let mut keys: Vec<(String, String)> =
-            repo.parse.talk_group_id_to_path.keys().cloned().collect();
-        keys.sort();
-        keys
-    };
+    let talk_group_keys = talk_group::discover(&repo)?;
     run_pass(
         &mut state,
         output_dir,
@@ -377,17 +307,11 @@ pub fn generate_all(
         "agd_talk_group",
         &talk_group_keys,
         |k| format!("('{}', '{}')", k.0, k.1),
-        |(group_type, group_id), scope| {
-            render_groups::process_talk_group(&repo, scope, group_type, group_id)
-        },
+        |(group_type, group_id), scope| talk_group::process(&repo, scope, group_type, group_id),
     )?;
 
     // 10. Hangouts.
-    let hangout_quest_ids: Vec<i64> = {
-        let mut ids: Vec<i64> = repo.hangout_quest_to_stories.keys().copied().collect();
-        ids.sort();
-        ids
-    };
+    let hangout_quest_ids = hangout::discover(&repo)?;
     run_pass(
         &mut state,
         output_dir,
@@ -395,20 +319,11 @@ pub fn generate_all(
         "agd_hangout",
         &hangout_quest_ids,
         |k| k.to_string(),
-        |&quest_id, scope| {
-            let Some(info) = render_groups::get_hangout_info(&repo, scope, quest_id)? else {
-                return Ok(None);
-            };
-            Ok(Some(render_groups::render_hangout(&repo, scope, &info)?))
-        },
+        |&quest_id, scope| hangout::process(&repo, scope, quest_id),
     )?;
 
     // 11. Anecdotes.
-    let anecdote_ids: Vec<i64> = {
-        let mut ids: Vec<i64> = repo.anecdote.keys().copied().collect();
-        ids.sort();
-        ids
-    };
+    let anecdote_ids = anecdote::discover(&repo)?;
     run_pass(
         &mut state,
         output_dir,
@@ -416,11 +331,11 @@ pub fn generate_all(
         "agd_anecdote",
         &anecdote_ids,
         |k| k.to_string(),
-        |&anecdote_id, scope| render_groups::process_anecdote(&repo, scope, anecdote_id),
+        |&anecdote_id, scope| anecdote::process(&repo, scope, anecdote_id),
     )?;
 
     // 12. Blossoms.
-    let blossom_cities = render_groups::blossom_city_ids(&repo)?;
+    let blossom_cities = blossom::discover(&repo)?;
     run_pass(
         &mut state,
         output_dir,
@@ -428,20 +343,12 @@ pub fn generate_all(
         "agd_blossom",
         &blossom_cities,
         |k| k.to_string(),
-        |&city_id, scope| render_groups::process_blossom_city(&repo, scope, city_id),
+        |&city_id, scope| blossom::process(&repo, scope, city_id),
     )?;
 
     // 13. Activities (used talk ids snapshot at pass creation).
     let activities_used_talks = state.used_talks.clone();
-    let activity_ids: Vec<i64> = {
-        let mut ids: Vec<i64> =
-            render_groups::loose_talk_ids_by_activity(&repo, &activities_used_talks)?
-                .keys()
-                .copied()
-                .collect();
-        ids.sort();
-        ids
-    };
+    let activity_ids = activity::discover(&repo, &activities_used_talks)?;
     run_pass(
         &mut state,
         output_dir,
@@ -449,59 +356,23 @@ pub fn generate_all(
         "agd_activity",
         &activity_ids,
         |k| k.to_string(),
-        |&activity_id, scope| {
-            render_groups::process_activity(&repo, scope, &activities_used_talks, activity_id)
-        },
+        |&activity_id, scope| activity::process(&repo, scope, &activities_used_talks, activity_id),
     )?;
 
     // 14. Books: series then standalone.
-    enum BookKey {
-        Series(i64),
-        Standalone(String),
-    }
-    let book_keys: Vec<BookKey> = {
-        let grouped: FxHashSet<&String> = repo.book_series.values().flatten().collect();
-        let mut series_ids: Vec<i64> = repo.book_series.keys().copied().collect();
-        series_ids.sort();
-        let mut keys: Vec<BookKey> = series_ids.into_iter().map(BookKey::Series).collect();
-        keys.extend(
-            repo.readable_filenames_sorted
-                .iter()
-                .filter(|f| f.starts_with("Book") && !grouped.contains(f))
-                .map(|f| BookKey::Standalone(f.clone())),
-        );
-        keys
-    };
+    let book_keys = book::discover(&repo)?;
     run_pass(
         &mut state,
         output_dir,
         "Books",
         "agd_book",
         &book_keys,
-        // Python str() of the NamedTuple keys.
-        |k| match k {
-            BookKey::Series(id) => format!("_BookSeriesKey(suit_id={id})"),
-            BookKey::Standalone(f) => format!("_BookStandaloneKey(filename='{f}')"),
-        },
-        |key, scope| match key {
-            BookKey::Series(suit_id) => render_misc::process_book_series(&repo, scope, *suit_id),
-            BookKey::Standalone(filename) => {
-                match render_misc::load_readable(&repo, scope, filename)? {
-                    None => Ok(None),
-                    Some((content, metadata)) => Ok(Some(render_misc::render_readable_like(
-                        &repo, &content, &metadata, filename, "agd_book",
-                    )?)),
-                }
-            }
-        },
+        book::BookKey::desc,
+        |key, scope| book::process(&repo, scope, key),
     )?;
 
     // 15. Weapons (ids sorted as strings).
-    let weapon_ids: Vec<String> = {
-        let mut ids: Vec<String> = repo.weapon_excel.keys().map(|id| id.to_string()).collect();
-        ids.sort();
-        ids
-    };
+    let weapon_ids = weapon::discover(&repo)?;
     run_pass(
         &mut state,
         output_dir,
@@ -509,7 +380,7 @@ pub fn generate_all(
         "agd_weapon",
         &weapon_ids,
         |k| k.clone(),
-        |weapon_id, scope| render_misc::process_weapon(&repo, scope, weapon_id),
+        |weapon_id, scope| weapon::process(&repo, scope, weapon_id),
     )?;
 
     // 16./17. Wings and Costumes.
@@ -517,12 +388,7 @@ pub fn generate_all(
         ("Wings", "Wings", "agd_wings"),
         ("Costumes", "Costume", "agd_costume"),
     ] {
-        let filenames: Vec<String> = repo
-            .readable_filenames_sorted
-            .iter()
-            .filter(|f| f.starts_with(prefix))
-            .cloned()
-            .collect();
+        let filenames = readable::discover_prefixed(&repo, prefix)?;
         let category: &'static str = category;
         run_pass(
             &mut state,
@@ -531,23 +397,13 @@ pub fn generate_all(
             category,
             &filenames,
             |k| k.clone(),
-            |filename, scope| match render_misc::load_readable(&repo, scope, filename)? {
-                None => Ok(None),
-                Some((content, metadata)) => Ok(Some(render_misc::render_readable_like(
-                    &repo, &content, &metadata, filename, category,
-                )?)),
-            },
+            |filename, scope| readable::process(&repo, scope, filename, category),
         )?;
     }
 
     // 18. Readables (leftovers).
     let used_readables_snapshot = state.used_readables.clone();
-    let readable_keys: Vec<String> = repo
-        .readable_filenames_sorted
-        .iter()
-        .filter(|f| !used_readables_snapshot.contains(*f))
-        .cloned()
-        .collect();
+    let readable_keys = readable::discover_leftover(&repo, &used_readables_snapshot)?;
     run_pass(
         &mut state,
         output_dir,
@@ -555,30 +411,12 @@ pub fn generate_all(
         "agd_readable",
         &readable_keys,
         |k| k.clone(),
-        |filename, scope| match render_misc::load_readable(&repo, scope, filename)? {
-            None => Ok(None),
-            Some((content, metadata)) => Ok(Some(render_misc::render_readable_like(
-                &repo,
-                &content,
-                &metadata,
-                filename,
-                "agd_readable",
-            )?)),
-        },
+        |filename, scope| readable::process(&repo, scope, filename, "agd_readable"),
     )?;
 
     // 19. Talks (leftovers; success_limit 50).
     let talks_used_snapshot = state.used_talks.clone();
-    let talk_keys: Vec<i64> = {
-        let mut ids: Vec<i64> = repo
-            .talk_ids_all
-            .iter()
-            .filter(|id| !talks_used_snapshot.contains(id))
-            .copied()
-            .collect();
-        ids.sort();
-        ids
-    };
+    let talk_keys = talk::discover(&repo, &talks_used_snapshot)?;
     let talks_before = state.manifest.len();
     run_pass(
         &mut state,
@@ -587,29 +425,7 @@ pub fn generate_all(
         "agd_talk",
         &talk_keys,
         |k| k.to_string(),
-        |&talk_id, scope| {
-            if repo.get_talk_file_path(talk_id, scope).is_none() {
-                return Ok(None);
-            }
-            let talk_info = talk::get_talk_info_by_id(&repo, scope, talk_id)?;
-            if talk_info.text.is_empty() {
-                return Ok(None);
-            }
-            let Some(rendered) = talk::render_talk_body(&talk_info, talk_id, scope)? else {
-                return Ok(None);
-            };
-            let versions = repo
-                .first_seen
-                .resolve_int(firstseen::Domain::Talk, talk_id)?;
-            Ok(Some(RenderedItem::new(
-                "agd_talk",
-                rendered.title,
-                talk_id,
-                rendered.filename,
-                versions,
-                rendered.content,
-            )))
-        },
+        |&talk_id, scope| talk::process(&repo, scope, talk_id),
     )?;
     if state.manifest.len() - talks_before >= 50 {
         bail!("Talks pass rendered >= 50 items; loose-content sanity bound exceeded");

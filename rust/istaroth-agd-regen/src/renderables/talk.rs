@@ -1,8 +1,11 @@
 //! Port of istaroth.agd.renderables._talk: talk info assembly and the shared
 //! dialogue graph renderer (including the branch/convergence algorithm).
 
+use crate::firstseen;
+use crate::issues::{IssueType, Scope};
 use crate::pyset::PySet;
-use crate::repo::{IssueType, Repo, Scope};
+use crate::rendered_item::RenderedItem;
+use crate::repo::Repo;
 use crate::util;
 use crate::vh::ValueExt;
 use anyhow::{Result, anyhow, bail};
@@ -681,4 +684,41 @@ pub fn render_talk_body(
         filename,
         content: content_lines.join("\n"),
     }))
+}
+
+/// Talks pass discovery: excel-known talk ids no earlier pass consumed.
+pub fn discover(repo: &Repo, used_talk_ids: &FxHashSet<i64>) -> Result<Vec<i64>> {
+    let mut ids: Vec<i64> = repo
+        .talk_ids_all
+        .iter()
+        .filter(|id| !used_talk_ids.contains(id))
+        .copied()
+        .collect();
+    ids.sort();
+    Ok(ids)
+}
+
+/// Talks pass process: render one leftover talk.
+pub fn process(repo: &Repo, scope: &Scope, talk_id: i64) -> Result<Option<RenderedItem>> {
+    if repo.get_talk_file_path(talk_id, scope).is_none() {
+        return Ok(None);
+    }
+    let talk_info = get_talk_info_by_id(repo, scope, talk_id)?;
+    if talk_info.text.is_empty() {
+        return Ok(None);
+    }
+    let Some(rendered) = render_talk_body(&talk_info, talk_id, scope)? else {
+        return Ok(None);
+    };
+    let versions = repo
+        .first_seen
+        .resolve_int(firstseen::Domain::Talk, talk_id)?;
+    Ok(Some(RenderedItem::new(
+        "agd_talk",
+        rendered.title,
+        talk_id,
+        rendered.filename,
+        versions,
+        rendered.content,
+    )))
 }
