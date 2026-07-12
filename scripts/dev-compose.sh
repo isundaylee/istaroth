@@ -132,7 +132,9 @@ _sync_frontend_node_modules() {
 
 _sync_uv_venv() {
   echo "dev-compose.sh: syncing .venv ..."
-  (cd "$REPO_ROOT" && uv sync)
+  # RUST_BACKTRACE surfaces the panicking component when uv crashes with the
+  # generic "Tokio executor failed, was there a panic?" wrapper.
+  (cd "$REPO_ROOT" && RUST_BACKTRACE=1 uv sync)
   echo "dev-compose.sh: .venv ready."
 }
 
