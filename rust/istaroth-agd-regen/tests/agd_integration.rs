@@ -878,7 +878,7 @@ fn weapon_11431_multi_page_story() {
     // pages render into one document separated by ---.
     let repo = require_repo!();
     let scope = Scope::default();
-    let rendered = weapon::process(repo, &scope, "11431").unwrap().unwrap();
+    let rendered = weapon::process(repo, &scope, 11431).unwrap().unwrap();
 
     assert_eq!(rendered.meta.title, "息燧之笛");
     assert!(
@@ -895,7 +895,7 @@ fn weapon_11101_single_page_no_description() {
     // no --- page separator.
     let repo = require_repo!();
     let scope = Scope::default();
-    let rendered = weapon::process(repo, &scope, "11101").unwrap().unwrap();
+    let rendered = weapon::process(repo, &scope, 11101).unwrap().unwrap();
 
     assert!(
         rendered.content.starts_with("# 无锋剑\n\n少年人的梦想、"),

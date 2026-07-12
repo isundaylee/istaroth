@@ -253,15 +253,17 @@ fn process_dialog_list(dialogs: Vec<Value>) -> Result<Vec<Value>> {
             if let Some(obj) = d.as_object_mut()
                 && let Some(role) = obj.get("talkRole")
             {
-                // A falsy talkRole ({}/null) is skipped. A truthy non-object
-                // would slip through the rename unprocessed, so reject it
-                // rather than mask a schema change.
-                if crate::vh::truthy(role) {
-                    if !role.is_object() {
-                        bail!("talkRole must be an object, got {role}");
+                // An empty/null talkRole is skipped; anything else must be an
+                // object, so a schema change errors instead of slipping
+                // through the rename unprocessed.
+                match role {
+                    Value::Null => {}
+                    Value::Object(m) if m.is_empty() => {}
+                    Value::Object(_) => {
+                        let role = obj.remove("talkRole").unwrap();
+                        obj.insert("talkRole".to_string(), deob_map(role, &COMMON, &[])?);
                     }
-                    let role = obj.remove("talkRole").unwrap();
-                    obj.insert("talkRole".to_string(), deob_map(role, &COMMON, &[])?);
+                    other => bail!("talkRole must be an object, got {other}"),
                 }
             }
             Ok(d)
@@ -305,15 +307,14 @@ fn process_coop_select_items(select_list: Vec<Value>) -> Result<Vec<Value>> {
             let mut d = deob_map(item, &COMMON, &[])?;
             if let Some(obj) = d.as_object_mut() {
                 for cond_key in ["showCond", "enableCond"] {
-                    let Some(cond) = obj.get(cond_key) else {
-                        continue;
-                    };
-                    if crate::vh::truthy(cond) {
-                        if !cond.is_object() {
-                            bail!("{cond_key} must be an object, got {cond}");
+                    match obj.get(cond_key) {
+                        None | Some(Value::Null) => {}
+                        Some(Value::Object(m)) if m.is_empty() => {}
+                        Some(Value::Object(_)) => {
+                            let cond = obj.remove(cond_key).unwrap();
+                            obj.insert(cond_key.to_string(), process_cond_grp(cond)?);
                         }
-                        let cond = obj.remove(cond_key).unwrap();
-                        obj.insert(cond_key.to_string(), process_cond_grp(cond)?);
+                        Some(other) => bail!("{cond_key} must be an object, got {other}"),
                     }
                 }
             }
@@ -325,28 +326,28 @@ fn process_coop_select_items(select_list: Vec<Value>) -> Result<Vec<Value>> {
 fn deobfuscate_coop_node(node: Value) -> Result<Value> {
     let mut d = deob_map(node, &COMMON, &[])?;
     if let Some(obj) = d.as_object_mut() {
-        if let Some(sel) = obj.get("selectList")
-            && crate::vh::truthy(sel)
-        {
-            if !sel.is_array() {
-                bail!("selectList must be a list, got {sel}");
+        match obj.get("selectList") {
+            None | Some(Value::Null) => {}
+            Some(Value::Array(a)) if a.is_empty() => {}
+            Some(Value::Array(_)) => {
+                let Value::Array(items) = obj.remove("selectList").unwrap() else {
+                    unreachable!()
+                };
+                obj.insert(
+                    "selectList".to_string(),
+                    Value::Array(process_coop_select_items(items)?),
+                );
             }
-            let Value::Array(items) = obj.remove("selectList").unwrap() else {
-                unreachable!()
-            };
-            obj.insert(
-                "selectList".to_string(),
-                Value::Array(process_coop_select_items(items)?),
-            );
+            Some(other) => bail!("selectList must be a list, got {other}"),
         }
-        if let Some(cond) = obj.get("coopCondGrp")
-            && crate::vh::truthy(cond)
-        {
-            if !cond.is_object() {
-                bail!("coopCondGrp must be an object, got {cond}");
+        match obj.get("coopCondGrp") {
+            None | Some(Value::Null) => {}
+            Some(Value::Object(m)) if m.is_empty() => {}
+            Some(Value::Object(_)) => {
+                let cond = obj.remove("coopCondGrp").unwrap();
+                obj.insert("coopCondGrp".to_string(), process_cond_grp(cond)?);
             }
-            let cond = obj.remove("coopCondGrp").unwrap();
-            obj.insert("coopCondGrp".to_string(), process_cond_grp(cond)?);
+            Some(other) => bail!("coopCondGrp must be an object, got {other}"),
         }
     }
     Ok(d)

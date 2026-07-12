@@ -18,8 +18,7 @@ pub struct RoleNames {
 }
 
 impl Language {
-    /// Every language, in the reference enum order (delta files and unions
-    /// depend on it).
+    /// Every language, in a fixed order (delta files and unions depend on it).
     pub const ALL: [Language; 2] = [Language::Chs, Language::Eng];
 
     /// The AGD short code used in paths and file suffixes.

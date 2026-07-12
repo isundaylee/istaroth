@@ -7,14 +7,14 @@ use crate::repo::Repo;
 use crate::util;
 use crate::vh::{ValueExt, int_array};
 use anyhow::{Context, Result, anyhow};
-use indexmap::IndexMap;
+use rustc_hash::FxHashSet;
 
 /// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
 pub const ERROR_LIMITS: (usize, usize) = (50, 200);
 
-/// Weapons pass discovery: ids sorted as strings.
-pub fn discover(repo: &Repo) -> Result<Vec<String>> {
-    let mut ids: Vec<String> = repo.excel.weapon.keys().map(|id| id.to_string()).collect();
+/// Weapons pass discovery: sorted weapon ids.
+pub fn discover(repo: &Repo) -> Result<Vec<i64>> {
+    let mut ids: Vec<i64> = repo.excel.weapon.keys().copied().collect();
     ids.sort();
     Ok(ids)
 }
@@ -28,12 +28,12 @@ pub fn discover(repo: &Repo) -> Result<Vec<String>> {
 /// Reading each page also marks it accessed, keeping rendered pages out of
 /// the generic Readables catch-all; the unrendered base/placeholder files it
 /// leaves behind are dropped there by the empty/placeholder content skip.
-pub fn process(repo: &Repo, scope: &Scope, weapon_id_str: &str) -> Result<Option<RenderedItem>> {
-    let weapon_id = util::py_int(weapon_id_str)?;
-    let weapon =
-        repo.excel.weapon.get(&weapon_id).ok_or_else(|| {
-            anyhow!("Weapon configuration not found for weapon ID: {weapon_id_str}")
-        })?;
+pub fn process(repo: &Repo, scope: &Scope, weapon_id: i64) -> Result<Option<RenderedItem>> {
+    let weapon = repo
+        .excel
+        .weapon
+        .get(&weapon_id)
+        .ok_or_else(|| anyhow!("Weapon configuration not found for weapon ID: {weapon_id}"))?;
     let story_id = weapon.i("storyId")?;
     if story_id == 0 {
         return Ok(None);
@@ -43,20 +43,15 @@ pub fn process(repo: &Repo, scope: &Scope, weapon_id_str: &str) -> Result<Option
     };
     // Ordered dedup of questContentLocalizedId + questIDList +
     // CUSTOM_addlLocalID: first occurrence keeps its position.
-    let mut ordered: IndexMap<i64, ()> = IndexMap::new();
-    for id in int_array(doc_item.f("questContentLocalizedId")?)? {
-        ordered.entry(id).or_insert(());
-    }
-    for id in int_array(doc_item.f("questIDList")?)? {
-        ordered.entry(id).or_insert(());
-    }
+    let mut loc_ids: Vec<i64> = int_array(doc_item.f("questContentLocalizedId")?)?;
+    loc_ids.extend(int_array(doc_item.f("questIDList")?)?);
     if let Some(addl) = doc_item.get("CUSTOM_addlLocalID") {
-        for id in int_array(addl).context("CUSTOM_addlLocalID")? {
-            ordered.entry(id).or_insert(());
-        }
+        loc_ids.extend(int_array(addl).context("CUSTOM_addlLocalID")?);
     }
+    let mut seen: FxHashSet<i64> = FxHashSet::default();
+    loc_ids.retain(|id| seen.insert(*id));
     let mut story_pages: Vec<String> = Vec::new();
-    for loc_id in ordered.keys() {
+    for loc_id in &loc_ids {
         if let Some(filename) = repo.loc_id_to_readable_filename.get(loc_id)
             && let Some(content) = repo.readable_content(filename, scope)
             && !content.is_empty()
@@ -82,7 +77,7 @@ pub fn process(repo: &Repo, scope: &Scope, weapon_id_str: &str) -> Result<Option
         "agd_weapon",
         name,
         weapon_id,
-        format!("{weapon_id_str}_{safe_name}.txt"),
+        format!("{weapon_id}_{safe_name}.txt"),
         versions,
         content_lines.join("\n"),
     )))

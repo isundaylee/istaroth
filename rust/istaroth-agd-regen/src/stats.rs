@@ -29,8 +29,6 @@ pub fn generate_metadata(
 }
 
 /// Left-aligned ASCII table over the per-type summary rows plus a TOTAL row.
-/// This deliberately diverges from the Python pipeline's tabulate "pretty"
-/// (centered) format; it is the one intended output difference.
 pub fn render_summary_table(summary: &[(&'static str, usize, usize, usize, usize)]) -> String {
     const HEADERS: [&str; 5] = ["Content Type", "Success", "Errors", "Skipped", "Issues"];
     let mut rows: Vec<[String; 5]> = summary

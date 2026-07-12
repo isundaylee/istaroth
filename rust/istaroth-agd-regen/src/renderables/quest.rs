@@ -9,7 +9,6 @@ use crate::repo::Repo;
 use crate::util;
 use crate::vh::ValueExt;
 use anyhow::{Result, anyhow, bail};
-use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 
@@ -17,6 +16,8 @@ use serde_json::Value;
 pub const ERROR_LIMITS: (usize, usize) = (100, 2000);
 
 // Priority of the signals that hint where a quest talk plays, lowest to highest.
+// A hint is an (order, priority) pair.
+type Hint = (i64, i64);
 const PRIORITY_FINISH_PLOT: i64 = 1;
 const PRIORITY_COMPLETE_TALK: i64 = 2;
 const PRIORITY_BEGIN_COND: i64 = 3;
@@ -139,13 +140,15 @@ fn group_member_chapters<'r>(repo: &'r Repo, chapter: &Value) -> Result<Vec<&'r 
                 .ok_or_else(|| anyhow!("unknown chapter {id}"))?,
         ]);
     }
-    let mut members = Vec::new();
-    for c in repo.excel.chapter.values() {
+    // Chapter-id order, for deterministic iteration over the plain map.
+    let mut members: Vec<(i64, &'r Value)> = Vec::new();
+    for (id, c) in &repo.excel.chapter {
         if c.i("groupId")? == group_id && !is_test_or_hidden_chapter(repo, c)? {
-            members.push(c);
+            members.push((*id, c));
         }
     }
-    Ok(members)
+    members.sort_by_key(|(id, _)| *id);
+    Ok(members.into_iter().map(|(_, c)| c).collect())
 }
 
 /// Resolve a chapter's questline (quest group) name, or None when it has none.
@@ -198,7 +201,7 @@ fn resolve_step_description(repo: &Repo, scope: &Scope, desc_hash: i64) -> Resul
     Ok(repo
         .tm
         .get_optional(desc_hash, scope)?
-        .filter(|t| !t.is_empty() && !util::py_strip(t).is_empty()))
+        .filter(|t| !t.trim().is_empty()))
 }
 
 /// Step order a quest talk begins at (via its `beginCond`), or None.
@@ -226,7 +229,7 @@ fn begin_subquest_order(
         if param[1].as_str() != Some("2") {
             continue;
         }
-        let sub = util::py_int(
+        let sub = util::parse_i64(
             param[0]
                 .as_str()
                 .ok_or_else(|| anyhow!("non-str begin cond param"))?,
@@ -265,7 +268,7 @@ fn iter_subquest_talks(
             }
             Some("QUEST_CONTENT_COMPLETE_ANY_TALK") => {
                 for part in cond.s("CUSTOM_paramStr")?.split(',') {
-                    let talk_id = util::py_int(part)?;
+                    let talk_id = util::parse_i64(part)?;
                     talks.push((
                         talk_id,
                         PRIORITY_COMPLETE_TALK,
@@ -339,7 +342,7 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
         subid_to_order.insert(subquest.i("subId")?, subquest.i("order")?);
     }
     let quest_talks = quest_data.arr("talks")?;
-    // Duplicate talk ids keep the LAST begin value (reference dict semantics).
+    // Duplicate talk ids keep the LAST begin value.
     let mut talk_begin_order: FxHashMap<i64, i64> = FxHashMap::default();
     for talk_item in quest_talks {
         if let Some(begin) = begin_subquest_order(talk_item, &subid_to_order)? {
@@ -353,9 +356,11 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
     // the quest `talks` field) names the step it STARTS playing on — its true
     // location, hence top priority. Track hidden/test steps, whose `order`
     // numbers are meaningless.
-    let mut talk_hints: IndexMap<i64, Vec<(i64, i64)>> = IndexMap::new();
+    // talk_hints values carry a first-seen sequence number: completing talks
+    // later tie-break by discovery order, so iteration must replay it.
+    let mut talk_hints: FxHashMap<i64, (usize, Vec<Hint>)> = FxHashMap::default();
     let mut talk_infos: FxHashMap<i64, TalkInfo> = FxHashMap::default();
-    let mut order_to_desc: IndexMap<i64, Option<String>> = IndexMap::new();
+    let mut order_to_desc: FxHashMap<i64, Option<String>> = FxHashMap::default();
     let mut hidden_orders: FxHashSet<i64> = FxHashSet::default();
     for subquest in sub_quests {
         let order_index = subquest.i("order")?;
@@ -368,9 +373,11 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
             hidden_orders.insert(order_index);
         }
         for (talk_id, priority, talk_info) in iter_subquest_talks(repo, scope, subquest)? {
+            let next_seq = talk_hints.len();
             talk_hints
                 .entry(talk_id)
-                .or_default()
+                .or_insert_with(|| (next_seq, Vec::new()))
+                .1
                 .push((order_index, priority));
             talk_infos.entry(talk_id).or_insert(talk_info);
         }
@@ -381,7 +388,7 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
     // finish) is a lead-in.
     let finish_orders: FxHashMap<i64, FxHashSet<i64>> = talk_hints
         .iter()
-        .map(|(talk_id, hints)| (*talk_id, hints.iter().map(|h| h.0).collect()))
+        .map(|(talk_id, (_, hints))| (*talk_id, hints.iter().map(|h| h.0).collect()))
         .collect();
 
     // Fold every quest-declared talk into the same hint set via its
@@ -405,7 +412,7 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
         // Already hinted by a finish condition: just add the beginCond hint
         // (if any) and move on. Such a talk is anchored to this quest, so it
         // must never fall through to `non_subquest_talks` below.
-        if let Some(hints) = talk_hints.get_mut(&talk_id) {
+        if let Some((_, hints)) = talk_hints.get_mut(&talk_id) {
             if let Some(anchor) = begin_anchor {
                 hints.push((anchor, PRIORITY_BEGIN_COND));
             }
@@ -417,7 +424,8 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
             continue;
         }
         if let Some(anchor) = begin_anchor {
-            talk_hints.insert(talk_id, vec![(anchor, PRIORITY_BEGIN_COND)]);
+            let next_seq = talk_hints.len();
+            talk_hints.insert(talk_id, (next_seq, vec![(anchor, PRIORITY_BEGIN_COND)]));
             talk_infos.insert(talk_id, talk_info);
         } else {
             non_subquest_talks.push(talk_info);
@@ -443,20 +451,20 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
     // discovery order, lead-ins by their order in the quest `talks` field (a
     // lead-in always has a beginCond, so it is listed there).
     let mut placed: Vec<Placed> = Vec::new();
-    for (seq, (talk_id, hints)) in talk_hints.iter().enumerate() {
-        // max(key=(priority, -order)); must keep the FIRST maximal on ties.
-        let mut best = hints[0];
-        let mut best_key = (best.1, -best.0);
-        for &h in &hints[1..] {
-            let k = (h.1, -h.0);
-            if k > best_key {
-                best = h;
-                best_key = k;
-            }
-        }
-        let best_order = best.0;
+    let mut hint_entries: Vec<(i64, usize, &[Hint])> = talk_hints
+        .iter()
+        .map(|(talk_id, (seq, hints))| (*talk_id, *seq, hints.as_slice()))
+        .collect();
+    hint_entries.sort_by_key(|(_, seq, _)| *seq);
+    for (talk_id, seq, hints) in hint_entries {
+        // Highest priority wins; the earliest order breaks priority ties.
+        let best_order = hints
+            .iter()
+            .max_by_key(|(order, prio)| (*prio, -order))
+            .unwrap()
+            .0;
         let is_lead_in = !finish_orders
-            .get(talk_id)
+            .get(&talk_id)
             .is_some_and(|orders| orders.contains(&best_order));
         let desc = order_to_desc
             .get(&best_order)
@@ -464,7 +472,7 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
             .clone();
         let tiebreak = if is_lead_in {
             *talk_order
-                .get(talk_id)
+                .get(&talk_id)
                 .ok_or_else(|| anyhow!("lead-in talk {talk_id} not in quest talks"))?
         } else {
             seq
@@ -474,7 +482,7 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
             tiebreak,
             desc,
             info: talk_infos
-                .get(talk_id)
+                .get(&talk_id)
                 .ok_or_else(|| anyhow!("talk {talk_id} has no info"))?
                 .clone(),
             is_lead_in,
@@ -491,18 +499,17 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
         .filter(|p| !p.is_lead_in)
         .map(|p| p.order)
         .collect();
-    let objective_steps: Vec<(i64, usize, Option<String>)> = order_to_desc
+    let objective_steps: Vec<(i64, Option<String>)> = order_to_desc
         .iter()
-        .enumerate()
-        .filter(|(_, (order, desc))| desc.is_some() && !owning_orders.contains(order))
-        .map(|(seq, (order, desc))| (*order, seq, desc.clone()))
+        .filter(|(order, desc)| desc.is_some() && !owning_orders.contains(order))
+        .map(|(order, desc)| (*order, desc.clone()))
         .collect();
 
     // Interleave talk and objective steps by `order`. Within one order,
     // lead-ins (group 0) precede the completing talk (group 1). Objectives
     // (group 2) arise only from talk-less subQuests, and `order` is unique
     // per quest (checked above), so an objective never shares an order with a
-    // talk.
+    // talk (or another objective) and needs no further tie-break.
     let mut sortable: Vec<(i64, i64, usize, QuestStep)> = Vec::new();
     for p in placed {
         if p.info.text.is_empty() {
@@ -520,11 +527,11 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
             },
         ));
     }
-    for (order, seq, desc) in objective_steps {
+    for (order, desc) in objective_steps {
         sortable.push((
             order,
             2,
-            seq,
+            0,
             QuestStep {
                 order,
                 is_lead_in: false,
@@ -572,10 +579,10 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
     }))
 }
 
-/// Quests pass discovery: main quest ids sorted as STRINGS.
+/// Quests pass discovery: sorted main quest ids.
 pub fn discover(repo: &Repo) -> Result<Vec<i64>> {
     let mut ids: Vec<i64> = repo.excel.main_quest.keys().copied().collect();
-    ids.sort_by_key(|id| id.to_string());
+    ids.sort();
     Ok(ids)
 }
 

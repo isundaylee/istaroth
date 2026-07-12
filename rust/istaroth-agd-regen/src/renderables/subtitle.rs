@@ -75,9 +75,9 @@ pub fn discover(repo: &Repo) -> Result<Vec<String>> {
 pub fn process(repo: &Repo, scope: &Scope, subtitle_path: &str) -> Result<Option<RenderedItem>> {
     let content = std::fs::read_to_string(repo.agd_path.join(subtitle_path))?;
     let mut text_lines: Vec<String> = Vec::new();
-    for line in util::py_strip(&content).split('\n') {
-        let line = util::py_strip(line);
-        if !line.is_empty() && !util::py_isdigit(line) && !line.contains("-->") {
+    for line in content.trim().split('\n') {
+        let line = line.trim();
+        if !line.is_empty() && !util::is_ascii_digits(line) && !line.contains("-->") {
             text_lines.push(crate::cleanup::clean_text_markers(line, repo.language)?);
         }
     }

@@ -186,6 +186,6 @@ pub fn process(repo: &Repo, scope: &Scope, subtype: &str) -> Result<Option<Rende
         group_id,
         filename,
         versions,
-        util::py_rstrip(&content_lines.join("\n")).to_string(),
+        content_lines.join("\n").trim_end().to_string(),
     )))
 }

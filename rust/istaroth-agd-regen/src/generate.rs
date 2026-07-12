@@ -143,14 +143,6 @@ fn run_pass<K: Sync>(
     Ok(())
 }
 
-/// Indented JSON in the reference output format (2-space indent, non-ASCII
-/// preserved). Format parity with `dumps_indented` in
-/// `istaroth/json_utils.py`, which writes the TPS manifest in the same
-/// format as the AGD manifest written here.
-fn dumps_indented<T: Serialize>(value: &T) -> Result<Vec<u8>> {
-    Ok(serde_json::to_vec_pretty(value)?)
-}
-
 /// Error on duplicate manifest (category, id) keys before writing the manifest.
 fn check_manifest_unique(manifest: &[TextMetadata]) -> Result<()> {
     let mut seen: FxHashSet<(&str, i64)> = FxHashSet::default();
@@ -226,7 +218,7 @@ pub fn generate_all(
         let metadata_path = stats_dir.join("metadata.json");
         std::fs::write(
             &metadata_path,
-            dumps_indented(&stats::generate_metadata(
+            serde_json::to_vec_pretty(&stats::generate_metadata(
                 agd_path,
                 &std::env::current_dir()?,
                 language,
@@ -431,7 +423,7 @@ pub fn generate_all(
         |key, scope| book::process(&repo, scope, key),
     )?;
 
-    // 15. Weapons (ids sorted as strings).
+    // 15. Weapons.
     let weapon_ids = weapon::discover(&repo)?;
     run_pass(
         &mut state,
@@ -440,8 +432,8 @@ pub fn generate_all(
         "agd_weapon",
         error_limit(weapon::ERROR_LIMITS),
         &weapon_ids,
-        |k| k.clone(),
-        |weapon_id, scope| weapon::process(&repo, scope, weapon_id),
+        |k| k.to_string(),
+        |&weapon_id, scope| weapon::process(&repo, scope, weapon_id),
     )?;
 
     // 16./17. Wings and Costumes.
@@ -541,7 +533,10 @@ pub fn generate_all(
         };
         unused_stats.echo();
         let unused_stats_path = stats_dir.join("unused_stats.json");
-        std::fs::write(&unused_stats_path, dumps_indented(&unused_stats.to_json())?)?;
+        std::fs::write(
+            &unused_stats_path,
+            serde_json::to_vec_pretty(&unused_stats.to_json())?,
+        )?;
         eprintln!(
             "Text map usage stats written to {}",
             unused_stats_path.display()
@@ -560,7 +555,7 @@ pub fn generate_all(
         let parsing_issues_path = stats_dir.join("parsing_issues.json");
         std::fs::write(
             &parsing_issues_path,
-            dumps_indented(&serde_json::Value::Object(counts))?,
+            serde_json::to_vec_pretty(&serde_json::Value::Object(counts))?,
         )?;
         eprintln!(
             "Parsing issue counts written to {}",
@@ -587,7 +582,7 @@ pub fn generate_all(
         let manifest_dir = output_dir.join("manifest");
         std::fs::create_dir_all(&manifest_dir)?;
         let manifest_path = manifest_dir.join("agd.json");
-        std::fs::write(&manifest_path, dumps_indented(&state.manifest)?)?;
+        std::fs::write(&manifest_path, serde_json::to_vec_pretty(&state.manifest)?)?;
         eprintln!("Manifest written to {}", manifest_path.display());
     }
 
@@ -623,7 +618,7 @@ pub fn generate_all(
         let metadata_dir = output_dir.join("metadata").join("agd");
         std::fs::create_dir_all(&metadata_dir)?;
         let hierarchy_path = metadata_dir.join("hierarchy.json");
-        std::fs::write(&hierarchy_path, dumps_indented(&hierarchies)?)?;
+        std::fs::write(&hierarchy_path, serde_json::to_vec_pretty(&hierarchies)?)?;
         eprintln!("Document hierarchy written to {}", hierarchy_path.display());
     }
 

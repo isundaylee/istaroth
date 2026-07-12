@@ -1,4 +1,4 @@
-//! Python-semantics helpers shared across the pipeline.
+//! Text/id helpers shared across the pipeline.
 
 use regex::Regex;
 use sha2::{Digest, Sha256};
@@ -8,21 +8,11 @@ static UNSAFE_CHARS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[^\w\s-]").
 static WHITESPACE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+").unwrap());
 
 /// Safe filename fragment: truncate to 50 code points (not bytes), drop
-/// unsafe chars, strip, and collapse whitespace runs to `_`.
+/// unsafe chars, trim, and collapse whitespace runs to `_`.
 pub fn make_safe_filename_part(text: &str) -> String {
     let truncated: String = text.chars().take(50).collect();
     let safe = UNSAFE_CHARS.replace_all(&truncated, "");
-    let stripped = py_strip(&safe);
-    WHITESPACE.replace_all(stripped, "_").into_owned()
-}
-
-/// Python `str.strip()` (Unicode whitespace; close enough via char::is_whitespace).
-pub fn py_strip(s: &str) -> &str {
-    s.trim_matches(|c: char| c.is_whitespace() || ('\x1c'..='\x1f').contains(&c))
-}
-
-pub fn py_rstrip(s: &str) -> &str {
-    s.trim_end_matches(|c: char| c.is_whitespace() || ('\x1c'..='\x1f').contains(&c))
+    WHITESPACE.replace_all(safe.trim(), "_").into_owned()
 }
 
 /// Whether text carries a dev/test/hidden marker and should be excluded from
@@ -45,7 +35,7 @@ const READABLE_PLACEHOLDERS: [&str; 7] = ["测试", "暂无", "暂缺", "？？�
 
 /// Whether readable content is an empty/placeholder body to skip.
 pub fn should_skip_readable_content(content: &str, language: crate::lang::Language) -> bool {
-    let stripped = py_strip(content);
+    let stripped = content.trim();
     stripped.is_empty()
         || READABLE_PLACEHOLDERS.contains(&stripped.to_lowercase().as_str())
         || should_skip_text(stripped, language)
@@ -58,13 +48,8 @@ pub fn sha256_id(s: &str) -> i64 {
     i64::from_str_radix(&hex[..12], 16).unwrap()
 }
 
-/// Python `text[:n]` by code points.
-pub fn py_slice(s: &str, n: usize) -> String {
-    s.chars().take(n).collect()
-}
-
-/// Python `str.title()` (ASCII-adequate port: letter after non-cased char is uppercased).
-pub fn py_title_case(s: &str) -> String {
+/// Title-case: uppercase each letter that follows a non-letter, lowercase the rest.
+pub fn title_case(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
     let mut prev_cased = false;
     for c in s.chars() {
@@ -83,19 +68,18 @@ pub fn py_title_case(s: &str) -> String {
     out
 }
 
-/// Python `str.isdigit()` restricted to ASCII digits (wire ids are ASCII), non-empty.
-pub fn py_isdigit(s: &str) -> bool {
+/// Non-empty and all ASCII digits (wire ids are ASCII).
+pub fn is_ascii_digits(s: &str) -> bool {
     !s.is_empty() && s.chars().all(|c| c.is_ascii_digit())
 }
 
-/// Python `int(str)` (trims whitespace, optional sign).
-pub fn py_int(s: &str) -> anyhow::Result<i64> {
-    let t = s.trim();
-    t.parse::<i64>()
-        .map_err(|e| anyhow::anyhow!("int({s:?}): {e}"))
+/// Parse an i64 with the offending string in the error.
+pub fn parse_i64(s: &str) -> anyhow::Result<i64> {
+    s.parse::<i64>()
+        .map_err(|e| anyhow::anyhow!("parse int {s:?}: {e}"))
 }
 
-/// os.path.commonprefix over strings, per code point.
+/// Longest common prefix over strings, per code point.
 pub fn common_prefix(strings: &[String]) -> String {
     if strings.is_empty() {
         return String::new();

@@ -8,7 +8,7 @@ use crate::renderables::quest;
 use crate::repo::Repo;
 use crate::vh::ValueExt;
 use anyhow::Result;
-use indexmap::IndexMap;
+
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
 use serde_json::Value;
@@ -55,7 +55,7 @@ fn order_quests(
     quests: Vec<HierarchyNode>,
     begin_quest_id: i64,
 ) -> Result<Vec<HierarchyNode>> {
-    let mut by_id: IndexMap<i64, HierarchyNode> = IndexMap::new();
+    let mut by_id: FxHashMap<i64, HierarchyNode> = FxHashMap::default();
     for q in quests {
         by_id.insert(q.file_id.unwrap(), q);
     }
@@ -102,17 +102,16 @@ fn order_quests(
             ordered_ids.push(q);
         }
     }
-    let mut by_id = by_id;
     Ok(ordered_ids
         .into_iter()
-        .map(|id| by_id.shift_remove(&id).unwrap())
+        .map(|id| by_id.remove(&id).unwrap())
         .collect())
 }
 
 fn make_chapters(
     repo: &Repo,
     scope: &Scope,
-    by_chapter: IndexMap<i64, Vec<HierarchyNode>>,
+    by_chapter: FxHashMap<i64, Vec<HierarchyNode>>,
 ) -> Result<Vec<HierarchyNode>> {
     let mut chapter_ids: Vec<i64> = by_chapter.keys().copied().collect();
     chapter_ids.sort();
@@ -124,7 +123,7 @@ fn make_chapters(
         let chapter = &repo.excel.chapter[&cid];
         let title = quest::get_chapter_title(repo, scope, chapter)?;
         let begin_quest_id = chapter.i("beginQuestId")? / 100;
-        let quests = by_chapter.shift_remove(&cid).unwrap();
+        let quests = by_chapter.remove(&cid).unwrap();
         nodes.push(HierarchyNode {
             key: format!("c{cid}"),
             title: Some(title),
@@ -143,16 +142,16 @@ fn make_chapters(
 /// directly under the type, and quests with no chapter land in the type's
 /// standalone bucket.
 pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Result<Hierarchy> {
-    // The reference builds hierarchies with no tracking scope active, so
-    // text-map accesses here are dropped; a discarded local scope replicates
-    // that.
+    // Hierarchy building never counts toward text-map usage stats; a
+    // discarded local scope drops its accesses.
     let scope = Scope::default();
     let scope = &scope;
-    // type -> series -> chapter -> leaves; insertion-ordered like defaultdicts.
-    let mut series_buckets: IndexMap<String, IndexMap<i64, IndexMap<i64, Vec<HierarchyNode>>>> =
-        IndexMap::new();
-    let mut chapter_buckets: IndexMap<String, IndexMap<i64, Vec<HierarchyNode>>> = IndexMap::new();
-    let mut standalone_buckets: IndexMap<String, Vec<HierarchyNode>> = IndexMap::new();
+    // type -> series -> chapter -> leaves; every level is sorted before output.
+    let mut series_buckets: FxHashMap<String, FxHashMap<i64, FxHashMap<i64, Vec<HierarchyNode>>>> =
+        FxHashMap::default();
+    let mut chapter_buckets: FxHashMap<String, FxHashMap<i64, Vec<HierarchyNode>>> =
+        FxHashMap::default();
+    let mut standalone_buckets: FxHashMap<String, Vec<HierarchyNode>> = FxHashMap::default();
 
     for (quest_id, title) in quest_items {
         // A rendered quest with no MainQuest entry cannot be placed; skip it
@@ -239,7 +238,7 @@ pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Resu
             let mut series_ids: Vec<i64> = buckets.keys().copied().collect();
             series_ids.sort();
             for series_id in series_ids {
-                let bucket = buckets.shift_remove(&series_id).unwrap();
+                let bucket = buckets.remove(&series_id).unwrap();
                 let min_chapter = *bucket.keys().min().unwrap();
                 let series_chapters = make_chapters(repo, scope, bucket)?;
                 // No dedicated series-name field exists, so label the series
@@ -265,13 +264,13 @@ pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Resu
             }
         }
         let mut children = series_nodes;
-        if let Some(buckets) = chapter_buckets.shift_remove(&quest_type) {
+        if let Some(buckets) = chapter_buckets.remove(&quest_type) {
             children.extend(make_chapters(repo, scope, buckets)?);
         }
         // Wrap loose, chapter-less quests in a synthetic "standalone" group
         // so they get their own browse level, but only when the type actually
         // has any.
-        if let Some(mut standalone) = standalone_buckets.shift_remove(&quest_type)
+        if let Some(mut standalone) = standalone_buckets.remove(&quest_type)
             && !standalone.is_empty()
         {
             standalone.sort_by_key(|n| n.file_id.unwrap());
@@ -320,7 +319,7 @@ pub fn build_coop_hierarchy(repo: &Repo, coop_items: &[(i64, String)]) -> Result
         .map(|c| Ok((c.i("id")?, c)))
         .collect::<Result<_>>()?;
 
-    let mut buckets: IndexMap<i64, IndexMap<i64, Vec<HierarchyNode>>> = IndexMap::new();
+    let mut buckets: FxHashMap<i64, FxHashMap<i64, Vec<HierarchyNode>>> = FxHashMap::default();
     for (quest_id, title) in coop_items {
         let Some(main_quest) = repo.excel.main_quest.get(quest_id) else {
             continue;
@@ -351,18 +350,18 @@ pub fn build_coop_hierarchy(repo: &Repo, coop_items: &[(i64, String)]) -> Result
     let mut avatar_ids: Vec<i64> = buckets.keys().copied().collect();
     avatar_ids.sort();
     for avatar_id in avatar_ids {
-        let chapters_bucket = buckets.shift_remove(&avatar_id).unwrap();
+        let chapters_bucket = buckets.remove(&avatar_id).unwrap();
         let mut chapter_ids: Vec<i64> = chapters_bucket.keys().copied().collect();
         chapter_ids.sort();
         let mut chapters_bucket = chapters_bucket;
         let children: Vec<HierarchyNode> = if chapter_ids.len() == 1 {
-            let mut leaves = chapters_bucket.shift_remove(&chapter_ids[0]).unwrap();
+            let mut leaves = chapters_bucket.remove(&chapter_ids[0]).unwrap();
             leaves.sort_by_key(|n| n.file_id.unwrap());
             leaves
         } else {
             let mut nodes = Vec::new();
             for chapter_id in chapter_ids {
-                let mut leaves = chapters_bucket.shift_remove(&chapter_id).unwrap();
+                let mut leaves = chapters_bucket.remove(&chapter_id).unwrap();
                 leaves.sort_by_key(|n| n.file_id.unwrap());
                 let title = repo
                     .tm

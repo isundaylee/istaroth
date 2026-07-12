@@ -123,12 +123,11 @@ mod series_tests {
 }
 
 impl BookKey {
-    /// Item description for error reporting; must match the reference
-    /// pipeline's key repr strings.
+    /// Item description for error reporting.
     pub fn desc(&self) -> String {
         match self {
-            BookKey::Series(id) => format!("_BookSeriesKey(suit_id={id})"),
-            BookKey::Standalone(f) => format!("_BookStandaloneKey(filename='{f}')"),
+            BookKey::Series(id) => format!("series suit {id}"),
+            BookKey::Standalone(f) => format!("standalone '{f}'"),
         }
     }
 }

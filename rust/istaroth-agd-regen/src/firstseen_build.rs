@@ -76,8 +76,8 @@ const SNAPSHOTS: [(&str, &str); 46] = [
     ("6.7", "82e74382e7788e318ad41fca926739a752c0bed6"),
 ];
 
-/// Domain names in the delta files' JSON key order (must stay stable for
-/// byte-identical output).
+/// First-seen domain names; the order indexes `DomainSets` (the delta files'
+/// JSON keys are written sorted regardless).
 const DOMAINS: [&str; 10] = [
     "main_quest",
     "talk",
@@ -219,8 +219,8 @@ fn scan_snapshot(agd_path: &Path, commit: &str) -> Result<DomainSets> {
     Ok(present)
 }
 
-/// Write one delta file in the reference JSON format (2-space indent,
-/// non-ASCII preserved, trailing newline) so rebuilds stay byte-identical.
+/// Write one delta file as stable JSON (2-space indent, sorted keys and ids,
+/// trailing newline) so rebuilding a version is deterministic.
 fn write_delta(path: &Path, version: &str, commit: &str, new: &DomainSets) -> Result<usize> {
     let mut new_obj = serde_json::Map::new();
     let mut total = 0usize;

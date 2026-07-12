@@ -31,11 +31,13 @@ pub fn process(repo: &Repo, scope: &Scope, material_type: &str) -> Result<Option
         description: String,
     }
     let mut materials: Vec<MaterialInfo> = Vec::new();
-    for material in repo.excel.material.values() {
+    // Iterate in id order so skip checks and recorded issues are deterministic.
+    let mut sorted: Vec<(&i64, &serde_json::Value)> = repo.excel.material.iter().collect();
+    sorted.sort_by_key(|(id, _)| **id);
+    for (&material_id, material) in sorted {
         if material.s("materialType")? != material_type {
             continue;
         }
-        let material_id = material.i("id")?;
         let name_hash = material.i("nameTextMapHash")?;
         let name = match repo.tm.get_optional(name_hash, scope)? {
             Some(name) => name,
@@ -69,21 +71,20 @@ pub fn process(repo: &Repo, scope: &Scope, material_type: &str) -> Result<Option
 
     let material_type_id = util::sha256_id(material_type);
     let safe_type = util::make_safe_filename_part(material_type);
-    let material_type_name = util::py_title_case(
+    let material_type_name = util::title_case(
         &material_type
             .strip_prefix("MATERIAL_")
             .unwrap_or(material_type)
             .replace('_', " "),
     );
     let mut content_lines = vec![format!("# Materials: {material_type_name}\n")];
-    materials.sort_by_key(|m| m.material_id);
     for m in &materials {
         content_lines.push(format!("## {}", m.name));
         content_lines.push(String::new());
         content_lines.push(m.description.clone());
         content_lines.push(String::new());
     }
-    let content = util::py_rstrip(&content_lines.join("\n")).to_string();
+    let content = content_lines.join("\n").trim_end().to_string();
     let versions = repo
         .first_seen
         .resolve_ints(Domain::Material, materials.iter().map(|m| m.material_id))?;
