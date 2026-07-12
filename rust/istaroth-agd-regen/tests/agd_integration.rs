@@ -304,12 +304,17 @@ fn talk_7407811_info() {
     let info = talk::get_talk_info(repo, &scope, "BinOutput/Talk/Quest/7407811.json").unwrap();
 
     assert!(!info.text.is_empty());
+    let roles_chs = Language::Chs.role_names();
     let roles: Vec<Option<&String>> = info.text.iter().map(|t| t.role.as_ref()).collect();
-    assert!(roles.iter().any(|r| r.is_some_and(|r| r == talk::PLAYER)));
     assert!(
         roles
             .iter()
-            .any(|r| r.is_none_or(|r| r != talk::PLAYER && r != talk::BLACK_SCREEN))
+            .any(|r| r.is_some_and(|r| r == roles_chs.player))
+    );
+    assert!(
+        roles
+            .iter()
+            .any(|r| r.is_none_or(|r| r != roles_chs.player && r != roles_chs.black_screen))
     );
     for talk_text in &info.text {
         assert!(!talk_text.message.trim().is_empty());

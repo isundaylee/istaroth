@@ -3,6 +3,7 @@
 
 use crate::firstseen::Domain;
 use crate::issues::{IssueType, Scope};
+use crate::lang::Language;
 use crate::rendered_item::RenderedItem;
 use crate::repo::Repo;
 use crate::util;
@@ -12,21 +13,28 @@ use indexmap::IndexMap;
 use rustc_hash::FxHashSet;
 use serde_json::Value;
 
-const ELEMENT_NAMES: [(&str, &str); 7] = [
-    ("Fire", "火"),
-    ("Water", "水"),
-    ("Wind", "风"),
-    ("Rock", "岩"),
-    ("Electric", "雷"),
-    ("Grass", "草"),
-    ("Ice", "冰"),
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const STORY_ERROR_LIMITS: (usize, usize) = (0, 0);
+pub const VOICELINE_ERROR_LIMITS: (usize, usize) = (0, 0);
+
+const ELEMENT_NAMES: [(&str, &str, &str); 7] = [
+    ("Fire", "火", "Pyro"),
+    ("Water", "水", "Hydro"),
+    ("Wind", "风", "Anemo"),
+    ("Rock", "岩", "Geo"),
+    ("Electric", "雷", "Electro"),
+    ("Grass", "草", "Dendro"),
+    ("Ice", "冰", "Cryo"),
 ];
 
-fn element_name(cost_elem_type: &str) -> Result<&'static str> {
+fn element_name(cost_elem_type: &str, language: Language) -> Result<&'static str> {
     ELEMENT_NAMES
         .iter()
-        .find(|(k, _)| *k == cost_elem_type)
-        .map(|(_, v)| *v)
+        .find(|(k, _, _)| *k == cost_elem_type)
+        .map(|(_, chs, eng)| match language {
+            Language::Chs => *chs,
+            Language::Eng => *eng,
+        })
         .ok_or_else(|| anyhow!("unknown element {cost_elem_type}"))
 }
 
@@ -104,7 +112,7 @@ fn get_constellations(repo: &Repo, scope: &Scope, avatar: &Value) -> Result<Vec<
                 .skill
                 .get(&energy_skill)
                 .ok_or_else(|| anyhow!("Unknown energy skill {energy_skill} for {depot_id}"))?;
-            Some(element_name(skill.s("costElemType")?)?)
+            Some(element_name(skill.s("costElemType")?, repo.language)?)
         } else {
             None
         };

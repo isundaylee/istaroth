@@ -1,5 +1,6 @@
 //! Rust port of `scripts/agd_tools.py generate-all` (and the first-seen index
-//! builder), producing byte-identical output to the Python CHS pipeline.
+//! builder), producing byte-identical output to the Python pipeline for both
+//! CHS and ENG.
 
 pub mod cleanup;
 pub mod coop;

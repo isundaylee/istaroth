@@ -1,12 +1,19 @@
-//! Output-language configuration. Only CHS is implemented for generation; ENG
-//! needs split source/output text maps and localized render strings (future
-//! work). Eng exists so language-independent code (first-seen builds) can
-//! enumerate all languages.
+//! Output-language configuration: language codes plus the per-language
+//! localized role names (port of istaroth.agd.localization's `_ROLE_NAMES`).
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Language {
     Chs,
     Eng,
+}
+
+/// Localized dialogue role names (port of `LocalizedRoleNames`).
+pub struct RoleNames {
+    pub player: &'static str,
+    pub mate_avatar: &'static str,
+    pub paimon: &'static str,
+    pub black_screen: &'static str,
+    pub unknown_role: &'static str,
 }
 
 impl Language {
@@ -27,6 +34,29 @@ impl Language {
         match self {
             Language::Chs => "CHS",
             Language::Eng => "ENG",
+        }
+    }
+
+    pub fn from_value(value: &str) -> Option<Language> {
+        Language::ALL.into_iter().find(|l| l.value() == value)
+    }
+
+    pub fn role_names(self) -> &'static RoleNames {
+        match self {
+            Language::Chs => &RoleNames {
+                player: "旅行者",
+                mate_avatar: "旅行者血亲",
+                paimon: "派蒙",
+                black_screen: "黑屏文本",
+                unknown_role: "Unknown Role",
+            },
+            Language::Eng => &RoleNames {
+                player: "Traveler",
+                mate_avatar: "Traveler's Sibling",
+                paimon: "Paimon",
+                black_screen: "Black Screen Text",
+                unknown_role: "Unknown Role",
+            },
         }
     }
 }

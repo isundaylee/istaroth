@@ -477,6 +477,7 @@ mod tests {
 
     fn empty_tm() -> TextMaps {
         TextMaps::for_tests(
+            crate::lang::Language::Chs,
             FxHashMap::default(),
             FxHashMap::default(),
             FxHashMap::default(),
@@ -556,6 +557,7 @@ mod tests {
 
     fn collision_tm() -> TextMaps {
         TextMaps::for_tests(
+            crate::lang::Language::Chs,
             [
                 (100, "Same"),
                 (101, "Same"),

@@ -12,6 +12,9 @@ use indexmap::IndexMap;
 use rustc_hash::FxHashSet;
 use serde_json::Value;
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (5, 10);
+
 /// (refresh, talk ids) pairs for the NPC-intel blossom talk pools.
 fn intel_rows(repo: &Repo) -> Result<Vec<(&Value, Vec<i64>)>> {
     let mut rows = Vec::new();
@@ -142,7 +145,7 @@ pub fn process(repo: &Repo, scope: &Scope, city_id: i64) -> Result<Option<Render
         content_lines.push(format!("## {}\n", section.description));
         for talk_info in &section.talks {
             content_lines.push(format!("### Talk {talk_index}\n"));
-            content_lines.extend(talk::render_talk_content(talk_info, scope)?);
+            content_lines.extend(talk::render_talk_content(talk_info, repo.language, scope)?);
             content_lines.push(String::new());
             talk_index += 1;
         }

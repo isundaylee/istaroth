@@ -9,6 +9,9 @@ use crate::util;
 use anyhow::{Result, anyhow};
 use rustc_hash::FxHashSet;
 
+/// (CHS, non-CHS) per-pass error limits, shared by the Readables/Wings/Costumes passes (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (50, 200);
+
 pub struct ReadableMetadata {
     pub localization_id: i64,
     pub title: String,
@@ -59,11 +62,11 @@ pub fn load_readable(
         .readable_content(readable_filename, scope)
         .ok_or_else(|| anyhow!("Readable not found: {readable_filename}"))?;
     let content = repo.tm.clean_text(content)?;
-    if util::should_skip_readable_content(&content) {
+    if util::should_skip_readable_content(&content, repo.language) {
         return Ok(None);
     }
     let metadata = get_readable_metadata(repo, scope, readable_filename)?;
-    if util::should_skip_text(&metadata.title) {
+    if util::should_skip_text(&metadata.title, repo.language) {
         return Ok(None);
     }
     Ok(Some((content, metadata)))

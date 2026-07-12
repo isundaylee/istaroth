@@ -2,6 +2,7 @@
 
 use crate::firstseen::Domain;
 use crate::issues::{IssueType, Scope};
+use crate::lang::Language;
 use crate::renderables::talk::{self, TalkInfo, TalkNotFound};
 use crate::rendered_item::RenderedItem;
 use crate::repo::Repo;
@@ -11,6 +12,9 @@ use anyhow::{Result, anyhow, bail};
 use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
+
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (100, 2000);
 
 // Priority of the signals that hint where a quest talk plays, lowest to highest.
 const PRIORITY_FINISH_PLOT: i64 = 1;
@@ -94,8 +98,8 @@ fn common_prefix_name(titles: &[String]) -> Option<String> {
 /// this check must not mark the chapter hashes as used.
 pub fn is_test_or_hidden_chapter(repo: &Repo, chapter: &Value) -> Result<bool> {
     for key in ["chapterNumTextMapHash", "chapterTitleTextMapHash"] {
-        if let Some(text) = repo.tm.get_optional_untracked(chapter.i(key)?)?
-            && util::should_skip_text(&text)
+        if let Some(text) = repo.chs_get_optional_untracked(chapter.i(key)?)?
+            && util::should_skip_text(&text, Language::Chs)
         {
             return Ok(true);
         }
@@ -169,9 +173,9 @@ pub fn get_quest_group_name(repo: &Repo, scope: &Scope, chapter_id: i64) -> Resu
 /// Whether a quest title marks a dev/test/hidden quest to exclude
 /// (`$HIDDEN`/`(test)` markers, which live in the CHS source text).
 fn is_test_or_hidden_title(repo: &Repo, scope: &Scope, title_hash: i64) -> Result<bool> {
-    Ok(match repo.tm.get_optional(title_hash, scope)? {
+    Ok(match repo.chs_get_optional(title_hash, scope)? {
         None => false,
-        Some(chs) => util::should_skip_text(&chs),
+        Some(chs) => util::should_skip_text(&chs, Language::Chs),
     })
 }
 
@@ -179,9 +183,9 @@ fn is_test_or_hidden_title(repo: &Repo, scope: &Scope, title_hash: i64) -> Resul
 /// Such steps carry meaningless `order` numbers, so a talk's `beginCond`
 /// pointing at one is an internal trigger rather than a real playback location.
 fn is_hidden_step(repo: &Repo, scope: &Scope, desc_hash: i64) -> Result<bool> {
-    Ok(match repo.tm.get_optional(desc_hash, scope)? {
+    Ok(match repo.chs_get_optional(desc_hash, scope)? {
         None => false,
-        Some(chs) => util::should_skip_text(&chs),
+        Some(chs) => util::should_skip_text(&chs, Language::Chs),
     })
 }
 
@@ -637,7 +641,7 @@ pub fn render_quest(repo: &Repo, scope: &Scope, quest: &QuestInfo) -> Result<Ren
             if let Some(desc) = &step.description {
                 content_lines.push(format!("({desc})\n"));
             }
-            content_lines.extend(talk::render_talk_content(talk_info, scope)?);
+            content_lines.extend(talk::render_talk_content(talk_info, repo.language, scope)?);
         } else {
             content_lines.push(format!("\n## Objective {}\n", step.order));
             if let Some(desc) = &step.description {
@@ -653,7 +657,7 @@ pub fn render_quest(repo: &Repo, scope: &Scope, quest: &QuestInfo) -> Result<Ren
             if quest.non_subquest_talks.len() > 1 {
                 content_lines.push(format!("\n### Additional Talk {}\n", i + 1));
             }
-            content_lines.extend(talk::render_talk_content(talk_info, scope)?);
+            content_lines.extend(talk::render_talk_content(talk_info, repo.language, scope)?);
         }
     }
 
@@ -664,7 +668,7 @@ pub fn render_quest(repo: &Repo, scope: &Scope, quest: &QuestInfo) -> Result<Ren
             if quest.associated_free_talks.len() > 1 {
                 content_lines.push(format!("\n### Free Talk {}\n", i + 1));
             }
-            content_lines.extend(talk::render_talk_content(talk_info, scope)?);
+            content_lines.extend(talk::render_talk_content(talk_info, repo.language, scope)?);
         }
     }
 

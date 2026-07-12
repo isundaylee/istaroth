@@ -9,6 +9,9 @@ use crate::vh::ValueExt;
 use anyhow::Result;
 use rustc_hash::FxHashSet;
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (0, 0);
+
 /// MaterialTypes pass discovery: sorted distinct materialType values.
 pub fn discover(repo: &Repo) -> Result<Vec<String>> {
     let mut types: FxHashSet<String> = FxHashSet::default();
@@ -49,7 +52,9 @@ pub fn process(repo: &Repo, scope: &Scope, material_type: &str) -> Result<Option
                 "No description available".to_string()
             }
         };
-        if util::should_skip_text(&name) || util::should_skip_text(&description) {
+        if util::should_skip_text(&name, repo.language)
+            || util::should_skip_text(&description, repo.language)
+        {
             continue;
         }
         materials.push(MaterialInfo {

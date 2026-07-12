@@ -3,6 +3,7 @@
 //! hierarchy (character -> chapter -> quest).
 
 use crate::issues::Scope;
+use crate::lang::Language;
 use crate::renderables::quest;
 use crate::repo::Repo;
 use crate::vh::ValueExt;
@@ -213,13 +214,18 @@ pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Resu
     ordered_types.extend(rest);
 
     let quest_type_label = |t: &str| -> Result<&'static str> {
-        Ok(match t {
-            "AQ" => "魔神任务",
-            "LQ" => "传说任务",
-            "WQ" => "世界任务",
-            "EQ" => "活动任务",
-            "IQ" => "每日委托",
-            other => anyhow::bail!("unknown quest type {other}"),
+        Ok(match (t, repo.language) {
+            ("AQ", Language::Chs) => "魔神任务",
+            ("AQ", Language::Eng) => "Archon Quests",
+            ("LQ", Language::Chs) => "传说任务",
+            ("LQ", Language::Eng) => "Story Quests",
+            ("WQ", Language::Chs) => "世界任务",
+            ("WQ", Language::Eng) => "World Quests",
+            ("EQ", Language::Chs) => "活动任务",
+            ("EQ", Language::Eng) => "Event Quests",
+            ("IQ", Language::Chs) => "每日委托",
+            ("IQ", Language::Eng) => "Daily Commissions",
+            (other, _) => anyhow::bail!("unknown quest type {other}"),
         })
     };
 
@@ -268,7 +274,13 @@ pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Resu
             standalone.sort_by_key(|n| n.file_id.unwrap());
             children.push(HierarchyNode {
                 key: "standalone".to_string(),
-                title: Some("独立任务".to_string()),
+                title: Some(
+                    match repo.language {
+                        Language::Chs => "独立任务",
+                        Language::Eng => "Standalone Quests",
+                    }
+                    .to_string(),
+                ),
                 children: Some(standalone),
                 file_id: None,
                 // Unrelated chapter-less quests bucketed together; not a series.

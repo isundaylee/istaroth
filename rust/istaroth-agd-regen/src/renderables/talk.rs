@@ -3,6 +3,7 @@
 
 use crate::firstseen;
 use crate::issues::{IssueType, Scope};
+use crate::lang::Language;
 use crate::pyset::PySet;
 use crate::rendered_item::RenderedItem;
 use crate::repo::Repo;
@@ -13,14 +14,12 @@ use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (1000, 1000);
+
 /// Placeholder role for a talk that could not be retrieved; rendered inline as
 /// a visible data gap, but never a speaker for title-derivation purposes.
 pub const MISSING_TALK_ROLE: &str = "[Missing Talk]";
-pub const PLAYER: &str = "旅行者";
-pub const MATE_AVATAR: &str = "旅行者血亲";
-pub const PAIMON: &str = "派蒙";
-pub const BLACK_SCREEN: &str = "黑屏文本";
-pub const UNKNOWN_ROLE: &str = "Unknown Role";
 
 #[derive(Debug, thiserror::Error)]
 #[error("Talk ID {0} not found")]
@@ -74,10 +73,20 @@ pub fn get_talk_info(repo: &Repo, scope: &Scope, talk_path: &str) -> Result<Talk
         let message = match repo.tm.get_optional(content_hash, scope)? {
             Some(m) => m,
             None => {
-                // CHS: the source map IS the current map, so an unresolved hash
-                // can never resolve as a CHS dev placeholder; it is missing text.
-                scope.record_issue(IssueType::MissingText, content_hash.to_string());
-                format!("Missing text ({content_hash})")
+                // An untranslated hash may still be a CHS-only dev/test
+                // placeholder (never translated into any language) rather than
+                // genuinely missing text; check the source text before
+                // flagging it as missing.
+                match repo.chs_get_optional(content_hash, scope)? {
+                    Some(chs) if util::should_skip_text(&chs, Language::Chs) => {
+                        skip = true;
+                        chs
+                    }
+                    _ => {
+                        scope.record_issue(IssueType::MissingText, content_hash.to_string());
+                        format!("Missing text ({content_hash})")
+                    }
+                }
             }
         };
 
@@ -138,14 +147,15 @@ fn get_role_name(
     }
     let role_type = talk_role.get_s("type");
 
+    let roles = repo.language.role_names();
     let by_role: Option<String> = match role_type {
         Some("TALK_ROLE_NPC") => role_npc_id(talk_role)?
             .and_then(|id| repo.npc_id_to_name.get(&id))
             .cloned(),
-        Some("TALK_ROLE_PLAYER") => Some(PLAYER.to_string()),
-        Some("TALK_ROLE_MATE_AVATAR") => Some(MATE_AVATAR.to_string()),
+        Some("TALK_ROLE_PLAYER") => Some(roles.player.to_string()),
+        Some("TALK_ROLE_MATE_AVATAR") => Some(roles.mate_avatar.to_string()),
         Some("TALK_ROLE_NEED_CLICK_BLACK_SCREEN") | Some("TALK_ROLE_BLACK_SCREEN") => {
-            Some(BLACK_SCREEN.to_string())
+            Some(roles.black_screen.to_string())
         }
         _ => None,
     };
@@ -159,7 +169,7 @@ fn get_role_name(
             return Ok(Some(role.clone()));
         }
         let npc_src = if role_type == Some("TALK_ROLE_NPC") {
-            role_npc_id(talk_role)?.and_then(|id| repo.npc_source_name(id))
+            role_npc_id(talk_role)?.and_then(|id| repo.npc_chs_name(id))
         } else {
             None
         };
@@ -168,7 +178,7 @@ fn get_role_name(
         // as 阿圆); render just the display name rather than leaking the
         // internal dev name into the composite.
         if let Some(src) = npc_src
-            && util::should_skip_text(src)
+            && util::should_skip_text(src, Language::Chs)
         {
             return Ok(Some(name_hash.clone()));
         }
@@ -193,7 +203,8 @@ fn get_role_name(
         format!("dialog {dialog_id} role {}", role_type.unwrap_or("None")),
     );
     Ok(Some(format!(
-        "{UNKNOWN_ROLE} ({})",
+        "{} ({})",
+        roles.unknown_role,
         role_type.unwrap_or("None")
     )))
 }
@@ -207,17 +218,17 @@ fn get_role_name(
 /// name alone must not condemn a line.
 fn role_is_dev(repo: &Repo, scope: &Scope, dialog_item: &Value, dialog_id: i64) -> Result<bool> {
     if let Some(h) = role_name_hash(repo, dialog_item, dialog_id)
-        && let Some(hash_name) = repo.tm.get_current_optional(h, scope)?
+        && let Some(hash_name) = repo.chs_get_current_optional(h, scope)?
     {
-        return Ok(util::should_skip_text(&hash_name));
+        return Ok(util::should_skip_text(&hash_name, Language::Chs));
     }
     let talk_role = dialog_item.f("talkRole")?;
     let src = if talk_role.get_s("type") == Some("TALK_ROLE_NPC") {
-        role_npc_id(talk_role)?.and_then(|id| repo.npc_source_name(id))
+        role_npc_id(talk_role)?.and_then(|id| repo.npc_chs_name(id))
     } else {
         None
     };
-    Ok(src.is_some_and(|s| util::should_skip_text(s)))
+    Ok(src.is_some_and(|s| util::should_skip_text(s, Language::Chs)))
 }
 
 pub fn get_talk_info_by_id(repo: &Repo, scope: &Scope, talk_id: i64) -> Result<TalkInfo> {
@@ -360,8 +371,8 @@ impl<'a> TalkTextGraph<'a> {
     }
 }
 
-fn render_dialog_line(t: &TalkText) -> Option<String> {
-    if t.skip || util::should_skip_text(&t.message) {
+fn render_dialog_line(t: &TalkText, language: Language) -> Option<String> {
+    if t.skip || util::should_skip_text(&t.message, language) {
         return None;
     }
     match &t.role {
@@ -387,6 +398,7 @@ fn process_branch(
     next_dialog_ids: &[i64],
     graph: &TalkTextGraph,
     rendered: &mut FxHashSet<i64>,
+    language: Language,
     scope: &Scope,
 ) -> Result<(Option<i64>, Vec<Vec<String>>)> {
     let mut paths: Vec<Vec<Option<i64>>> = next_dialog_ids.iter().map(|&d| vec![Some(d)]).collect();
@@ -560,7 +572,7 @@ fn process_branch(
                 }
                 Some(text) => {
                     rendered.insert(di);
-                    if let Some(rendered_text) = render_dialog_line(text) {
+                    if let Some(rendered_text) = render_dialog_line(text, language) {
                         branch_lines.push(rendered_text);
                     }
                 }
@@ -583,6 +595,7 @@ fn render_talk_dialogs(
     dialog_id: i64,
     graph: &TalkTextGraph,
     rendered: &mut FxHashSet<i64>,
+    language: Language,
     scope: &Scope,
 ) -> Result<Vec<String>> {
     let mut lines: Vec<String> = Vec::new();
@@ -598,7 +611,7 @@ fn render_talk_dialogs(
             Some(text) => {
                 // An EMPTY rendered line is dropped here (truthiness, not just
                 // None), unlike the branch renderer which keeps it.
-                if let Some(line) = render_dialog_line(text)
+                if let Some(line) = render_dialog_line(text, language)
                     && !line.is_empty()
                 {
                     lines.push(line);
@@ -618,7 +631,8 @@ fn render_talk_dialogs(
             current_id = Some(next_dialog_ids[0]);
             continue;
         }
-        let (conv, branch_lines_list) = process_branch(&next_dialog_ids, graph, rendered, scope)?;
+        let (conv, branch_lines_list) =
+            process_branch(&next_dialog_ids, graph, rendered, language, scope)?;
         current_id = conv;
         if branch_lines_list.len() == 1 {
             lines.extend(branch_lines_list.into_iter().next().unwrap());
@@ -637,7 +651,11 @@ fn render_talk_dialogs(
 }
 
 /// Render talk dialog to lines with branching support.
-pub fn render_talk_content(talk: &TalkInfo, scope: &Scope) -> Result<Vec<String>> {
+pub fn render_talk_content(
+    talk: &TalkInfo,
+    language: Language,
+    scope: &Scope,
+) -> Result<Vec<String>> {
     if talk.text.is_empty() {
         return Ok(Vec::new());
     }
@@ -651,7 +669,7 @@ pub fn render_talk_content(talk: &TalkInfo, scope: &Scope) -> Result<Vec<String>
             all_lines.push(String::new());
         }
         let mut entry_rendered = FxHashSet::default();
-        let lines = render_talk_dialogs(entrypoint, &graph, &mut entry_rendered, scope)?;
+        let lines = render_talk_dialogs(entrypoint, &graph, &mut entry_rendered, language, scope)?;
         rendered.extend(entry_rendered);
         all_lines.extend(lines);
     }
@@ -668,7 +686,7 @@ pub fn render_talk_content(talk: &TalkInfo, scope: &Scope) -> Result<Vec<String>
                 .dialog_id_to_text
                 .get(&orphaned_id)
                 .ok_or_else(|| anyhow!("orphan {orphaned_id} missing"))?;
-            if let Some(rendered_text) = render_dialog_line(text) {
+            if let Some(rendered_text) = render_dialog_line(text, language) {
                 all_lines.push(format!("[Orphaned dialog] {rendered_text}"));
             }
         }
@@ -690,16 +708,19 @@ pub struct RenderedTalk {
 pub fn render_talk_body(
     talk: &TalkInfo,
     talk_id: i64,
+    language: Language,
     scope: &Scope,
 ) -> Result<Option<RenderedTalk>> {
-    let body_lines = render_talk_content(talk, scope)?;
+    let body_lines = render_talk_content(talk, language, scope)?;
     if !body_lines.iter().any(|l| !util::py_strip(l).is_empty()) {
         return Ok(None);
     }
     let first_message = talk
         .text
         .iter()
-        .find(|t| render_dialog_line(t).is_some() && !util::py_strip(&t.message).is_empty())
+        .find(|t| {
+            render_dialog_line(t, language).is_some() && !util::py_strip(&t.message).is_empty()
+        })
         .map(|t| t.message.clone());
     let (filename, title) = match first_message {
         Some(msg) => {
@@ -743,7 +764,7 @@ pub fn process(repo: &Repo, scope: &Scope, talk_id: i64) -> Result<Option<Render
     if talk_info.text.is_empty() {
         return Ok(None);
     }
-    let Some(rendered) = render_talk_body(&talk_info, talk_id, scope)? else {
+    let Some(rendered) = render_talk_body(&talk_info, talk_id, repo.language, scope)? else {
         return Ok(None);
     };
     let versions = repo
@@ -774,7 +795,13 @@ mod tests {
     }
 
     fn render(text: Vec<TalkText>, talk_id: i64) -> Option<RenderedTalk> {
-        render_talk_body(&TalkInfo { text }, talk_id, &Scope::default()).unwrap()
+        render_talk_body(
+            &TalkInfo { text },
+            talk_id,
+            Language::Chs,
+            &Scope::default(),
+        )
+        .unwrap()
     }
 
     #[test]
