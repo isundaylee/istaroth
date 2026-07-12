@@ -11,6 +11,9 @@ use crate::vh::ValueExt;
 use anyhow::{Result, anyhow};
 use rustc_hash::{FxHashMap, FxHashSet};
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (5, 10);
+
 /// Leftover TALK_ACTIVITY talk ids grouped by their owning activity.
 ///
 /// For TALK_ACTIVITY entries the excel `questId` field holds the owning
@@ -89,7 +92,7 @@ pub fn process(
     let mut content_lines = vec![format!("# {title}\n")];
     for (i, talk_info) in talks.iter().enumerate() {
         content_lines.push(format!("## Talk {i}\n"));
-        content_lines.extend(talk::render_talk_content(talk_info, scope)?);
+        content_lines.extend(talk::render_talk_content(talk_info, repo.language, scope)?);
         content_lines.push(String::new());
     }
     let versions = repo.first_seen.resolve_ints(Domain::Talk, talk_ids)?;

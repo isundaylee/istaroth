@@ -25,9 +25,13 @@ pub fn py_rstrip(s: &str) -> &str {
     s.trim_end_matches(|c: char| c.is_whitespace() || ('\x1c'..='\x1f').contains(&c))
 }
 
-/// Whether (CHS source) text carries a dev/test/hidden marker and should be
-/// excluded from output.
-pub fn should_skip_text(text: &str) -> bool {
+/// Whether text carries a dev/test/hidden marker and should be excluded from
+/// output. The markers exist only in CHS text, so pass the language the text
+/// came FROM: run-language text in non-CHS runs is never marker-checked.
+pub fn should_skip_text(text: &str, language: crate::lang::Language) -> bool {
+    if language != crate::lang::Language::Chs {
+        return false;
+    }
     let lower = text.to_lowercase();
     lower.starts_with("test")
         || lower.starts_with("(test")
@@ -40,11 +44,11 @@ pub fn should_skip_text(text: &str) -> bool {
 const READABLE_PLACEHOLDERS: [&str; 7] = ["测试", "暂无", "暂缺", "？？？", "test", "none", "n/a"];
 
 /// Whether readable content is an empty/placeholder body to skip.
-pub fn should_skip_readable_content(content: &str) -> bool {
+pub fn should_skip_readable_content(content: &str, language: crate::lang::Language) -> bool {
     let stripped = py_strip(content);
     stripped.is_empty()
         || READABLE_PLACEHOLDERS.contains(&stripped.to_lowercase().as_str())
-        || should_skip_text(stripped)
+        || should_skip_text(stripped, language)
 }
 
 /// First 12 hex chars of sha256(s) as an integer (subtitle/material/creature ids).
@@ -176,20 +180,34 @@ mod tests {
             "夏活beta测试任务",
             "含$UNRELEASED标记",
         ] {
-            assert!(should_skip_text(text), "{text}");
+            assert!(should_skip_text(text, crate::lang::Language::Chs), "{text}");
+            // Markers exist only in CHS text, so non-CHS text is never checked.
+            assert!(
+                !should_skip_text(text, crate::lang::Language::Eng),
+                "{text}"
+            );
         }
         for text in ["山中好长日·第一章", "放假一天！"] {
-            assert!(!should_skip_text(text), "{text}");
+            assert!(
+                !should_skip_text(text, crate::lang::Language::Chs),
+                "{text}"
+            );
         }
     }
 
     #[test]
     fn skip_readable_content_placeholders_only() {
         for content in ["？？？", " ？？？ ", "", "  ", "测试", "暂缺", "N/A"] {
-            assert!(should_skip_readable_content(content), "{content:?}");
+            assert!(
+                should_skip_readable_content(content, crate::lang::Language::Chs),
+                "{content:?}"
+            );
         }
         for content in ["放假一天！", "我的宝物", "？？", "Real book text."] {
-            assert!(!should_skip_readable_content(content), "{content:?}");
+            assert!(
+                !should_skip_readable_content(content, crate::lang::Language::Chs),
+                "{content:?}"
+            );
         }
     }
 

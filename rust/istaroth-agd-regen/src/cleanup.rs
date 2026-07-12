@@ -1,5 +1,6 @@
-//! Port of istaroth.text_cleanup for the CHS language.
+//! Port of istaroth.text_cleanup.
 
+use crate::lang::Language;
 use anyhow::{Context, Result};
 use regex::Regex;
 use std::sync::LazyLock;
@@ -60,20 +61,20 @@ pub fn resolve_sexpro(
     Ok(out)
 }
 
-/// Clean game text markers and normalize newlines (CHS).
+/// Clean game text markers and normalize newlines.
 ///
 /// Does not resolve SEXPRO pronoun placeholders (those need TextMap access);
 /// run `resolve_sexpro` first where they may appear. Each regex runs behind a
 /// substring guard on a fragment every match must contain, keeping the common
 /// marker-free case regex-free. `<i>` runs before `<color>` since a few lines
 /// nest `<i>` inside `<color>` and `<color>`'s content class excludes `<`.
-pub fn clean_text_markers(text: &str) -> Result<String> {
+pub fn clean_text_markers(text: &str, language: Language) -> Result<String> {
     if text.is_empty() {
         return Ok(text.to_string());
     }
     let mut text = text.replace("\\n", "\n");
     if text.contains("{NICKNAME}") {
-        text = text.replace("{NICKNAME}", "旅行者");
+        text = text.replace("{NICKNAME}", language.role_names().player);
     }
     if text.contains("{M#") {
         text = GENDER_BRANCH.replace_all(&text, "$1").into_owned();
@@ -82,10 +83,12 @@ pub fn clean_text_markers(text: &str) -> Result<String> {
         let mut unmapped: Option<String> = None;
         text = REALNAME
             .replace_all(&text, |caps: &regex::Captures| {
-                match caps.get(1).unwrap().as_str() {
-                    "1" => "流浪者".to_string(),
-                    "2" => "小龙".to_string(),
-                    other => {
+                match (caps.get(1).unwrap().as_str(), language) {
+                    ("1", Language::Chs) => "流浪者".to_string(),
+                    ("1", Language::Eng) => "Wanderer".to_string(),
+                    ("2", Language::Chs) => "小龙".to_string(),
+                    ("2", Language::Eng) => "Little One".to_string(),
+                    (other, _) => {
                         unmapped = Some(other.to_string());
                         String::new()
                     }
@@ -167,13 +170,37 @@ mod tests {
             ),
             ("#{REALNAME[ID(2)|SHOWHOST(true)]}", "小龙"),
         ] {
-            assert_eq!(clean_text_markers(input).unwrap(), expected, "{input:?}");
+            assert_eq!(
+                clean_text_markers(input, Language::Chs).unwrap(),
+                expected,
+                "{input:?}"
+            );
         }
     }
 
     #[test]
     fn clean_text_markers_unmapped_realname_errors() {
-        assert!(clean_text_markers("#{REALNAME[ID(99)|HOSTONLY(true)]}: x").is_err());
+        assert!(
+            clean_text_markers("#{REALNAME[ID(99)|HOSTONLY(true)]}: x", Language::Chs).is_err()
+        );
+    }
+
+    #[test]
+    fn clean_text_markers_eng_substitutions() {
+        for (input, expected) in [
+            ("Hello {NICKNAME}!", "Hello Traveler!"),
+            (
+                "#{REALNAME[ID(1)|HOSTONLY(true)]}: So you understand now?",
+                "Wanderer: So you understand now?",
+            ),
+            ("#{REALNAME[ID(2)|SHOWHOST(true)]}", "Little One"),
+        ] {
+            assert_eq!(
+                clean_text_markers(input, Language::Eng).unwrap(),
+                expected,
+                "{input:?}"
+            );
+        }
     }
 
     fn pronoun(token: &str) -> Result<String> {

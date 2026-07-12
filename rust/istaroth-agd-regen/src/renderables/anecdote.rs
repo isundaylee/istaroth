@@ -10,6 +10,9 @@ use crate::util;
 use crate::vh::{ValueExt, int_array};
 use anyhow::{Result, anyhow};
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (10, 20);
+
 /// Anecdotes pass discovery: sorted anecdote ids.
 pub fn discover(repo: &Repo) -> Result<Vec<i64>> {
     let mut ids: Vec<i64> = repo.excel.anecdote.keys().copied().collect();
@@ -72,7 +75,7 @@ pub fn process(repo: &Repo, scope: &Scope, anecdote_id: i64) -> Result<Option<Re
     }
     for (i, talk_info) in talks.iter().enumerate() {
         content_lines.push(format!("## Talk {i}\n"));
-        content_lines.extend(talk::render_talk_content(talk_info, scope)?);
+        content_lines.extend(talk::render_talk_content(talk_info, repo.language, scope)?);
         content_lines.push(String::new());
     }
     let versions = repo.first_seen.resolve_ints(Domain::Talk, talk_ids)?;

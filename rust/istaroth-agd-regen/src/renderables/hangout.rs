@@ -4,6 +4,7 @@
 use crate::coop::{ChoiceBranch, PlayStep};
 use crate::firstseen::Domain;
 use crate::issues::Scope;
+use crate::lang::Language;
 use crate::renderables::talk::{self, TalkInfo};
 use crate::rendered_item::RenderedItem;
 use crate::repo::Repo;
@@ -12,6 +13,9 @@ use crate::vh::{ValueExt, int_array, truthy};
 use anyhow::{Result, anyhow, bail};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
+
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (50, 200);
 
 pub struct CondGrp {
     logic: String,
@@ -261,6 +265,7 @@ fn render_choice_section(
     step: &CoopStep,
     fork_num: i64,
     fork_map: &FxHashMap<usize, i64>,
+    language: Language,
     scope: &Scope,
 ) -> Result<(Vec<String>, Vec<Vec<String>>)> {
     let CoopStep::Choice { options, .. } = step else {
@@ -306,7 +311,7 @@ fn render_choice_section(
         for step in &option.steps {
             match step {
                 CoopStep::Talk(talk_info) => {
-                    lines.extend(talk::render_talk_content(talk_info, scope)?);
+                    lines.extend(talk::render_talk_content(talk_info, language, scope)?);
                 }
                 CoopStep::Choice { id, .. } => {
                     let nested_fork_num = *fork_map
@@ -314,7 +319,7 @@ fn render_choice_section(
                         .ok_or_else(|| anyhow!("choice {id} missing fork number"))?;
                     next_marker = format!("*→ Next: Choice {nested_fork_num}*");
                     let (section_lines, new_nested) =
-                        render_choice_section(step, nested_fork_num, fork_map, scope)?;
+                        render_choice_section(step, nested_fork_num, fork_map, language, scope)?;
                     nested.push(section_lines);
                     nested.extend(new_nested);
                 }
@@ -335,6 +340,7 @@ fn render_choice_section(
 fn render_coop_steps(
     steps: &[CoopStep],
     fork_map: &FxHashMap<usize, i64>,
+    language: Language,
     scope: &Scope,
 ) -> Result<Vec<String>> {
     let mut lines: Vec<String> = Vec::new();
@@ -342,7 +348,7 @@ fn render_coop_steps(
     for step in steps {
         match step {
             CoopStep::Talk(talk_info) => {
-                let talk_lines = talk::render_talk_content(talk_info, scope)?;
+                let talk_lines = talk::render_talk_content(talk_info, language, scope)?;
                 if !talk_lines.is_empty() {
                     let title = util::py_rstrip(&talk_lines[0]).to_string();
                     lines.push(format!("### Talk: {title}"));
@@ -355,7 +361,7 @@ fn render_coop_steps(
                     .get(id)
                     .ok_or_else(|| anyhow!("choice {id} missing fork number"))?;
                 let (section_lines, new_nested) =
-                    render_choice_section(step, fork_num, fork_map, scope)?;
+                    render_choice_section(step, fork_num, fork_map, language, scope)?;
                 lines.push(String::new());
                 lines.extend(section_lines);
                 nested_sections.extend(new_nested);
@@ -389,7 +395,7 @@ pub fn render_hangout(repo: &Repo, scope: &Scope, hangout: &HangoutInfo) -> Resu
         let mut counter = 0i64;
         let mut fork_map = FxHashMap::default();
         assign_fork_numbers(story, &mut counter, &mut fork_map);
-        content_lines.extend(render_coop_steps(story, &fork_map, scope)?);
+        content_lines.extend(render_coop_steps(story, &fork_map, repo.language, scope)?);
     }
     let versions = repo
         .first_seen

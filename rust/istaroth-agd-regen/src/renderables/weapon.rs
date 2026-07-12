@@ -9,6 +9,9 @@ use crate::vh::{ValueExt, int_array};
 use anyhow::{Context, Result, anyhow};
 use indexmap::IndexMap;
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (50, 200);
+
 /// Weapons pass discovery: ids sorted as strings.
 pub fn discover(repo: &Repo) -> Result<Vec<String>> {
     let mut ids: Vec<String> = repo.excel.weapon.keys().map(|id| id.to_string()).collect();
