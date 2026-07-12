@@ -32,11 +32,6 @@ pub struct Excels {
     pub book_suit: FxHashMap<i64, Value>,
     pub books_codex: Vec<Value>,
     pub material: FxHashMap<i64, Value>,
-    /// Consumed (taken) by the achievement-sections builder during load;
-    /// empty on the finished Repo.
-    pub achievement: Vec<Value>,
-    /// See `achievement`.
-    pub achievement_goal: Vec<Value>,
     pub anecdote: FxHashMap<i64, Value>,
     pub blossom_talk: Vec<Value>,
     pub blossom_refresh: FxHashMap<i64, Value>,
@@ -418,14 +413,20 @@ fn build_book_series(
         .collect())
 }
 
-/// Achievement sections: goal entry plus its (orderId, id)-sorted achievements.
-/// Takes both tables by value: nothing reads them after this builder.
-fn build_achievement_sections(
-    achievement_goal: Vec<Value>,
+/// The raw achievement tables, kept out of `Excels` (and consumed by the
+/// achievement-sections builder) so nothing can accidentally read them after
+/// the sections are built.
+struct AchievementTables {
+    goal: Vec<Value>,
     achievement: Vec<Value>,
+}
+
+/// Achievement sections: goal entry plus its (orderId, id)-sorted achievements.
+fn build_achievement_sections(
+    tables: AchievementTables,
 ) -> Result<FxHashMap<i64, (Value, Vec<Value>)>> {
     let mut achievement_sections: FxHashMap<i64, (Value, Vec<Value>)> = FxHashMap::default();
-    for section in achievement_goal {
+    for section in tables.goal {
         let id = section.i("id")?;
         if achievement_sections
             .insert(id, (section, Vec::new()))
@@ -434,7 +435,7 @@ fn build_achievement_sections(
             bail!("Duplicate achievement section ID");
         }
     }
-    for achievement in achievement {
+    for achievement in tables.achievement {
         if achievement.b("isDisuse")? {
             continue;
         }
@@ -748,6 +749,7 @@ struct Inputs {
     talk_file_rels: Vec<String>,
     quest_files: FxHashMap<String, Value>,
     excel: Excels,
+    achievement_tables: AchievementTables,
     dialog_maps: DialogMaps,
     misc: Misc,
 }
@@ -770,7 +772,8 @@ impl Repo {
             talk_files,
             talk_file_rels,
             quest_files,
-            mut excel,
+            excel,
+            achievement_tables,
             dialog_maps,
             misc,
         } = Self::load_inputs(agd_path, first_seen_dir, language, verbose)?;
@@ -799,10 +802,7 @@ impl Repo {
             build_readable_localization_maps(&excel.localization, language_short)?;
         let loc_id_to_title_hash = build_loc_id_to_title_hash(&excel.document)?;
         let book_series = build_book_series(&excel, &loc_id_to_readable_filename)?;
-        let achievement_sections = build_achievement_sections(
-            std::mem::take(&mut excel.achievement_goal),
-            std::mem::take(&mut excel.achievement),
-        )?;
+        let achievement_sections = build_achievement_sections(achievement_tables)?;
         let storyboard_quest_to_talk_ids = build_storyboard_quest_to_talk_ids(&excel.talk)?;
         let coop_graphs = build_coop_graphs(misc.coop_graph_files)?;
         let hangout_quest_to_stories =
@@ -950,7 +950,7 @@ impl Repo {
             );
         log_elapsed(verbose, "phase A total", t0);
         let (talk_files, talk_file_rels) = talk_files_res?;
-        let (excel, dialog_maps) = excels_res?;
+        let (excel, achievement_tables, dialog_maps) = excels_res?;
         Ok(Inputs {
             tm: tm?,
             tm_chs: tm_chs?,
@@ -958,6 +958,7 @@ impl Repo {
             talk_file_rels,
             quest_files: quest_files_res?,
             excel,
+            achievement_tables,
             dialog_maps,
             misc: misc_res?,
         })
@@ -1034,7 +1035,7 @@ impl Repo {
     fn load_excels(
         excel: &Path,
         load_talk_excel: impl Fn() -> Result<Vec<Value>> + Sync,
-    ) -> Result<(Excels, DialogMaps)> {
+    ) -> Result<(Excels, AchievementTables, DialogMaps)> {
         // Prefetch every excel list in parallel (the dialog excel gets a typed
         // low-allocation parse since only two id->hash maps survive it).
         const EXCEL_NAMES: [&str; 36] = [
@@ -1128,8 +1129,6 @@ impl Repo {
             )?,
             books_codex: list("BooksCodexExcelConfigData.json")?,
             material,
-            achievement: list("AchievementExcelConfigData.json")?,
-            achievement_goal: list("AchievementGoalExcelConfigData.json")?,
             anecdote,
             blossom_talk: list("BlossomTalkExcelConfigData.json")?,
             blossom_refresh: index_unique(
@@ -1230,7 +1229,11 @@ impl Repo {
             role_combat_tarot: list("RoleCombatTarotAvatarExcelConfigData.json")?,
             gcg_week_level: list("GCGWeekLevelExcelConfigData.json")?,
         };
-        Ok((excels, dialog_maps))
+        let achievement_tables = AchievementTables {
+            goal: list("AchievementGoalExcelConfigData.json")?,
+            achievement: list("AchievementExcelConfigData.json")?,
+        };
+        Ok((excels, achievement_tables, dialog_maps))
     }
 
     fn load_misc(agd_path: &Path, first_seen_dir: &Path, language_short: &str) -> Result<Misc> {
@@ -1385,14 +1388,16 @@ mod tests {
 
     #[test]
     fn achievement_sections_filter_only_disused() {
-        let achievement_goal = vec![json!({"id": 7})];
-        let achievement = vec![
-            json!({"id": 3, "goalId": 7, "orderId": 2, "isDisuse": false, "showType": "SHOWTYPE_HIDE"}),
-            json!({"id": 2, "goalId": 7, "orderId": 1, "isDisuse": true}),
-            json!({"id": 1, "goalId": 7, "orderId": 1, "isDisuse": false}),
-        ];
+        let tables = AchievementTables {
+            goal: vec![json!({"id": 7})],
+            achievement: vec![
+                json!({"id": 3, "goalId": 7, "orderId": 2, "isDisuse": false, "showType": "SHOWTYPE_HIDE"}),
+                json!({"id": 2, "goalId": 7, "orderId": 1, "isDisuse": true}),
+                json!({"id": 1, "goalId": 7, "orderId": 1, "isDisuse": false}),
+            ],
+        };
         assert_eq!(
-            build_achievement_sections(achievement_goal, achievement).unwrap()[&7]
+            build_achievement_sections(tables).unwrap()[&7]
                 .1
                 .iter()
                 .map(|a| a["id"].as_i64().unwrap())
