@@ -13,6 +13,9 @@ use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (100, 2000);
+
 // Priority of the signals that hint where a quest talk plays, lowest to highest.
 const PRIORITY_FINISH_PLOT: i64 = 1;
 const PRIORITY_COMPLETE_TALK: i64 = 2;
@@ -95,7 +98,7 @@ fn common_prefix_name(titles: &[String]) -> Option<String> {
 /// this check must not mark the chapter hashes as used.
 pub fn is_test_or_hidden_chapter(repo: &Repo, chapter: &Value) -> Result<bool> {
     for key in ["chapterNumTextMapHash", "chapterTitleTextMapHash"] {
-        if let Some(text) = repo.source_get_optional_untracked(chapter.i(key)?)?
+        if let Some(text) = repo.chs_get_optional_untracked(chapter.i(key)?)?
             && util::should_skip_text(&text, Language::Chs)
         {
             return Ok(true);
@@ -170,7 +173,7 @@ pub fn get_quest_group_name(repo: &Repo, scope: &Scope, chapter_id: i64) -> Resu
 /// Whether a quest title marks a dev/test/hidden quest to exclude
 /// (`$HIDDEN`/`(test)` markers, which live in the CHS source text).
 fn is_test_or_hidden_title(repo: &Repo, scope: &Scope, title_hash: i64) -> Result<bool> {
-    Ok(match repo.source_get_optional(title_hash, scope)? {
+    Ok(match repo.chs_get_optional(title_hash, scope)? {
         None => false,
         Some(chs) => util::should_skip_text(&chs, Language::Chs),
     })
@@ -180,7 +183,7 @@ fn is_test_or_hidden_title(repo: &Repo, scope: &Scope, title_hash: i64) -> Resul
 /// Such steps carry meaningless `order` numbers, so a talk's `beginCond`
 /// pointing at one is an internal trigger rather than a real playback location.
 fn is_hidden_step(repo: &Repo, scope: &Scope, desc_hash: i64) -> Result<bool> {
-    Ok(match repo.source_get_optional(desc_hash, scope)? {
+    Ok(match repo.chs_get_optional(desc_hash, scope)? {
         None => false,
         Some(chs) => util::should_skip_text(&chs, Language::Chs),
     })

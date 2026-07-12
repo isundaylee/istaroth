@@ -11,6 +11,9 @@ use crate::vh::ValueExt;
 use anyhow::{Result, anyhow};
 use rustc_hash::{FxHashMap, FxHashSet};
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (5, 10);
+
 /// Leftover TALK_ACTIVITY talk ids grouped by their owning activity.
 ///
 /// For TALK_ACTIVITY entries the excel `questId` field holds the owning

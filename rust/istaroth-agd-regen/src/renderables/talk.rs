@@ -14,6 +14,9 @@ use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (1000, 1000);
+
 /// Placeholder role for a talk that could not be retrieved; rendered inline as
 /// a visible data gap, but never a speaker for title-derivation purposes.
 pub const MISSING_TALK_ROLE: &str = "[Missing Talk]";
@@ -74,7 +77,7 @@ pub fn get_talk_info(repo: &Repo, scope: &Scope, talk_path: &str) -> Result<Talk
                 // placeholder (never translated into any language) rather than
                 // genuinely missing text; check the source text before
                 // flagging it as missing.
-                match repo.source_get_optional(content_hash, scope)? {
+                match repo.chs_get_optional(content_hash, scope)? {
                     Some(chs) if util::should_skip_text(&chs, Language::Chs) => {
                         skip = true;
                         chs
@@ -166,7 +169,7 @@ fn get_role_name(
             return Ok(Some(role.clone()));
         }
         let npc_src = if role_type == Some("TALK_ROLE_NPC") {
-            role_npc_id(talk_role)?.and_then(|id| repo.npc_source_name(id))
+            role_npc_id(talk_role)?.and_then(|id| repo.npc_chs_name(id))
         } else {
             None
         };
@@ -215,13 +218,13 @@ fn get_role_name(
 /// name alone must not condemn a line.
 fn role_is_dev(repo: &Repo, scope: &Scope, dialog_item: &Value, dialog_id: i64) -> Result<bool> {
     if let Some(h) = role_name_hash(repo, dialog_item, dialog_id)
-        && let Some(hash_name) = repo.source_get_current_optional(h, scope)?
+        && let Some(hash_name) = repo.chs_get_current_optional(h, scope)?
     {
         return Ok(util::should_skip_text(&hash_name, Language::Chs));
     }
     let talk_role = dialog_item.f("talkRole")?;
     let src = if talk_role.get_s("type") == Some("TALK_ROLE_NPC") {
-        role_npc_id(talk_role)?.and_then(|id| repo.npc_source_name(id))
+        role_npc_id(talk_role)?.and_then(|id| repo.npc_chs_name(id))
     } else {
         None
     };

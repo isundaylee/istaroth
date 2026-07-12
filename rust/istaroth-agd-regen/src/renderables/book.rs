@@ -12,6 +12,9 @@ use crate::vh::ValueExt;
 use anyhow::{Result, anyhow};
 use rustc_hash::FxHashSet;
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (50, 200);
+
 pub enum BookKey {
     Series(i64),
     Standalone(String),

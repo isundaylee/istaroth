@@ -14,6 +14,9 @@ use regex::Regex;
 use serde_json::Value;
 use std::sync::LazyLock;
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (120, 120);
+
 const SPEAKER_TITLE_LIMIT: usize = 3;
 static COMPOSITE_ROLE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(.+) \((.+)\)$").unwrap());
 
@@ -247,9 +250,9 @@ pub fn process(
     let group_name: Option<String> = match group_type {
         "NpcGroup" => {
             let npc_id = util::py_int(group_id)?;
-            match repo.npc_source_name(npc_id) {
-                Some(source_name) => {
-                    if util::should_skip_text(source_name, Language::Chs) {
+            match repo.npc_chs_name(npc_id) {
+                Some(chs_name) => {
+                    if util::should_skip_text(chs_name, Language::Chs) {
                         return Ok(None);
                     }
                     let mut name = repo

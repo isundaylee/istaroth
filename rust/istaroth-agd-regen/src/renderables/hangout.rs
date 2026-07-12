@@ -14,6 +14,9 @@ use anyhow::{Result, anyhow, bail};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (50, 200);
+
 pub struct CondGrp {
     logic: String,
     conds: Vec<(String, Vec<i64>)>,

@@ -9,6 +9,9 @@ use crate::util;
 use anyhow::{Result, anyhow};
 use rustc_hash::FxHashSet;
 
+/// (CHS, non-CHS) per-pass error limits, shared by the Readables/Wings/Costumes passes (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (50, 200);
+
 pub struct ReadableMetadata {
     pub localization_id: i64,
     pub title: String,

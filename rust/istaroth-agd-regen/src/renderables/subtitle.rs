@@ -11,6 +11,9 @@ use anyhow::Result;
 use regex::Regex;
 use std::sync::LazyLock;
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (0, 0);
+
 // Quest-id-shaped digit runs in a subtitle file stem (e.g. the "1204205" of
 // "Cs_Inazuma_LQ1204205_IntoTheVoid"); shorter runs are variant/sequence
 // markers.
@@ -23,7 +26,7 @@ fn main_quest_title(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Option<
         return Ok(None);
     };
     let title_hash = main_quest.i("titleTextMapHash")?;
-    if let Some(chs) = repo.source_get_optional(title_hash, scope)?
+    if let Some(chs) = repo.chs_get_optional(title_hash, scope)?
         && util::should_skip_text(&chs, Language::Chs)
     {
         return Ok(None);

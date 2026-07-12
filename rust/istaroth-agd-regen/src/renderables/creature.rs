@@ -12,6 +12,9 @@ use anyhow::{Result, anyhow, bail};
 use rustc_hash::FxHashSet;
 use serde_json::Value;
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (0, 2);
+
 const CREATURE_TYPE_LABELS: [(&str, &str, &str); 2] = [
     ("CODEX_MONSTER", "魔物", "Monsters"),
     ("CODEX_ANIMAL", "野生生物", "Wildlife"),

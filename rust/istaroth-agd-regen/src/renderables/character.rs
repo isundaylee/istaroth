@@ -13,6 +13,10 @@ use indexmap::IndexMap;
 use rustc_hash::FxHashSet;
 use serde_json::Value;
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const STORY_ERROR_LIMITS: (usize, usize) = (0, 0);
+pub const VOICELINE_ERROR_LIMITS: (usize, usize) = (0, 0);
+
 const ELEMENT_NAMES: [(&str, &str, &str); 7] = [
     ("Fire", "火", "Pyro"),
     ("Water", "水", "Hydro"),

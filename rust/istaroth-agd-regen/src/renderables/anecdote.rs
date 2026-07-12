@@ -10,6 +10,9 @@ use crate::util;
 use crate::vh::{ValueExt, int_array};
 use anyhow::{Result, anyhow};
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (10, 20);
+
 /// Anecdotes pass discovery: sorted anecdote ids.
 pub fn discover(repo: &Repo) -> Result<Vec<i64>> {
     let mut ids: Vec<i64> = repo.excel.anecdote.keys().copied().collect();

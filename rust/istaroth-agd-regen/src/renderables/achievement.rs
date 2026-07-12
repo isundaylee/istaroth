@@ -8,6 +8,9 @@ use crate::util;
 use crate::vh::ValueExt;
 use anyhow::{Result, anyhow};
 
+/// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
+pub const ERROR_LIMITS: (usize, usize) = (0, 0);
+
 /// Achievements pass discovery: sections in configured display order.
 pub fn discover(repo: &Repo) -> Result<Vec<i64>> {
     let mut sections: Vec<(i64, i64)> = repo

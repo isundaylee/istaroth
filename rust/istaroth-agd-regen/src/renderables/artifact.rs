@@ -8,6 +8,11 @@ use crate::util;
 use crate::vh::{ValueExt, int_array};
 use anyhow::{Result, anyhow};
 
+/// (CHS, non-CHS) per-pass error limits (reference `error_limit` /
+/// `error_limit_non_chinese`): non-CHS output legitimately hits per-item
+/// failures (untranslated text), so its ceiling is higher.
+pub const ERROR_LIMITS: (usize, usize) = (0, 0);
+
 /// Resolve a reliquary piece's relic story from its storyId.
 ///
 /// Follows storyId -> DocumentExcelConfigData -> questIDList ->
