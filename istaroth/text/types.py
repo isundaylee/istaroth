@@ -99,8 +99,11 @@ class TextMetadata:
     AGD content, and ``None`` for non-AGD content that has no game version.
 
     This is the manifest entry schema; the AGD manifest is written by the Rust
-    regen (``TextMetadata`` in ``rust/istaroth-agd-regen/src/rendered_item.rs``)
-    — keep field names and types in parity when changing either side.
+    regen (``TextMetadata`` in ``rust/istaroth-agd-regen/src/rendered_item.rs``).
+    Parity is pinned byte-exactly by the contract tests on both sides
+    (``tests/test_schema_contract.py`` and
+    ``rust/istaroth-agd-regen/tests/contract.rs``, sharing
+    ``tests/fixtures/contract/``).
     """
 
     category: TextCategory
@@ -134,19 +137,19 @@ class TextMetadata:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> TextMetadata:
-        """Create TextMetadata from dictionary."""
-        category_enum = TextCategory(data["category"])
-        id_value = data["id"]
-        # Convert id to int if it's a string
-        if isinstance(id_value, str):
-            id_int = int(id_value)
-        else:
-            id_int = id_value
+        """Create TextMetadata from dictionary, rejecting unexpected keys."""
+        if set(data) != _MANIFEST_KEYS:
+            raise ValueError(
+                f"Manifest entry keys {sorted(data)} != {sorted(_MANIFEST_KEYS)}"
+            )
         return cls(
-            category=category_enum,
-            title=str(data["title"]),
-            id=id_int,
-            relative_path=str(data["relative_path"]),
+            category=TextCategory(data["category"]),
+            title=data["title"],
+            id=data["id"],
+            relative_path=data["relative_path"],
             min_version=data["min_version"],
             max_version=data["max_version"],
         )
+
+
+_MANIFEST_KEYS = frozenset(field.name for field in attrs.fields(TextMetadata))

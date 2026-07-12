@@ -3,8 +3,9 @@
 use serde::Serialize;
 
 /// Manifest entry schema, deserialized by the Python readers
-/// (`TextMetadata` in `istaroth/text/types.py`) — keep field names and
-/// types in parity when changing either side.
+/// (`TextMetadata` in `istaroth/text/types.py`). Parity is pinned
+/// byte-exactly by `tests/contract.rs` and `tests/test_schema_contract.py`
+/// (repo root), sharing `tests/fixtures/contract/`.
 #[derive(Clone, Serialize)]
 pub struct TextMetadata {
     pub category: &'static str,

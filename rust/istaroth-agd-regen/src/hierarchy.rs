@@ -15,7 +15,9 @@ use serde_json::Value;
 
 /// Serialized hierarchy schema, deserialized by the Python readers
 /// (`istaroth/agd/processed_types.py`) and mirrored by the frontend
-/// (`frontend/src/utils/hierarchy.ts`) — keep the field sets in parity.
+/// (`frontend/src/utils/hierarchy.ts`). Parity is pinned byte-exactly by
+/// `tests/contract.rs` and `tests/test_schema_contract.py` (repo root),
+/// sharing `tests/fixtures/contract/`.
 #[derive(Serialize)]
 pub struct HierarchyNode {
     pub key: String,
@@ -28,6 +30,14 @@ pub struct HierarchyNode {
 #[derive(Serialize)]
 pub struct Hierarchy {
     pub nodes: Vec<HierarchyNode>,
+}
+
+/// Schema of `metadata/agd/hierarchy.json`: the pre-baked per-category
+/// document trees, keyed by category value.
+#[derive(Serialize)]
+pub struct Hierarchies {
+    pub agd_quest: Hierarchy,
+    pub agd_hangout: Hierarchy,
 }
 
 fn quest_leaf(quest_id: i64, title: &str) -> HierarchyNode {
