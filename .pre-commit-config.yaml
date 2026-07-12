@@ -73,3 +73,19 @@ repos:
         entry: uv run mypy
         language: system
         types: [python]
+
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt (rust)
+        entry: bash -c 'PATH="$HOME/.cargo/bin:$PATH" cargo fmt --manifest-path rust/Cargo.toml --all'
+        language: system
+        files: ^rust/.*\.rs$
+        pass_filenames: false
+
+      - id: cargo-clippy
+        name: cargo clippy (rust)
+        entry: bash -c 'PATH="$HOME/.cargo/bin:$PATH" cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings'
+        language: system
+        files: ^rust/.*(\.rs|Cargo\.(toml|lock))$
+        pass_filenames: false

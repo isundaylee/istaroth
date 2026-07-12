@@ -1,0 +1,13 @@
+[workspace]
+resolver = "3"
+members = ["istaroth-agd-regen"]
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+
+[profile.fast]
+inherits = "release"
+lto = false
+codegen-units = 256
+incremental = true
