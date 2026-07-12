@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Review</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #f6f7f9;
+        --surface: #ffffff;
+        --surface-soft: #f1f3f6;
+        --text: #17191d;
+        --muted: #656b76;
+        --line: #dfe2e7;
+        --accent: #3157d5;
+        --accent-soft: #e8edff;
+        --focus: #6d8cff;
+        --shadow: 0 1px 2px rgb(16 24 40 / 5%), 0 8px 30px rgb(16 24 40 / 6%);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #111318;
+          --surface: #191c22;
+          --surface-soft: #22262e;
+          --text: #f1f3f7;
+          --muted: #a7adba;
+          --line: #303641;
+          --accent: #8ca4ff;
+          --accent-soft: #252f59;
+          --focus: #aabaff;
+          --shadow: 0 1px 2px rgb(0 0 0 / 20%), 0 10px 36px rgb(0 0 0 / 22%);
+        }
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      main { width: min(100% - 32px, 820px); margin: 0 auto; padding: 64px 0 96px; }
+      header { margin-bottom: 28px; }
+      h1 { margin: 0 0 8px; font-size: clamp(28px, 5vw, 42px); line-height: 1.12; letter-spacing: -0.035em; }
+      h2 { margin: 0 0 10px; font-size: 18px; line-height: 1.3; letter-spacing: -0.015em; }
+      p { margin: 0; }
+      .lede { max-width: 65ch; color: var(--muted); font-size: 17px; }
+      .stack { display: grid; gap: 16px; }
+      .card { min-width: 0; padding: 24px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: var(--shadow); }
+      .card > p { color: var(--muted); }
+      .question { margin-top: 24px; }
+      fieldset { min-width: 0; margin: 18px 0; padding: 0; border: 0; }
+      legend { margin-bottom: 10px; color: var(--muted); font-size: 13px; font-weight: 650; }
+      .options { display: grid; gap: 8px; }
+      .option { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-soft); cursor: pointer; }
+      .option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+      input { margin-top: 5px; accent-color: var(--accent); }
+      button { appearance: none; border: 0; border-radius: 10px; background: var(--accent); color: Canvas; color-scheme: only light; padding: 10px 14px; font: inherit; font-weight: 700; cursor: pointer; }
+      button:hover { filter: brightness(1.06); }
+      button:focus-visible, input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+      .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+      .status { color: var(--muted); font-size: 13px; }
+      footer { margin-top: 22px; color: var(--muted); font-size: 13px; }
+      @media (max-width: 560px) { main { width: min(100% - 20px, 820px); padding-top: 32px; } .card { padding: 18px; border-radius: 13px; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Choose the direction</h1>
+        <p class="lede">Review the proposal, answer the focused question, or annotate any sentence or element with a specific comment.</p>
+      </header>
+
+      <div class="stack">
+        <section class="card">
+          <h2>Proposal</h2>
+          <p>Replace this sample with the concise material being reviewed. Split distinct ideas into separate sections so annotations have precise targets.</p>
+        </section>
+
+        <form class="card question" data-review-question="direction">
+          <h2>Which direction should we take?</h2>
+          <p>Choose one option. You can change it until you queue the answer.</p>
+          <fieldset>
+            <legend>Direction</legend>
+            <div class="options">
+              <label class="option"><input type="radio" name="direction" value="Option A"><span><strong>Option A</strong><br>Replace this with a short consequence or tradeoff.</span></label>
+              <label class="option"><input type="radio" name="direction" value="Option B"><span><strong>Option B</strong><br>Replace this with a short consequence or tradeoff.</span></label>
+            </div>
+          </fieldset>
+          <div class="actions">
+            <button type="submit">Queue answer</button>
+            <span class="status" role="status" aria-live="polite"></span>
+          </div>
+        </form>
+      </div>
+
+      <footer>Tip: select text or click content to annotate. Press ⌘/Ctrl+Enter to queue, Escape to dismiss, and ⌘/Ctrl+S to send.</footer>
+    </main>
+
+    <script>
+      document.querySelectorAll("[data-review-question]").forEach((form) => {
+        form.addEventListener("submit", (event) => {
+          event.preventDefault();
+          const status = form.querySelector(".status");
+          const question = form.dataset.reviewQuestion;
+          const answer = new FormData(form).get(question);
+          if (!answer) {
+            status.textContent = "Choose an option first.";
+            return;
+          }
+          if (!window.htmlReview?.queuePrompt) {
+            status.textContent = "Open this page through the review session to queue feedback.";
+            return;
+          }
+          window.htmlReview.queuePrompt(`For ${question}, use ${answer}.`, {
+            tag: "answer",
+            text: `${question}: ${answer}`,
+            element: form,
+            data: { question, answer },
+          });
+          status.textContent = "Answer queued. Send it from the conversation panel when ready.";
+        });
+      });
+    </script>
+  </body>
+</html>
