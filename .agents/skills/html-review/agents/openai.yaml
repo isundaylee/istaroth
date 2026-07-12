@@ -1,0 +1,4 @@
+interface:
+  display_name: "HTML Review"
+  short_description: "Create simple annotated review pages"
+  default_prompt: "Use $html-review to create a focused HTML review page for these decisions."
