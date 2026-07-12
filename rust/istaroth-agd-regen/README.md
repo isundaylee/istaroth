@@ -46,6 +46,28 @@ LTO'd variant if binary size ever matters. Day-to-day iteration is
 edit → ~1 s build → ~2.9 s run (~4 s total, vs ~17 s run for Python with no
 build step).
 
+## Tests
+
+`cargo test` runs the test suite ported from the Python tests:
+
+- **Unit tests** (in-module, no data needed): the pure-logic core — talk
+  branch/convergence rendering, text-marker cleanup, TextMap fallback
+  semantics, talkId collision resolution, the first-seen index, the Coop
+  graph walk, questline-name/speaker-name derivation.
+- **`tests/agd_integration.rs`** (skips unless `AGD_PATH` is set): targeted
+  spot checks over the real AGD checkout without a full corpus regen —
+  processing/rendering of known quests, talks, books, creatures, subtitles,
+  hangouts, and hierarchies. Includes the deobfuscation canaries that fail
+  loudly on the next AGD version bump when obfuscated keys rotate (the signal
+  to run the agd-deobfuscate / agd-version-upgrade skills).
+- **`tests/corpus_sanity.rs`**: content pins against the committed `text/`
+  submodule (both CHS and ENG), implementation-independent.
+
+The full end-to-end assertion remains the corpus itself: regen and diff
+against the committed `text/` submodule (see below; today via the
+byte-identical comparison with Python, eventually as a golden-corpus check
+once the Python pipeline is retired).
+
 ## Verify against Python
 
 ```bash

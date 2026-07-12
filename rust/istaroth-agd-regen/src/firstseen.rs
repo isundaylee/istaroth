@@ -146,3 +146,75 @@ impl FirstSeenIndex {
         self.resolve([(domain, &key)])
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn write_delta(dir: &Path, version: &str, new: serde_json::Value) {
+        let payload =
+            json!({"version": version, "commit": format!("commit-{version}"), "new": new});
+        std::fs::write(
+            dir.join(format!("{version}.json")),
+            serde_json::to_vec(&payload).unwrap(),
+        )
+        .unwrap();
+    }
+
+    /// Fresh delta dir with 1.4 / 2.0 / 10.0 files; 10.0 ensures folding
+    /// orders numerically, not lexicographically (10 > 2).
+    fn delta_dir(name: &str) -> std::path::PathBuf {
+        let dir =
+            std::env::temp_dir().join(format!("istaroth-firstseen-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        write_delta(
+            &dir,
+            "1.4",
+            json!({"main_quest": [351], "talk": [100], "readable": ["Book1"]}),
+        );
+        write_delta(&dir, "2.0", json!({"talk": [200, 201]}));
+        write_delta(&dir, "10.0", json!({"talk": [300]}));
+        dir
+    }
+
+    #[test]
+    fn resolve_min_max() {
+        let index = FirstSeenIndex::load(&delta_dir("resolve")).unwrap();
+        assert_eq!(
+            index.resolve_int(Domain::Talk, 200).unwrap(),
+            ("2.0".to_string(), "2.0".to_string())
+        );
+        assert_eq!(
+            index.resolve_ints(Domain::Talk, [300, 100, 201]).unwrap(),
+            ("1.4".to_string(), "10.0".to_string())
+        );
+        let book = SourceKey::Str("Book1".to_string());
+        let quest = SourceKey::Int(351);
+        assert_eq!(
+            index
+                .resolve([(Domain::MainQuest, &quest), (Domain::Readable, &book)])
+                .unwrap(),
+            ("1.4".to_string(), "1.4".to_string())
+        );
+    }
+
+    #[test]
+    fn resolve_unknown_or_empty_errors() {
+        let index = FirstSeenIndex::load(&delta_dir("unknown")).unwrap();
+        let err = index.resolve_int(Domain::Talk, 999).unwrap_err();
+        assert!(err.to_string().contains("not in the first-seen index"));
+        assert!(index.resolve([]).is_err());
+    }
+
+    #[test]
+    fn load_rejects_duplicate_id() {
+        let dir = delta_dir("duplicate");
+        write_delta(&dir, "3.0", json!({"talk": [100]}));
+        let Err(err) = FirstSeenIndex::load(&dir) else {
+            panic!("duplicate id must fail the load")
+        };
+        assert!(err.to_string().contains("listed twice"));
+    }
+}
