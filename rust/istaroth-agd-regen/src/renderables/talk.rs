@@ -184,9 +184,9 @@ fn get_role_name(
     }
     // Prefer the name-hash resolution, but an EMPTY resolved name falls
     // through to the role-derived name (or-chain truthiness).
-    let resolved = match &by_name_hash {
-        Some(s) if !s.is_empty() => by_name_hash.clone(),
-        _ => by_role.clone(),
+    let resolved = match by_name_hash {
+        Some(s) if !s.is_empty() => Some(s),
+        _ => by_role,
     };
     if resolved.is_some() {
         return Ok(resolved);
@@ -369,8 +369,13 @@ impl<'a> TalkTextGraph<'a> {
     }
 }
 
+/// Whether a dialog line survives rendering (`render_dialog_line`'s filter).
+fn dialog_line_renders(t: &TalkText, language: Language) -> bool {
+    !t.skip && !util::should_skip_text(&t.message, language)
+}
+
 fn render_dialog_line(t: &TalkText, language: Language) -> Option<String> {
-    if t.skip || util::should_skip_text(&t.message, language) {
+    if !dialog_line_renders(t, language) {
         return None;
     }
     match &t.role {
@@ -760,7 +765,7 @@ pub fn render_talk_body(
     let first_message = talk
         .text
         .iter()
-        .find(|t| render_dialog_line(t, language).is_some() && !t.message.trim().is_empty())
+        .find(|t| dialog_line_renders(t, language) && !t.message.trim().is_empty())
         .map(|t| t.message.clone());
     let (filename, title) = match first_message {
         Some(msg) => {
@@ -768,7 +773,7 @@ pub fn render_talk_body(
             let title = if msg.chars().count() > 100 {
                 msg.chars().take(100).collect()
             } else {
-                msg.clone()
+                msg
             };
             (format!("{talk_id}_{safe_title}.txt"), title)
         }

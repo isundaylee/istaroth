@@ -123,27 +123,31 @@ pub fn derive_speaker_group_name(info: &TalkGroupInfo, language: Language) -> Op
                 let Some(name) = &talk_text.role else {
                     continue;
                 };
-                let mut name = name.clone();
+                let mut name = name.as_str();
                 // A role rendered as "X (Y)" is the talk renderer's
                 // by-role/by-name-hash mismatch composite; count its more
                 // specific half so e.g. "旅行者 (观察花卉)" titles as
                 // "观察花卉" and "遗迹的铭文 (铭文)" dedups with a plain
                 // "遗迹的铭文".
-                if let Some(m) = COMPOSITE_ROLE.captures(&name) {
+                if let Some(m) = COMPOSITE_ROLE.captures(name) {
                     let g1 = m.get(1).unwrap().as_str();
                     let g2 = m.get(2).unwrap().as_str();
                     name = if generic_speakers.contains(&g1) {
-                        g2.to_string()
+                        g2
                     } else {
-                        g1.to_string()
+                        g1
                     };
                 }
-                if generic_speakers.contains(&name.as_str()) || name.starts_with(roles.unknown_role)
-                {
+                if generic_speakers.contains(&name) || name.starts_with(roles.unknown_role) {
                     continue;
                 }
-                let next_seq = speakers.len();
-                speakers.entry(name).or_insert((next_seq, 0)).1 += 1;
+                match speakers.get_mut(name) {
+                    Some(v) => v.1 += 1,
+                    None => {
+                        let next_seq = speakers.len();
+                        speakers.insert(name.to_string(), (next_seq, 1));
+                    }
+                }
             }
         }
     }
@@ -151,14 +155,15 @@ pub fn derive_speaker_group_name(info: &TalkGroupInfo, language: Language) -> Op
         return None;
     }
     // Descending by count, first-appearance order on ties.
-    let mut items: Vec<(&String, (usize, usize))> = speakers.iter().map(|(k, v)| (k, *v)).collect();
+    let num_speakers = speakers.len();
+    let mut items: Vec<(String, (usize, usize))> = speakers.into_iter().collect();
     items.sort_by_key(|(_, (seq, count))| (std::cmp::Reverse(*count), *seq));
     let mut top: Vec<String> = items
-        .iter()
+        .into_iter()
         .take(SPEAKER_TITLE_LIMIT)
-        .map(|(name, _)| (*name).clone())
+        .map(|(name, _)| name)
         .collect();
-    if speakers.len() > SPEAKER_TITLE_LIMIT {
+    if num_speakers > SPEAKER_TITLE_LIMIT {
         top.push("...".to_string());
     }
     Some(top.join(" / "))

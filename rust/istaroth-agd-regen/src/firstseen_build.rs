@@ -122,11 +122,19 @@ fn domain_index(name: &str) -> Result<usize> {
 
 /// Field-name style varies by era (and by file within one era): 1.x dumps use
 /// PascalCase ("Id"/"SetId"), some ~2.7-3.x dumps underscore-prefixed
-/// camelCase ("_id"), current dumps plain camelCase.
-fn row_id(row: &Value, id_key: &str) -> Result<i64> {
-    let capitalized = format!("{}{}", id_key[..1].to_uppercase(), &id_key[1..]);
-    let underscored = format!("_{id_key}");
-    for key in [id_key, capitalized.as_str(), underscored.as_str()] {
+/// camelCase ("_id"), current dumps plain camelCase. Compute the candidate
+/// spellings once per file, not per row.
+fn id_key_candidates(id_key: &str) -> [String; 3] {
+    [
+        id_key.to_string(),
+        format!("{}{}", id_key[..1].to_uppercase(), &id_key[1..]),
+        format!("_{id_key}"),
+    ]
+}
+
+fn row_id(row: &Value, candidates: &[String; 3]) -> Result<i64> {
+    let id_key = &candidates[0];
+    for key in candidates {
         if let Some(v) = row.get(key) {
             return v
                 .as_i64()
@@ -175,9 +183,10 @@ fn scan_snapshot(agd_path: &Path, commit: &str) -> Result<DomainSets> {
         .map(|(domain, filename, id_key)| {
             let bytes = git_show(agd_path, commit, &format!("ExcelBinOutput/{filename}"))?
                 .ok_or_else(|| anyhow!("missing {filename} at {commit}"))?;
+            let candidates = id_key_candidates(id_key);
             let ids: FxHashSet<Key> = parse_rows(&bytes)?
                 .iter()
-                .map(|row| Ok(Key::Int(row_id(row, id_key)?)))
+                .map(|row| Ok(Key::Int(row_id(row, &candidates)?)))
                 .collect::<Result<_>>()?;
             Ok((domain_index(domain)?, ids))
         })
@@ -186,9 +195,10 @@ fn scan_snapshot(agd_path: &Path, commit: &str) -> Result<DomainSets> {
         let (idx, ids) = r?;
         present[idx].extend(ids);
     }
+    let talk_id_candidates = id_key_candidates("id");
     let talk_ids: FxHashSet<Key> = load_talk_excel_at(agd_path, commit)?
         .iter()
-        .map(|row| Ok(Key::Int(row_id(row, "id")?)))
+        .map(|row| Ok(Key::Int(row_id(row, &talk_id_candidates)?)))
         .collect::<Result<_>>()?;
     present[domain_index("talk")?].extend(talk_ids);
 

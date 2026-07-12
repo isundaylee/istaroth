@@ -41,11 +41,12 @@ pub fn should_skip_readable_content(content: &str, language: crate::lang::Langua
         || should_skip_text(stripped, language)
 }
 
-/// First 12 hex chars of sha256(s) as an integer (subtitle/material/creature ids).
+/// First 12 hex chars of sha256(s) as an integer (subtitle/material/creature
+/// ids), i.e. the first 6 digest bytes big-endian.
 pub fn sha256_id(s: &str) -> i64 {
-    let digest = Sha256::digest(s.as_bytes());
-    let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
-    i64::from_str_radix(&hex[..12], 16).unwrap()
+    Sha256::digest(s.as_bytes())[..6]
+        .iter()
+        .fold(0i64, |acc, &b| (acc << 8) | i64::from(b))
 }
 
 /// Title-case: uppercase each letter that follows a non-letter, lowercase the rest.

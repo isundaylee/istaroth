@@ -481,10 +481,10 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
             order: best_order,
             tiebreak,
             desc,
+            // Each hinted talk is placed exactly once; move its info out.
             info: talk_infos
-                .get(&talk_id)
-                .ok_or_else(|| anyhow!("talk {talk_id} has no info"))?
-                .clone(),
+                .remove(&talk_id)
+                .ok_or_else(|| anyhow!("talk {talk_id} has no info"))?,
             is_lead_in,
         });
     }

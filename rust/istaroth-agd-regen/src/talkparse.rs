@@ -121,18 +121,18 @@ fn talk_signature(data: &Value, tm: &TextMaps) -> Result<Option<TalkSignature>> 
     }))
 }
 
-fn preference_key(group_id: &str, path: &str) -> (i64, i64, String) {
+fn preference_key<'a>(group_id: &str, path: &'a str) -> (i64, i64, &'a str) {
     let stem = util::path_stem(path);
     if stem == group_id {
-        return (0, 0, path.to_string());
+        return (0, 0, path);
     }
     if let Some((prefix, suffix)) = stem.split_once('_')
         && prefix == group_id
         && util::is_ascii_digits(suffix)
     {
-        return (1, -suffix.parse::<i64>().unwrap(), path.to_string());
+        return (1, -suffix.parse::<i64>().unwrap(), path);
     }
-    (2, 0, path.to_string())
+    (2, 0, path)
 }
 
 fn is_talk_file(data: &Value) -> bool {
@@ -171,7 +171,7 @@ fn sorted_counter(a: &FxHashMap<String, usize>) -> Vec<(String, usize)> {
 /// lexicographically smallest.
 fn min_by_canonical<'a>(paths: impl Iterator<Item = &'a String>, talk_id_str: &str) -> String {
     paths
-        .map(|p| ((util::path_stem(p) != talk_id_str, p.clone()), p))
+        .map(|p| ((util::path_stem(p) != talk_id_str, p.as_str()), p))
         .min_by(|a, b| a.0.cmp(&b.0))
         .map(|(_, p)| p.clone())
         .unwrap()

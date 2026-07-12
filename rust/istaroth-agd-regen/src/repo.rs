@@ -296,16 +296,17 @@ fn build_quest_mapping(quest_files: &FxHashMap<String, Value>) -> Result<FxHashM
 /// component.
 fn localization_readable_paths<'a>(
     entry: &'a Value,
-    language_short: &str,
+    language_short: &'a str,
+    language_suffix: &'a str,
 ) -> impl Iterator<Item = &'a str> {
-    let suffix = format!("_{language_short}");
-    let language_short = language_short.to_string();
     entry
         .as_object()
         .into_iter()
         .flat_map(|o| o.values())
         .filter_map(|v| v.as_str())
-        .filter(move |p| p.ends_with(&suffix) || p.split('/').any(|part| part == language_short))
+        .filter(move |p| {
+            p.ends_with(language_suffix) || p.split('/').any(|part| part == language_short)
+        })
 }
 
 /// Localization-derived maps (single pass, sorted field order per entry):
@@ -317,9 +318,10 @@ fn build_readable_localization_maps(
 ) -> Result<(FxHashMap<String, i64>, FxHashMap<i64, String>)> {
     let mut readable_stem_to_loc_id = FxHashMap::default();
     let mut loc_id_to_readable_filename = FxHashMap::default();
+    let language_suffix = format!("_{language_short}");
     for entry in localization {
         let id = entry.i("id")?;
-        for path_str in localization_readable_paths(entry, language_short) {
+        for path_str in localization_readable_paths(entry, language_short, &language_suffix) {
             let name = util::path_name(path_str);
             readable_stem_to_loc_id
                 .entry(name.to_string())
@@ -638,6 +640,7 @@ fn build_localization_id_to_stems(
     language_short: &str,
 ) -> Result<FxHashMap<i64, Vec<String>>> {
     let mut localization_id_to_stems: FxHashMap<i64, Vec<String>> = FxHashMap::default();
+    let language_suffix = format!("_{language_short}");
     for entry in localization {
         let id = entry.i("id")?;
         for path_value in entry.as_object().into_iter().flat_map(|o| o.values()) {
@@ -645,7 +648,7 @@ fn build_localization_id_to_stems(
                 continue;
             };
             let stem = util::path_stem(path_str);
-            if stem.ends_with(&format!("_{language_short}")) {
+            if stem.ends_with(&language_suffix) {
                 localization_id_to_stems
                     .entry(id)
                     .or_default()
