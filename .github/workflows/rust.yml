@@ -1,0 +1,29 @@
+name: Rust
+
+on:
+  push:
+    branches: [ main, rust-agd-regen ]
+    paths:
+      - 'rust/**'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/rust.yml'
+  pull_request:
+    branches: [ main, rust-agd-regen ]
+    paths:
+      - 'rust/**'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/rust.yml'
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    # Installs the toolchain pinned in rust-toolchain.toml and sets up cargo caching.
+    - uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        cache-workspaces: rust
+    - run: cargo fmt --manifest-path rust/Cargo.toml --all -- --check
+    - run: cargo clippy --manifest-path rust/Cargo.toml --workspace --all-targets -- -D warnings
+    - run: cargo build --manifest-path rust/Cargo.toml --workspace
+    - run: cargo test --manifest-path rust/Cargo.toml --workspace
