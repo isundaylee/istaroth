@@ -92,6 +92,7 @@ istaroth/
 
 ## Import Conventions
 - The raw AGD parsing types now live in the Rust regen crate; on the Python side only `istaroth/agd/processed_types.py` remains (the processed `attrs` types the corpus readers deserialize), imported plainly as `from istaroth.agd import processed_types`.
+- The retired Python AGD regen implementation (removed in #406) is preserved in history at main commit `d133d0f192d8` — for historic review or reference, read it from that revision (e.g. `git show d133d0f192d8:istaroth/agd/repo.py`).
 - ALWAYS use from package.subpackage import module import syntax; e.g. from istaroth.agd import processing
 
 ## Functional Programming Guidelines
