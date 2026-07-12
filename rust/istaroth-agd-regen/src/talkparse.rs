@@ -1,5 +1,15 @@
-//! Port of istaroth.agd.talk_parsing.TalkParser: classify BinOutput/Talk files
-//! and resolve talkId/talk-group collisions.
+//! Port of istaroth.agd.talk_parsing: classify BinOutput/Talk files and
+//! resolve talkId/talk-group collisions.
+//!
+//! Two subdirectories are special-cased rather than registered as resolvable
+//! talkIds:
+//! - `Coop` holds hangout dialogue named `<coopStoryId>_<localTalkId>.json`,
+//!   whose local talkId collides across stories; the Hangouts renderable
+//!   consumes them directly via the Coop story graph, grouped per coopStoryId.
+//! - `FreeGroup` holds Lua-invoked "free talks" with no reference-graph
+//!   linkage in the dump (and ids that collide with other talks); each is
+//!   attached to its owning quest by the talkId-numbering heuristic and
+//!   rendered in a separate quest section.
 
 use crate::textmap::TextMaps;
 use crate::util;
@@ -36,7 +46,13 @@ pub struct TalkParseResult {
     pub free_group_quest_to_paths: FxHashMap<i64, Vec<String>>,
 }
 
-/// Owning quest id for a FreeGroup talk, from its talkId numbering.
+/// Owning quest id for a FreeGroup talk, inferred from its talkId numbering.
+///
+/// FreeGroup talkIds follow `<questId><index>`; dropping the trailing
+/// two-digit index yields the quest id, except for the `<questId>99<index>`
+/// ambient-talk bucket where two more digits are dropped. Returns None when
+/// the id is too short to contain a quest id (degenerate FreeGroup files like
+/// `7.json`).
 fn free_group_quest_id(talk_id: &str) -> Option<i64> {
     let mut base = &talk_id[..talk_id.len().saturating_sub(2)];
     if base.len() >= 6 && base.ends_with("99") {
@@ -49,17 +65,31 @@ fn free_group_quest_id(talk_id: &str) -> Option<i64> {
     }
 }
 
+/// Content fingerprint of a talk file used to resolve talkId collisions.
 struct TalkSignature {
+    /// The (dialog id, content hash) sequence, for byte-identity checks.
     dialogs: Vec<(i64, i64)>,
+    /// The (dialog id, resolved text) sequence for hashes that resolve.
     dialog_texts: Vec<(i64, String)>,
+    /// Resolved text multiplicities, independent of remapped dialog ids.
     text_counts: FxHashMap<String, usize>,
+    /// (dialog id, content hash) pairs whose hash resolves to real text.
     text_dialogs: FxHashSet<(i64, i64)>,
+    /// Dialog ids whose content hash resolves to real text.
     text_ids: FxHashSet<i64>,
 }
 
+/// Content signature of a candidate file, or None if it has no dialogList
+/// (a present non-list value, including null, is a parse failure).
+///
+/// Resolves against the current build only (not the TextMap fallback): a
+/// stale hash-named duplicate can carry a content hash that only the fallback
+/// resolves, to a near-identical older-build variant of the canonical file's
+/// text (e.g. differing punctuation), which would otherwise make two
+/// candidates look like conflicting content and drop the talkId. Same
+/// reasoning as role-name hash lookups staying current-only (see
+/// `get_role_name` in renderables/talk.rs).
 fn talk_signature(data: &Value, tm: &TextMaps) -> Result<Option<TalkSignature>> {
-    // Python: KeyError (missing key) means "no dialogList"; a present non-list
-    // value (including null) is a parse failure.
     let Some(raw) = data.get("dialogList") else {
         return Ok(None);
     };
@@ -137,7 +167,8 @@ fn sorted_counter(a: &FxHashMap<String, usize>) -> Vec<(String, usize)> {
     v
 }
 
-/// Python max(): the first maximal element on ties.
+/// max() that returns the FIRST maximal element on ties (the reference
+/// output depends on this, unlike `Iterator::max_by_key` which keeps the last).
 fn py_max_by_key<T, K: Ord>(items: &[T], key: impl Fn(&T) -> K) -> &T {
     let mut best = &items[0];
     let mut best_key = key(best);
@@ -182,7 +213,8 @@ pub fn parse_talks(
         }
         let key_id = match group_type {
             "ActivityGroup" | "NpcGroup" | "StoryboardGroup" => {
-                // Python `a or b or c`: first truthy operand, else the last one.
+                // First truthy of activityId/npcId/storyboardId, else the last
+                // (or-chain semantics: 0 falls through).
                 let chain = [
                     data.get("activityId"),
                     data.get("npcId"),
@@ -199,6 +231,10 @@ pub fn parse_talks(
                 }
             }
             "GadgetGroup" => {
+                // configId alone is not unique across GadgetGroup files (issue
+                // #186); fold in groupId as the file's own composite key. Both
+                // fields are required on every GadgetGroup file, so a missing
+                // key errors rather than silently mis-keying the file.
                 format!(
                     "{}_{}",
                     data.i("configId").with_context(|| rel.to_string())?,
@@ -295,7 +331,16 @@ pub fn parse_talks(
         coop_story_to_paths.insert(story_id, talks.into_iter().map(|(_, p)| p).collect());
     }
 
-    // Resolve talkId collisions.
+    // Collapse per-talkId candidate files into a single authoritative path.
+    // Several files can share a talkId (e.g. a canonical and a hash-named
+    // copy, distinct Coop hangouts reusing a local id, or the same id in
+    // Quest and Npc). Resolution, in order: (1) the file whose initDialog
+    // dialog actually carries text, when exactly one qualifies; (2) when the
+    // text-bearing files are equivalent, the canonically-named
+    // `<talkId>.json` copy over a hash-named one; (3) when one candidate's
+    // text-bearing dialogs are a superset of every other's, that fuller copy
+    // (the rest being stubs); (4) otherwise the talkId is genuinely
+    // ambiguous and is dropped.
     let mut talk_id_to_path: FxHashMap<i64, String> = FxHashMap::default();
     for (talk_id, candidates) in &talk_candidates {
         if candidates.len() == 1 {
@@ -345,6 +390,10 @@ pub fn parse_talks(
             .map(|p| sorted_counter(&signatures[*p].text_counts))
             .collect();
         if distinct_dialogs.len() <= 1 || distinct_texts.len() <= 1 || distinct_counts.len() <= 1 {
+            // Equivalent content: prefer the canonically-named `<talkId>.json`
+            // copy over a hash-named one. Hash-identical files can come from
+            // different builds, and text-identical files can carry remapped
+            // hashes for the same displayed dialogue.
             let pool: Vec<&String> = if textful.is_empty() {
                 usable.clone()
             } else {
@@ -354,8 +403,12 @@ pub fn parse_talks(
             continue;
         }
 
-        // Stub-vs-full by (id, content-hash) pairs. Python max() keeps the
-        // FIRST maximal element on ties.
+        // Stub-vs-full collision: when one candidate's text-bearing dialogs
+        // are a superset of every other textful candidate's, that fuller copy
+        // is authoritative and the rest are stubs missing real dialogue
+        // (issue #75). Comparing the (id, content-hash) pairs of text-bearing
+        // dialogs — not dialog ids alone — keeps distinct talks that merely
+        // reuse local dialog ids (e.g. Coop hangouts) ambiguous.
         let superset = py_max_by_key(&textful, |p| signatures[*p].text_dialogs.len());
         if textful.iter().all(|p| {
             signatures[*p]

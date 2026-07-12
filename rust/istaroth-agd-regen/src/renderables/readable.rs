@@ -14,7 +14,7 @@ pub struct ReadableMetadata {
     pub title: String,
 }
 
-/// Port of readable.get_readable_metadata.
+/// Retrieve metadata (localization id + title) for a readable file.
 pub fn get_readable_metadata(
     repo: &Repo,
     scope: &Scope,
@@ -45,7 +45,11 @@ pub fn get_readable_metadata(
     })
 }
 
-/// Port of readable.load_readable: cleaned content + metadata, or None to skip.
+/// Read and clean a readable's content and metadata.
+///
+/// Returns None for empty/placeholder/dev-test readables (the per-file skip
+/// rules) so callers can drop them; errors if the file itself is missing.
+/// Reading the content marks it accessed in the readables tracking.
 pub fn load_readable(
     repo: &Repo,
     scope: &Scope,
@@ -65,7 +69,7 @@ pub fn load_readable(
     Ok(Some((content, metadata)))
 }
 
-/// Port of readable.render_readable_like (readable/wings/costume + standalone book).
+/// Render readable-style content (readable/wings/costume + standalone book).
 pub fn render_readable_like(
     repo: &Repo,
     content: &str,

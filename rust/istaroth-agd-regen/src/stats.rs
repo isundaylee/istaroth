@@ -5,7 +5,7 @@ use crate::git::git_output;
 use anyhow::Result;
 use std::path::Path;
 
-/// Port of `_generate_metadata`: language + AGD/istaroth git provenance.
+/// metadata.json payload: language + AGD/istaroth git provenance.
 pub fn generate_metadata(
     agd_path: &Path,
     istaroth_path: &Path,
@@ -100,7 +100,7 @@ pub struct UnusedStats {
 }
 
 impl UnusedStats {
-    /// Console lines mirroring Python's `format_unused_stats` echoes.
+    /// Console summary lines for the unused-id percentages.
     pub fn echo(&self) {
         for (label, unused, total) in [
             ("Text map", self.text_map.0.len(), self.text_map.1),
@@ -116,7 +116,7 @@ impl UnusedStats {
         }
     }
 
-    /// Port of TrackerStats.format_stats (stats + unused_ids sections).
+    /// unused_stats.json payload (stats + unused_ids sections).
     pub fn to_json(&self) -> serde_json::Value {
         serde_json::json!({
             "stats": {

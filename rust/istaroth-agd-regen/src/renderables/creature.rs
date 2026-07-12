@@ -1,4 +1,5 @@
-//! Port of renderables/creature.py.
+//! Port of renderables/creature.py: living-beings archive (monsters and
+//! wildlife) grouped by codex subType.
 
 use crate::firstseen::Domain;
 use crate::issues::Scope;

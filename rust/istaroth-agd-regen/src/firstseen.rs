@@ -1,4 +1,12 @@
 //! Port of istaroth.agd.first_seen: folded first-seen version index.
+//!
+//! Maps raw AGD source ids (main quests, talks, readables, ...) to the game
+//! version in which they first appeared. The index is folded from the
+//! per-version delta files under `first_seen/` in the `text/` submodule, each
+//! listing the ids newly seen in that version's AGD snapshot (built by the
+//! `build-first-seen` command / `scripts/agd_build_first_seen.py` from the
+//! AGD git history and committed alongside the corpus regenerations they
+//! stamp).
 
 use crate::util;
 use anyhow::{Context, Result, anyhow, bail};
@@ -37,6 +45,8 @@ impl Domain {
     }
 }
 
+/// Readable/subtitle domains are keyed by language-neutral filename stems
+/// (Str); the rest are int-keyed.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub enum SourceKey {
     Int(i64),

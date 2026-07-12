@@ -1,4 +1,5 @@
-//! Port of renderables/anecdote.py.
+//! Port of renderables/anecdote.py: Anecdote (Odd Encounter) blurbs and
+//! storyboard talks.
 
 use crate::firstseen::Domain;
 use crate::issues::{IssueType, Scope};
@@ -16,6 +17,9 @@ pub fn discover(repo: &Repo) -> Result<Vec<i64>> {
     Ok(ids)
 }
 
+/// Assemble an anecdote's blurbs and storyboard talks, or None if talk-less.
+/// `has_non_skip_text` is required: skip-flagged (dev/test) lines are dropped
+/// at render time, so an all-skip talk would emit an empty section.
 pub fn process(repo: &Repo, scope: &Scope, anecdote_id: i64) -> Result<Option<RenderedItem>> {
     let entry = repo
         .excel

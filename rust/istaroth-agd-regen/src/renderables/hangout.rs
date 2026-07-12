@@ -115,7 +115,7 @@ fn resolve_coop_option(
     seen: &mut FxHashSet<i64>,
     next_choice_id: &mut usize,
 ) -> Result<CoopOption> {
-    // Python walrus truthiness: a content hash of 0 yields no prompt.
+    // A content hash of 0 yields no prompt (falsy, not just absent).
     let prompt = match branch.dialog_id {
         Some(dialog_id) => match repo.dialog_id_to_content_hash.get(&dialog_id) {
             Some(&h) if h != 0 => repo.tm.get_optional(h, scope)?,
@@ -132,8 +132,7 @@ fn resolve_coop_option(
         Some(v) if truthy(v) => Some(parse_cond_grp(v)?),
         _ => None,
     };
-    // enableCondGrp is parsed for strict-shape validation (Python stores it
-    // too) but never rendered.
+    // enableCondGrp is parsed for strict-shape validation but never rendered.
     if let Some(v) = &branch.enable_cond
         && truthy(v)
     {
@@ -154,6 +153,10 @@ pub struct HangoutInfo {
     stories: Vec<Vec<CoopStep>>,
 }
 
+/// Assemble a hangout quest's play-ordered Coop story dialogue, or None if
+/// empty. `quest_id` is always a hangout quest (the Hangouts pass discovers
+/// them from `hangout_quest_to_stories`), so its stories and main-quest entry
+/// are indexed strictly.
 pub fn get_hangout_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Option<HangoutInfo>> {
     let stories = repo
         .hangout_quest_to_stories
@@ -234,6 +237,8 @@ pub fn get_hangout_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Opt
     }))
 }
 
+/// Depth-first numbering of all choice steps into `mapping` (choice id ->
+/// fork number).
 fn assign_fork_numbers(steps: &[CoopStep], counter: &mut i64, mapping: &mut FxHashMap<usize, i64>) {
     for step in steps {
         if let CoopStep::Choice { id, options } = step {
@@ -246,6 +251,12 @@ fn assign_fork_numbers(steps: &[CoopStep], counter: &mut i64, mapping: &mut FxHa
     }
 }
 
+/// Render a `### Choice N:` section and return (lines, nested_sections).
+///
+/// `nested_sections` contains fully-rendered `### Choice N:` sections for
+/// choices nested inside branches (to be appended after the current level).
+/// The nested sections are rendered as separate top-level `### Choice` blocks
+/// that the `*→ Next: Choice N*` markers at the end of each branch reference.
 fn render_choice_section(
     step: &CoopStep,
     fork_num: i64,
@@ -319,6 +330,8 @@ fn render_choice_section(
     Ok((lines, nested))
 }
 
+/// Render a hangout story's play-ordered steps with explicit branch routing.
+/// `fork_map` is the output of `assign_fork_numbers`.
 fn render_coop_steps(
     steps: &[CoopStep],
     fork_map: &FxHashMap<usize, i64>,

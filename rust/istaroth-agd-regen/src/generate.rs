@@ -67,7 +67,8 @@ fn run_pass<K: Sync>(
                 let line = format!("✗ {pass_name}: {} -> ERROR: {e:#}", key_desc(&keys[i]));
                 eprintln!("{line}");
                 writeln!(state.errors_file, "{line}")?;
-                // Python drops a failed item's accesses and issues.
+                // A failed item's accesses and issues are dropped, so a
+                // half-parsed item can't skew cross-pass exclusion or stats.
             }
             Ok(item) => {
                 state.used_talks.extend(scope.talks.into_inner());
@@ -127,13 +128,14 @@ fn run_pass<K: Sync>(
     Ok(())
 }
 
-/// Python `json.dumps(obj, ensure_ascii=False, indent=2).encode()`.
+/// Indented JSON in the reference output format (2-space indent, non-ASCII
+/// preserved).
 fn dumps_indented<T: Serialize>(value: &T) -> Result<Vec<u8>> {
     Ok(serde_json::to_vec_pretty(value)?)
 }
 
-/// Run the full generation. Exits the process directly (like the Python
-/// pipeline's `os._exit`) to skip freeing the huge shared caches.
+/// Run the full generation. Exits the process directly to skip freeing the
+/// huge shared caches.
 pub fn generate_all(
     agd_path: &Path,
     first_seen_dir: &Path,
@@ -143,9 +145,9 @@ pub fn generate_all(
     verbose: bool,
 ) -> Result<()> {
     let t_start = Instant::now();
-    // The load scope collects text-map accesses made building derived mappings
-    // (Python: the run-level parent scope); folded into usage stats after all
-    // passes so it never affects the passes' cross-pass exclusion sets.
+    // The load scope collects text-map accesses made building derived
+    // mappings; folded into usage stats after all passes so it never affects
+    // the passes' cross-pass exclusion sets.
     let load_scope = Scope::default();
     let repo = Repo::load(agd_path, first_seen_dir, language, verbose, &load_scope)?;
     eprintln!("Repo loaded in {:.2}s", t_start.elapsed().as_secs_f64());
@@ -175,7 +177,8 @@ pub fn generate_all(
     let stats_dir = output_dir.join("stats").join("agd");
     std::fs::create_dir_all(&stats_dir)?;
 
-    // metadata.json (git provenance) before generation, like Python.
+    // metadata.json (git provenance) is written before generation so even a
+    // failed run records what it ran against.
     {
         let metadata_path = stats_dir.join("metadata.json");
         std::fs::write(
@@ -431,8 +434,9 @@ pub fn generate_all(
         bail!("Talks pass rendered >= 50 items; loose-content sanity bound exceeded");
     }
 
-    // Parent-scope (load-time) text-map accesses fold in only after all passes,
-    // like Python folds the run-level scope after the pass loop.
+    // Parent-scope (load-time) text-map accesses fold in only after all
+    // passes; folding earlier would let load-time accesses mask per-pass ones
+    // in the unused stats.
     state
         .accessed_text_map
         .extend(load_scope.text_map.into_inner());
@@ -483,7 +487,7 @@ pub fn generate_all(
         );
     }
 
-    // Parsing-issue counts (JSON) and detail list (info), mirroring Python.
+    // Parsing-issue counts (JSON) and detail list (info).
     {
         let mut counts = serde_json::Map::new();
         for (category, _, _, _, issues) in &state.summary {
@@ -589,7 +593,7 @@ pub fn generate_all(
         state.errors,
         t_start.elapsed().as_secs_f64()
     );
-    // Like the Python pipeline's os._exit: skip freeing the huge shared caches.
+    // Exit without unwinding: freeing the huge shared caches wastes seconds.
     let code = if state.errors > 0 { 1 } else { 0 };
     std::io::Write::flush(&mut std::io::stderr()).ok();
     std::process::exit(code);

@@ -1,4 +1,6 @@
-//! Ports of quest_hierarchy.py and coop_hierarchy.py.
+//! Port of istaroth.agd.quest_hierarchy + coop_hierarchy: the browsable
+//! quest hierarchy (type -> series -> chapter -> quest) and hangout
+//! hierarchy (character -> chapter -> quest).
 
 use crate::issues::Scope;
 use crate::renderables::quest;
@@ -34,8 +36,16 @@ fn quest_leaf(quest_id: i64, title: &str) -> HierarchyNode {
     }
 }
 
+// Display order for top-level quest types; any unlisted type is appended after.
 const TYPE_ORDER: [&str; 5] = ["AQ", "LQ", "WQ", "EQ", "IQ"];
 
+/// Order a chapter's quest leaves by narrative sequence.
+///
+/// Quest ids do not track play order, so follow each quest's
+/// `suggestTrackMainQuestList` "next quest" pointers, seeded from the
+/// chapter's begin quest, taking the lowest-id branch for determinism. Quests
+/// the chain never reaches (parallel/branching world quests, or chapters with
+/// no begin quest) are appended in id order as a fallback.
 fn order_quests(
     repo: &Repo,
     quests: Vec<HierarchyNode>,
@@ -46,6 +56,9 @@ fn order_quests(
         by_id.insert(q.file_id.unwrap(), q);
     }
     let next_of = |quest_id: i64| -> Result<Vec<i64>> {
+        // Every quest reached here is in by_id, which build_quest_hierarchy
+        // only populated with quests that have a MainQuest entry, so index
+        // strictly.
         let mut targets: Vec<i64> = repo.excel.main_quest[&quest_id]
             .arr("suggestTrackMainQuestList")?
             .iter()
@@ -102,6 +115,8 @@ fn make_chapters(
     let mut by_chapter = by_chapter;
     let mut nodes = Vec::new();
     for cid in chapter_ids {
+        // by_chapter ids all come from main-quest chapterIds, every one of
+        // which is present in ChapterExcelConfigData, so index strictly.
         let chapter = &repo.excel.chapter[&cid];
         let title = quest::get_chapter_title(repo, scope, chapter)?;
         let begin_quest_id = chapter.i("beginQuestId")? / 100;
@@ -117,9 +132,16 @@ fn make_chapters(
     Ok(nodes)
 }
 
+/// Assemble the quest hierarchy from rendered (quest_id, title) pairs.
+///
+/// Each quest is placed under its type and, when available, its series
+/// (chapter `groupId`) and chapter; quests with a chapter but no series sit
+/// directly under the type, and quests with no chapter land in the type's
+/// standalone bucket.
 pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Result<Hierarchy> {
-    // Python builds hierarchies with no tracking scope active, so text-map
-    // accesses here are dropped; a discarded local scope replicates that.
+    // The reference builds hierarchies with no tracking scope active, so
+    // text-map accesses here are dropped; a discarded local scope replicates
+    // that.
     let scope = Scope::default();
     let scope = &scope;
     // type -> series -> chapter -> leaves; insertion-ordered like defaultdicts.
@@ -129,6 +151,9 @@ pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Resu
     let mut standalone_buckets: IndexMap<String, Vec<HierarchyNode>> = IndexMap::new();
 
     for (quest_id, title) in quest_items {
+        // A rendered quest with no MainQuest entry cannot be placed; skip it
+        // (it still exists in the flat manifest). In practice every quest has
+        // one.
         let Some(main_quest) = repo.excel.main_quest.get(quest_id) else {
             continue;
         };
@@ -208,6 +233,10 @@ pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Resu
                 let bucket = buckets.shift_remove(&series_id).unwrap();
                 let min_chapter = *bucket.keys().min().unwrap();
                 let series_chapters = make_chapters(repo, scope, bucket)?;
+                // No dedicated series-name field exists, so label the series
+                // with the common prefix of its chapters' titles, falling
+                // back to its first chapter's title (or that chapter's first
+                // quest's title).
                 let series_title = match quest::get_quest_group_name(repo, scope, min_chapter)? {
                     Some(name) => Some(name),
                     None => match &series_chapters[0].title {
@@ -230,6 +259,9 @@ pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Resu
         if let Some(buckets) = chapter_buckets.shift_remove(&quest_type) {
             children.extend(make_chapters(repo, scope, buckets)?);
         }
+        // Wrap loose, chapter-less quests in a synthetic "standalone" group
+        // so they get their own browse level, but only when the type actually
+        // has any.
         if let Some(mut standalone) = standalone_buckets.shift_remove(&quest_type)
             && !standalone.is_empty()
         {
@@ -239,6 +271,7 @@ pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Resu
                 title: Some("独立任务".to_string()),
                 children: Some(standalone),
                 file_id: None,
+                // Unrelated chapter-less quests bucketed together; not a series.
                 toc_eligible: false,
             });
         }
@@ -253,6 +286,14 @@ pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Resu
     Ok(Hierarchy { nodes: type_nodes })
 }
 
+/// Assemble the hangout hierarchy from rendered (quest_id, title) pairs.
+///
+/// Each hangout quest is placed under its primary character (the avatar of
+/// its Coop chapter) and that chapter (act). The leaf shows the act title
+/// alone (the character already labels the enclosing node), falling back to
+/// the manifest title if the act title doesn't resolve. A character with a
+/// single act is flattened: its quest leaves hang directly off the character
+/// node so there is no redundant lone-chapter level.
 pub fn build_coop_hierarchy(repo: &Repo, coop_items: &[(i64, String)]) -> Result<Hierarchy> {
     // Like build_quest_hierarchy: text-map accesses here are dropped.
     let scope = Scope::default();

@@ -13,6 +13,8 @@ use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 
+/// Placeholder role for a talk that could not be retrieved; rendered inline as
+/// a visible data gap, but never a speaker for title-derivation purposes.
 pub const MISSING_TALK_ROLE: &str = "[Missing Talk]";
 pub const PLAYER: &str = "旅行者";
 pub const MATE_AVATAR: &str = "旅行者血亲";
@@ -44,14 +46,14 @@ impl TalkInfo {
     }
 }
 
-/// Port of get_talk_info: build TalkInfo from a talk file path.
+/// Build TalkInfo from a talk file path.
 pub fn get_talk_info(repo: &Repo, scope: &Scope, talk_path: &str) -> Result<TalkInfo> {
     let data = repo
         .talk_files
         .get(talk_path)
         .ok_or_else(|| anyhow!("talk file not loaded: {talk_path}"))?;
-    // Python: talk_data.get("dialogList") is None covers both a missing key and
-    // an explicit JSON null; anything else present must be a list.
+    // A missing dialogList and an explicit JSON null both mean "no dialog";
+    // anything else present must be a list.
     let dialog_list = match data.get("dialogList") {
         None | Some(Value::Null) => return Ok(TalkInfo::default()),
         Some(v) => v
@@ -94,7 +96,8 @@ pub fn get_talk_info(repo: &Repo, scope: &Scope, talk_path: &str) -> Result<Talk
     Ok(TalkInfo { text: talk_texts })
 }
 
-/// The `dialog.talkRoleNameTextMapHash or dialog_id_to_role_hash.get(id)` chain.
+/// Role-name hash: the dialog's own `talkRoleNameTextMapHash` when nonzero,
+/// else the excel dialog-id -> role-hash mapping.
 fn role_name_hash(repo: &Repo, dialog_item: &Value, dialog_id: i64) -> Option<i64> {
     match dialog_item.get_i("talkRoleNameTextMapHash") {
         Some(h) if h != 0 => Some(h),
@@ -102,7 +105,9 @@ fn role_name_hash(repo: &Repo, dialog_item: &Value, dialog_id: i64) -> Option<i6
     }
 }
 
-/// talk_role.get("_id", talk_role.get("id")) resolved to a digit-checked npc id.
+/// NPC id from the role's `_id`/`id` field. Wire role ids ship as strs and
+/// occasionally hold non-numeric placeholders (e.g. {QuestNpcID}, PLAYER,
+/// empty string); those are unresolvable and fall through to the hash fallback.
 fn role_npc_id(talk_role: &Value) -> Result<Option<i64>> {
     let raw = match talk_role.get("_id") {
         Some(v) => Some(v),
@@ -158,6 +163,10 @@ fn get_role_name(
         } else {
             None
         };
+        // Real scene elements are often implemented as dev-named NPC entities
+        // fronting a clean per-dialog display name (e.g. (test)阿圆 displaying
+        // as 阿圆); render just the display name rather than leaking the
+        // internal dev name into the composite.
         if let Some(src) = npc_src
             && util::should_skip_text(src)
         {
@@ -165,7 +174,8 @@ fn get_role_name(
         }
         return Ok(Some(format!("{role} ({name_hash})")));
     }
-    // Python: `by_name_hash or by_role` (empty string falls through).
+    // Prefer the name-hash resolution, but an EMPTY resolved name falls
+    // through to the role-derived name (or-chain truthiness).
     let resolved = match &by_name_hash {
         Some(s) if !s.is_empty() => by_name_hash.clone(),
         _ => by_role.clone(),
@@ -173,6 +183,8 @@ fn get_role_name(
     if resolved.is_some() {
         return Ok(resolved);
     }
+    // TALK_ROLE_NONE is speaker-less narration / stage directions; render the
+    // message with no role prefix.
     if role_type == Some("TALK_ROLE_NONE") {
         return Ok(None);
     }
@@ -186,6 +198,13 @@ fn get_role_name(
     )))
 }
 
+/// Whether the role's effective displayed name is dev/test-marked.
+///
+/// Judged on the name the player actually sees: the per-dialog role-name hash
+/// when it resolves, the NPC's source name otherwise. Dev-named NPC entities
+/// regularly deliver real dialogue under a clean display hash (e.g. (test)阿圆
+/// displaying as 阿圆 for the Serenitea Pot tutorial), so the backing entity's
+/// name alone must not condemn a line.
 fn role_is_dev(repo: &Repo, scope: &Scope, dialog_item: &Value, dialog_id: i64) -> Result<bool> {
     if let Some(h) = role_name_hash(repo, dialog_item, dialog_id)
         && let Some(hash_name) = repo.tm.get_current_optional(h, scope)?
@@ -209,6 +228,13 @@ pub fn get_talk_info_by_id(repo: &Repo, scope: &Scope, talk_id: i64) -> Result<T
     get_talk_info(repo, scope, &path)
 }
 
+/// Resolve a talk pointed at by an authoritative finish condition.
+///
+/// COMPLETE_TALK / COMPLETE_ANY_TALK name the talk that completes a step, so a
+/// not-found talk is a genuine upstream data gap: surface it inline as a
+/// visible placeholder rather than dropping the step or failing the whole
+/// quest. Any other error (an existing talk that fails to parse) still
+/// propagates.
 pub fn resolve_authoritative_talk(repo: &Repo, scope: &Scope, talk_id: i64) -> Result<TalkInfo> {
     match get_talk_info_by_id(repo, scope, talk_id) {
         Ok(info) => Ok(info),
@@ -352,7 +378,11 @@ fn dd(
     map.entry(key).or_default()
 }
 
-/// Port of _process_branch: renders branches until their convergence point.
+/// Process multiple branches until their convergence point.
+///
+/// Renders each branch from `next_dialog_ids` until hitting a convergence
+/// point (a dialog with 2+ incoming edges); all branches must converge at the
+/// same point (unless some end in cycles).
 fn process_branch(
     next_dialog_ids: &[i64],
     graph: &TalkTextGraph,
@@ -548,7 +578,7 @@ fn process_branch(
     Ok((conv_point, lines_list))
 }
 
-/// Port of _render_talk_dialogs.
+/// Render dialog following single paths until branching, then process branches.
 fn render_talk_dialogs(
     dialog_id: i64,
     graph: &TalkTextGraph,
@@ -566,7 +596,8 @@ fn render_talk_dialogs(
         rendered.insert(cur);
         match graph.dialog_id_to_text.get(&cur) {
             Some(text) => {
-                // Python walrus truthiness: an empty rendered line is dropped.
+                // An EMPTY rendered line is dropped here (truthiness, not just
+                // None), unlike the branch renderer which keeps it.
                 if let Some(line) = render_dialog_line(text)
                     && !line.is_empty()
                 {
@@ -605,7 +636,7 @@ fn render_talk_dialogs(
     Ok(lines)
 }
 
-/// Port of render_talk_content.
+/// Render talk dialog to lines with branching support.
 pub fn render_talk_content(talk: &TalkInfo, scope: &Scope) -> Result<Vec<String>> {
     if talk.text.is_empty() {
         return Ok(Vec::new());
@@ -625,7 +656,9 @@ pub fn render_talk_content(talk: &TalkInfo, scope: &Scope) -> Result<Vec<String>
         all_lines.extend(lines);
     }
 
-    // Orphans: `{dialog ids} - rendered` iterated in CPython set order.
+    // Dialogs unreachable from any entrypoint are appended as orphans; the
+    // `{dialog ids} - rendered` difference must iterate in CPython set order
+    // (see pyset.rs) for byte-identical output.
     let all_ids = PySet::from_iter_py(talk.text.iter().map(|t| t.dialog_id));
     let orphaned = all_ids.difference(&rendered);
     if !orphaned.is_empty() {
@@ -650,7 +683,10 @@ pub struct RenderedTalk {
     pub content: String,
 }
 
-/// Port of render_talk (body only; metadata assembly happens in the caller).
+/// Render a talk's body, title, and filename; metadata assembly happens in
+/// the caller. Returns None when no dialog line survives rendering (e.g. a
+/// dev/test talk whose every line is skipped), so all-skipped talks emit no
+/// file at all.
 pub fn render_talk_body(
     talk: &TalkInfo,
     talk_id: i64,

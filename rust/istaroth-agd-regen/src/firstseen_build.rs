@@ -1,5 +1,13 @@
 //! Port of scripts/agd_build_first_seen.py: build the per-version first-seen
 //! delta files from AGD git history.
+//!
+//! For each snapshot in `SNAPSHOTS` (oldest first), enumerates the source ids
+//! present in that AGD revision and writes the ids never seen in any earlier
+//! snapshot to `<data_dir>/<version>.json` (committed to the `text/` submodule
+//! alongside the corpus regen it stamps). The default run only generates files
+//! missing on disk (ingesting a new game version = append its `SNAPSHOTS`
+//! entry and rerun); `--rebuild-all` regenerates every file, doubling as a
+//! determinism check of the committed data.
 
 use crate::git::{git_ls_tree, git_show};
 use crate::util;
@@ -9,8 +17,16 @@ use rustc_hash::FxHashSet;
 use serde_json::Value;
 use std::path::Path;
 
-/// The last AGD snapshot commit of each game version, oldest first (see the
-/// curation notes in the original Python script's docstring).
+/// The last AGD snapshot commit of each game version, oldest first. Curated by
+/// hand from `git log origin/master v2/main` because commit subjects are not
+/// reliable enough to parse blindly:
+/// - the 3.3 snapshot's subject is mislabeled "OSRELWin3.0.0_R11806263" (it
+///   sits between the 3.2 and 3.4 snapshots and its R build number is above
+///   3.2's);
+/// - hotfix snapshots repeat a version, and 1.6.1/4.0.1 normalize to 1.6/4.0;
+/// - no 4.1 snapshot was ever published, so 4.1 additions attribute to 4.2;
+/// - versions before 1.4 predate the history, so the 1.4 file is a baseline
+///   ("1.4 or earlier"); CN and OS snapshots of a version are interchangeable.
 const SNAPSHOTS: [(&str, &str); 46] = [
     ("1.4", "86c28c0a59526cad72d5ec6548a0d6b3a9413826"),
     ("1.5", "5ee08c0771f257ac06f37293973e6bf42302fa76"),
@@ -60,7 +76,8 @@ const SNAPSHOTS: [(&str, &str); 46] = [
     ("6.7", "82e74382e7788e318ad41fca926739a752c0bed6"),
 ];
 
-/// SourceDomain, in the enum (JSON key) order of the Python original.
+/// Domain names in the delta files' JSON key order (must stay stable for
+/// byte-identical output).
 const DOMAINS: [&str; 10] = [
     "main_quest",
     "talk",
@@ -103,7 +120,9 @@ fn domain_index(name: &str) -> Result<usize> {
         .ok_or_else(|| anyhow!("unknown first-seen domain {name}"))
 }
 
-/// Field-name style varies by era: id / Id / _id (see first_seen._row_id).
+/// Field-name style varies by era (and by file within one era): 1.x dumps use
+/// PascalCase ("Id"/"SetId"), some ~2.7-3.x dumps underscore-prefixed
+/// camelCase ("_id"), current dumps plain camelCase.
 fn row_id(row: &Value, id_key: &str) -> Result<i64> {
     let capitalized = format!("{}{}", id_key[..1].to_uppercase(), &id_key[1..]);
     let underscored = format!("_{id_key}");
@@ -145,7 +164,8 @@ fn load_talk_excel_at(agd_path: &Path, git_ref: &str) -> Result<Vec<Value>> {
     Ok(rows)
 }
 
-/// Port of first_seen.scan_snapshot unioned over CHS and EN (both languages).
+/// Enumerate all source ids present in one AGD snapshot, unioned over both
+/// languages.
 fn scan_snapshot(agd_path: &Path, commit: &str) -> Result<DomainSets> {
     let mut present = empty_sets();
 
@@ -172,7 +192,9 @@ fn scan_snapshot(agd_path: &Path, commit: &str) -> Result<DomainSets> {
         .collect::<Result<_>>()?;
     present[domain_index("talk")?].extend(talk_ids);
 
-    // Filename-keyed domains: union all languages like the Python script.
+    // Filename-keyed domains: union all languages to guard against language
+    // stragglers. Subtitles only exist from 1.6 onward, so a missing Subtitle
+    // dir yields an empty list rather than erroring.
     for language_short in crate::lang::Language::ALL.map(crate::lang::Language::short) {
         let readable_names: Vec<String> =
             git_ls_tree(agd_path, commit, &format!("Readable/{language_short}"))?
@@ -197,7 +219,8 @@ fn scan_snapshot(agd_path: &Path, commit: &str) -> Result<DomainSets> {
     Ok(present)
 }
 
-/// json.dumps(payload, ensure_ascii=False, indent=2) + "\n".
+/// Write one delta file in the reference JSON format (2-space indent,
+/// non-ASCII preserved, trailing newline) so rebuilds stay byte-identical.
 fn write_delta(path: &Path, version: &str, commit: &str, new: &DomainSets) -> Result<usize> {
     let mut new_obj = serde_json::Map::new();
     let mut total = 0usize;

@@ -110,8 +110,8 @@ fn parse_json(path: &Path) -> Result<Value> {
 
 /// Typed parse of the (huge) DialogExcelConfigData: only the id -> content-hash
 /// and id -> role-name-hash maps survive it, so skip building Value trees.
-/// Matches Python's deobfuscate-then-strict-index semantics (missing field ->
-/// error; duplicate ids -> last wins).
+/// Keys are deobfuscated then indexed strictly (missing field -> error;
+/// duplicate ids -> last wins).
 fn parse_dialog_excel(path: &Path) -> Result<DialogMaps> {
     use serde::de::{Deserializer, IgnoredAny, MapAccess, SeqAccess, Visitor};
 
@@ -208,9 +208,9 @@ fn to_fx(map: IndexMap<i64, Value>) -> FxHashMap<i64, Value> {
     map.into_iter().collect()
 }
 
-/// File names directly under `dir` (empty for a missing dir, like Python's
-/// `_list_file_names`); any other read error propagates instead of silently
-/// yielding an empty (and thus quietly truncated) corpus section.
+/// File names directly under `dir` (empty for a missing dir); any other read
+/// error propagates instead of silently yielding an empty (and thus quietly
+/// truncated) corpus section.
 fn list_dir_files(dir: &Path) -> Result<Vec<String>> {
     let entries = match std::fs::read_dir(dir) {
         Ok(entries) => entries,
@@ -258,9 +258,11 @@ fn run_timed<T>(verbose: bool, name: &str, f: impl FnOnce() -> T) -> T {
     result
 }
 
-// --- derived-mapping builders (one per mapping, mirroring DataRepo) ---
+// --- derived-mapping builders (one per mapping) ---
 
-/// Quest mapping (BinOutput/Quest id -> path, canonical-name preference).
+/// Quest id -> BinOutput/Quest file path. AGD retains stale hash-named
+/// duplicates of quests across builds, so when several files share an ID the
+/// canonically-named `{id}.json` wins.
 fn build_quest_mapping(quest_files: &FxHashMap<String, Value>) -> Result<FxHashMap<i64, String>> {
     let mut quest_mapping: FxHashMap<i64, String> = FxHashMap::default();
     let mut rels: Vec<&String> = quest_files.keys().collect();
@@ -279,7 +281,8 @@ fn build_quest_mapping(quest_files: &FxHashMap<String, Value>) -> Result<FxHashM
     Ok(quest_mapping)
 }
 
-/// Language-scoped readable path values of one localization entry (JSON key order).
+/// Language-scoped readable path values of one localization entry (JSON key
+/// order): paths ending in `_<lang>` or containing a `<lang>` path component.
 fn localization_readable_paths<'a>(
     entry: &'a Value,
     language_short: &str,
@@ -295,7 +298,8 @@ fn localization_readable_paths<'a>(
 }
 
 /// Localization-derived maps (single pass, JSON key order): readable stem ->
-/// localization id, and localization id -> readable filename.
+/// localization id, and localization id -> readable filename. First match
+/// wins for each key (break-on-first-match semantics).
 fn build_readable_localization_maps(
     localization: &[Value],
     language_short: &str,
@@ -317,6 +321,7 @@ fn build_readable_localization_maps(
     Ok((readable_stem_to_loc_id, loc_id_to_readable_filename))
 }
 
+/// Localization id -> document title hash; first document wins per id.
 fn build_loc_id_to_title_hash(document: &IndexMap<i64, Value>) -> Result<FxHashMap<i64, i64>> {
     let mut loc_id_to_title_hash = FxHashMap::default();
     for doc in document.values() {
@@ -334,7 +339,15 @@ fn build_loc_id_to_title_hash(document: &IndexMap<i64, Value>) -> Result<FxHashM
     Ok(loc_id_to_title_hash)
 }
 
-/// Book series mapping (only multi-volume suits survive).
+/// Group multi-volume book series to their ordered volume readable filenames.
+///
+/// Active book-codex entries are grouped by their material's suit (`setID`)
+/// and ordered by `sortOrder`; only suits with two or more volumes count as a
+/// series (single-volume and non-codex books stay standalone). Each volume
+/// resolves material id -> document -> localization -> readable filename (the
+/// material id and document id coincide for books). Errors if a volume claims
+/// a suit or readable that can't be resolved, surfacing the data gap rather
+/// than silently dropping the grouping.
 fn build_book_series(
     excel: &Excels,
     loc_id_to_readable_filename: &FxHashMap<i64, String>,
@@ -559,6 +572,9 @@ fn build_sub_quest_to_main(quest_excel: &[Value]) -> Result<FxHashMap<i64, i64>>
     Ok(sub_quest_to_main)
 }
 
+/// Talk id -> owning quest id (`TalkExcelConfigData.questId`). Checked against
+/// the quest BinOutput files' own talk lists: TalkExcel is a strict superset
+/// with no disagreements, so it is the single source.
 fn build_talk_to_quest(talk_excel: &[Value]) -> Result<FxHashMap<i64, i64>> {
     let mut talk_to_quest = FxHashMap::default();
     for talk_item in talk_excel {
@@ -629,7 +645,14 @@ fn collect_cutscene_variant_stems(
     Ok(())
 }
 
-/// Subtitle stem -> cutscene ids.
+/// Subtitle file stem -> ids of the cutscenes that play it.
+///
+/// A video cutscene binds its subtitle track by `subtitleId` into
+/// LocalizationExcelConfigData, whose per-language path stem equals the
+/// `Subtitle/<lang>` file stem, and names its videos after the stem minus the
+/// language suffix (per traveler variant). Both links are indexed: the
+/// localization one also covers subtitle files shared by both traveler
+/// variants, whose stems carry no `_Boy`/`_Girl` marker.
 fn build_subtitle_stem_map(
     localization: &[Value],
     cutscene_files: &[(String, Value)],
@@ -678,9 +701,8 @@ struct Inputs {
 
 impl Repo {
     /// `load_scope` collects text-map accesses made while building the derived
-    /// name mappings (Python: the run-level parent scope active during
-    /// `precompute_for_workers`); the caller folds it into the run's usage
-    /// stats after all passes.
+    /// name mappings; the caller folds it into the run's usage stats after all
+    /// passes.
     pub fn load(
         agd_path: &Path,
         first_seen_dir: &Path,
@@ -1013,7 +1035,8 @@ impl Repo {
             |d| d.i("id"),
             "document ID",
         )?;
-        // MaterialTracker: dict comprehension keyed by id — last wins, first position.
+        // Materials keyed by id: duplicates keep the LAST value at the FIRST
+        // insertion position (reference dict semantics).
         let mut material: IndexMap<i64, Value> = IndexMap::new();
         for m in list("MaterialExcelConfigData.json")? {
             let id = m.i("id")?;

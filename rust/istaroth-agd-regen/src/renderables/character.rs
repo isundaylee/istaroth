@@ -36,6 +36,9 @@ struct Constellation {
     element: Option<&'static str>,
 }
 
+/// Resolve the 6 constellations for a single skill depot, in talents-array
+/// order. Strict: every depot that owns constellations must have exactly 6
+/// talents that all resolve to a name and description, else error.
 fn resolve_constellations(
     repo: &Repo,
     scope: &Scope,
@@ -69,6 +72,12 @@ fn resolve_constellations(
     Ok(constellations)
 }
 
+/// Resolve a character's constellations.
+///
+/// Regular characters carry all six constellations on their primary
+/// `skillDepotId` and render without an element. Only the Travelers populate
+/// `candSkillDepotIds`; their per-element sets live there (skipping empty
+/// placeholder depots) and are tagged with each depot's element.
 fn get_constellations(repo: &Repo, scope: &Scope, avatar: &Value) -> Result<Vec<Constellation>> {
     let cand = avatar.f("candSkillDepotIds")?;
     let cand_ids = int_array(cand)?;
@@ -147,7 +156,7 @@ pub fn process_story(repo: &Repo, scope: &Scope, avatar_id: i64) -> Result<Optio
         if story.i("avatarId")? != avatar_id {
             continue;
         }
-        // Python: .get(...) then `if title_hash else None` (0/absent both falsy).
+        // A title hash of 0 and an absent field both mean "no title".
         let title_hash = story.get_i("storyTitleTextMapHash").filter(|&h| h != 0);
         let title = match title_hash {
             Some(h) => repo.tm.get_optional(h, scope)?,
@@ -156,7 +165,8 @@ pub fn process_story(repo: &Repo, scope: &Scope, avatar_id: i64) -> Result<Optio
         let Some(title) = title else {
             bail!("Missing story title for avatar ID {avatar_id}");
         };
-        // Python's issue detail is str() of the raw field: "None" when absent.
+        // The recorded issue detail is the raw field's string form — "None"
+        // when absent — to match the reference issue output.
         let context_hash_raw = story.get_i("storyContextTextMapHash");
         let content = match context_hash_raw.filter(|&h| h != 0) {
             Some(h) => repo.tm.get_optional(h, scope)?,
@@ -185,9 +195,16 @@ pub fn process_story(repo: &Repo, scope: &Scope, avatar_id: i64) -> Result<Optio
         content_lines.push(story.content.clone());
         content_lines.push(String::new());
     }
+    // Constellations as a flat list. No Cn prefix: the source data does not
+    // give a reliable constellation index (the talents array order and
+    // openConfig disagree), so we list them in talents-array order without
+    // asserting a number. The Travelers' per-element sets are grouped under
+    // ### element subsections.
     if !constellations.is_empty() {
         content_lines.push("## Constellations\n".to_string());
-        // Python starts current_element at a unique sentinel object.
+        // The outer Option is a sentinel distinct from any real element value
+        // (including "no element"), so the first constellation always starts
+        // a group.
         let mut current_element: Option<Option<&'static str>> = None;
         let mut first_group = true;
         for constellation in &constellations {

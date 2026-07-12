@@ -8,6 +8,11 @@ use crate::util;
 use crate::vh::{ValueExt, int_array};
 use anyhow::{Result, anyhow};
 
+/// Resolve a reliquary piece's relic story from its storyId.
+///
+/// Follows storyId -> DocumentExcelConfigData -> questIDList ->
+/// LocalizationExcelConfigData -> readable file, returning None when the
+/// piece has no story (storyId 0, no document, or no readable on disk).
 fn relic_story_by_story_id(repo: &Repo, scope: &Scope, story_id: i64) -> Result<Option<String>> {
     if story_id == 0 {
         return Ok(None);

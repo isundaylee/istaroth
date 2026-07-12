@@ -99,6 +99,13 @@ const GENERIC_SPEAKERS: [&str; 7] = [
     "？？？",
 ];
 
+/// Title from the group's most talkative named speakers, or None if none.
+///
+/// Generic speakers (player, Paimon, black-screen text, `???`,
+/// unresolved-role and missing-talk placeholders) carry no title signal and
+/// are dropped; dev/test-named roles arrive already skip-flagged. The top
+/// `SPEAKER_TITLE_LIMIT` names by line count are joined with ` / `, with a
+/// trailing `...` when more named speakers exist.
 pub fn derive_speaker_group_name(info: &TalkGroupInfo) -> Option<String> {
     let mut speakers: IndexMap<String, usize> = IndexMap::new();
     for (talk_info, next_talks) in &info.talks {
@@ -111,6 +118,11 @@ pub fn derive_speaker_group_name(info: &TalkGroupInfo) -> Option<String> {
                     continue;
                 };
                 let mut name = name.clone();
+                // A role rendered as "X (Y)" is the talk renderer's
+                // by-role/by-name-hash mismatch composite; count its more
+                // specific half so e.g. "旅行者 (观察花卉)" titles as
+                // "观察花卉" and "遗迹的铭文 (铭文)" dedups with a plain
+                // "遗迹的铭文".
                 if let Some(m) = COMPOSITE_ROLE.captures(&name) {
                     let g1 = m.get(1).unwrap().as_str();
                     let g2 = m.get(2).unwrap().as_str();
@@ -145,7 +157,16 @@ pub fn derive_speaker_group_name(info: &TalkGroupInfo) -> Option<String> {
     Some(top.join(" / "))
 }
 
+// GadgetGroupId always ships as a 9-digit int (min 111101079), so
+// `configId * 10^GADGET_GROUP_ID_DIGITS + groupId` is collision-free and fits
+// both the metadata id and JS Number.MAX_SAFE_INTEGER (max composite ~8.4e14
+// vs ~9.0e15). Used to derive a stable int id for the rendered file.
 const GADGET_GROUP_ID_DIGITS: u32 = 9;
+// ActivityGroup activity ids overlap NpcGroup npc ids (issue #294) — e.g.
+// 2001 is both an activity and an NPC — so ActivityGroup rendered files
+// offset their metadata id above the NpcGroup range (max ~2e6) and below the
+// GadgetGroup composite range (min ~1e12). NpcGroup, the vast majority, keeps
+// the raw id.
 const ACTIVITY_GROUP_METADATA_ID_OFFSET: i64 = 1_000_000_000;
 
 pub fn render_talk_group(

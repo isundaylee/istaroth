@@ -17,7 +17,8 @@ pub enum BookKey {
 }
 
 impl BookKey {
-    /// Python str() of the NamedTuple keys.
+    /// Item description for error reporting; must match the reference
+    /// pipeline's key repr strings.
     pub fn desc(&self) -> String {
         match self {
             BookKey::Series(id) => format!("_BookSeriesKey(suit_id={id})"),
@@ -48,7 +49,16 @@ pub fn process(repo: &Repo, scope: &Scope, key: &BookKey) -> Result<Option<Rende
     }
 }
 
-/// Books: one series document (suit) or a standalone book file.
+/// Render a multi-volume book series into a single file.
+///
+/// Volumes render in reading order under one series header, each prefixed
+/// with an annotation line naming the series and the volume's position so a
+/// chunk retrieved in isolation still carries its series context. Reading
+/// each volume's content marks it accessed, keeping the per-volume files out
+/// of the standalone Books and generic Readables catch-alls. A grouped volume
+/// whose readable file is missing errors rather than being silently dropped;
+/// empty/placeholder/test volumes are filtered the same way standalone books
+/// are. Returns None if no volume survives filtering.
 pub fn process_book_series(
     repo: &Repo,
     scope: &Scope,

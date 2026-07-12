@@ -7,7 +7,8 @@ use std::sync::LazyLock;
 static UNSAFE_CHARS: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[^\w\s-]").unwrap());
 static WHITESPACE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\s+").unwrap());
 
-/// Port of `istaroth.utils.make_safe_filename_part` (max_length in code points).
+/// Safe filename fragment: truncate to 50 code points (not bytes), drop
+/// unsafe chars, strip, and collapse whitespace runs to `_`.
 pub fn make_safe_filename_part(text: &str) -> String {
     let truncated: String = text.chars().take(50).collect();
     let safe = UNSAFE_CHARS.replace_all(&truncated, "");
@@ -24,7 +25,8 @@ pub fn py_rstrip(s: &str) -> &str {
     s.trim_end_matches(|c: char| c.is_whitespace() || ('\x1c'..='\x1f').contains(&c))
 }
 
-/// Port of `text_utils.should_skip_text` for the CHS language.
+/// Whether (CHS source) text carries a dev/test/hidden marker and should be
+/// excluded from output.
 pub fn should_skip_text(text: &str) -> bool {
     let lower = text.to_lowercase();
     lower.starts_with("test")
@@ -37,7 +39,7 @@ pub fn should_skip_text(text: &str) -> bool {
 
 const READABLE_PLACEHOLDERS: [&str; 7] = ["测试", "暂无", "暂缺", "？？？", "test", "none", "n/a"];
 
-/// Port of `text_utils.should_skip_readable_content` for CHS.
+/// Whether readable content is an empty/placeholder body to skip.
 pub fn should_skip_readable_content(content: &str) -> bool {
     let stripped = py_strip(content);
     stripped.is_empty()
@@ -114,6 +116,9 @@ pub fn version_key(v: &str) -> Vec<i64> {
         .collect()
 }
 
+/// Strip the trailing `_<LANG>` token, if any, from a readable/subtitle stem.
+/// CHS files mostly carry no language suffix while other languages do, so the
+/// language-neutral key is the stem with the suffix dropped when present.
 pub fn strip_language_suffix(stem: &str) -> &str {
     const SUFFIXES: [&str; 15] = [
         "CHS", "CHT", "DE", "EN", "ES", "FR", "ID", "IT", "JP", "KR", "PT", "RU", "TH", "TR", "VI",

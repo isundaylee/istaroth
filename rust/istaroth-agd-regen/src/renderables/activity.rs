@@ -11,6 +11,12 @@ use crate::vh::ValueExt;
 use anyhow::{Result, anyhow};
 use rustc_hash::{FxHashMap, FxHashSet};
 
+/// Leftover TALK_ACTIVITY talk ids grouped by their owning activity.
+///
+/// For TALK_ACTIVITY entries the excel `questId` field holds the owning
+/// activity id (every current entry resolves in NewActivityExcelConfigData),
+/// matching the activity referenced by their QUEST_COND_ACTIVITY_CLIENT_COND
+/// begin conditions.
 fn loose_talk_ids_by_activity(
     repo: &Repo,
     used_talk_ids: &FxHashSet<i64>,
@@ -58,6 +64,10 @@ pub fn process(
     let mut talks: Vec<TalkInfo> = Vec::new();
     let mut talk_ids: Vec<i64> = Vec::new();
     for &talk_id in ids {
+        // Require a non-skip line: skip-flagged (dev/test) lines are dropped
+        // at render time, so an all-skip talk would emit an empty section.
+        // Loading the talk still claims its id, so dropped talks don't leak
+        // back into the loose Talks pass.
         let talk_info = talk::get_talk_info_by_id(repo, scope, talk_id)?;
         if talk_info.has_non_skip_text() {
             talks.push(talk_info);

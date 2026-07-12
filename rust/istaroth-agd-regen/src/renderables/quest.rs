@@ -12,10 +12,14 @@ use indexmap::IndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 
+// Priority of the signals that hint where a quest talk plays, lowest to highest.
 const PRIORITY_FINISH_PLOT: i64 = 1;
 const PRIORITY_COMPLETE_TALK: i64 = 2;
 const PRIORITY_BEGIN_COND: i64 = 3;
 
+// Separators that mark the boundary between a questline name and the chapter
+// ordinal inside chapter titles (e.g. 山中好长日·第一章, "Aranyaka: Part I",
+// "Fabulous Fungus Frenzy - Act I").
 const GROUP_NAME_SEPARATORS: [char; 4] = ['·', ':', '：', '-'];
 
 pub struct QuestStep {
@@ -36,6 +40,13 @@ pub struct QuestInfo {
     pub associated_free_talks: Vec<TalkInfo>,
 }
 
+/// Questline name shared by a group's chapter titles, or None when there is none.
+///
+/// The longest common prefix of the titles, trimmed so a divergence inside an
+/// ordinal doesn't leak scaffolding into the name: when any title continues
+/// the prefix with a word character (e.g. "Part I" / "Part II" agreeing up to
+/// "Part I"), cut back to the last strong separator, or failing that the last
+/// non-alphanumeric character. Trailing whitespace/separators are stripped.
 fn common_prefix_name(titles: &[String]) -> Option<String> {
     let prefix = util::common_prefix(titles);
     let prefix_chars: Vec<char> = prefix.chars().collect();
@@ -78,8 +89,10 @@ fn common_prefix_name(titles: &[String]) -> Option<String> {
     }
 }
 
+/// Whether a chapter is dev/test content (e.g. the 夏活beta测试任务 chapter).
+/// The dev/test markers live in the CHS (source) text. Untracked lookups:
+/// this check must not mark the chapter hashes as used.
 pub fn is_test_or_hidden_chapter(repo: &Repo, chapter: &Value) -> Result<bool> {
-    // Python consults the source map via get_optional_untracked here.
     for key in ["chapterNumTextMapHash", "chapterTitleTextMapHash"] {
         if let Some(text) = repo.tm.get_optional_untracked(chapter.i(key)?)?
             && util::should_skip_text(&text)
@@ -103,6 +116,13 @@ pub fn get_chapter_title(repo: &Repo, scope: &Scope, chapter: &Value) -> Result<
     Ok(parts.join(" "))
 }
 
+/// All chapters in the same quest group (questline) as `chapter`.
+///
+/// Grouping is the chapter `groupId`; a `groupId`-less chapter is its own sole
+/// member (some questlines, e.g. 山中好长日, embed a questline name in their
+/// chapter numbers without any groupId link, but we deliberately don't infer
+/// grouping the data doesn't encode). Dev/test chapters are excluded so they
+/// can't poison the group's common prefix.
 fn group_member_chapters<'r>(repo: &'r Repo, chapter: &Value) -> Result<Vec<&'r Value>> {
     let group_id = chapter.i("groupId")?;
     if group_id == 0 {
@@ -124,6 +144,11 @@ fn group_member_chapters<'r>(repo: &'r Repo, chapter: &Value) -> Result<Vec<&'r 
     Ok(members)
 }
 
+/// Resolve a chapter's questline (quest group) name, or None when it has none.
+///
+/// AGD has no group-level name field (issue #239), so the name is derived as
+/// the common prefix of the group's chapter titles. Single-chapter groups get
+/// None: their "group name" would just repeat the chapter title.
 pub fn get_quest_group_name(repo: &Repo, scope: &Scope, chapter_id: i64) -> Result<Option<String>> {
     let chapter = repo
         .excel
@@ -141,6 +166,8 @@ pub fn get_quest_group_name(repo: &Repo, scope: &Scope, chapter_id: i64) -> Resu
     Ok(common_prefix_name(&titles))
 }
 
+/// Whether a quest title marks a dev/test/hidden quest to exclude
+/// (`$HIDDEN`/`(test)` markers, which live in the CHS source text).
 fn is_test_or_hidden_title(repo: &Repo, scope: &Scope, title_hash: i64) -> Result<bool> {
     Ok(match repo.tm.get_optional(title_hash, scope)? {
         None => false,
@@ -148,6 +175,9 @@ fn is_test_or_hidden_title(repo: &Repo, scope: &Scope, title_hash: i64) -> Resul
     })
 }
 
+/// Whether a subQuest is a dev/test/hidden step (a `$HIDDEN`/bridge marker).
+/// Such steps carry meaningless `order` numbers, so a talk's `beginCond`
+/// pointing at one is an internal trigger rather than a real playback location.
 fn is_hidden_step(repo: &Repo, scope: &Scope, desc_hash: i64) -> Result<bool> {
     Ok(match repo.tm.get_optional(desc_hash, scope)? {
         None => false,
@@ -155,6 +185,8 @@ fn is_hidden_step(repo: &Repo, scope: &Scope, desc_hash: i64) -> Result<bool> {
     })
 }
 
+/// Resolve a subQuest's objective text, or None when there is none to show
+/// (no/empty text, or a test/hidden step).
 fn resolve_step_description(repo: &Repo, scope: &Scope, desc_hash: i64) -> Result<Option<String>> {
     if is_hidden_step(repo, scope, desc_hash)? {
         return Ok(None);
@@ -165,6 +197,15 @@ fn resolve_step_description(repo: &Repo, scope: &Scope, desc_hash: i64) -> Resul
         .filter(|t| !t.is_empty() && !util::py_strip(t).is_empty()))
 }
 
+/// Step order a quest talk begins at (via its `beginCond`), or None.
+///
+/// A quest talk plays when `QUEST_COND_STATE_EQUAL [subId, 2]` holds (the
+/// named subquest activated); the remaining beginCond entries are gating
+/// conditions (quest vars, items, ...) that don't locate the talk. When
+/// several activation conditions resolve, the talk plays once all hold, i.e.
+/// at the latest order. Returns None when no activation condition resolves to
+/// a subquest of this quest (e.g. a cross-quest reference), leaving the talk
+/// for non-step placement.
 fn begin_subquest_order(
     talk_item: &Value,
     subid_to_order: &FxHashMap<i64, i64>,
@@ -193,6 +234,15 @@ fn begin_subquest_order(
     Ok(orders.into_iter().max())
 }
 
+/// (talk_id, hint_priority, TalkInfo) for talks referenced by finish conditions.
+///
+/// Only the condition types that genuinely reference a talk are handled;
+/// everything else is an objective step with no talk. COMPLETE_TALK and
+/// COMPLETE_ANY_TALK name the talk that completes the step, so they are
+/// authoritative pointers and a missing talk becomes a placeholder.
+/// FINISH_PLOT is a plot-completion marker whose param is only sometimes a
+/// real talk id, so a missing talk is skipped instead. (The enum field is
+/// literally named `damageRatio` in legacy cleartext AGD; see deob.rs.)
 fn iter_subquest_talks(
     repo: &Repo,
     scope: &Scope,
@@ -249,6 +299,8 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
         }
     };
 
+    // Surface the quest description only when it adds something beyond the
+    // title: this guard drops descriptions that merely repeat the title.
     let mut description = repo
         .tm
         .get_optional(quest_data.i("descTextMapHash")?, scope)?;
@@ -271,13 +323,19 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
         hidden_chapter = is_test_or_hidden_chapter(repo, chapter)?;
     }
 
+    // Resolve where each talk a quest declares actually plays. A talk's
+    // `beginCond` names the subQuest it starts on (its true playback
+    // location); quest `talks` entries provide it. The finish-condition
+    // param, NOT the subId, names the talk a step references (subId matches a
+    // talk id only by coincidence of the shared <questId><incremental>
+    // numbering, so it is an unreliable pointer).
     let sub_quests = quest_data.arr("subQuests")?;
     let mut subid_to_order: FxHashMap<i64, i64> = FxHashMap::default();
     for subquest in sub_quests {
         subid_to_order.insert(subquest.i("subId")?, subquest.i("order")?);
     }
     let quest_talks = quest_data.arr("talks")?;
-    // Python dict comprehension: duplicate talk ids keep the LAST begin value.
+    // Duplicate talk ids keep the LAST begin value (reference dict semantics).
     let mut talk_begin_order: FxHashMap<i64, i64> = FxHashMap::default();
     for talk_item in quest_talks {
         if let Some(begin) = begin_subquest_order(talk_item, &subid_to_order)? {
@@ -285,6 +343,12 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
         }
     }
 
+    // Collect every placement hint for every talk, from both sources, into
+    // one set. A finish condition names the step a talk COMPLETES
+    // (FINISH_PLOT / COMPLETE_TALK priority); a talk's own `beginCond` (from
+    // the quest `talks` field) names the step it STARTS playing on — its true
+    // location, hence top priority. Track hidden/test steps, whose `order`
+    // numbers are meaningless.
     let mut talk_hints: IndexMap<i64, Vec<(i64, i64)>> = IndexMap::new();
     let mut talk_infos: FxHashMap<i64, TalkInfo> = FxHashMap::default();
     let mut order_to_desc: IndexMap<i64, Option<String>> = IndexMap::new();
@@ -308,11 +372,21 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
         }
     }
 
+    // The orders where each talk completes a step (its finish-condition
+    // hints); a talk placed elsewhere (at a beginCond order it does not
+    // finish) is a lead-in.
     let finish_orders: FxHashMap<i64, FxHashSet<i64>> = talk_hints
         .iter()
         .map(|(talk_id, hints)| (*talk_id, hints.iter().map(|h| h.0).collect()))
         .collect();
 
+    // Fold every quest-declared talk into the same hint set via its
+    // beginCond. beginCond is the talk's true start, so a top-priority hint —
+    // except when it points at a hidden/test step (an internal trigger),
+    // which is ignored only if the talk has a real finishCond placement to
+    // fall back on (otherwise beginCond is the sole signal). A talk with
+    // neither a finish condition nor a usable beginCond has no anchor in this
+    // quest and is rendered in a separate section.
     let mut non_subquest_talks: Vec<TalkInfo> = Vec::new();
     for talk_item in quest_talks {
         let talk_id = talk_item.i("id")?;
@@ -324,12 +398,16 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
             }
             _ => None,
         };
+        // Already hinted by a finish condition: just add the beginCond hint
+        // (if any) and move on. Such a talk is anchored to this quest, so it
+        // must never fall through to `non_subquest_talks` below.
         if let Some(hints) = talk_hints.get_mut(&talk_id) {
             if let Some(anchor) = begin_anchor {
                 hints.push((anchor, PRIORITY_BEGIN_COND));
             }
             continue;
         }
+        // A talk the quest declares must load; a failure is a genuine data gap.
         let talk_info = talk::get_talk_info_by_id(repo, scope, talk_id)?;
         if talk_info.text.is_empty() {
             continue;
@@ -354,9 +432,15 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
         info: TalkInfo,
         is_lead_in: bool,
     }
+    // Place each talk at its highest-priority hinted step (earliest order
+    // breaks ties). A talk placed at a step it does not itself finish is a
+    // lead-in there (it plays during the step but another talk completes it).
+    // `tiebreak` orders talks sharing a step: completing talks by finishCond
+    // discovery order, lead-ins by their order in the quest `talks` field (a
+    // lead-in always has a beginCond, so it is listed there).
     let mut placed: Vec<Placed> = Vec::new();
     for (seq, (talk_id, hints)) in talk_hints.iter().enumerate() {
-        // Python max(key=(priority, -order)): first maximal on ties.
+        // max(key=(priority, -order)); must keep the FIRST maximal on ties.
         let mut best = hints[0];
         let mut best_key = (best.1, -best.0);
         for &h in &hints[1..] {
@@ -393,6 +477,11 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
         });
     }
 
+    // A subQuest whose objective text is usable but that no talk *completes*
+    // becomes a non-dialogue objective step — covering subQuests with no
+    // talk, ones whose only (FINISH_PLOT) talk relocated, and ones hosting
+    // only lead-ins, so the step keeps its objective line instead of
+    // vanishing with the talk.
     let owning_orders: FxHashSet<i64> = placed
         .iter()
         .filter(|p| !p.is_lead_in)
@@ -405,6 +494,11 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
         .map(|(seq, (order, desc))| (*order, seq, desc.clone()))
         .collect();
 
+    // Interleave talk and objective steps by `order`. Within one order,
+    // lead-ins (group 0) precede the completing talk (group 1). Objectives
+    // (group 2) arise only from talk-less subQuests, and `order` is unique
+    // per quest (checked above), so an objective never shares an order with a
+    // talk.
     let mut sortable: Vec<(i64, i64, usize, QuestStep)> = Vec::new();
     for p in placed {
         if p.info.text.is_empty() {
@@ -438,10 +532,16 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
     sortable.sort_by_key(|(order, group, seq, _)| (*order, *group, *seq));
     let steps: Vec<QuestStep> = sortable.into_iter().map(|(_, _, _, s)| s).collect();
 
+    // Exclude dev/test/hidden quests (by their own title, or by belonging to
+    // a dev/test chapter). Checked after the talks above are resolved (which
+    // marks them accessed) so this quest's dialogue is also kept out of the
+    // standalone agd_talk pass, not just out of agd_quest.
     if is_test_or_hidden_title(repo, scope, title_hash)? || hidden_chapter {
         return Ok(None);
     }
 
+    // FreeGroup "free talks" attached to this quest by talkId numbering
+    // (paths arrive pre-sorted by talkId); rendered in a separate section.
     let mut associated_free_talks: Vec<TalkInfo> = Vec::new();
     for path in repo
         .parse
@@ -508,6 +608,13 @@ pub fn render_quest(repo: &Repo, scope: &Scope, quest: &QuestInfo) -> Result<Ren
         content_lines.push(format!("{description}\n"));
     }
 
+    // Render quest progression steps in `order`. Talk steps show their
+    // dialogue under a `## Talk <order>` header (lead-ins placed via
+    // beginCond marked as such); non-dialogue objective steps show only their
+    // objective text under a `## Objective <order>` header. When several
+    // completing talks finish the same subQuest `order` (alternative branches
+    // of one step), `## Talk <order>` alone would repeat; number them
+    // `(variant N)` to keep headers unique. Lead-ins keep their own suffix.
     let mut variants_per_order: FxHashMap<i64, i64> = FxHashMap::default();
     for step in &quest.steps {
         if step.talk.is_some() && !step.is_lead_in {

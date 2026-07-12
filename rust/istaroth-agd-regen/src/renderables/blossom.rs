@@ -1,4 +1,4 @@
-//! Port of renderables/blossom.py.
+//! Port of renderables/blossom.py: Blossom (Rich Ore Reserve) intel talks.
 
 use crate::firstseen::Domain;
 use crate::issues::{IssueType, Scope};
@@ -41,8 +41,12 @@ pub fn discover(repo: &Repo) -> Result<Vec<i64>> {
     Ok(ids)
 }
 
+/// Assemble a region's blossom intel talks, sectioned by ore-type blurb.
 pub fn process(repo: &Repo, scope: &Scope, city_id: i64) -> Result<Option<RenderedItem>> {
     let mut names: FxHashSet<String> = FxHashSet::default();
+    // Sections key on the resolved blurb text (not its hash): several
+    // refreshes share one blurb (e.g. crystal pools at different unlock
+    // levels), and even same-text blurbs ship under distinct hashes.
     let mut section_order: IndexMap<String, i64> = IndexMap::new();
     let mut section_talk_ids: IndexMap<String, FxHashSet<i64>> = IndexMap::new();
     for (refresh, row_talk_ids) in intel_rows(repo)? {
@@ -59,6 +63,7 @@ pub fn process(repo: &Repo, scope: &Scope, city_id: i64) -> Result<Option<Render
             .or_default()
             .extend(row_talk_ids);
     }
+    // All intel refreshes share the one Rich Ore Reserve name.
     if names.len() != 1 {
         bail!("expected exactly one blossom name, got {}", names.len());
     }
@@ -78,7 +83,8 @@ pub fn process(repo: &Repo, scope: &Scope, city_id: i64) -> Result<Option<Render
     }
     let mut sections: Vec<Section> = Vec::new();
     let mut talk_ids: Vec<i64> = Vec::new();
-    // sorted(section_order, key=value) — stable by insertion order on ties.
+    // Sections ordered by lowest refresh id; the sort must be stable by
+    // insertion order on ties.
     let mut descs: Vec<(&String, i64)> = section_order.iter().map(|(d, v)| (d, *v)).collect();
     descs.sort_by_key(|(_, v)| *v);
     for (desc, _) in descs {
@@ -100,6 +106,11 @@ pub fn process(repo: &Repo, scope: &Scope, city_id: i64) -> Result<Option<Render
                 }
                 Err(e) => return Err(e),
             };
+            // Require a non-skip line: skip-flagged (dev/test) lines are
+            // dropped at render time, so an all-skip talk would emit an empty
+            // section. The same intel dialogue repeats verbatim under many
+            // talk ids (one per map spawn spot), so keep only the first copy
+            // of each script.
             let content: Vec<(Option<String>, String)> = talk_info
                 .text
                 .iter()

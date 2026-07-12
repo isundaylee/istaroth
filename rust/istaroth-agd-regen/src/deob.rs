@@ -253,9 +253,9 @@ fn process_dialog_list(dialogs: Vec<Value>) -> Result<Vec<Value>> {
             if let Some(obj) = d.as_object_mut()
                 && let Some(role) = obj.get("talkRole")
             {
-                // Python: `if obfuscated_role :=` — falsy ({}/None) skipped. A
-                // truthy non-object would slip through the rename unprocessed,
-                // so reject it rather than mask a schema change.
+                // A falsy talkRole ({}/null) is skipped. A truthy non-object
+                // would slip through the rename unprocessed, so reject it
+                // rather than mask a schema change.
                 if crate::vh::truthy(role) {
                     if !role.is_object() {
                         bail!("talkRole must be an object, got {role}");
@@ -282,7 +282,7 @@ pub fn deobfuscate_quest_data(data: Value) -> Result<Value> {
 
 /// Combined talk-file deobfuscation: processes both `dialogList` (talk files)
 /// and `talks` (group files); a file only ever carries one of the two, so this
-/// one pass serves both Python loaders (`load_talk_data`/`load_talk_group_data`).
+/// one pass serves both talk and talk-group loading.
 pub fn deobfuscate_talk_file(data: Value) -> Result<Value> {
     deob_map(
         data,

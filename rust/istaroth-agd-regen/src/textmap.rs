@@ -8,7 +8,21 @@ use anyhow::{Result, anyhow};
 use rustc_hash::FxHashMap;
 use std::path::Path;
 
-pub const FALLBACK_REFS: [&str; 3] = ["4d9593eb73a", "f9a21406731", "8c3aecbd6ed"];
+// Ordered newest-to-oldest; earlier refs win when multiple fallbacks contain a
+// hash. Sex-pronoun SEXPRO tokens also resolve against these builds (see
+// load_pronouns): 6.x dropped their TextMap rows and reassigned the manual hash
+// ids, so both token -> hash and hash -> text are read from here.
+//
+// 6.6.0/6.5.0 recover the great majority of hashes that a version bump drops
+// from the current TextMap (investigated in issue #273): checked back through
+// 5.4.0, nothing older than the immediately preceding minor version ever
+// contributed a recoverable hash, so there's no benefit to walking further
+// back. 8c3aecbd6ed (5.4.0) stays for the older SEXPRO manual-hash pairing.
+pub const FALLBACK_REFS: [&str; 3] = [
+    "4d9593eb73a", // 6.6.0
+    "f9a21406731", // 6.5.0
+    "8c3aecbd6ed", // 5.4.0
+];
 
 pub struct TextMaps {
     current: FxHashMap<i64, String>,
@@ -113,6 +127,7 @@ impl TextMaps {
                 })
                 .collect()
         };
+        // Merged in FALLBACK_REFS order so earlier (newer) refs win.
         let mut data = FxHashMap::default();
         for ref_data in per_ref {
             for (key, value) in ref_data? {
@@ -175,8 +190,10 @@ impl TextMaps {
         cleanup::clean_text_markers(&resolved)
     }
 
-    /// Python TextMapTracker: a lookup that resolves (in the current or
-    /// fallback map) records the hash into the active scope.
+    /// Any lookup that resolves — in the current OR fallback map — records the
+    /// hash into the active scope. Fallback-only hashes never inflate the
+    /// current-build unused count: `unused_current_ids` subtracts accessed
+    /// hashes from the current map's keys only.
     fn track(&self, scope: &Scope, key: i64) {
         scope.text_map.borrow_mut().insert(key);
     }

@@ -16,7 +16,15 @@ pub fn discover(repo: &Repo) -> Result<Vec<String>> {
     Ok(ids)
 }
 
-/// Weapons.
+/// Assemble a weapon's story document from its authoritative weapon config.
+///
+/// Follows weapon storyId -> DocumentExcelConfigData -> ordered page
+/// localization ids -> readable files, joining the pages into one document.
+/// Returns None when the weapon has no story (storyId 0, no document, or no
+/// page has on-disk content), mirroring the artifact-set discovery model.
+/// Reading each page also marks it accessed, keeping rendered pages out of
+/// the generic Readables catch-all; the unrendered base/placeholder files it
+/// leaves behind are dropped there by the empty/placeholder content skip.
 pub fn process(repo: &Repo, scope: &Scope, weapon_id_str: &str) -> Result<Option<RenderedItem>> {
     let weapon_id = util::py_int(weapon_id_str)?;
     let weapon =
@@ -30,7 +38,8 @@ pub fn process(repo: &Repo, scope: &Scope, weapon_id_str: &str) -> Result<Option
     let Some(doc_item) = repo.excel.document.get(&story_id) else {
         return Ok(None);
     };
-    // dict.fromkeys over questContentLocalizedId + questIDList + CUSTOM_addlLocalID.
+    // Ordered dedup of questContentLocalizedId + questIDList +
+    // CUSTOM_addlLocalID: first occurrence keeps its position.
     let mut ordered: IndexMap<i64, ()> = IndexMap::new();
     for id in int_array(doc_item.f("questContentLocalizedId")?)? {
         ordered.entry(id).or_insert(());
