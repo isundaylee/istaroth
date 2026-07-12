@@ -1,4 +1,10 @@
-"""Hierarchy types consumed by corpus readers."""
+"""Hierarchy types consumed by corpus readers.
+
+Deserializes the ``hierarchy/*.json`` files written by the Rust regen
+(``HierarchyNode``/``Hierarchy`` in ``rust/istaroth-agd-regen/src/hierarchy.rs``)
+— keep the field sets in parity when changing either side (the frontend's
+``frontend/src/utils/hierarchy.ts`` mirrors them too).
+"""
 
 from __future__ import annotations
 
@@ -9,13 +15,22 @@ import attrs
 
 @attrs.define
 class HierarchyNode:
-    """One group or leaf in a browsable document hierarchy."""
+    """One node in a browsable document hierarchy.
+
+    A node is either a group (``children`` set) or a leaf (``file_id`` set, a
+    viewable file). ``title`` is the resolved display label; it is ``None`` only
+    in transit before resolution (every persisted node carries a valid title).
+    """
 
     key: str
+    """URL-safe identifier, unique among siblings."""
     title: str | None
     children: list[HierarchyNode] | None
     file_id: int | None
     toc_eligible: bool
+    """Whether, when this group is a viewed file's section root, its children form
+    a coherent table of contents. False for leaves and for synthetic buckets that
+    merely collect unrelated files (e.g. the "standalone" group)."""
 
     def to_dict(self) -> dict[str, Any]:
         return {
