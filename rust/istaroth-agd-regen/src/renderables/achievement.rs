@@ -71,3 +71,40 @@ pub fn process(repo: &Repo, scope: &Scope, section_id: i64) -> Result<Option<Ren
         util::py_rstrip(&content_lines.join("\n")).to_string(),
     )))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lang::Language;
+    use crate::textmap::TextMaps;
+    use rustc_hash::FxHashMap;
+    use serde_json::json;
+
+    #[test]
+    fn active_achievement_requires_localized_text() {
+        let repo = Repo {
+            tm: TextMaps::for_tests(
+                Language::Chs,
+                [(10, "Section".to_string()), (20, "Achievement".to_string())]
+                    .into_iter()
+                    .collect(),
+                FxHashMap::default(),
+                FxHashMap::default(),
+            ),
+            achievement_sections: [(
+                7,
+                (
+                    json!({"nameTextMapHash": 10}),
+                    vec![json!({"id": 1, "titleTextMapHash": 20, "descTextMapHash": 30})],
+                ),
+            )]
+            .into_iter()
+            .collect(),
+            ..Default::default()
+        };
+        let Err(error) = process(&repo, &Scope::default(), 7) else {
+            panic!("expected missing text error")
+        };
+        assert!(error.to_string().contains("Unresolvable text map hash 30"));
+    }
+}

@@ -53,11 +53,26 @@ pub enum SourceKey {
     Str(String),
 }
 
+#[derive(Default)]
 pub struct FirstSeenIndex {
     versions: FxHashMap<Domain, FxHashMap<SourceKey, String>>,
 }
 
 impl FirstSeenIndex {
+    #[cfg(test)]
+    pub(crate) fn for_tests(
+        versions: impl IntoIterator<Item = (Domain, SourceKey, &'static str)>,
+    ) -> FirstSeenIndex {
+        let mut index = FirstSeenIndex::default();
+        for (domain, key, version) in versions {
+            index
+                .versions
+                .entry(domain)
+                .or_default()
+                .insert(key, version.to_string());
+        }
+        index
+    }
     pub fn load(data_dir: &Path) -> Result<FirstSeenIndex> {
         let mut paths: Vec<std::path::PathBuf> = std::fs::read_dir(data_dir)
             .with_context(|| format!("first-seen dir {data_dir:?}"))?

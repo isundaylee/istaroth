@@ -25,6 +25,7 @@ pub const FALLBACK_REFS: [&str; 3] = [
     "8c3aecbd6ed", // 5.4.0
 ];
 
+#[derive(Default)]
 pub struct TextMaps {
     language: Language,
     current: FxHashMap<i64, String>,
@@ -147,13 +148,7 @@ impl TextMaps {
                 .collect()
         };
         // Merged in FALLBACK_REFS order so earlier (newer) refs win.
-        let mut data = FxHashMap::default();
-        for ref_data in per_ref {
-            for (key, value) in ref_data? {
-                data.entry(key).or_insert(value);
-            }
-        }
-        Ok(data)
+        merge_fallbacks(per_ref)
     }
 
     fn load_pronouns(agd_path: &Path) -> Result<FxHashMap<String, i64>> {
@@ -272,6 +267,18 @@ impl TextMaps {
     }
 }
 
+fn merge_fallbacks(
+    per_ref: impl IntoIterator<Item = Result<FxHashMap<i64, String>>>,
+) -> Result<FxHashMap<i64, String>> {
+    let mut data = FxHashMap::default();
+    for ref_data in per_ref {
+        for (key, value) in ref_data? {
+            data.entry(key).or_insert(value);
+        }
+    }
+    Ok(data)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -346,6 +353,18 @@ mod tests {
             tm.clean_text("找{PLAYERAVATAR#SEXPRO[INFO_MALE_PRONOUN_HE|INFO_FEMALE_PRONOUN_SHE]}")
                 .unwrap(),
             "找他"
+        );
+    }
+
+    #[test]
+    fn fallback_refs_merge_in_code_order() {
+        assert_eq!(
+            merge_fallbacks([
+                Ok(string_map(&[(1, "newer"), (2, "newer only")])),
+                Ok(string_map(&[(1, "older"), (3, "older only")])),
+            ])
+            .unwrap(),
+            string_map(&[(1, "newer"), (2, "newer only"), (3, "older only")])
         );
     }
 }
