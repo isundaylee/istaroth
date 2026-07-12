@@ -101,7 +101,7 @@ pub fn process(repo: &Repo, scope: &Scope, subtitle_path: &str) -> Result<Option
     // the game intro), the bare stem remains the title (issue #74).
     let stem = util::path_stem(subtitle_path);
     let display_stem = stem
-        .strip_suffix(&format!("_{}", repo.language.short()))
+        .strip_suffix(repo.language.stem_suffix())
         .unwrap_or(stem);
     let mut numbers: Vec<i64> = repo
         .subtitle_stem_to_cutscenes

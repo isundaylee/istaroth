@@ -29,6 +29,14 @@ impl Language {
         }
     }
 
+    /// The `_<SHORT>` readable/subtitle stem suffix.
+    pub fn stem_suffix(self) -> &'static str {
+        match self {
+            Language::Chs => "_CHS",
+            Language::Eng => "_EN",
+        }
+    }
+
     /// The long language code (metadata.json's `language` field). Values must
     /// match the Python `Language` enum in `istaroth/agd/localization.py`,
     /// which the RAG readers parse this field into.

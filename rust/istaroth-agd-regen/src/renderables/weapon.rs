@@ -56,7 +56,7 @@ pub fn process(repo: &Repo, scope: &Scope, weapon_id: i64) -> Result<Option<Rend
             && let Some(content) = repo.readable_content(filename, scope)
             && !content.is_empty()
         {
-            story_pages.push(content.clone());
+            story_pages.push(content.to_string());
         }
     }
     if story_pages.is_empty() {

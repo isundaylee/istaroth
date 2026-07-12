@@ -1280,28 +1280,29 @@ impl Repo {
     // --- tracker-equivalent accessors ---
 
     /// TalkTracker.get_talk_file_path: tracks any excel-known talk id.
-    pub fn get_talk_file_path(&self, talk_id: i64, scope: &Scope) -> Option<&String> {
+    pub fn get_talk_file_path(&self, talk_id: i64, scope: &Scope) -> Option<&str> {
         if !self.talk_ids_all.contains(&talk_id) {
             return None;
         }
         scope.talks.borrow_mut().insert(talk_id);
-        self.parse.talk_id_to_path.get(&talk_id)
+        self.parse.talk_id_to_path.get(&talk_id).map(String::as_str)
     }
 
     /// ReadablesTracker.get_content: tracks known filenames.
-    pub fn readable_content(&self, filename: &str, scope: &Scope) -> Option<&String> {
+    pub fn readable_content(&self, filename: &str, scope: &Scope) -> Option<&str> {
         let content = self.readable_contents.get(filename)?;
         scope.readables.borrow_mut().insert(filename.to_string());
         Some(content)
     }
 
-    pub fn npc_chs_name(&self, npc_id: i64) -> Option<&String> {
+    pub fn npc_chs_name(&self, npc_id: i64) -> Option<&str> {
         // CHS build: the source (CHS) map IS the output map, so the dedicated
         // source-name mapping exists only for other output languages.
         self.npc_id_to_chs_name
             .as_ref()
             .unwrap_or(&self.npc_id_to_name)
             .get(&npc_id)
+            .map(String::as_str)
     }
 
     // --- CHS (source) text map accessors ---

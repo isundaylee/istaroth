@@ -151,8 +151,7 @@ fn make_chapters(
 pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Result<Hierarchy> {
     // Hierarchy building never counts toward text-map usage stats; a
     // discarded local scope drops its accesses.
-    let scope = Scope::default();
-    let scope = &scope;
+    let scope = &Scope::default();
     // type -> series -> chapter -> leaves; every level is sorted before output.
     let mut series_buckets: FxHashMap<String, FxHashMap<i64, FxHashMap<i64, Vec<HierarchyNode>>>> =
         FxHashMap::default();
@@ -317,8 +316,7 @@ pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Resu
 /// node so there is no redundant lone-chapter level.
 pub fn build_coop_hierarchy(repo: &Repo, coop_items: &[(i64, String)]) -> Result<Hierarchy> {
     // Like build_quest_hierarchy: text-map accesses here are dropped.
-    let scope = Scope::default();
-    let scope = &scope;
+    let scope = &Scope::default();
     let coop_chapters: FxHashMap<i64, &Value> = repo
         .excel
         .coop_chapter

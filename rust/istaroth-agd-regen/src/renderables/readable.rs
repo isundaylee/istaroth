@@ -25,7 +25,7 @@ pub fn get_readable_metadata(
 ) -> Result<ReadableMetadata> {
     let readable_stem = util::path_stem(readable_filename);
     let readable_id = readable_stem
-        .strip_suffix(&format!("_{}", repo.language.short()))
+        .strip_suffix(repo.language.stem_suffix())
         .unwrap_or(readable_stem);
     let localization_id = *repo
         .readable_stem_to_loc_id

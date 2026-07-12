@@ -111,8 +111,7 @@ fn creature_info(repo: &Repo, scope: &Scope, codex_id: i64) -> Result<CreatureIn
     }
     let name = repo.tm.get_required(name_hash, scope)?;
     let special_name = special_name.filter(|s| *s != name);
-    let title = title
-        .filter(|t| Some(t.as_str()) != Some(name.as_str()) && Some(t) != special_name.as_ref());
+    let title = title.filter(|t| *t != name && Some(t) != special_name.as_ref());
     Ok(CreatureInfo {
         codex_id,
         name,

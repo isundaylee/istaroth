@@ -21,12 +21,12 @@ pub const ERROR_LIMITS: (usize, usize) = (120, 120);
 const SPEAKER_TITLE_LIMIT: usize = 3;
 static COMPOSITE_ROLE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(.+) \((.+)\)$").unwrap());
 
-pub struct TalkGroupInfo {
+struct TalkGroupInfo {
     pub talks: Vec<(TalkInfo, Vec<TalkInfo>)>,
     pub talk_ids: Vec<i64>,
 }
 
-pub fn get_talk_group_info(
+fn get_talk_group_info(
     repo: &Repo,
     scope: &Scope,
     group_type: GroupType,
@@ -93,7 +93,7 @@ pub fn get_talk_group_info(
 /// are dropped; dev/test-named roles arrive already skip-flagged. The top
 /// `SPEAKER_TITLE_LIMIT` names by line count are joined with ` / `, with a
 /// trailing `...` when more named speakers exist.
-pub fn derive_speaker_group_name(info: &TalkGroupInfo, language: Language) -> Option<String> {
+fn derive_speaker_group_name(info: &TalkGroupInfo, language: Language) -> Option<String> {
     let roles = language.role_names();
     let generic_speakers: [&str; 7] = [
         roles.player,
@@ -174,7 +174,7 @@ const GADGET_GROUP_ID_DIGITS: u32 = 9;
 // the raw id.
 const ACTIVITY_GROUP_METADATA_ID_OFFSET: i64 = 1_000_000_000;
 
-pub fn render_talk_group(
+fn render_talk_group(
     repo: &Repo,
     scope: &Scope,
     group_type: GroupType,

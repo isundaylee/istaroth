@@ -64,12 +64,12 @@ fn run_pass<K: Sync>(
     let mut skipped = 0usize;
     let mut issues = 0usize;
     let mut items: Vec<RenderedItem> = Vec::new();
-    for (i, (result, scope)) in results.into_iter().enumerate() {
+    for ((result, scope), key) in results.into_iter().zip(keys) {
         match result {
             Err(e) => {
                 state.errors += 1;
                 errors += 1;
-                let line = format!("✗ {pass_name}: {} -> ERROR: {e:#}", key_desc(&keys[i]));
+                let line = format!("✗ {pass_name}: {} -> ERROR: {e:#}", key_desc(key));
                 eprintln!("{line}");
                 writeln!(state.errors_file, "{line}")?;
                 if errors > error_limit {
@@ -93,7 +93,7 @@ fn run_pass<K: Sync>(
                 for issue in item_issues {
                     state.issue_lines.push(format!(
                         "⚠ {pass_name}: {} -> {}: {}",
-                        key_desc(&keys[i]),
+                        key_desc(key),
                         issue.issue_type.name(),
                         issue.detail
                     ));
@@ -104,7 +104,7 @@ fn run_pass<K: Sync>(
                         writeln!(
                             state.errors_file,
                             "⚠ {pass_name}: {} -> SKIPPED (filtered)",
-                            key_desc(&keys[i])
+                            key_desc(key)
                         )?;
                     }
                     Some(item) => {
@@ -112,7 +112,7 @@ fn run_pass<K: Sync>(
                             bail!(
                                 "Path collision detected: '{}' for {pass_name}: {}",
                                 item.meta.relative_path,
-                                key_desc(&keys[i])
+                                key_desc(key)
                             );
                         }
                         state.manifest.push(item.meta.clone());
@@ -194,8 +194,8 @@ pub fn generate_all(
     if force && output_dir.exists() {
         for entry in std::fs::read_dir(output_dir)? {
             let entry = entry?;
-            let name = entry.file_name().to_string_lossy().to_string();
-            if name.starts_with("agd_") && entry.path().is_dir() {
+            let name = entry.file_name();
+            if name.to_string_lossy().starts_with("agd_") && entry.path().is_dir() {
                 std::fs::remove_dir_all(entry.path())?;
             }
         }
@@ -449,7 +449,6 @@ pub fn generate_all(
         ("Costumes", "Costume", "agd_costume"),
     ] {
         let filenames = readable::discover_prefixed(&repo, prefix)?;
-        let category: &'static str = category;
         run_pass(
             &mut state,
             output_dir,
@@ -576,11 +575,7 @@ pub fn generate_all(
         );
         if !state.issue_lines.is_empty() {
             let parsing_issues_info_path = stats_dir.join("parsing_issues.info");
-            let mut body = String::new();
-            for line in &state.issue_lines {
-                body.push_str(line);
-                body.push('\n');
-            }
+            let body = state.issue_lines.join("\n") + "\n";
             std::fs::write(&parsing_issues_info_path, body.as_bytes())?;
             eprintln!(
                 "Detailed parsing issues written to {}",
@@ -601,24 +596,21 @@ pub fn generate_all(
 
     // Hierarchies.
     {
-        let quest_items: Vec<(i64, String)> = state
-            .manifest
-            .iter()
-            .filter(|m| m.category == "agd_quest")
-            .map(|m| (m.id, m.title.clone()))
-            .collect();
-        if quest_items.is_empty() {
-            bail!("quest generation produced no quest manifest items");
-        }
-        let coop_items: Vec<(i64, String)> = state
-            .manifest
-            .iter()
-            .filter(|m| m.category == "agd_hangout")
-            .map(|m| (m.id, m.title.clone()))
-            .collect();
-        if coop_items.is_empty() {
-            bail!("hangout generation produced no coop manifest items");
-        }
+        let manifest_items =
+            |category: &str, pass: &str, what: &str| -> Result<Vec<(i64, String)>> {
+                let items: Vec<(i64, String)> = state
+                    .manifest
+                    .iter()
+                    .filter(|m| m.category == category)
+                    .map(|m| (m.id, m.title.clone()))
+                    .collect();
+                if items.is_empty() {
+                    bail!("{pass} generation produced no {what} manifest items");
+                }
+                Ok(items)
+            };
+        let quest_items = manifest_items("agd_quest", "quest", "quest")?;
+        let coop_items = manifest_items("agd_hangout", "hangout", "coop")?;
         let hierarchies = hierarchy::Hierarchies {
             agd_quest: hierarchy::build_quest_hierarchy(&repo, &quest_items)?,
             agd_hangout: hierarchy::build_coop_hierarchy(&repo, &coop_items)?,
@@ -657,7 +649,7 @@ pub fn generate_all(
     if code != 0 {
         eprintln!("Some items failed to generate; pass --allow-errors to exit 0 anyway.");
     }
-    std::io::Write::flush(&mut std::io::stderr()).ok();
+    std::io::stderr().flush().ok();
     std::process::exit(code);
 }
 

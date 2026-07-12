@@ -13,11 +13,12 @@ use crate::vh::{ValueExt, int_array};
 use anyhow::{Result, anyhow, bail};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
+use std::fmt::Write;
 
 /// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
 pub const ERROR_LIMITS: (usize, usize) = (50, 200);
 
-pub struct CondGrp {
+struct CondGrp {
     logic: String,
     conds: Vec<(String, Vec<i64>)>,
 }
@@ -60,13 +61,13 @@ fn render_cond(cond: &CondGrp) -> String {
         .join(joiner)
 }
 
-pub enum CoopStep {
+enum CoopStep {
     Talk(TalkInfo),
     Choice { id: usize, options: Vec<CoopOption> },
     Ending { save_point_id: i64 },
 }
 
-pub struct CoopOption {
+struct CoopOption {
     prompt: Option<String>,
     steps: Vec<CoopStep>,
     cond: Option<CondGrp>,
@@ -151,7 +152,7 @@ fn resolve_coop_option(
     })
 }
 
-pub struct HangoutInfo {
+struct HangoutInfo {
     quest_id: i64,
     quest_title: String,
     primary_character: Option<String>,
@@ -162,7 +163,7 @@ pub struct HangoutInfo {
 /// empty. `quest_id` is always a hangout quest (the Hangouts pass discovers
 /// them from `hangout_quest_to_stories`), so its stories and main-quest entry
 /// are indexed strictly.
-pub fn get_hangout_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Option<HangoutInfo>> {
+fn get_hangout_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Option<HangoutInfo>> {
     let stories = repo
         .hangout_quest_to_stories
         .get(&quest_id)
@@ -278,14 +279,12 @@ fn render_choice_section(
     lines.push(format!("### Choice {fork_num}"));
     lines.push(String::new());
 
-    for opt in options {
-        if let Some(cond) = &opt.cond
-            && !cond.conds.is_empty()
-        {
-            lines.push(format!("*Condition: {}*", render_cond(cond)));
-            lines.push(String::new());
-            break;
-        }
+    if let Some(cond) = options
+        .iter()
+        .find_map(|opt| opt.cond.as_ref().filter(|c| !c.conds.is_empty()))
+    {
+        lines.push(format!("*Condition: {}*", render_cond(cond)));
+        lines.push(String::new());
     }
 
     for (i, option) in options.iter().enumerate() {
@@ -293,17 +292,17 @@ fn render_choice_section(
         if let Some(prompt) = &option.prompt
             && !prompt.is_empty()
         {
-            heading.push_str(&format!(": {prompt}"));
+            write!(heading, ": {prompt}").unwrap();
         }
         if let Some(show_cond) = &option.show_cond
             && !show_cond.conds.is_empty()
         {
-            heading.push_str(&format!(" (only shown if {})", render_cond(show_cond)));
+            write!(heading, " (only shown if {})", render_cond(show_cond)).unwrap();
         }
         if let Some(cond) = &option.cond
             && !cond.conds.is_empty()
         {
-            heading.push_str(&format!(" (applies if {})", render_cond(cond)));
+            write!(heading, " (applies if {})", render_cond(cond)).unwrap();
         }
         lines.push(heading);
         lines.push(String::new());
@@ -380,7 +379,7 @@ fn render_coop_steps(
     Ok(lines)
 }
 
-pub fn render_hangout(repo: &Repo, scope: &Scope, hangout: &HangoutInfo) -> Result<RenderedItem> {
+fn render_hangout(repo: &Repo, scope: &Scope, hangout: &HangoutInfo) -> Result<RenderedItem> {
     let title = match &hangout.primary_character {
         Some(pc) => format!("{pc} - {}", hangout.quest_title),
         None => hangout.quest_title.clone(),

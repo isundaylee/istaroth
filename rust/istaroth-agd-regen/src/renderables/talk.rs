@@ -232,9 +232,8 @@ fn role_is_dev(repo: &Repo, scope: &Scope, dialog_item: &Value, dialog_id: i64) 
 pub fn get_talk_info_by_id(repo: &Repo, scope: &Scope, talk_id: i64) -> Result<TalkInfo> {
     let path = repo
         .get_talk_file_path(talk_id, scope)
-        .ok_or(TalkNotFound(talk_id))?
-        .clone();
-    get_talk_info(repo, scope, &path)
+        .ok_or(TalkNotFound(talk_id))?;
+    get_talk_info(repo, scope, path)
 }
 
 /// Resolve a talk pointed at by an authoritative finish condition.
@@ -760,7 +759,7 @@ pub fn render_talk_body(
     scope: &Scope,
 ) -> Result<Option<RenderedTalk>> {
     let body_lines = render_talk_content(talk, language, scope)?;
-    if !body_lines.iter().any(|l| !l.trim().is_empty()) {
+    if body_lines.iter().all(|l| l.trim().is_empty()) {
         return Ok(None);
     }
     let first_message = talk

@@ -34,45 +34,34 @@ fn first_seen_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../text/first_seen")
 }
 
-fn repo() -> Option<&'static Repo> {
-    static REPO: OnceLock<Option<Repo>> = OnceLock::new();
-    REPO.get_or_init(|| {
+fn load_repo(cell: &'static OnceLock<Option<Repo>>, language: Language) -> Option<&'static Repo> {
+    cell.get_or_init(|| {
         let agd = agd_path()?;
         Some(
-            Repo::load(
-                &agd,
-                &first_seen_dir(),
-                Language::Chs,
-                false,
-                &Scope::default(),
-            )
-            .expect("Repo::load"),
+            Repo::load(&agd, &first_seen_dir(), language, false, &Scope::default())
+                .unwrap_or_else(|e| panic!("{language:?} Repo::load: {e:#}")),
         )
     })
     .as_ref()
+}
+
+fn repo() -> Option<&'static Repo> {
+    static REPO: OnceLock<Option<Repo>> = OnceLock::new();
+    load_repo(&REPO, Language::Chs)
 }
 
 fn english_repo() -> Option<&'static Repo> {
     static REPO: OnceLock<Option<Repo>> = OnceLock::new();
-    REPO.get_or_init(|| {
-        let agd = agd_path()?;
-        Some(
-            Repo::load(
-                &agd,
-                &first_seen_dir(),
-                Language::Eng,
-                false,
-                &Scope::default(),
-            )
-            .expect("English Repo::load"),
-        )
-    })
-    .as_ref()
+    load_repo(&REPO, Language::Eng)
 }
 
+/// Bind the (default CHS) repo, or skip the test when AGD_PATH is absent.
 macro_rules! require_repo {
     () => {
-        match repo() {
+        require_repo!(repo)
+    };
+    ($getter:ident) => {
+        match $getter() {
             Some(repo) => repo,
             None => return,
         }
@@ -304,7 +293,7 @@ fn sexpro_resolves_from_pinned_build() {
 
 #[test]
 fn english_sexpro_resolves_from_pinned_build() {
-    let Some(repo) = english_repo() else { return };
+    let repo = require_repo!(english_repo);
     assert_eq!(
         repo.tm
             .clean_text("找{PLAYERAVATAR#SEXPRO[INFO_MALE_PRONOUN_HE|INFO_FEMALE_PRONOUN_SHE]}")
@@ -352,7 +341,7 @@ fn talk_7407811_info() {
 
 #[test]
 fn talk_7407811_english_roles() {
-    let Some(repo) = english_repo() else { return };
+    let repo = require_repo!(english_repo);
     let info =
         talk::get_talk_info(repo, &Scope::default(), "BinOutput/Talk/Quest/7407811.json").unwrap();
     let roles: Vec<&str> = info
@@ -628,7 +617,7 @@ fn creatures_discover_returns_subtype_groups() {
     let repo = require_repo!();
     let discovered = creature::discover(repo).unwrap();
 
-    assert!(discovered.contains(&"CODEX_SUBTYPE_AUTOMATRON".to_string()));
+    assert!(discovered.iter().any(|s| s == "CODEX_SUBTYPE_AUTOMATRON"));
     assert!(discovered.len() < 20);
     assert!(repo.excel.animal_codex.len() > 100);
 }

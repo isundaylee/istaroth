@@ -92,7 +92,7 @@ fn common_prefix_name(titles: &[String]) -> Option<String> {
 /// Whether a chapter is dev/test content (e.g. the 夏活beta测试任务 chapter).
 /// The dev/test markers live in the CHS (source) text. Untracked lookups:
 /// this check must not mark the chapter hashes as used.
-pub fn is_test_or_hidden_chapter(repo: &Repo, chapter: &Value) -> Result<bool> {
+fn is_test_or_hidden_chapter(repo: &Repo, chapter: &Value) -> Result<bool> {
     for key in ["chapterNumTextMapHash", "chapterTitleTextMapHash"] {
         if let Some(text) = repo.chs_get_optional_untracked(chapter.i(key)?)?
             && util::should_skip_text(&text, Language::Chs)
@@ -587,7 +587,7 @@ pub fn process(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Option<Rende
     Ok(Some(render_quest(repo, scope, &quest_info)?))
 }
 
-pub fn render_quest(repo: &Repo, scope: &Scope, quest: &QuestInfo) -> Result<RenderedItem> {
+fn render_quest(repo: &Repo, scope: &Scope, quest: &QuestInfo) -> Result<RenderedItem> {
     let safe_title = util::make_safe_filename_part(&quest.title);
     let filename = format!("{}_{safe_title}.txt", quest.quest_id);
 

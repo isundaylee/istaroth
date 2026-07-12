@@ -65,7 +65,7 @@ fn relic_story_by_story_id(
         .collect();
     entries.sort_unstable_by_key(|(position, _)| *position);
     let lang = repo.language.short();
-    let suffix = format!("_{lang}");
+    let suffix = repo.language.stem_suffix();
     for (_, entry) in entries {
         for path_value in entry.as_object().into_iter().flat_map(|o| o.values()) {
             let Some(path_str) = path_value.as_str() else {
@@ -77,7 +77,7 @@ fn relic_story_by_story_id(
             if path_str.ends_with(&suffix) || path_str.split('/').any(|p| p == lang) {
                 let name = util::path_name(path_str);
                 if let Some(content) = repo.readable_content(&format!("{name}.txt"), scope) {
-                    return Ok(Some(content.clone()));
+                    return Ok(Some(content.to_string()));
                 }
             }
         }
@@ -133,9 +133,9 @@ pub fn process(
             story,
         });
     }
-    if !artifacts
+    if artifacts
         .iter()
-        .any(|a| !a.story.is_empty() || !a.description.is_empty())
+        .all(|a| a.story.is_empty() && a.description.is_empty())
     {
         return Ok(None);
     }
