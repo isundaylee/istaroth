@@ -184,9 +184,9 @@ fn get_role_name(
     }
     // Prefer the name-hash resolution, but an EMPTY resolved name falls
     // through to the role-derived name (or-chain truthiness).
-    let resolved = match &by_name_hash {
-        Some(s) if !s.is_empty() => by_name_hash.clone(),
-        _ => by_role.clone(),
+    let resolved = match by_name_hash {
+        Some(s) if !s.is_empty() => Some(s),
+        _ => by_role,
     };
     if resolved.is_some() {
         return Ok(resolved);
@@ -232,9 +232,8 @@ fn role_is_dev(repo: &Repo, scope: &Scope, dialog_item: &Value, dialog_id: i64) 
 pub fn get_talk_info_by_id(repo: &Repo, scope: &Scope, talk_id: i64) -> Result<TalkInfo> {
     let path = repo
         .get_talk_file_path(talk_id, scope)
-        .ok_or(TalkNotFound(talk_id))?
-        .clone();
-    get_talk_info(repo, scope, &path)
+        .ok_or(TalkNotFound(talk_id))?;
+    get_talk_info(repo, scope, path)
 }
 
 /// Resolve a talk pointed at by an authoritative finish condition.
@@ -279,10 +278,12 @@ impl<'a> TalkTextGraph<'a> {
         let mut graph: FxHashMap<i64, Vec<i64>> = FxHashMap::default();
         let mut incoming: FxHashMap<i64, i64> = FxHashMap::default();
         for talk_text in &talk.text {
-            if !dialog_id_to_text.contains_key(&talk_text.dialog_id) {
+            if dialog_id_to_text
+                .insert(talk_text.dialog_id, talk_text)
+                .is_none()
+            {
                 id_first_seen.push(talk_text.dialog_id);
             }
-            dialog_id_to_text.insert(talk_text.dialog_id, talk_text);
             for &next_id in &talk_text.next_dialog_ids {
                 graph.entry(talk_text.dialog_id).or_default().push(next_id);
                 *incoming.entry(next_id).or_insert(0) += 1;
@@ -369,8 +370,13 @@ impl<'a> TalkTextGraph<'a> {
     }
 }
 
+/// Whether a dialog line survives rendering (`render_dialog_line`'s filter).
+fn dialog_line_renders(t: &TalkText, language: Language) -> bool {
+    !t.skip && !util::should_skip_text(&t.message, language)
+}
+
 fn render_dialog_line(t: &TalkText, language: Language) -> Option<String> {
-    if t.skip || util::should_skip_text(&t.message, language) {
+    if !dialog_line_renders(t, language) {
         return None;
     }
     match &t.role {
@@ -397,8 +403,101 @@ impl DialogPaths {
         }
     }
 
+    /// Make `pi` the sole visitor of `key`, discarding earlier visitors.
+    fn replace(&mut self, key: Option<i64>, pi: usize) {
+        let visitors = self.entry(key);
+        visitors.clear();
+        visitors.insert(pi);
+    }
+
     fn contains_key(&self, key: &Option<i64>) -> bool {
         self.0.iter().any(|(k, _)| k == key)
+    }
+}
+
+/// Mutable state of one `process_branch` walk: the live branch paths plus the
+/// bookkeeping `advance` updates in lockstep (Python's `_advance` closure).
+struct BranchWalk<'a> {
+    graph: &'a TalkTextGraph<'a>,
+    /// One dialog-id sequence per branch path; None marks "path ended".
+    paths: Vec<Vec<Option<i64>>>,
+    /// Per-path set of dialog ids already offered to it (cycle guard).
+    path_offered: Vec<FxHashSet<i64>>,
+    /// Paths that ended in cycles.
+    cycle_pis: FxHashSet<usize>,
+    dialog_paths: DialogPaths,
+}
+
+impl<'a> BranchWalk<'a> {
+    fn new(next_dialog_ids: &[i64], graph: &'a TalkTextGraph<'a>) -> BranchWalk<'a> {
+        let mut dialog_paths = DialogPaths::default();
+        // A dialog id seeding several paths keeps only the last path index.
+        for (i, &di) in next_dialog_ids.iter().enumerate() {
+            dialog_paths.replace(Some(di), i);
+        }
+        BranchWalk {
+            graph,
+            paths: next_dialog_ids.iter().map(|&d| vec![Some(d)]).collect(),
+            path_offered: next_dialog_ids
+                .iter()
+                .map(|_| next_dialog_ids.iter().copied().collect())
+                .collect(),
+            cycle_pis: FxHashSet::default(),
+            dialog_paths,
+        }
+    }
+
+    /// Advance path `pi` one step, forking it on uncovered fan-outs.
+    fn advance(&mut self, pi: usize, rendered: &FxHashSet<i64>) -> Result<()> {
+        let Some(curr_di) = *self.paths[pi].last().unwrap() else {
+            bail!("Cannot advance an ended path");
+        };
+        let next_dis: &[i64] = self
+            .graph
+            .graph
+            .get(&curr_di)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
+        if next_dis.is_empty() {
+            self.paths[pi].push(None);
+            if !self.dialog_paths.entry(None).insert(pi) {
+                bail!("Path ended multiple times");
+            }
+            return Ok(());
+        }
+        let uncovered: Vec<i64> = next_dis
+            .iter()
+            .copied()
+            .filter(|di| !self.path_offered[pi].contains(di))
+            .collect();
+        if uncovered.is_empty() {
+            self.cycle_pis.insert(pi);
+            return Ok(());
+        }
+        self.path_offered[pi].extend(uncovered.iter().copied());
+        let mut pis_to_extend = vec![pi];
+        for _ in &uncovered[1..] {
+            self.paths.push(self.paths[pi].clone());
+            let new_pi = self.paths.len() - 1;
+            self.path_offered.push(self.path_offered[pi].clone());
+            pis_to_extend.push(new_pi);
+            for &di in &self.paths[new_pi] {
+                if !self.dialog_paths.entry(di).insert(new_pi) {
+                    bail!("Found cycle in branch paths");
+                }
+            }
+        }
+        for (&di_to_extend, &pi_to_extend) in uncovered.iter().zip(&pis_to_extend) {
+            self.paths[pi_to_extend].push(Some(di_to_extend));
+            if rendered.contains(&di_to_extend) {
+                self.cycle_pis.insert(pi_to_extend);
+                continue;
+            }
+            self.dialog_paths
+                .entry(Some(di_to_extend))
+                .insert(pi_to_extend);
+        }
+        Ok(())
     }
 }
 
@@ -414,17 +513,7 @@ fn process_branch(
     language: Language,
     scope: &Scope,
 ) -> Result<(Option<i64>, Vec<Vec<String>>)> {
-    let mut paths: Vec<Vec<Option<i64>>> = next_dialog_ids.iter().map(|&d| vec![Some(d)]).collect();
-    let mut path_offered: Vec<FxHashSet<i64>> = next_dialog_ids
-        .iter()
-        .map(|_| next_dialog_ids.iter().copied().collect())
-        .collect();
-    let mut cycle_pis: FxHashSet<usize> = FxHashSet::default();
-    let mut dialog_paths = DialogPaths::default();
-    // A dialog id seeding several paths keeps only the last path index.
-    for (i, &di) in next_dialog_ids.iter().enumerate() {
-        *dialog_paths.entry(Some(di)) = std::iter::once(i).collect();
-    }
+    let mut walk = BranchWalk::new(next_dialog_ids, graph);
     let seeds: FxHashSet<i64> = next_dialog_ids.iter().copied().collect();
 
     let reachable = |start: i64| -> FxHashSet<i64> {
@@ -432,8 +521,7 @@ fn process_branch(
         let mut stack = vec![start];
         while let Some(top) = stack.pop() {
             for &nxt in graph.graph.get(&top).into_iter().flatten() {
-                if !seen.contains(&nxt) {
-                    seen.insert(nxt);
+                if seen.insert(nxt) {
                     stack.push(nxt);
                 }
             }
@@ -441,87 +529,33 @@ fn process_branch(
         seen
     };
 
-    // _advance(pi)
-    macro_rules! advance {
-        ($pi:expr) => {{
-            let pi: usize = $pi;
-            let curr_di = *paths[pi].last().unwrap();
-            let Some(curr_di) = curr_di else {
-                bail!("Cannot advance an ended path");
-            };
-            let next_dis: Vec<i64> = graph.graph.get(&curr_di).cloned().unwrap_or_default();
-            if next_dis.is_empty() {
-                paths[pi].push(None);
-                if dialog_paths.entry(None).contains(&pi) {
-                    bail!("Path ended multiple times");
-                }
-                dialog_paths.entry(None).insert(pi);
-            } else {
-                let uncovered: Vec<i64> = next_dis
-                    .iter()
-                    .copied()
-                    .filter(|di| !path_offered[pi].contains(di))
-                    .collect();
-                if uncovered.is_empty() {
-                    cycle_pis.insert(pi);
-                } else {
-                    path_offered[pi].extend(uncovered.iter().copied());
-                    let mut pis_to_extend = vec![pi];
-                    for _ in &uncovered[1..] {
-                        let clone = paths[pi].clone();
-                        paths.push(clone);
-                        let new_pi = paths.len() - 1;
-                        path_offered.push(path_offered[pi].clone());
-                        pis_to_extend.push(new_pi);
-                        let elems: Vec<Option<i64>> = paths[new_pi].clone();
-                        for di in elems {
-                            let set = dialog_paths.entry(di);
-                            if set.contains(&new_pi) {
-                                bail!("Found cycle in branch paths");
-                            }
-                            set.insert(new_pi);
-                        }
-                    }
-                    for (idx, &di_to_extend) in uncovered.iter().enumerate() {
-                        let pi_to_extend = pis_to_extend[idx];
-                        paths[pi_to_extend].push(Some(di_to_extend));
-                        if rendered.contains(&di_to_extend) {
-                            cycle_pis.insert(pi_to_extend);
-                            continue;
-                        }
-                        dialog_paths.entry(Some(di_to_extend)).insert(pi_to_extend);
-                    }
-                }
-            }
-        }};
-    }
-
     let conv_point: Option<i64> = loop {
-        if cycle_pis.len() == paths.len() {
+        if walk.cycle_pis.len() == walk.paths.len() {
             bail!("All paths ended in cycles");
         }
-        let needed: FxHashSet<usize> = (0..paths.len())
-            .filter(|pi| !cycle_pis.contains(pi))
+        let needed: FxHashSet<usize> = (0..walk.paths.len())
+            .filter(|pi| !walk.cycle_pis.contains(pi))
             .collect();
-        let potential: Vec<Option<i64>> = dialog_paths
+        let potential: Vec<Option<i64>> = walk
+            .dialog_paths
             .0
             .iter()
             .filter(|(_, visited)| needed.iter().all(|pi| visited.contains(pi)))
             .map(|(di, _)| *di)
             .collect();
         if !potential.is_empty() {
-            if potential.len() != 1 && cycle_pis.is_empty() {
+            if potential.len() != 1 && walk.cycle_pis.is_empty() {
                 bail!("Multiple convergence points");
             }
             break potential[0];
         }
         let mut waits: Vec<(usize, i64)> = Vec::new();
         let mut movers: Vec<usize> = Vec::new();
-        for pi in 0..paths.len() {
-            if cycle_pis.contains(&pi) {
+        for pi in 0..walk.paths.len() {
+            if walk.cycle_pis.contains(&pi) {
                 continue;
             }
-            let Some(curr_di) = *paths[pi].last().unwrap() else {
+            let Some(curr_di) = *walk.paths[pi].last().unwrap() else {
                 continue;
             };
             let incoming = graph.incoming.get(&curr_di).copied().unwrap_or(0);
@@ -530,7 +564,7 @@ fn process_branch(
                 .get(&curr_di)
                 .into_iter()
                 .flatten()
-                .any(|d| !path_offered[pi].contains(d));
+                .any(|d| !walk.path_offered[pi].contains(d));
             if !seeds.contains(&curr_di) && incoming >= 2 && has_unoffered {
                 waits.push((pi, curr_di));
             } else {
@@ -539,7 +573,7 @@ fn process_branch(
         }
         if !movers.is_empty() {
             for pi in movers {
-                advance!(pi);
+                walk.advance(pi, rendered)?;
             }
             continue;
         }
@@ -547,7 +581,10 @@ fn process_branch(
         waiting_nodes.sort();
         waiting_nodes.dedup();
         let mut deepest: Option<i64> = None;
-        if cycle_pis.is_empty() && !dialog_paths.contains_key(&None) && waiting_nodes.len() > 1 {
+        if walk.cycle_pis.is_empty()
+            && !walk.dialog_paths.contains_key(&None)
+            && waiting_nodes.len() > 1
+        {
             deepest = waiting_nodes.iter().copied().find(|&node| {
                 waiting_nodes
                     .iter()
@@ -557,20 +594,16 @@ fn process_branch(
         }
         for (pi, node) in waits {
             if Some(node) != deepest {
-                advance!(pi);
+                walk.advance(pi, rendered)?;
             }
         }
     };
 
     let mut lines_list: Vec<Vec<String>> = Vec::new();
-    for (pi, path) in paths.iter().enumerate() {
+    for (pi, path) in walk.paths.iter().enumerate() {
         let mut branch_lines: Vec<String> = Vec::new();
-        let mut broke = false;
-        for &di in path {
-            if di == conv_point {
-                broke = true;
-                break;
-            }
+        let conv_at = path.iter().position(|&di| di == conv_point);
+        for &di in &path[..conv_at.unwrap_or(path.len())] {
             let Some(di) = di else {
                 bail!("Unexpected None in path");
             };
@@ -587,8 +620,8 @@ fn process_branch(
                 }
             }
         }
-        if !broke {
-            if !cycle_pis.contains(&pi) {
+        if conv_at.is_none() {
+            if !walk.cycle_pis.contains(&pi) {
                 bail!("Path {pi} did not converge");
             }
             branch_lines.push("[Loops back to an already-shown dialog]".to_string());
@@ -632,7 +665,7 @@ fn render_talk_dialogs(
                 return Ok(lines);
             }
         }
-        let next_dialog_ids = graph.graph.get(&cur).cloned().unwrap_or_default();
+        let next_dialog_ids: &[i64] = graph.graph.get(&cur).map(Vec::as_slice).unwrap_or(&[]);
         if next_dialog_ids.is_empty() {
             break;
         }
@@ -641,7 +674,7 @@ fn render_talk_dialogs(
             continue;
         }
         let (conv, branch_lines_list) =
-            process_branch(&next_dialog_ids, graph, rendered, language, scope)?;
+            process_branch(next_dialog_ids, graph, rendered, language, scope)?;
         current_id = conv;
         if branch_lines_list.len() == 1 {
             lines.extend(branch_lines_list.into_iter().next().unwrap());
@@ -726,13 +759,13 @@ pub fn render_talk_body(
     scope: &Scope,
 ) -> Result<Option<RenderedTalk>> {
     let body_lines = render_talk_content(talk, language, scope)?;
-    if !body_lines.iter().any(|l| !l.trim().is_empty()) {
+    if body_lines.iter().all(|l| l.trim().is_empty()) {
         return Ok(None);
     }
     let first_message = talk
         .text
         .iter()
-        .find(|t| render_dialog_line(t, language).is_some() && !t.message.trim().is_empty())
+        .find(|t| dialog_line_renders(t, language) && !t.message.trim().is_empty())
         .map(|t| t.message.clone());
     let (filename, title) = match first_message {
         Some(msg) => {
@@ -740,7 +773,7 @@ pub fn render_talk_body(
             let title = if msg.chars().count() > 100 {
                 msg.chars().take(100).collect()
             } else {
-                msg.clone()
+                msg
             };
             (format!("{talk_id}_{safe_title}.txt"), title)
         }

@@ -14,16 +14,15 @@ use rustc_hash::{FxHashMap, FxHashSet};
 /// (CHS, non-CHS) per-pass error limits (see e.g. `artifact::ERROR_LIMITS`).
 pub const ERROR_LIMITS: (usize, usize) = (5, 10);
 
-/// Leftover TALK_ACTIVITY talk ids grouped by their owning activity.
+/// Activities pass discovery: leftover TALK_ACTIVITY talk ids grouped by
+/// their owning activity (relative to the used-talk snapshot taken at pass
+/// creation). Computed once; `process` indexes into it per activity.
 ///
 /// For TALK_ACTIVITY entries the excel `questId` field holds the owning
 /// activity id (every current entry resolves in NewActivityExcelConfigData),
 /// matching the activity referenced by their QUEST_COND_ACTIVITY_CLIENT_COND
 /// begin conditions.
-fn loose_talk_ids_by_activity(
-    repo: &Repo,
-    used_talk_ids: &FxHashSet<i64>,
-) -> Result<FxHashMap<i64, Vec<i64>>> {
+pub fn discover(repo: &Repo, used_talk_ids: &FxHashSet<i64>) -> Result<FxHashMap<i64, Vec<i64>>> {
     let mut grouped: FxHashMap<i64, Vec<i64>> = FxHashMap::default();
     for entry in &repo.excel.talk {
         if entry.s("loadType")? != "TALK_ACTIVITY" {
@@ -43,25 +42,13 @@ fn loose_talk_ids_by_activity(
     Ok(grouped)
 }
 
-/// Activities pass discovery: sorted activity ids with loose talks (relative
-/// to the used-talk snapshot taken at pass creation).
-pub fn discover(repo: &Repo, used_talk_ids: &FxHashSet<i64>) -> Result<Vec<i64>> {
-    let mut ids: Vec<i64> = loose_talk_ids_by_activity(repo, used_talk_ids)?
-        .keys()
-        .copied()
-        .collect();
-    ids.sort();
-    Ok(ids)
-}
-
 pub fn process(
     repo: &Repo,
     scope: &Scope,
-    used_talk_ids: &FxHashSet<i64>,
+    loose_talks: &FxHashMap<i64, Vec<i64>>,
     activity_id: i64,
 ) -> Result<Option<RenderedItem>> {
-    let grouped = loose_talk_ids_by_activity(repo, used_talk_ids)?;
-    let ids = grouped
+    let ids = loose_talks
         .get(&activity_id)
         .ok_or_else(|| anyhow!("activity {activity_id} has no loose talks"))?;
     let mut talks: Vec<TalkInfo> = Vec::new();

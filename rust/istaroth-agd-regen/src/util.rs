@@ -41,11 +41,12 @@ pub fn should_skip_readable_content(content: &str, language: crate::lang::Langua
         || should_skip_text(stripped, language)
 }
 
-/// First 12 hex chars of sha256(s) as an integer (subtitle/material/creature ids).
+/// First 12 hex chars of sha256(s) as an integer (subtitle/material/creature
+/// ids), i.e. the first 6 digest bytes big-endian.
 pub fn sha256_id(s: &str) -> i64 {
-    let digest = Sha256::digest(s.as_bytes());
-    let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
-    i64::from_str_radix(&hex[..12], 16).unwrap()
+    Sha256::digest(s.as_bytes())[..6]
+        .iter()
+        .fold(0i64, |acc, &b| (acc << 8) | i64::from(b))
 }
 
 /// Title-case: uppercase each letter that follows a non-letter, lowercase the rest.
@@ -81,20 +82,22 @@ pub fn parse_i64(s: &str) -> anyhow::Result<i64> {
 
 /// Longest common prefix over strings, per code point.
 pub fn common_prefix(strings: &[String]) -> String {
-    if strings.is_empty() {
+    let Some(first) = strings.first() else {
         return String::new();
-    }
-    let first: Vec<char> = strings[0].chars().collect();
-    let mut len = first.len();
+    };
+    let mut prefix: &str = first;
     for s in &strings[1..] {
-        let chars: Vec<char> = s.chars().collect();
-        let mut i = 0;
-        while i < len && i < chars.len() && chars[i] == first[i] {
-            i += 1;
-        }
-        len = len.min(i);
+        let matched = prefix
+            .char_indices()
+            .zip(s.chars())
+            .find(|((_, a), b)| a != b)
+            .map_or_else(
+                || prefix.len().min(s.len()),
+                |((byte_index, _), _)| byte_index,
+            );
+        prefix = &prefix[..matched];
     }
-    first[..len].iter().collect()
+    prefix.to_string()
 }
 
 /// Version string ("5.8") sort key. Mirrors `_version_sort_key` in

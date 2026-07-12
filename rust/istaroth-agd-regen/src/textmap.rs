@@ -5,6 +5,7 @@ use crate::cleanup;
 use crate::git::git_show;
 use crate::issues::Scope;
 use crate::lang::Language;
+use crate::vh::ValueExt;
 use anyhow::{Result, anyhow};
 use rustc_hash::FxHashMap;
 use std::path::Path;
@@ -168,11 +169,9 @@ impl TextMaps {
         let mut pronouns = FxHashMap::default();
         for entries in per_ref {
             for entry in entries? {
-                let token = entry["textMapId"]
-                    .as_str()
-                    .ok_or_else(|| anyhow!("textMapId must be a string"))?;
+                let token = entry.s("textMapId")?;
                 if token.starts_with("INFO_") && !pronouns.contains_key(token) {
-                    let hash = &entry["textMapContentTextMapHash"];
+                    let hash = entry.f("textMapContentTextMapHash")?;
                     let hash = hash
                         .as_i64()
                         .or_else(|| hash.as_str().and_then(|s| s.trim().parse().ok()))

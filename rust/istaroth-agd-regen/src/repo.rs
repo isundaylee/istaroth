@@ -15,8 +15,11 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 
-/// Dialog id -> content-hash and dialog id -> role-name-hash maps.
-type DialogMaps = (FxHashMap<i64, i64>, FxHashMap<i64, i64>);
+/// The two maps that survive the dialog excel parse.
+struct DialogMaps {
+    content_hash: FxHashMap<i64, i64>,
+    role_hash: FxHashMap<i64, i64>,
+}
 
 /// Raw excel tables loaded directly from ExcelBinOutput files (exposed as
 /// `Repo::excel`); derived mappings stay flat on `Repo`.
@@ -29,15 +32,13 @@ pub struct Excels {
     pub book_suit: FxHashMap<i64, Value>,
     pub books_codex: Vec<Value>,
     pub material: FxHashMap<i64, Value>,
-    pub achievement: Vec<Value>,
-    pub achievement_goal: Vec<Value>,
     pub anecdote: FxHashMap<i64, Value>,
     pub blossom_talk: Vec<Value>,
     pub blossom_refresh: FxHashMap<i64, Value>,
     pub city_config: FxHashMap<i64, Value>,
     pub coop_interaction: Vec<Value>,
     pub coop_chapter: Vec<Value>,
-    pub avatar: Vec<Value>,
+    pub avatar: FxHashMap<i64, Value>,
     pub skill_depot: FxHashMap<i64, Value>,
     pub talent: FxHashMap<i64, Value>,
     pub skill: FxHashMap<i64, Value>,
@@ -46,14 +47,17 @@ pub struct Excels {
     pub animal_codex: FxHashMap<i64, Value>,
     pub monster_describe: FxHashMap<i64, Value>,
     pub monster_title: FxHashMap<i64, Value>,
-    pub monster_special_name: Vec<Value>,
+    /// Keyed by specialNameLabID; several rows may share a lab id.
+    pub monster_special_name: FxHashMap<i64, Vec<Value>>,
     pub animal_describe: FxHashMap<i64, Value>,
     pub main_quest: FxHashMap<i64, Value>,
     pub chapter: FxHashMap<i64, Value>,
     pub new_activity: FxHashMap<i64, Value>,
+    /// Kept as a list: ArtifactSets discovery order is file order.
     pub reliquary_set: Vec<Value>,
-    pub reliquary: Vec<Value>,
-    pub equip_affix: Vec<Value>,
+    pub reliquary: FxHashMap<i64, Value>,
+    /// Keyed by id; per-level rows share an id and the first row wins.
+    pub equip_affix: FxHashMap<i64, Value>,
     pub weapon: FxHashMap<i64, Value>,
     pub quest: Vec<Value>,
     pub home_world_npc: Vec<Value>,
@@ -106,7 +110,6 @@ pub struct Repo {
     pub activity_id_to_name: FxHashMap<i64, String>,
     pub npc_id_to_game_mode: FxHashMap<i64, &'static str>,
 
-    pub readable_filenames: FxHashSet<String>,
     pub readable_contents: FxHashMap<String, String>,
     pub readable_filenames_sorted: Vec<String>,
     pub subtitle_names: Vec<String>,
@@ -161,16 +164,15 @@ fn parse_dialog_excel(path: &Path) -> Result<DialogMaps> {
         }
     }
 
-    struct Rows(FxHashMap<i64, i64>, FxHashMap<i64, i64>);
     struct RowsVisitor;
     impl<'de> Visitor<'de> for RowsVisitor {
-        type Value = Rows;
+        type Value = DialogMaps;
         fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
             f.write_str("dialog excel list")
         }
-        fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Rows, A::Error> {
-            let mut content_map = FxHashMap::default();
-            let mut role_map = FxHashMap::default();
+        fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<DialogMaps, A::Error> {
+            let mut content_hash = FxHashMap::default();
+            let mut role_hash = FxHashMap::default();
             while let Some(row) = seq.next_element::<Row>()? {
                 let id = row
                     .id
@@ -181,20 +183,23 @@ fn parse_dialog_excel(path: &Path) -> Result<DialogMaps> {
                 let role = row.role.ok_or_else(|| {
                     serde::de::Error::custom("dialog row missing talkRoleNameTextMapHash")
                 })?;
-                content_map.insert(id, content);
-                role_map.insert(id, role);
+                content_hash.insert(id, content);
+                role_hash.insert(id, role);
             }
-            Ok(Rows(content_map, role_map))
+            Ok(DialogMaps {
+                content_hash,
+                role_hash,
+            })
         }
     }
 
     let bytes = std::fs::read(path).with_context(|| format!("read {path:?}"))?;
     let mut de = serde_json::Deserializer::from_slice(&bytes);
-    let rows = de
+    let maps = de
         .deserialize_seq(RowsVisitor)
         .with_context(|| format!("parse {path:?}"))?;
     de.end()?;
-    Ok((rows.0, rows.1))
+    Ok(maps)
 }
 
 fn index_unique(
@@ -205,10 +210,9 @@ fn index_unique(
     let mut map = FxHashMap::with_capacity_and_hasher(data.len(), Default::default());
     for item in data {
         let k = key(&item)?;
-        if map.contains_key(&k) {
+        if map.insert(k, item).is_some() {
             bail!("Duplicate {what}: {k}");
         }
-        map.insert(k, item);
     }
     Ok(map)
 }
@@ -270,10 +274,9 @@ fn run_timed<T>(verbose: bool, name: &str, f: impl FnOnce() -> T) -> T {
 /// canonically-named `{id}.json` wins.
 fn build_quest_mapping(quest_files: &FxHashMap<String, Value>) -> Result<FxHashMap<i64, String>> {
     let mut quest_mapping: FxHashMap<i64, String> = FxHashMap::default();
-    let mut rels: Vec<&String> = quest_files.keys().collect();
-    rels.sort();
-    for rel in rels {
-        let quest_data = &quest_files[rel];
+    let mut entries: Vec<(&String, &Value)> = quest_files.iter().collect();
+    entries.sort_by_key(|(rel, _)| *rel);
+    for (rel, quest_data) in entries {
         let quest_id = quest_data.i("id").context("quest file id")?;
         let canonical = format!("BinOutput/Quest/{quest_id}.json");
         if let Some(existing) = quest_mapping.get(&quest_id)
@@ -291,16 +294,17 @@ fn build_quest_mapping(quest_files: &FxHashMap<String, Value>) -> Result<FxHashM
 /// component.
 fn localization_readable_paths<'a>(
     entry: &'a Value,
-    language_short: &str,
+    language_short: &'a str,
+    language_suffix: &'a str,
 ) -> impl Iterator<Item = &'a str> {
-    let suffix = format!("_{language_short}");
-    let language_short = language_short.to_string();
     entry
         .as_object()
         .into_iter()
         .flat_map(|o| o.values())
         .filter_map(|v| v.as_str())
-        .filter(move |p| p.ends_with(&suffix) || p.split('/').any(|part| part == language_short))
+        .filter(move |p| {
+            p.ends_with(language_suffix) || p.split('/').any(|part| part == language_short)
+        })
 }
 
 /// Localization-derived maps (single pass, sorted field order per entry):
@@ -312,9 +316,10 @@ fn build_readable_localization_maps(
 ) -> Result<(FxHashMap<String, i64>, FxHashMap<i64, String>)> {
     let mut readable_stem_to_loc_id = FxHashMap::default();
     let mut loc_id_to_readable_filename = FxHashMap::default();
+    let language_suffix = format!("_{language_short}");
     for entry in localization {
         let id = entry.i("id")?;
-        for path_str in localization_readable_paths(entry, language_short) {
+        for path_str in localization_readable_paths(entry, language_short, &language_suffix) {
             let name = util::path_name(path_str);
             readable_stem_to_loc_id
                 .entry(name.to_string())
@@ -331,9 +336,9 @@ fn build_readable_localization_maps(
 /// loc id (documents are visited in id order, so first-wins is deterministic).
 fn build_loc_id_to_title_hash(document: &FxHashMap<i64, Value>) -> Result<FxHashMap<i64, i64>> {
     let mut loc_id_to_title_hash = FxHashMap::default();
-    let mut doc_ids: Vec<&i64> = document.keys().collect();
-    doc_ids.sort();
-    for doc in doc_ids.into_iter().map(|id| &document[id]) {
+    let mut docs: Vec<(&i64, &Value)> = document.iter().collect();
+    docs.sort_by_key(|(id, _)| *id);
+    for (_, doc) in docs {
         let title_hash = doc.i("titleTextMapHash")?;
         let mut ids: Vec<i64> = Vec::new();
         if let Some(addl) = doc.get("CUSTOM_addlLocalID") {
@@ -408,19 +413,29 @@ fn build_book_series(
         .collect())
 }
 
+/// The raw achievement tables, kept out of `Excels` (and consumed by the
+/// achievement-sections builder) so nothing can accidentally read them after
+/// the sections are built.
+struct AchievementTables {
+    goal: Vec<Value>,
+    achievement: Vec<Value>,
+}
+
 /// Achievement sections: goal entry plus its (orderId, id)-sorted achievements.
-fn build_achievement_sections(excel: &Excels) -> Result<FxHashMap<i64, (Value, Vec<Value>)>> {
+fn build_achievement_sections(
+    tables: AchievementTables,
+) -> Result<FxHashMap<i64, (Value, Vec<Value>)>> {
     let mut achievement_sections: FxHashMap<i64, (Value, Vec<Value>)> = FxHashMap::default();
-    for section in &excel.achievement_goal {
+    for section in tables.goal {
         let id = section.i("id")?;
         if achievement_sections
-            .insert(id, (section.clone(), Vec::new()))
+            .insert(id, (section, Vec::new()))
             .is_some()
         {
             bail!("Duplicate achievement section ID");
         }
     }
-    for achievement in &excel.achievement {
+    for achievement in tables.achievement {
         if achievement.b("isDisuse")? {
             continue;
         }
@@ -428,7 +443,7 @@ fn build_achievement_sections(excel: &Excels) -> Result<FxHashMap<i64, (Value, V
         let section = achievement_sections
             .get_mut(&goal_id)
             .ok_or_else(|| anyhow!("Achievement references unknown section {goal_id}"))?;
-        section.1.push(achievement.clone());
+        section.1.push(achievement);
     }
     for (_, achievements) in achievement_sections.values_mut() {
         let mut keyed: Vec<(i64, i64, Value)> = achievements
@@ -463,7 +478,11 @@ fn build_coop_graphs(coop_graph_files: Vec<Value>) -> Result<FxHashMap<i64, Coop
     let mut coop_graphs: FxHashMap<i64, CoopStoryGraph> = FxHashMap::default();
     for data in coop_graph_files {
         let data = deob::deobfuscate_coop_graph_data(data)?;
-        for story in data.f("coopInteractionMap")?.as_object().unwrap().values() {
+        let stories = data
+            .f("coopInteractionMap")?
+            .as_object()
+            .ok_or_else(|| anyhow!("coopInteractionMap must be an object"))?;
+        for story in stories.values() {
             let graph = coop::build_story_graph(story)?;
             coop_graphs.insert(graph.coop_story_id, graph);
         }
@@ -501,8 +520,8 @@ fn build_coop_chapter_to_avatar(coop_chapter: &[Value]) -> Result<FxHashMap<i64,
 }
 
 /// `id` -> resolvable `nameTextMapHash` text (shared by avatar and npc excels).
-fn build_id_to_name(
-    entries: &[Value],
+fn build_id_to_name<'a>(
+    entries: impl IntoIterator<Item = &'a Value>,
     tm: &TextMaps,
     scope: &Scope,
 ) -> Result<FxHashMap<i64, String>> {
@@ -625,6 +644,7 @@ fn build_localization_id_to_stems(
     language_short: &str,
 ) -> Result<FxHashMap<i64, Vec<String>>> {
     let mut localization_id_to_stems: FxHashMap<i64, Vec<String>> = FxHashMap::default();
+    let language_suffix = format!("_{language_short}");
     for entry in localization {
         let id = entry.i("id")?;
         for path_value in entry.as_object().into_iter().flat_map(|o| o.values()) {
@@ -632,7 +652,7 @@ fn build_localization_id_to_stems(
                 continue;
             };
             let stem = util::path_stem(path_str);
-            if stem.ends_with(&format!("_{language_short}")) {
+            if stem.ends_with(&language_suffix) {
                 localization_id_to_stems
                     .entry(id)
                     .or_default()
@@ -729,6 +749,7 @@ struct Inputs {
     talk_file_rels: Vec<String>,
     quest_files: FxHashMap<String, Value>,
     excel: Excels,
+    achievement_tables: AchievementTables,
     dialog_maps: DialogMaps,
     misc: Misc,
 }
@@ -752,6 +773,7 @@ impl Repo {
             talk_file_rels,
             quest_files,
             excel,
+            achievement_tables,
             dialog_maps,
             misc,
         } = Self::load_inputs(agd_path, first_seen_dir, language, verbose)?;
@@ -780,13 +802,13 @@ impl Repo {
             build_readable_localization_maps(&excel.localization, language_short)?;
         let loc_id_to_title_hash = build_loc_id_to_title_hash(&excel.document)?;
         let book_series = build_book_series(&excel, &loc_id_to_readable_filename)?;
-        let achievement_sections = build_achievement_sections(&excel)?;
+        let achievement_sections = build_achievement_sections(achievement_tables)?;
         let storyboard_quest_to_talk_ids = build_storyboard_quest_to_talk_ids(&excel.talk)?;
         let coop_graphs = build_coop_graphs(misc.coop_graph_files)?;
         let hangout_quest_to_stories =
             build_hangout_quest_to_stories(&excel.coop_interaction, &parse)?;
         let coop_chapter_to_avatar = build_coop_chapter_to_avatar(&excel.coop_chapter)?;
-        let avatar_id_to_name = build_id_to_name(&excel.avatar, &tm, load_scope)?;
+        let avatar_id_to_name = build_id_to_name(excel.avatar.values(), &tm, load_scope)?;
         let npc_id_to_name = build_id_to_name(&excel.npc, &tm, load_scope)?;
         let npc_id_to_chs_name = tm_chs
             .as_ref()
@@ -799,12 +821,13 @@ impl Repo {
         let subtitle_stem_to_cutscenes =
             build_subtitle_stem_map(&excel.localization, &misc.cutscene_files, language_short)?;
 
-        let (dialog_id_to_content_hash, dialog_id_to_role_hash) = dialog_maps;
+        let DialogMaps {
+            content_hash: dialog_id_to_content_hash,
+            role_hash: dialog_id_to_role_hash,
+        } = dialog_maps;
 
-        let readable_filenames: FxHashSet<String> =
-            misc.readable_contents.keys().cloned().collect();
         let mut readable_filenames_sorted: Vec<String> =
-            readable_filenames.iter().cloned().collect();
+            misc.readable_contents.keys().cloned().collect();
         readable_filenames_sorted.sort();
 
         log_elapsed(verbose, "derived mappings", t_rest);
@@ -839,7 +862,6 @@ impl Repo {
             npc_id_to_chs_name,
             activity_id_to_name,
             npc_id_to_game_mode,
-            readable_filenames,
             readable_contents: misc.readable_contents,
             readable_filenames_sorted,
             subtitle_names: misc.subtitle_names,
@@ -928,7 +950,7 @@ impl Repo {
             );
         log_elapsed(verbose, "phase A total", t0);
         let (talk_files, talk_file_rels) = talk_files_res?;
-        let (excel, dialog_maps) = excels_res?;
+        let (excel, achievement_tables, dialog_maps) = excels_res?;
         Ok(Inputs {
             tm: tm?,
             tm_chs: tm_chs?,
@@ -936,6 +958,7 @@ impl Repo {
             talk_file_rels,
             quest_files: quest_files_res?,
             excel,
+            achievement_tables,
             dialog_maps,
             misc: misc_res?,
         })
@@ -962,8 +985,10 @@ impl Repo {
                 if talkparse::BAD_TALK_PATHS.contains(&rel.as_str()) {
                     return Ok(None);
                 }
-                let parts: Vec<&str> = rel.split('/').collect();
-                let subdir = parts[2];
+                let subdir = rel
+                    .split('/')
+                    .nth(2)
+                    .ok_or_else(|| anyhow!("talk path too shallow: {rel}"))?;
                 if subdir == "BlossomGroup" {
                     return Ok(None);
                 }
@@ -1010,10 +1035,10 @@ impl Repo {
     fn load_excels(
         excel: &Path,
         load_talk_excel: impl Fn() -> Result<Vec<Value>> + Sync,
-    ) -> Result<(Excels, DialogMaps)> {
+    ) -> Result<(Excels, AchievementTables, DialogMaps)> {
         // Prefetch every excel list in parallel (the dialog excel gets a typed
         // low-allocation parse since only two id->hash maps survive it).
-        const EXCEL_NAMES: [&str; 29] = [
+        const EXCEL_NAMES: [&str; 36] = [
             "LocalizationExcelConfigData.json",
             "MaterialExcelConfigData.json",
             "NpcExcelConfigData.json",
@@ -1043,9 +1068,6 @@ impl Repo {
             "ChapterExcelConfigData.json",
             "NewActivityExcelConfigData.json",
             "QuestExcelConfigData.json",
-        ];
-        // ReliquarySet/Reliquary/EquipAffix/Weapon/HomeWorld/RoleCombat/GCG too.
-        const EXCEL_NAMES2: [&str; 7] = [
             "ReliquarySetExcelConfigData.json",
             "ReliquaryExcelConfigData.json",
             "EquipAffixExcelConfigData.json",
@@ -1059,14 +1081,11 @@ impl Repo {
                 || parse_dialog_excel(&excel.join("DialogExcelConfigData.json")),
                 || -> Result<FxHashMap<&'static str, Vec<Value>>> {
                     EXCEL_NAMES
-                        .iter()
-                        .chain(EXCEL_NAMES2.iter())
-                        .collect::<Vec<_>>()
                         .par_iter()
                         .map(|name| {
                             let v = parse_json(&excel.join(name))?;
                             match v {
-                                Value::Array(items) => Ok((**name, items)),
+                                Value::Array(items) => Ok((*name, items)),
                                 _ => bail!("{name} must be a list"),
                             }
                         })
@@ -1110,8 +1129,6 @@ impl Repo {
             )?,
             books_codex: list("BooksCodexExcelConfigData.json")?,
             material,
-            achievement: list("AchievementExcelConfigData.json")?,
-            achievement_goal: list("AchievementGoalExcelConfigData.json")?,
             anecdote,
             blossom_talk: list("BlossomTalkExcelConfigData.json")?,
             blossom_refresh: index_unique(
@@ -1122,7 +1139,11 @@ impl Repo {
             city_config: index_unique(list("CityConfigData.json")?, |d| d.i("cityId"), "city ID")?,
             coop_interaction: list("CoopInteractionExcelConfigData.json")?,
             coop_chapter: list("CoopChapterExcelConfigData.json")?,
-            avatar: list("AvatarExcelConfigData.json")?,
+            avatar: index_unique(
+                list("AvatarExcelConfigData.json")?,
+                |d| d.i("id"),
+                "avatar ID",
+            )?,
             skill_depot: index_unique(
                 list("AvatarSkillDepotExcelConfigData.json")?,
                 |d| d.i("id"),
@@ -1155,7 +1176,16 @@ impl Repo {
                 |d| d.i("titleID"),
                 "monster title ID",
             )?,
-            monster_special_name: list("MonsterSpecialNameExcelConfigData.json")?,
+            monster_special_name: {
+                let mut by_lab_id: FxHashMap<i64, Vec<Value>> = FxHashMap::default();
+                for entry in list("MonsterSpecialNameExcelConfigData.json")? {
+                    by_lab_id
+                        .entry(entry.i("specialNameLabID")?)
+                        .or_default()
+                        .push(entry);
+                }
+                by_lab_id
+            },
             animal_describe: index_unique(
                 list("AnimalDescribeExcelConfigData.json")?,
                 |d| d.i("id"),
@@ -1177,8 +1207,18 @@ impl Repo {
                 "activity ID",
             )?,
             reliquary_set: list("ReliquarySetExcelConfigData.json")?,
-            reliquary: list("ReliquaryExcelConfigData.json")?,
-            equip_affix: list("EquipAffixExcelConfigData.json")?,
+            reliquary: index_unique(
+                list("ReliquaryExcelConfigData.json")?,
+                |d| d.i("id"),
+                "reliquary ID",
+            )?,
+            equip_affix: {
+                let mut by_id: FxHashMap<i64, Value> = FxHashMap::default();
+                for affix in list("EquipAffixExcelConfigData.json")? {
+                    by_id.entry(affix.i("id")?).or_insert(affix);
+                }
+                by_id
+            },
             weapon: index_unique(
                 list("WeaponExcelConfigData.json")?,
                 |d| d.i("id"),
@@ -1189,7 +1229,11 @@ impl Repo {
             role_combat_tarot: list("RoleCombatTarotAvatarExcelConfigData.json")?,
             gcg_week_level: list("GCGWeekLevelExcelConfigData.json")?,
         };
-        Ok((excels, dialog_maps))
+        let achievement_tables = AchievementTables {
+            goal: list("AchievementGoalExcelConfigData.json")?,
+            achievement: list("AchievementExcelConfigData.json")?,
+        };
+        Ok((excels, achievement_tables, dialog_maps))
     }
 
     fn load_misc(agd_path: &Path, first_seen_dir: &Path, language_short: &str) -> Result<Misc> {
@@ -1239,30 +1283,29 @@ impl Repo {
     // --- tracker-equivalent accessors ---
 
     /// TalkTracker.get_talk_file_path: tracks any excel-known talk id.
-    pub fn get_talk_file_path(&self, talk_id: i64, scope: &Scope) -> Option<&String> {
+    pub fn get_talk_file_path(&self, talk_id: i64, scope: &Scope) -> Option<&str> {
         if !self.talk_ids_all.contains(&talk_id) {
             return None;
         }
         scope.talks.borrow_mut().insert(talk_id);
-        self.parse.talk_id_to_path.get(&talk_id)
+        self.parse.talk_id_to_path.get(&talk_id).map(String::as_str)
     }
 
     /// ReadablesTracker.get_content: tracks known filenames.
-    pub fn readable_content(&self, filename: &str, scope: &Scope) -> Option<&String> {
-        if !self.readable_filenames.contains(filename) {
-            return None;
-        }
+    pub fn readable_content(&self, filename: &str, scope: &Scope) -> Option<&str> {
+        let content = self.readable_contents.get(filename)?;
         scope.readables.borrow_mut().insert(filename.to_string());
-        Some(&self.readable_contents[filename])
+        Some(content)
     }
 
-    pub fn npc_chs_name(&self, npc_id: i64) -> Option<&String> {
+    pub fn npc_chs_name(&self, npc_id: i64) -> Option<&str> {
         // CHS build: the source (CHS) map IS the output map, so the dedicated
         // source-name mapping exists only for other output languages.
         self.npc_id_to_chs_name
             .as_ref()
             .unwrap_or(&self.npc_id_to_name)
             .get(&npc_id)
+            .map(String::as_str)
     }
 
     // --- CHS (source) text map accessors ---
@@ -1345,17 +1388,16 @@ mod tests {
 
     #[test]
     fn achievement_sections_filter_only_disused() {
-        let excel = Excels {
-            achievement_goal: vec![json!({"id": 7})],
+        let tables = AchievementTables {
+            goal: vec![json!({"id": 7})],
             achievement: vec![
                 json!({"id": 3, "goalId": 7, "orderId": 2, "isDisuse": false, "showType": "SHOWTYPE_HIDE"}),
                 json!({"id": 2, "goalId": 7, "orderId": 1, "isDisuse": true}),
                 json!({"id": 1, "goalId": 7, "orderId": 1, "isDisuse": false}),
             ],
-            ..Default::default()
         };
         assert_eq!(
-            build_achievement_sections(&excel).unwrap()[&7]
+            build_achievement_sections(tables).unwrap()[&7]
                 .1
                 .iter()
                 .map(|a| a["id"].as_i64().unwrap())

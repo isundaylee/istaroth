@@ -21,17 +21,25 @@ pub fn git_output(repo_path: &Path, args: &[&str]) -> Result<String> {
 }
 
 /// `git show REF:PATH` file bytes, or None when the blob doesn't exist.
+/// Any git failure other than a missing path errors instead of masquerading
+/// as an absent file.
 pub fn git_show(repo_path: &Path, git_ref: &str, path: &str) -> Result<Option<Vec<u8>>> {
+    let spec = format!("{git_ref}:{path}");
     let out = Command::new("git")
         .arg("-C")
         .arg(repo_path)
         .arg("show")
-        .arg(format!("{git_ref}:{path}"))
-        .output()?;
+        .arg(&spec)
+        .output()
+        .with_context(|| format!("git show {spec} in {repo_path:?}"))?;
     if out.status.success() {
-        Ok(Some(out.stdout))
-    } else {
+        return Ok(Some(out.stdout));
+    }
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    if stderr.contains("does not exist in") || stderr.contains("exists on disk, but not in") {
         Ok(None)
+    } else {
+        bail!("git show {spec} failed in {repo_path:?}: {}", stderr.trim());
     }
 }
 

@@ -28,26 +28,35 @@ pub fn generate_metadata(
     }))
 }
 
+/// One pass's summary-table row.
+pub struct PassSummary {
+    pub category: &'static str,
+    pub success: usize,
+    pub errors: usize,
+    pub skipped: usize,
+    pub issues: usize,
+}
+
 /// Left-aligned ASCII table over the per-type summary rows plus a TOTAL row.
-pub fn render_summary_table(summary: &[(&'static str, usize, usize, usize, usize)]) -> String {
+pub fn render_summary_table(summary: &[PassSummary]) -> String {
     const HEADERS: [&str; 5] = ["Content Type", "Success", "Errors", "Skipped", "Issues"];
     let mut rows: Vec<[String; 5]> = summary
         .iter()
-        .map(|(category, success, errors, skipped, issues)| {
+        .map(|row| {
             [
-                category.to_string(),
-                success.to_string(),
-                errors.to_string(),
-                skipped.to_string(),
-                issues.to_string(),
+                row.category.to_string(),
+                row.success.to_string(),
+                row.errors.to_string(),
+                row.skipped.to_string(),
+                row.issues.to_string(),
             ]
         })
         .collect();
     let totals = summary.iter().fold([0usize; 4], |mut acc, row| {
-        acc[0] += row.1;
-        acc[1] += row.2;
-        acc[2] += row.3;
-        acc[3] += row.4;
+        acc[0] += row.success;
+        acc[1] += row.errors;
+        acc[2] += row.skipped;
+        acc[3] += row.issues;
         acc
     });
     rows.push([
@@ -90,20 +99,30 @@ pub fn render_summary_table(summary: &[(&'static str, usize, usize, usize, usize
     lines.join("\n")
 }
 
+/// One tracked resource's sorted unused-id list and total count.
+pub struct ResourceUsage<T> {
+    pub unused: Vec<T>,
+    pub total: usize,
+}
+
 /// Unused/total per tracked resource, plus the sorted unused-id lists.
 pub struct UnusedStats {
-    pub text_map: (Vec<i64>, usize),
-    pub talk_ids: (Vec<i64>, usize),
-    pub readables: (Vec<String>, usize),
+    pub text_map: ResourceUsage<i64>,
+    pub talk_ids: ResourceUsage<i64>,
+    pub readables: ResourceUsage<String>,
 }
 
 impl UnusedStats {
     /// Console summary lines for the unused-id percentages.
     pub fn echo(&self) {
         for (label, unused, total) in [
-            ("Text map", self.text_map.0.len(), self.text_map.1),
-            ("Talk IDs", self.talk_ids.0.len(), self.talk_ids.1),
-            ("Readables", self.readables.0.len(), self.readables.1),
+            ("Text map", self.text_map.unused.len(), self.text_map.total),
+            ("Talk IDs", self.talk_ids.unused.len(), self.talk_ids.total),
+            (
+                "Readables",
+                self.readables.unused.len(),
+                self.readables.total,
+            ),
         ] {
             let percentage = if total > 0 {
                 unused as f64 / total as f64 * 100.0
@@ -118,14 +137,14 @@ impl UnusedStats {
     pub fn to_json(&self) -> serde_json::Value {
         serde_json::json!({
             "stats": {
-                "text_map": {"unused": self.text_map.0.len(), "total": self.text_map.1},
-                "talk_ids": {"unused": self.talk_ids.0.len(), "total": self.talk_ids.1},
-                "readables": {"unused": self.readables.0.len(), "total": self.readables.1},
+                "text_map": {"unused": self.text_map.unused.len(), "total": self.text_map.total},
+                "talk_ids": {"unused": self.talk_ids.unused.len(), "total": self.talk_ids.total},
+                "readables": {"unused": self.readables.unused.len(), "total": self.readables.total},
             },
             "unused_ids": {
-                "text_map": self.text_map.0,
-                "talk_ids": self.talk_ids.0,
-                "readables": self.readables.0,
+                "text_map": self.text_map.unused,
+                "talk_ids": self.talk_ids.unused,
+                "readables": self.readables.unused,
             },
         })
     }

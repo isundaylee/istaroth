@@ -7,15 +7,25 @@ pub fn as_i64(v: &Value) -> Result<i64> {
     v.as_i64().ok_or_else(|| anyhow!("expected int, got {v}"))
 }
 
+/// Python `int()` semantics: an int or a numeric string (wire ids sometimes
+/// ship as strings).
+pub fn as_i64_lenient(v: &Value) -> Result<i64> {
+    match v {
+        Value::Number(_) => as_i64(v),
+        Value::String(s) => crate::util::parse_i64(s),
+        other => anyhow::bail!("cannot int() {other:?}"),
+    }
+}
+
 pub trait ValueExt {
     fn f(&self, key: &str) -> Result<&Value>;
     fn i(&self, key: &str) -> Result<i64>;
     fn s(&self, key: &str) -> Result<&str>;
-    fn arr(&self, key: &str) -> Result<&Vec<Value>>;
+    fn arr(&self, key: &str) -> Result<&[Value]>;
     fn b(&self, key: &str) -> Result<bool>;
     fn get_i(&self, key: &str) -> Option<i64>;
     fn get_s(&self, key: &str) -> Option<&str>;
-    fn get_arr(&self, key: &str) -> Option<&Vec<Value>>;
+    fn get_arr(&self, key: &str) -> Option<&[Value]>;
     fn has(&self, key: &str) -> bool;
 }
 
@@ -31,9 +41,10 @@ impl ValueExt for Value {
             .as_str()
             .ok_or_else(|| anyhow!("expected str at {key}"))
     }
-    fn arr(&self, key: &str) -> Result<&Vec<Value>> {
+    fn arr(&self, key: &str) -> Result<&[Value]> {
         self.f(key)?
             .as_array()
+            .map(Vec::as_slice)
             .ok_or_else(|| anyhow!("expected array at {key}"))
     }
     fn b(&self, key: &str) -> Result<bool> {
@@ -47,8 +58,8 @@ impl ValueExt for Value {
     fn get_s(&self, key: &str) -> Option<&str> {
         self.get(key).and_then(|v| v.as_str())
     }
-    fn get_arr(&self, key: &str) -> Option<&Vec<Value>> {
-        self.get(key).and_then(|v| v.as_array())
+    fn get_arr(&self, key: &str) -> Option<&[Value]> {
+        self.get(key).and_then(|v| v.as_array()).map(Vec::as_slice)
     }
     fn has(&self, key: &str) -> bool {
         self.get(key).is_some()

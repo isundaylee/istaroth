@@ -20,7 +20,7 @@ fn fixture(name: &str) -> String {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../tests/fixtures/rust_agd_regen_contract")
         .join(name);
-    String::from_utf8(std::fs::read(&path).unwrap()).unwrap()
+    std::fs::read_to_string(&path).unwrap()
 }
 
 fn leaf(quest_id: i64, title: &str) -> HierarchyNode {

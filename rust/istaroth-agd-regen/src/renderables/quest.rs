@@ -62,31 +62,26 @@ fn common_prefix_name(titles: &[String]) -> Option<String> {
     });
     let mut prefix_chars = prefix_chars;
     if diverges_into_word {
-        // max over rfind of each separator (char index; -1 when absent).
-        let mut cut: i64 = -1;
-        for sep in GROUP_NAME_SEPARATORS {
-            if let Some(pos) = prefix_chars.iter().rposition(|&c| c == sep) {
-                cut = cut.max(pos as i64);
-            }
-        }
-        let cut = if cut == -1 {
-            prefix_chars
-                .iter()
-                .enumerate()
-                .filter(|(_, c)| !c.is_alphanumeric())
-                .map(|(i, _)| i + 1)
-                .max()
-                .unwrap_or(0)
-        } else {
-            cut as usize
-        };
+        // Cut back to the last strong separator, else just past the last
+        // non-alphanumeric character.
+        let cut = GROUP_NAME_SEPARATORS
+            .iter()
+            .filter_map(|&sep| prefix_chars.iter().rposition(|&c| c == sep))
+            .max()
+            .unwrap_or_else(|| {
+                prefix_chars
+                    .iter()
+                    .rposition(|c| !c.is_alphanumeric())
+                    .map_or(0, |i| i + 1)
+            });
         prefix_chars.truncate(cut);
     }
-    let result: String = prefix_chars
-        .into_iter()
-        .collect::<String>()
-        .trim_end_matches(|c: char| c == ' ' || GROUP_NAME_SEPARATORS.contains(&c))
-        .to_string();
+    let mut result: String = prefix_chars.into_iter().collect();
+    result.truncate(
+        result
+            .trim_end_matches(|c: char| c == ' ' || GROUP_NAME_SEPARATORS.contains(&c))
+            .len(),
+    );
     if result.is_empty() {
         None
     } else {
@@ -97,7 +92,7 @@ fn common_prefix_name(titles: &[String]) -> Option<String> {
 /// Whether a chapter is dev/test content (e.g. the 夏活beta测试任务 chapter).
 /// The dev/test markers live in the CHS (source) text. Untracked lookups:
 /// this check must not mark the chapter hashes as used.
-pub fn is_test_or_hidden_chapter(repo: &Repo, chapter: &Value) -> Result<bool> {
+fn is_test_or_hidden_chapter(repo: &Repo, chapter: &Value) -> Result<bool> {
     for key in ["chapterNumTextMapHash", "chapterTitleTextMapHash"] {
         if let Some(text) = repo.chs_get_optional_untracked(chapter.i(key)?)?
             && util::should_skip_text(&text, Language::Chs)
@@ -173,20 +168,13 @@ pub fn get_quest_group_name(repo: &Repo, scope: &Scope, chapter_id: i64) -> Resu
     Ok(common_prefix_name(&titles))
 }
 
-/// Whether a quest title marks a dev/test/hidden quest to exclude
-/// (`$HIDDEN`/`(test)` markers, which live in the CHS source text).
-fn is_test_or_hidden_title(repo: &Repo, scope: &Scope, title_hash: i64) -> Result<bool> {
-    Ok(match repo.chs_get_optional(title_hash, scope)? {
-        None => false,
-        Some(chs) => util::should_skip_text(&chs, Language::Chs),
-    })
-}
-
-/// Whether a subQuest is a dev/test/hidden step (a `$HIDDEN`/bridge marker).
-/// Such steps carry meaningless `order` numbers, so a talk's `beginCond`
-/// pointing at one is an internal trigger rather than a real playback location.
-fn is_hidden_step(repo: &Repo, scope: &Scope, desc_hash: i64) -> Result<bool> {
-    Ok(match repo.chs_get_optional(desc_hash, scope)? {
+/// Whether a hash's CHS source text carries a dev/test/hidden marker
+/// (`$HIDDEN`/`(test)`, which live only in the CHS text). Used both for quest
+/// titles (excluding the quest) and subQuest step descriptions (such steps
+/// carry meaningless `order` numbers, so a talk's `beginCond` pointing at one
+/// is an internal trigger rather than a real playback location).
+fn is_test_or_hidden_text(repo: &Repo, scope: &Scope, hash: i64) -> Result<bool> {
+    Ok(match repo.chs_get_optional(hash, scope)? {
         None => false,
         Some(chs) => util::should_skip_text(&chs, Language::Chs),
     })
@@ -195,7 +183,7 @@ fn is_hidden_step(repo: &Repo, scope: &Scope, desc_hash: i64) -> Result<bool> {
 /// Resolve a subQuest's objective text, or None when there is none to show
 /// (no/empty text, or a test/hidden step).
 fn resolve_step_description(repo: &Repo, scope: &Scope, desc_hash: i64) -> Result<Option<String>> {
-    if is_hidden_step(repo, scope, desc_hash)? {
+    if is_test_or_hidden_text(repo, scope, desc_hash)? {
         return Ok(None);
     }
     Ok(repo
@@ -369,7 +357,7 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
             bail!("duplicate subQuest order {order_index} in quest {quest_id}");
         }
         order_to_desc.insert(order_index, desc);
-        if is_hidden_step(repo, scope, subquest.i("descTextMapHash")?)? {
+        if is_test_or_hidden_text(repo, scope, subquest.i("descTextMapHash")?)? {
             hidden_orders.insert(order_index);
         }
         for (talk_id, priority, talk_info) in iter_subquest_talks(repo, scope, subquest)? {
@@ -481,10 +469,10 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
             order: best_order,
             tiebreak,
             desc,
+            // Each hinted talk is placed exactly once; move its info out.
             info: talk_infos
-                .get(&talk_id)
-                .ok_or_else(|| anyhow!("talk {talk_id} has no info"))?
-                .clone(),
+                .remove(&talk_id)
+                .ok_or_else(|| anyhow!("talk {talk_id} has no info"))?,
             is_lead_in,
         });
     }
@@ -547,7 +535,7 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
     // a dev/test chapter). Checked after the talks above are resolved (which
     // marks them accessed) so this quest's dialogue is also kept out of the
     // standalone agd_talk pass, not just out of agd_quest.
-    if is_test_or_hidden_title(repo, scope, title_hash)? || hidden_chapter {
+    if is_test_or_hidden_text(repo, scope, title_hash)? || hidden_chapter {
         return Ok(None);
     }
 
@@ -599,7 +587,7 @@ pub fn process(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Option<Rende
     Ok(Some(render_quest(repo, scope, &quest_info)?))
 }
 
-pub fn render_quest(repo: &Repo, scope: &Scope, quest: &QuestInfo) -> Result<RenderedItem> {
+fn render_quest(repo: &Repo, scope: &Scope, quest: &QuestInfo) -> Result<RenderedItem> {
     let safe_title = util::make_safe_filename_part(&quest.title);
     let filename = format!("{}_{safe_title}.txt", quest.quest_id);
 

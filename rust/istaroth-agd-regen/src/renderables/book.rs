@@ -26,7 +26,7 @@ mod series_tests {
     use super::*;
     use crate::firstseen::{FirstSeenIndex, SourceKey};
     use crate::textmap::TextMaps;
-    use rustc_hash::{FxHashMap, FxHashSet};
+    use rustc_hash::FxHashMap;
     use serde_json::json;
 
     fn repo(contents: &[(&str, &str)]) -> Repo {
@@ -57,7 +57,7 @@ mod series_tests {
                     .collect(),
                 ..Default::default()
             },
-            book_series: [(7, filenames.clone())].into_iter().collect(),
+            book_series: [(7, filenames)].into_iter().collect(),
             readable_stem_to_loc_id: [
                 ("Book101_EN".to_string(), 101),
                 ("Book102_EN".to_string(), 102),
@@ -65,7 +65,6 @@ mod series_tests {
             .into_iter()
             .collect(),
             loc_id_to_title_hash: [(101, 101), (102, 102)].into_iter().collect(),
-            readable_filenames: filenames.into_iter().collect::<FxHashSet<_>>(),
             readable_contents: contents
                 .iter()
                 .map(|(name, text)| (name.to_string(), text.to_string()))

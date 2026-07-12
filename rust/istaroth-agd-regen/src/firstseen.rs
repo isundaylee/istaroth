@@ -11,6 +11,7 @@
 use crate::util;
 use anyhow::{Context, Result, anyhow, bail};
 use rustc_hash::FxHashMap;
+use std::collections::hash_map::Entry;
 use std::path::Path;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -28,29 +29,62 @@ pub enum Domain {
 }
 
 impl Domain {
-    fn from_name(name: &str) -> Result<Domain> {
-        Ok(match name {
-            "main_quest" => Domain::MainQuest,
-            "talk" => Domain::Talk,
-            "readable" => Domain::Readable,
-            "subtitle" => Domain::Subtitle,
-            "material" => Domain::Material,
-            "weapon" => Domain::Weapon,
-            "achievement" => Domain::Achievement,
-            "avatar" => Domain::Avatar,
-            "artifact_set" => Domain::ArtifactSet,
-            "animal_codex" => Domain::AnimalCodex,
-            other => bail!("unknown first-seen domain {other}"),
-        })
+    pub const ALL: [Domain; 10] = [
+        Domain::MainQuest,
+        Domain::Talk,
+        Domain::Readable,
+        Domain::Subtitle,
+        Domain::Material,
+        Domain::Weapon,
+        Domain::Achievement,
+        Domain::Avatar,
+        Domain::ArtifactSet,
+        Domain::AnimalCodex,
+    ];
+
+    /// The domain's key in the delta-file JSON.
+    pub fn name(self) -> &'static str {
+        match self {
+            Domain::MainQuest => "main_quest",
+            Domain::Talk => "talk",
+            Domain::Readable => "readable",
+            Domain::Subtitle => "subtitle",
+            Domain::Material => "material",
+            Domain::Weapon => "weapon",
+            Domain::Achievement => "achievement",
+            Domain::Avatar => "avatar",
+            Domain::ArtifactSet => "artifact_set",
+            Domain::AnimalCodex => "animal_codex",
+        }
+    }
+
+    pub(crate) fn from_name(name: &str) -> Result<Domain> {
+        Domain::ALL
+            .into_iter()
+            .find(|d| d.name() == name)
+            .ok_or_else(|| anyhow!("unknown first-seen domain {name}"))
     }
 }
 
 /// Readable/subtitle domains are keyed by language-neutral filename stems
 /// (Str); the rest are int-keyed.
-#[derive(Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub enum SourceKey {
     Int(i64),
     Str(String),
+}
+
+impl SourceKey {
+    /// Parse a delta-file JSON id (int or string).
+    pub(crate) fn from_json(v: &serde_json::Value) -> Result<SourceKey> {
+        Ok(match v {
+            serde_json::Value::Number(n) => {
+                SourceKey::Int(n.as_i64().ok_or_else(|| anyhow!("non-int source id"))?)
+            }
+            serde_json::Value::String(s) => SourceKey::Str(s.clone()),
+            other => bail!("bad source id {other:?}"),
+        })
+    }
 }
 
 #[derive(Default)]
@@ -105,17 +139,15 @@ impl FirstSeenIndex {
                     .as_array()
                     .ok_or_else(|| anyhow!("{domain_name} ids in {path:?} not a list"))?;
                 for key in keys {
-                    let key = match key {
-                        serde_json::Value::Number(n) => {
-                            SourceKey::Int(n.as_i64().ok_or_else(|| anyhow!("non-int source id"))?)
+                    let key = SourceKey::from_json(key)?;
+                    match mapping.entry(key) {
+                        Entry::Occupied(e) => {
+                            bail!("Source id {:?} in {domain_name} listed twice", e.key())
                         }
-                        serde_json::Value::String(s) => SourceKey::Str(s.clone()),
-                        other => bail!("bad source id {other:?}"),
-                    };
-                    if mapping.contains_key(&key) {
-                        bail!("Source id {key:?} in {domain_name} listed twice");
+                        Entry::Vacant(e) => {
+                            e.insert(version.clone());
+                        }
                     }
-                    mapping.insert(key, version.clone());
                 }
             }
         }
@@ -138,8 +170,15 @@ impl FirstSeenIndex {
         if resolved.is_empty() {
             bail!("Cannot resolve versions for empty source ids");
         }
-        resolved.sort_by_key(|v| util::version_key(v));
-        Ok((resolved[0].clone(), resolved[resolved.len() - 1].clone()))
+        let min = resolved
+            .iter()
+            .min_by_key(|v| util::version_key(v))
+            .unwrap();
+        let max = resolved
+            .iter()
+            .max_by_key(|v| util::version_key(v))
+            .unwrap();
+        Ok(((*min).clone(), (*max).clone()))
     }
 
     pub fn resolve_int(&self, domain: Domain, id: i64) -> Result<(String, String)> {

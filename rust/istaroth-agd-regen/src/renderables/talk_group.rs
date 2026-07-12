@@ -6,6 +6,7 @@ use crate::lang::Language;
 use crate::renderables::talk::{self, TalkInfo, TalkNotFound};
 use crate::rendered_item::RenderedItem;
 use crate::repo::Repo;
+use crate::talkparse::GroupType;
 use crate::util;
 use crate::vh::ValueExt;
 use anyhow::{Result, anyhow, bail};
@@ -20,22 +21,22 @@ pub const ERROR_LIMITS: (usize, usize) = (120, 120);
 const SPEAKER_TITLE_LIMIT: usize = 3;
 static COMPOSITE_ROLE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(.+) \((.+)\)$").unwrap());
 
-pub struct TalkGroupInfo {
+struct TalkGroupInfo {
     pub talks: Vec<(TalkInfo, Vec<TalkInfo>)>,
     pub talk_ids: Vec<i64>,
 }
 
-pub fn get_talk_group_info(
+fn get_talk_group_info(
     repo: &Repo,
     scope: &Scope,
-    group_type: &str,
+    group_type: GroupType,
     group_id: &str,
 ) -> Result<TalkGroupInfo> {
     let path = repo
         .parse
         .talk_group_id_to_path
-        .get(&(group_type.to_string(), group_id.to_string()))
-        .ok_or_else(|| anyhow!("unknown talk group {group_type} {group_id}"))?;
+        .get(&(group_type, group_id.to_string()))
+        .ok_or_else(|| anyhow!("unknown talk group {} {group_id}", group_type.name()))?;
     let data = repo
         .talk_files
         .get(path)
@@ -44,7 +45,7 @@ pub fn get_talk_group_info(
     let mut talks = Vec::new();
     let mut talk_ids: Vec<i64> = Vec::new();
     for talk_entry in data.arr("talks")? {
-        let talk_id = entry_int(talk_entry.f("id")?)?;
+        let talk_id = crate::vh::as_i64_lenient(talk_entry.f("id")?)?;
         let talk_info = match talk::get_talk_info_by_id(repo, scope, talk_id) {
             Ok(info) => info,
             Err(e) if e.is::<TalkNotFound>() => {
@@ -62,7 +63,7 @@ pub fn get_talk_group_info(
                 .ok_or_else(|| anyhow!("nextTalks must be an array"))?,
         };
         for next_talk_id in next_talk_entries {
-            let next_talk_id = entry_int(next_talk_id)?;
+            let next_talk_id = crate::vh::as_i64_lenient(next_talk_id)?;
             let next_info = match talk::get_talk_info_by_id(repo, scope, next_talk_id) {
                 Ok(info) => info,
                 Err(e) if e.is::<TalkNotFound>() => {
@@ -85,14 +86,6 @@ pub fn get_talk_group_info(
     Ok(TalkGroupInfo { talks, talk_ids })
 }
 
-fn entry_int(v: &Value) -> Result<i64> {
-    match v {
-        Value::Number(_) => crate::vh::as_i64(v),
-        Value::String(s) => util::parse_i64(s),
-        other => bail!("cannot int() {other:?}"),
-    }
-}
-
 /// Title from the group's most talkative named speakers, or None if none.
 ///
 /// Generic speakers (player, Paimon, black-screen text, `???`,
@@ -100,7 +93,7 @@ fn entry_int(v: &Value) -> Result<i64> {
 /// are dropped; dev/test-named roles arrive already skip-flagged. The top
 /// `SPEAKER_TITLE_LIMIT` names by line count are joined with ` / `, with a
 /// trailing `...` when more named speakers exist.
-pub fn derive_speaker_group_name(info: &TalkGroupInfo, language: Language) -> Option<String> {
+fn derive_speaker_group_name(info: &TalkGroupInfo, language: Language) -> Option<String> {
     let roles = language.role_names();
     let generic_speakers: [&str; 7] = [
         roles.player,
@@ -123,27 +116,31 @@ pub fn derive_speaker_group_name(info: &TalkGroupInfo, language: Language) -> Op
                 let Some(name) = &talk_text.role else {
                     continue;
                 };
-                let mut name = name.clone();
+                let mut name = name.as_str();
                 // A role rendered as "X (Y)" is the talk renderer's
                 // by-role/by-name-hash mismatch composite; count its more
                 // specific half so e.g. "旅行者 (观察花卉)" titles as
                 // "观察花卉" and "遗迹的铭文 (铭文)" dedups with a plain
                 // "遗迹的铭文".
-                if let Some(m) = COMPOSITE_ROLE.captures(&name) {
+                if let Some(m) = COMPOSITE_ROLE.captures(name) {
                     let g1 = m.get(1).unwrap().as_str();
                     let g2 = m.get(2).unwrap().as_str();
                     name = if generic_speakers.contains(&g1) {
-                        g2.to_string()
+                        g2
                     } else {
-                        g1.to_string()
+                        g1
                     };
                 }
-                if generic_speakers.contains(&name.as_str()) || name.starts_with(roles.unknown_role)
-                {
+                if generic_speakers.contains(&name) || name.starts_with(roles.unknown_role) {
                     continue;
                 }
-                let next_seq = speakers.len();
-                speakers.entry(name).or_insert((next_seq, 0)).1 += 1;
+                match speakers.get_mut(name) {
+                    Some(v) => v.1 += 1,
+                    None => {
+                        let next_seq = speakers.len();
+                        speakers.insert(name.to_string(), (next_seq, 1));
+                    }
+                }
             }
         }
     }
@@ -151,14 +148,15 @@ pub fn derive_speaker_group_name(info: &TalkGroupInfo, language: Language) -> Op
         return None;
     }
     // Descending by count, first-appearance order on ties.
-    let mut items: Vec<(&String, (usize, usize))> = speakers.iter().map(|(k, v)| (k, *v)).collect();
+    let num_speakers = speakers.len();
+    let mut items: Vec<(String, (usize, usize))> = speakers.into_iter().collect();
     items.sort_by_key(|(_, (seq, count))| (std::cmp::Reverse(*count), *seq));
     let mut top: Vec<String> = items
-        .iter()
+        .into_iter()
         .take(SPEAKER_TITLE_LIMIT)
-        .map(|(name, _)| (*name).clone())
+        .map(|(name, _)| name)
         .collect();
-    if speakers.len() > SPEAKER_TITLE_LIMIT {
+    if num_speakers > SPEAKER_TITLE_LIMIT {
         top.push("...".to_string());
     }
     Some(top.join(" / "))
@@ -176,19 +174,20 @@ const GADGET_GROUP_ID_DIGITS: u32 = 9;
 // the raw id.
 const ACTIVITY_GROUP_METADATA_ID_OFFSET: i64 = 1_000_000_000;
 
-pub fn render_talk_group(
+fn render_talk_group(
     repo: &Repo,
     scope: &Scope,
-    group_type: &str,
+    group_type: GroupType,
     group_id: &str,
     info: &TalkGroupInfo,
     group_name: Option<String>,
 ) -> Result<RenderedItem> {
-    let safe_type = util::make_safe_filename_part(group_type);
+    let type_name = group_type.name();
+    let safe_type = util::make_safe_filename_part(type_name);
     let filename = format!("{group_id}_{safe_type}.txt");
     let title = match &group_name {
-        Some(name) => format!("{name} ({group_type} {group_id})"),
-        None => format!("{group_type} - {group_id}"),
+        Some(name) => format!("{name} ({type_name} {group_id})"),
+        None => format!("{type_name} - {group_id}"),
     };
 
     let mut content_lines = vec![format!("# Talk Group: {title}\n")];
@@ -205,7 +204,7 @@ pub fn render_talk_group(
     let content = content_lines.join("\n").trim_end().to_string();
 
     let metadata_id = match group_type {
-        "GadgetGroup" => {
+        GroupType::Gadget => {
             let (config_str, group_str) = group_id
                 .split_once('_')
                 .ok_or_else(|| anyhow!("bad gadget composite id {group_id}"))?;
@@ -213,9 +212,9 @@ pub fn render_talk_group(
             let gadget_group_id: i64 = group_str.parse()?;
             config_id * 10i64.pow(GADGET_GROUP_ID_DIGITS) + gadget_group_id
         }
-        "ActivityGroup" => ACTIVITY_GROUP_METADATA_ID_OFFSET + util::parse_i64(group_id)?,
-        "NpcGroup" => util::parse_i64(group_id)?,
-        other => bail!("unsupported talk group type {other}"),
+        GroupType::Activity => ACTIVITY_GROUP_METADATA_ID_OFFSET + util::parse_i64(group_id)?,
+        GroupType::Npc => util::parse_i64(group_id)?,
+        GroupType::Storyboard => bail!("unsupported talk group type StoryboardGroup"),
     };
 
     let versions = repo
@@ -232,8 +231,8 @@ pub fn render_talk_group(
 }
 
 /// TalkGroups pass discovery: sorted (group type, group id) keys.
-pub fn discover(repo: &Repo) -> Result<Vec<(String, String)>> {
-    let mut keys: Vec<(String, String)> =
+pub fn discover(repo: &Repo) -> Result<Vec<(GroupType, String)>> {
+    let mut keys: Vec<(GroupType, String)> =
         repo.parse.talk_group_id_to_path.keys().cloned().collect();
     keys.sort();
     Ok(keys)
@@ -243,7 +242,7 @@ pub fn discover(repo: &Repo) -> Result<Vec<(String, String)>> {
 pub fn process(
     repo: &Repo,
     scope: &Scope,
-    group_type: &str,
+    group_type: GroupType,
     group_id: &str,
 ) -> Result<Option<RenderedItem>> {
     let info = get_talk_group_info(repo, scope, group_type, group_id)?;
@@ -251,7 +250,7 @@ pub fn process(
         return Ok(None);
     }
     let group_name: Option<String> = match group_type {
-        "NpcGroup" => {
+        GroupType::Npc => {
             let npc_id = util::parse_i64(group_id)?;
             match repo.npc_chs_name(npc_id) {
                 Some(chs_name) => {
@@ -271,12 +270,12 @@ pub fn process(
                 None => None,
             }
         }
-        "ActivityGroup" => repo
+        GroupType::Activity => repo
             .activity_id_to_name
             .get(&util::parse_i64(group_id)?)
             .cloned(),
-        "GadgetGroup" => derive_speaker_group_name(&info, repo.language),
-        other => bail!("unsupported talk group type {other}"),
+        GroupType::Gadget => derive_speaker_group_name(&info, repo.language),
+        GroupType::Storyboard => bail!("unsupported talk group type StoryboardGroup"),
     };
     Ok(Some(render_talk_group(
         repo, scope, group_type, group_id, &info, group_name,

@@ -18,9 +18,32 @@ use anyhow::{Result, anyhow};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 
+/// Coop node kind, parsed once at graph build. ACTION and any other
+/// unrecognized kinds deliberately pass through the play-order walk.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum CoopNodeType {
+    Talk,
+    Select,
+    Cond,
+    End,
+    Other,
+}
+
+impl CoopNodeType {
+    fn from_name(name: &str) -> CoopNodeType {
+        match name {
+            "COOP_NODE_TALK" => CoopNodeType::Talk,
+            "COOP_NODE_SELECT" => CoopNodeType::Select,
+            "COOP_NODE_COND" => CoopNodeType::Cond,
+            "COOP_NODE_END" => CoopNodeType::End,
+            _ => CoopNodeType::Other,
+        }
+    }
+}
+
 pub struct CoopNode {
     pub node_id: i64,
-    pub node_type: String,
+    pub node_type: CoopNodeType,
     pub next_node_ids: Vec<i64>,
     /// `selectList` dialog ids (SELECT nodes only), positionally paired with
     /// `next_node_ids`.
@@ -80,7 +103,7 @@ pub fn build_story_graph(story: &Value) -> Result<CoopStoryGraph> {
             node_id,
             CoopNode {
                 node_id,
-                node_type: node.s("coopNodeType")?.to_string(),
+                node_type: CoopNodeType::from_name(node.s("coopNodeType")?),
                 next_node_ids: int_array(node.f("nextNodeArray")?)?,
                 select_dialog_ids,
                 select_items,
@@ -113,10 +136,9 @@ fn walk_from(
     let mut steps = Vec::new();
     let mut current = Some(node_id);
     while let Some(cur) = current {
-        if visited.contains(&cur) {
+        if !visited.insert(cur) {
             break;
         }
-        visited.insert(cur);
         let Some(node) = graph.nodes.get(&cur) else {
             break;
         };
@@ -124,54 +146,60 @@ fn walk_from(
         // prompts); COND is a state-based branch (no prompts). Both fan out,
         // so walk every branch to avoid dropping the alternative outcome's
         // dialogue.
-        if node.node_type == "COOP_NODE_SELECT" || node.node_type == "COOP_NODE_COND" {
-            let is_cond = node.node_type == "COOP_NODE_COND";
-            // COND branches: index 0 is the true/positive outcome (carries
-            // the routing cond_grp), index 1 is the else/default (no
-            // cond_grp). SELECT branches: per-option showCond/enableCond from
-            // the paired selectList entry; the `!is_cond && i < len` guard is
-            // needed because COND nodes have an empty select_items list.
-            let branches = node
-                .next_node_ids
-                .iter()
-                .enumerate()
-                .map(|(i, &next_id)| {
-                    Ok(ChoiceBranch {
-                        dialog_id: node.select_dialog_ids.get(i).copied(),
-                        steps: walk_from(graph, next_id, visited)?,
-                        cond_grp: if is_cond && i == 0 {
-                            node.cond_grp.clone()
-                        } else {
-                            None
-                        },
-                        show_cond: if !is_cond && i < node.select_items.len() {
-                            Some(node.select_items[i].f("showCond")?.clone())
-                        } else {
-                            None
-                        },
-                        enable_cond: if !is_cond && i < node.select_items.len() {
-                            Some(node.select_items[i].f("enableCond")?.clone())
-                        } else {
-                            None
-                        },
+        match node.node_type {
+            CoopNodeType::Select | CoopNodeType::Cond => {
+                let is_cond = node.node_type == CoopNodeType::Cond;
+                // COND branches: index 0 is the true/positive outcome (carries
+                // the routing cond_grp), index 1 is the else/default (no
+                // cond_grp). SELECT branches: per-option showCond/enableCond
+                // from the paired selectList entry; the `!is_cond && i < len`
+                // guard is needed because COND nodes have an empty
+                // select_items list.
+                let branches = node
+                    .next_node_ids
+                    .iter()
+                    .enumerate()
+                    .map(|(i, &next_id)| {
+                        Ok(ChoiceBranch {
+                            dialog_id: node.select_dialog_ids.get(i).copied(),
+                            steps: walk_from(graph, next_id, visited)?,
+                            cond_grp: if is_cond && i == 0 {
+                                node.cond_grp.clone()
+                            } else {
+                                None
+                            },
+                            show_cond: if !is_cond && i < node.select_items.len() {
+                                Some(node.select_items[i].f("showCond")?.clone())
+                            } else {
+                                None
+                            },
+                            enable_cond: if !is_cond && i < node.select_items.len() {
+                                Some(node.select_items[i].f("enableCond")?.clone())
+                            } else {
+                                None
+                            },
+                        })
                     })
-                })
-                .collect::<Result<Vec<ChoiceBranch>>>()?;
-            steps.push(PlayStep::Choice { branches });
-            break; // the branches are the continuation
-        } else if node.node_type == "COOP_NODE_END" {
-            if let Some(save_point_id) = node.save_point_id {
-                steps.push(PlayStep::End { save_point_id });
+                    .collect::<Result<Vec<ChoiceBranch>>>()?;
+                steps.push(PlayStep::Choice { branches });
+                break; // the branches are the continuation
             }
-            break;
-        } else {
-            // COOP_NODE_TALK emits; COOP_NODE_ACTION and others pass through.
-            if node.node_type == "COOP_NODE_TALK" {
+            CoopNodeType::End => {
+                if let Some(save_point_id) = node.save_point_id {
+                    steps.push(PlayStep::End { save_point_id });
+                }
+                break;
+            }
+            CoopNodeType::Talk => {
                 steps.push(PlayStep::Talk {
                     local_talk_id: node.node_id,
                 });
+                current = node.next_node_ids.first().copied();
             }
-            current = node.next_node_ids.first().copied();
+            // ACTION and other unrecognized kinds pass through.
+            CoopNodeType::Other => {
+                current = node.next_node_ids.first().copied();
+            }
         }
     }
     Ok(steps)
