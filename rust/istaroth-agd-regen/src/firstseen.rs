@@ -11,6 +11,7 @@
 use crate::util;
 use anyhow::{Context, Result, anyhow, bail};
 use rustc_hash::FxHashMap;
+use std::collections::hash_map::Entry;
 use std::path::Path;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -112,10 +113,14 @@ impl FirstSeenIndex {
                         serde_json::Value::String(s) => SourceKey::Str(s.clone()),
                         other => bail!("bad source id {other:?}"),
                     };
-                    if mapping.contains_key(&key) {
-                        bail!("Source id {key:?} in {domain_name} listed twice");
+                    match mapping.entry(key) {
+                        Entry::Occupied(e) => {
+                            bail!("Source id {:?} in {domain_name} listed twice", e.key())
+                        }
+                        Entry::Vacant(e) => {
+                            e.insert(version.clone());
+                        }
                     }
-                    mapping.insert(key, version.clone());
                 }
             }
         }
@@ -138,8 +143,15 @@ impl FirstSeenIndex {
         if resolved.is_empty() {
             bail!("Cannot resolve versions for empty source ids");
         }
-        resolved.sort_by_key(|v| util::version_key(v));
-        Ok((resolved[0].clone(), resolved[resolved.len() - 1].clone()))
+        let min = resolved
+            .iter()
+            .min_by_key(|v| util::version_key(v))
+            .unwrap();
+        let max = resolved
+            .iter()
+            .max_by_key(|v| util::version_key(v))
+            .unwrap();
+        Ok(((*min).clone(), (*max).clone()))
     }
 
     pub fn resolve_int(&self, domain: Domain, id: i64) -> Result<(String, String)> {

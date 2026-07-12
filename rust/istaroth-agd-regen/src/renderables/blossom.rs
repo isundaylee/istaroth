@@ -58,8 +58,8 @@ pub fn process(repo: &Repo, scope: &Scope, city_id: i64) -> Result<Option<Render
         names.insert(repo.tm.get_required(refresh.i("nameTextMapHash")?, scope)?);
         let desc = repo.tm.get_required(refresh.i("descTextMapHash")?, scope)?;
         let refresh_id = refresh.i("id")?;
-        let current = section_order.get(&desc).copied().unwrap_or(refresh_id);
-        section_order.insert(desc.clone(), current.min(refresh_id));
+        let order = section_order.entry(desc.clone()).or_insert(refresh_id);
+        *order = (*order).min(refresh_id);
         section_talk_ids
             .entry(desc)
             .or_default()
@@ -119,8 +119,7 @@ pub fn process(repo: &Repo, scope: &Scope, city_id: i64) -> Result<Option<Render
                 .filter(|t| !t.skip)
                 .map(|t| (t.role.clone(), t.message.clone()))
                 .collect();
-            if !content.is_empty() && !seen_contents.contains(&content) {
-                seen_contents.insert(content);
+            if !content.is_empty() && seen_contents.insert(content) {
                 talks.push(talk_info);
                 talk_ids.push(talk_id);
             }

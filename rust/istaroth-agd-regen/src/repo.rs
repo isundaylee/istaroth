@@ -210,10 +210,9 @@ fn index_unique(
     let mut map = FxHashMap::with_capacity_and_hasher(data.len(), Default::default());
     for item in data {
         let k = key(&item)?;
-        if map.contains_key(&k) {
+        if map.insert(k, item).is_some() {
             bail!("Duplicate {what}: {k}");
         }
-        map.insert(k, item);
     }
     Ok(map)
 }
@@ -275,10 +274,9 @@ fn run_timed<T>(verbose: bool, name: &str, f: impl FnOnce() -> T) -> T {
 /// canonically-named `{id}.json` wins.
 fn build_quest_mapping(quest_files: &FxHashMap<String, Value>) -> Result<FxHashMap<i64, String>> {
     let mut quest_mapping: FxHashMap<i64, String> = FxHashMap::default();
-    let mut rels: Vec<&String> = quest_files.keys().collect();
-    rels.sort();
-    for rel in rels {
-        let quest_data = &quest_files[rel];
+    let mut entries: Vec<(&String, &Value)> = quest_files.iter().collect();
+    entries.sort_by_key(|(rel, _)| *rel);
+    for (rel, quest_data) in entries {
         let quest_id = quest_data.i("id").context("quest file id")?;
         let canonical = format!("BinOutput/Quest/{quest_id}.json");
         if let Some(existing) = quest_mapping.get(&quest_id)
@@ -338,9 +336,9 @@ fn build_readable_localization_maps(
 /// loc id (documents are visited in id order, so first-wins is deterministic).
 fn build_loc_id_to_title_hash(document: &FxHashMap<i64, Value>) -> Result<FxHashMap<i64, i64>> {
     let mut loc_id_to_title_hash = FxHashMap::default();
-    let mut doc_ids: Vec<&i64> = document.keys().collect();
-    doc_ids.sort();
-    for doc in doc_ids.into_iter().map(|id| &document[id]) {
+    let mut docs: Vec<(&i64, &Value)> = document.iter().collect();
+    docs.sort_by_key(|(id, _)| *id);
+    for (_, doc) in docs {
         let title_hash = doc.i("titleTextMapHash")?;
         let mut ids: Vec<i64> = Vec::new();
         if let Some(addl) = doc.get("CUSTOM_addlLocalID") {

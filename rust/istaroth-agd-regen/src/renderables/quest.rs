@@ -62,31 +62,26 @@ fn common_prefix_name(titles: &[String]) -> Option<String> {
     });
     let mut prefix_chars = prefix_chars;
     if diverges_into_word {
-        // max over rfind of each separator (char index; -1 when absent).
-        let mut cut: i64 = -1;
-        for sep in GROUP_NAME_SEPARATORS {
-            if let Some(pos) = prefix_chars.iter().rposition(|&c| c == sep) {
-                cut = cut.max(pos as i64);
-            }
-        }
-        let cut = if cut == -1 {
-            prefix_chars
-                .iter()
-                .enumerate()
-                .filter(|(_, c)| !c.is_alphanumeric())
-                .map(|(i, _)| i + 1)
-                .max()
-                .unwrap_or(0)
-        } else {
-            cut as usize
-        };
+        // Cut back to the last strong separator, else just past the last
+        // non-alphanumeric character.
+        let cut = GROUP_NAME_SEPARATORS
+            .iter()
+            .filter_map(|&sep| prefix_chars.iter().rposition(|&c| c == sep))
+            .max()
+            .unwrap_or_else(|| {
+                prefix_chars
+                    .iter()
+                    .rposition(|c| !c.is_alphanumeric())
+                    .map_or(0, |i| i + 1)
+            });
         prefix_chars.truncate(cut);
     }
-    let result: String = prefix_chars
-        .into_iter()
-        .collect::<String>()
-        .trim_end_matches(|c: char| c == ' ' || GROUP_NAME_SEPARATORS.contains(&c))
-        .to_string();
+    let mut result: String = prefix_chars.into_iter().collect();
+    result.truncate(
+        result
+            .trim_end_matches(|c: char| c == ' ' || GROUP_NAME_SEPARATORS.contains(&c))
+            .len(),
+    );
     if result.is_empty() {
         None
     } else {

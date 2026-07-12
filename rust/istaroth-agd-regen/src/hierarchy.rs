@@ -65,10 +65,10 @@ fn order_quests(
     quests: Vec<HierarchyNode>,
     begin_quest_id: i64,
 ) -> Result<Vec<HierarchyNode>> {
-    let mut by_id: FxHashMap<i64, HierarchyNode> = FxHashMap::default();
-    for q in quests {
-        by_id.insert(q.file_id.unwrap(), q);
-    }
+    let mut by_id: FxHashMap<i64, HierarchyNode> = quests
+        .into_iter()
+        .map(|q| (q.file_id.unwrap(), q))
+        .collect();
     let next_of = |quest_id: i64| -> Result<Vec<i64>> {
         // Every quest reached here is in by_id, which build_quest_hierarchy
         // only populated with quests that have a MainQuest entry, so index
@@ -99,11 +99,10 @@ fn order_quests(
     for start in starts {
         let mut current = Some(start);
         while let Some(cur) = current {
-            if seen.contains(&cur) {
+            if !seen.insert(cur) {
                 break;
             }
             ordered_ids.push(cur);
-            seen.insert(cur);
             current = next_of(cur)?.into_iter().find(|t| !seen.contains(t));
         }
     }
@@ -123,17 +122,15 @@ fn make_chapters(
     scope: &Scope,
     by_chapter: FxHashMap<i64, Vec<HierarchyNode>>,
 ) -> Result<Vec<HierarchyNode>> {
-    let mut chapter_ids: Vec<i64> = by_chapter.keys().copied().collect();
-    chapter_ids.sort();
-    let mut by_chapter = by_chapter;
+    let mut chapters: Vec<(i64, Vec<HierarchyNode>)> = by_chapter.into_iter().collect();
+    chapters.sort_by_key(|(cid, _)| *cid);
     let mut nodes = Vec::new();
-    for cid in chapter_ids {
+    for (cid, quests) in chapters {
         // by_chapter ids all come from main-quest chapterIds, every one of
         // which is present in ChapterExcelConfigData, so index strictly.
         let chapter = &repo.excel.chapter[&cid];
         let title = quest::get_chapter_title(repo, scope, chapter)?;
         let begin_quest_id = chapter.i("beginQuestId")? / 100;
-        let quests = by_chapter.remove(&cid).unwrap();
         nodes.push(HierarchyNode {
             key: format!("c{cid}"),
             title: Some(title),
@@ -244,11 +241,11 @@ pub fn build_quest_hierarchy(repo: &Repo, quest_items: &[(i64, String)]) -> Resu
     let mut type_nodes = Vec::new();
     for quest_type in ordered_types {
         let mut series_nodes = Vec::new();
-        if let Some(buckets) = series_buckets.get_mut(&quest_type) {
-            let mut series_ids: Vec<i64> = buckets.keys().copied().collect();
-            series_ids.sort();
-            for series_id in series_ids {
-                let bucket = buckets.remove(&series_id).unwrap();
+        if let Some(buckets) = series_buckets.remove(&quest_type) {
+            let mut series: Vec<(i64, FxHashMap<i64, Vec<HierarchyNode>>)> =
+                buckets.into_iter().collect();
+            series.sort_by_key(|(series_id, _)| *series_id);
+            for (series_id, bucket) in series {
                 let min_chapter = *bucket.keys().min().unwrap();
                 let series_chapters = make_chapters(repo, scope, bucket)?;
                 // No dedicated series-name field exists, so label the series
@@ -357,22 +354,20 @@ pub fn build_coop_hierarchy(repo: &Repo, coop_items: &[(i64, String)]) -> Result
     }
 
     let mut character_nodes = Vec::new();
-    let mut avatar_ids: Vec<i64> = buckets.keys().copied().collect();
-    avatar_ids.sort();
-    for avatar_id in avatar_ids {
-        let chapters_bucket = buckets.remove(&avatar_id).unwrap();
-        let mut chapter_ids: Vec<i64> = chapters_bucket.keys().copied().collect();
-        chapter_ids.sort();
-        let mut chapters_bucket = chapters_bucket;
-        let children: Vec<HierarchyNode> = if chapter_ids.len() == 1 {
-            let mut leaves = chapters_bucket.remove(&chapter_ids[0]).unwrap();
+    let mut avatar_buckets: Vec<(i64, FxHashMap<i64, Vec<HierarchyNode>>)> =
+        buckets.into_iter().collect();
+    avatar_buckets.sort_by_key(|(avatar_id, _)| *avatar_id);
+    for (avatar_id, chapters_bucket) in avatar_buckets {
+        let mut chapters: Vec<(i64, Vec<HierarchyNode>)> = chapters_bucket.into_iter().collect();
+        chapters.sort_by_key(|(chapter_id, _)| *chapter_id);
+        for (_, leaves) in &mut chapters {
             leaves.sort_by_key(|n| n.file_id.unwrap());
-            leaves
+        }
+        let children: Vec<HierarchyNode> = if chapters.len() == 1 {
+            chapters.pop().unwrap().1
         } else {
             let mut nodes = Vec::new();
-            for chapter_id in chapter_ids {
-                let mut leaves = chapters_bucket.remove(&chapter_id).unwrap();
-                leaves.sort_by_key(|n| n.file_id.unwrap());
+            for (chapter_id, leaves) in chapters {
                 let title = repo
                     .tm
                     .get_optional(

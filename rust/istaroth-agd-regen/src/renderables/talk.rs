@@ -279,10 +279,12 @@ impl<'a> TalkTextGraph<'a> {
         let mut graph: FxHashMap<i64, Vec<i64>> = FxHashMap::default();
         let mut incoming: FxHashMap<i64, i64> = FxHashMap::default();
         for talk_text in &talk.text {
-            if !dialog_id_to_text.contains_key(&talk_text.dialog_id) {
+            if dialog_id_to_text
+                .insert(talk_text.dialog_id, talk_text)
+                .is_none()
+            {
                 id_first_seen.push(talk_text.dialog_id);
             }
-            dialog_id_to_text.insert(talk_text.dialog_id, talk_text);
             for &next_id in &talk_text.next_dialog_ids {
                 graph.entry(talk_text.dialog_id).or_default().push(next_id);
                 *incoming.entry(next_id).or_insert(0) += 1;
@@ -520,8 +522,7 @@ fn process_branch(
         let mut stack = vec![start];
         while let Some(top) = stack.pop() {
             for &nxt in graph.graph.get(&top).into_iter().flatten() {
-                if !seen.contains(&nxt) {
-                    seen.insert(nxt);
+                if seen.insert(nxt) {
                     stack.push(nxt);
                 }
             }

@@ -113,10 +113,9 @@ fn walk_from(
     let mut steps = Vec::new();
     let mut current = Some(node_id);
     while let Some(cur) = current {
-        if visited.contains(&cur) {
+        if !visited.insert(cur) {
             break;
         }
-        visited.insert(cur);
         let Some(node) = graph.nodes.get(&cur) else {
             break;
         };
