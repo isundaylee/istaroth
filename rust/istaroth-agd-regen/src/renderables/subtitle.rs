@@ -17,7 +17,9 @@ pub const ERROR_LIMITS: (usize, usize) = (0, 0);
 // Quest-id-shaped digit runs in a subtitle file stem (e.g. the "1204205" of
 // "Cs_Inazuma_LQ1204205_IntoTheVoid"); shorter runs are variant/sequence
 // markers.
-static QUEST_ID_TOKEN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\d{4,9}").unwrap());
+// ASCII-only digits so the parse::<i64> on matches below cannot fail (the
+// regex crate's \d matches all Unicode decimal digits).
+static QUEST_ID_TOKEN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"[0-9]{4,9}").unwrap());
 
 /// Main-quest title, or None when unknown, untitled, or dev/test-marked
 /// (the `$UNRELEASED`/`$HIDDEN` markers live in the CHS title text).

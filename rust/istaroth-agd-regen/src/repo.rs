@@ -472,7 +472,11 @@ fn build_coop_graphs(coop_graph_files: Vec<Value>) -> Result<FxHashMap<i64, Coop
     let mut coop_graphs: FxHashMap<i64, CoopStoryGraph> = FxHashMap::default();
     for data in coop_graph_files {
         let data = deob::deobfuscate_coop_graph_data(data)?;
-        for story in data.f("coopInteractionMap")?.as_object().unwrap().values() {
+        let stories = data
+            .f("coopInteractionMap")?
+            .as_object()
+            .ok_or_else(|| anyhow!("coopInteractionMap must be an object"))?;
+        for story in stories.values() {
             let graph = coop::build_story_graph(story)?;
             coop_graphs.insert(graph.coop_story_id, graph);
         }
@@ -971,8 +975,10 @@ impl Repo {
                 if talkparse::BAD_TALK_PATHS.contains(&rel.as_str()) {
                     return Ok(None);
                 }
-                let parts: Vec<&str> = rel.split('/').collect();
-                let subdir = parts[2];
+                let subdir = rel
+                    .split('/')
+                    .nth(2)
+                    .ok_or_else(|| anyhow!("talk path too shallow: {rel}"))?;
                 if subdir == "BlossomGroup" {
                     return Ok(None);
                 }

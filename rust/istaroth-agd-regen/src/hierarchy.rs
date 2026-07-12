@@ -343,9 +343,9 @@ pub fn build_coop_hierarchy(repo: &Repo, coop_items: &[(i64, String)]) -> Result
             .filter(|t| !t.is_empty())
             .unwrap_or_else(|| title.clone());
         buckets
-            .entry(chapter.i("avatarId").unwrap())
+            .entry(chapter.i("avatarId")?)
             .or_default()
-            .entry(chapter.i("id").unwrap())
+            .entry(chapter.i("id")?)
             .or_default()
             .push(HierarchyNode {
                 key: format!("q{quest_id}"),

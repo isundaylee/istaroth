@@ -240,8 +240,10 @@ pub fn parse_talks(
         if BAD_TALK_PATHS.contains(&rel.as_str()) {
             continue;
         }
-        let parts: Vec<&str> = rel.split('/').collect();
-        let subdir = parts[2];
+        let subdir = rel
+            .split('/')
+            .nth(2)
+            .ok_or_else(|| anyhow!("talk path too shallow: {rel}"))?;
         if subdir == "BlossomGroup" {
             continue;
         }
