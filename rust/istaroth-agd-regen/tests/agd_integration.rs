@@ -52,6 +52,24 @@ fn repo() -> Option<&'static Repo> {
     .as_ref()
 }
 
+fn english_repo() -> Option<&'static Repo> {
+    static REPO: OnceLock<Option<Repo>> = OnceLock::new();
+    REPO.get_or_init(|| {
+        let agd = agd_path()?;
+        Some(
+            Repo::load(
+                &agd,
+                &first_seen_dir(),
+                Language::Eng,
+                false,
+                &Scope::default(),
+            )
+            .expect("English Repo::load"),
+        )
+    })
+    .as_ref()
+}
+
 macro_rules! require_repo {
     () => {
         match repo() {
@@ -285,6 +303,17 @@ fn sexpro_resolves_from_pinned_build() {
 }
 
 #[test]
+fn english_sexpro_resolves_from_pinned_build() {
+    let Some(repo) = english_repo() else { return };
+    assert_eq!(
+        repo.tm
+            .clean_text("找{PLAYERAVATAR#SEXPRO[INFO_MALE_PRONOUN_HE|INFO_FEMALE_PRONOUN_SHE]}")
+            .unwrap(),
+        "找He"
+    );
+}
+
+#[test]
 fn readable_metadata_titles() {
     let repo = require_repo!();
     let scope = Scope::default();
@@ -318,6 +347,24 @@ fn talk_7407811_info() {
     );
     for talk_text in &info.text {
         assert!(!talk_text.message.trim().is_empty());
+    }
+}
+
+#[test]
+fn talk_7407811_english_roles() {
+    let Some(repo) = english_repo() else { return };
+    let info =
+        talk::get_talk_info(repo, &Scope::default(), "BinOutput/Talk/Quest/7407811.json").unwrap();
+    let roles: Vec<&str> = info
+        .text
+        .iter()
+        .filter_map(|text| text.role.as_deref())
+        .collect();
+    assert!(roles.contains(&"Traveler"));
+    assert!(!roles.iter().any(|role| role.contains("旅行者")));
+    if roles.iter().any(|role| role.contains("Black Screen")) {
+        assert!(roles.contains(&"Black Screen Text"));
+        assert!(!roles.contains(&"黑屏文本"));
     }
 }
 

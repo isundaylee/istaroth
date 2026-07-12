@@ -21,6 +21,7 @@ type DialogMaps = (FxHashMap<i64, i64>, FxHashMap<i64, i64>);
 
 /// Raw excel tables loaded directly from ExcelBinOutput files (exposed as
 /// `Repo::excel`); derived mappings stay flat on `Repo`.
+#[derive(Default)]
 pub struct Excels {
     pub talk: Vec<Value>,
     pub npc: Vec<Value>,
@@ -61,6 +62,7 @@ pub struct Excels {
     pub gcg_week_level: Vec<Value>,
 }
 
+#[derive(Default)]
 pub struct Repo {
     pub agd_path: PathBuf,
     pub language: Language,
@@ -69,7 +71,7 @@ pub struct Repo {
     /// when source == output. Dev/test markers ($HIDDEN, (test), beta测试任务)
     /// exist only in CHS text, so hidden filtering consults these via the
     /// `source_*` accessors regardless of the output language.
-    tm_chs: Option<TextMaps>,
+    pub(crate) tm_chs: Option<TextMaps>,
     pub first_seen: FirstSeenIndex,
 
     /// Raw excel tables.
@@ -101,7 +103,7 @@ pub struct Repo {
     pub npc_id_to_name: FxHashMap<i64, String>,
     /// NPC id -> CHS (source) name when the output language is not CHS; None
     /// when source == output (see `npc_chs_name`).
-    npc_id_to_chs_name: Option<FxHashMap<i64, String>>,
+    pub(crate) npc_id_to_chs_name: Option<FxHashMap<i64, String>>,
     pub activity_id_to_name: FxHashMap<i64, String>,
     pub npc_id_to_game_mode: FxHashMap<i64, &'static str>,
 
@@ -1305,4 +1307,67 @@ struct Misc {
     cutscene_files: Vec<(String, Value)>,
     coop_graph_files: Vec<Value>,
     first_seen: FirstSeenIndex,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn book_series_filters_and_orders() {
+        let mut excel = Excels {
+            book_suit: [(7, json!({"id": 7})), (8, json!({"id": 8}))]
+                .into_iter()
+                .collect(),
+            ..Default::default()
+        };
+        for (id, suit) in [(101, 7), (102, 7), (103, 8), (104, 0), (105, 7)] {
+            excel.material.insert(id, json!({"setID": suit}));
+            excel.document.insert(
+                id,
+                json!({"questIDList": [id], "questContentLocalizedId": []}),
+            );
+        }
+        excel.books_codex = vec![
+            json!({"materialId": 102, "sortOrder": 20, "isDisuse": false}),
+            json!({"materialId": 101, "sortOrder": 10, "isDisuse": false}),
+            json!({"materialId": 103, "sortOrder": 30, "isDisuse": false}),
+            json!({"materialId": 104, "sortOrder": 40, "isDisuse": false}),
+            json!({"materialId": 105, "sortOrder": 5, "isDisuse": true}),
+        ];
+        let filenames = (101..=105)
+            .map(|id| (id, format!("Book{id}_EN.txt")))
+            .collect();
+        assert_eq!(
+            build_book_series(&excel, &filenames).unwrap(),
+            [(
+                7,
+                vec!["Book101_EN.txt".to_string(), "Book102_EN.txt".to_string()]
+            )]
+            .into_iter()
+            .collect::<IndexMap<_, _>>()
+        );
+    }
+
+    #[test]
+    fn achievement_sections_filter_only_disused() {
+        let excel = Excels {
+            achievement_goal: vec![json!({"id": 7})],
+            achievement: vec![
+                json!({"id": 3, "goalId": 7, "orderId": 2, "isDisuse": false, "showType": "SHOWTYPE_HIDE"}),
+                json!({"id": 2, "goalId": 7, "orderId": 1, "isDisuse": true}),
+                json!({"id": 1, "goalId": 7, "orderId": 1, "isDisuse": false}),
+            ],
+            ..Default::default()
+        };
+        assert_eq!(
+            build_achievement_sections(&excel).unwrap()[&7]
+                .1
+                .iter()
+                .map(|a| a["id"].as_i64().unwrap())
+                .collect::<Vec<_>>(),
+            vec![1, 3]
+        );
+    }
 }

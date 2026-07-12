@@ -1,8 +1,9 @@
 //! Output-language configuration: language codes plus the per-language
 //! localized role names (port of istaroth.agd.localization's `_ROLE_NAMES`).
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum Language {
+    #[default]
     Chs,
     Eng,
 }

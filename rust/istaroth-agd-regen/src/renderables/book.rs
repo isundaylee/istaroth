@@ -20,6 +20,108 @@ pub enum BookKey {
     Standalone(String),
 }
 
+#[cfg(test)]
+#[allow(clippy::items_after_test_module)]
+mod series_tests {
+    use super::*;
+    use crate::firstseen::{FirstSeenIndex, SourceKey};
+    use crate::textmap::TextMaps;
+    use rustc_hash::{FxHashMap, FxHashSet};
+    use serde_json::json;
+
+    fn repo(contents: &[(&str, &str)]) -> Repo {
+        let filenames = vec!["Book101_EN.txt".to_string(), "Book102_EN.txt".to_string()];
+        Repo {
+            language: Language::Eng,
+            tm: TextMaps::for_tests(
+                Language::Eng,
+                [(700, "My Series"), (101, "Volume One"), (102, "Volume Two")]
+                    .into_iter()
+                    .map(|(id, text)| (id, text.to_string()))
+                    .collect(),
+                FxHashMap::default(),
+                FxHashMap::default(),
+            ),
+            first_seen: FirstSeenIndex::for_tests(filenames.iter().map(|filename| {
+                (
+                    Domain::Readable,
+                    SourceKey::Str(
+                        util::strip_language_suffix(util::path_stem(filename)).to_string(),
+                    ),
+                    "1.0",
+                )
+            })),
+            excel: crate::repo::Excels {
+                book_suit: [(7, json!({"suitNameTextMapHash": 700}))]
+                    .into_iter()
+                    .collect(),
+                ..Default::default()
+            },
+            book_series: [(7, filenames.clone())].into_iter().collect(),
+            readable_stem_to_loc_id: [
+                ("Book101_EN".to_string(), 101),
+                ("Book102_EN".to_string(), 102),
+            ]
+            .into_iter()
+            .collect(),
+            loc_id_to_title_hash: [(101, 101), (102, 102)].into_iter().collect(),
+            readable_filenames: filenames.into_iter().collect::<FxHashSet<_>>(),
+            readable_contents: contents
+                .iter()
+                .map(|(name, text)| (name.to_string(), text.to_string()))
+                .collect(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn series_assembles_volumes_in_reading_order() {
+        let rendered = process_book_series(
+            &repo(&[
+                ("Book101_EN.txt", "First body."),
+                ("Book102_EN.txt", "Second body."),
+            ]),
+            &Scope::default(),
+            7,
+        )
+        .unwrap()
+        .unwrap();
+        assert!(rendered.content.contains(
+            "## Volume One\n\n*My Series — Volume 1 of 2*\n\nFirst body.\n\n## Volume Two"
+        ));
+    }
+
+    #[test]
+    fn series_filters_placeholder_volumes_and_localizes_annotation() {
+        let rendered = process_book_series(
+            &repo(&[
+                ("Book101_EN.txt", "test"),
+                ("Book102_EN.txt", "Second body."),
+            ]),
+            &Scope::default(),
+            7,
+        )
+        .unwrap()
+        .unwrap();
+        assert!(rendered.content.contains("## Volume Two"));
+        assert!(rendered.content.contains("*My Series — Volume 1 of 1*"));
+        assert!(!rendered.content.contains("Volume One"));
+    }
+
+    #[test]
+    fn series_with_only_placeholder_volumes_is_filtered() {
+        assert!(
+            process_book_series(
+                &repo(&[("Book101_EN.txt", "test"), ("Book102_EN.txt", "N/A")]),
+                &Scope::default(),
+                7
+            )
+            .unwrap()
+            .is_none()
+        );
+    }
+}
+
 impl BookKey {
     /// Item description for error reporting; must match the reference
     /// pipeline's key repr strings.
