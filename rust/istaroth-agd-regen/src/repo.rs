@@ -15,8 +15,11 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 
-/// Dialog id -> content-hash and dialog id -> role-name-hash maps.
-type DialogMaps = (FxHashMap<i64, i64>, FxHashMap<i64, i64>);
+/// The two maps that survive the dialog excel parse.
+struct DialogMaps {
+    content_hash: FxHashMap<i64, i64>,
+    role_hash: FxHashMap<i64, i64>,
+}
 
 /// Raw excel tables loaded directly from ExcelBinOutput files (exposed as
 /// `Repo::excel`); derived mappings stay flat on `Repo`.
@@ -166,16 +169,15 @@ fn parse_dialog_excel(path: &Path) -> Result<DialogMaps> {
         }
     }
 
-    struct Rows(FxHashMap<i64, i64>, FxHashMap<i64, i64>);
     struct RowsVisitor;
     impl<'de> Visitor<'de> for RowsVisitor {
-        type Value = Rows;
+        type Value = DialogMaps;
         fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
             f.write_str("dialog excel list")
         }
-        fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<Rows, A::Error> {
-            let mut content_map = FxHashMap::default();
-            let mut role_map = FxHashMap::default();
+        fn visit_seq<A: SeqAccess<'de>>(self, mut seq: A) -> Result<DialogMaps, A::Error> {
+            let mut content_hash = FxHashMap::default();
+            let mut role_hash = FxHashMap::default();
             while let Some(row) = seq.next_element::<Row>()? {
                 let id = row
                     .id
@@ -186,20 +188,23 @@ fn parse_dialog_excel(path: &Path) -> Result<DialogMaps> {
                 let role = row.role.ok_or_else(|| {
                     serde::de::Error::custom("dialog row missing talkRoleNameTextMapHash")
                 })?;
-                content_map.insert(id, content);
-                role_map.insert(id, role);
+                content_hash.insert(id, content);
+                role_hash.insert(id, role);
             }
-            Ok(Rows(content_map, role_map))
+            Ok(DialogMaps {
+                content_hash,
+                role_hash,
+            })
         }
     }
 
     let bytes = std::fs::read(path).with_context(|| format!("read {path:?}"))?;
     let mut de = serde_json::Deserializer::from_slice(&bytes);
-    let rows = de
+    let maps = de
         .deserialize_seq(RowsVisitor)
         .with_context(|| format!("parse {path:?}"))?;
     de.end()?;
-    Ok((rows.0, rows.1))
+    Ok(maps)
 }
 
 fn index_unique(
@@ -816,7 +821,10 @@ impl Repo {
         let subtitle_stem_to_cutscenes =
             build_subtitle_stem_map(&excel.localization, &misc.cutscene_files, language_short)?;
 
-        let (dialog_id_to_content_hash, dialog_id_to_role_hash) = dialog_maps;
+        let DialogMaps {
+            content_hash: dialog_id_to_content_hash,
+            role_hash: dialog_id_to_role_hash,
+        } = dialog_maps;
 
         let mut readable_filenames_sorted: Vec<String> =
             misc.readable_contents.keys().cloned().collect();
@@ -1029,7 +1037,7 @@ impl Repo {
     ) -> Result<(Excels, DialogMaps)> {
         // Prefetch every excel list in parallel (the dialog excel gets a typed
         // low-allocation parse since only two id->hash maps survive it).
-        const EXCEL_NAMES: [&str; 29] = [
+        const EXCEL_NAMES: [&str; 36] = [
             "LocalizationExcelConfigData.json",
             "MaterialExcelConfigData.json",
             "NpcExcelConfigData.json",
@@ -1059,9 +1067,6 @@ impl Repo {
             "ChapterExcelConfigData.json",
             "NewActivityExcelConfigData.json",
             "QuestExcelConfigData.json",
-        ];
-        // ReliquarySet/Reliquary/EquipAffix/Weapon/HomeWorld/RoleCombat/GCG too.
-        const EXCEL_NAMES2: [&str; 7] = [
             "ReliquarySetExcelConfigData.json",
             "ReliquaryExcelConfigData.json",
             "EquipAffixExcelConfigData.json",
@@ -1075,14 +1080,11 @@ impl Repo {
                 || parse_dialog_excel(&excel.join("DialogExcelConfigData.json")),
                 || -> Result<FxHashMap<&'static str, Vec<Value>>> {
                     EXCEL_NAMES
-                        .iter()
-                        .chain(EXCEL_NAMES2.iter())
-                        .collect::<Vec<_>>()
                         .par_iter()
                         .map(|name| {
                             let v = parse_json(&excel.join(name))?;
                             match v {
-                                Value::Array(items) => Ok((**name, items)),
+                                Value::Array(items) => Ok((*name, items)),
                                 _ => bail!("{name} must be a list"),
                             }
                         })

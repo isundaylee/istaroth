@@ -13,7 +13,7 @@
 
 use crate::textmap::TextMaps;
 use crate::util;
-use crate::vh::{ValueExt, as_i64};
+use crate::vh::{ValueExt, as_i64, as_i64_lenient};
 use anyhow::{Context, Result, anyhow, bail};
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
@@ -289,11 +289,8 @@ pub fn parse_talks(
         }
         let data = &talk_files[rel];
         if subdir == "FreeGroup" {
-            let talk_id = match data.f("talkId")? {
-                Value::Number(n) => as_i64(&Value::Number(n.clone()))?,
-                Value::String(s) => util::parse_i64(s)?,
-                other => bail!("bad talkId {other:?} in {rel}"),
-            };
+            let talk_id =
+                as_i64_lenient(data.f("talkId")?).with_context(|| format!("talkId in {rel}"))?;
             if let Some(quest_id) = free_group_quest_id(&talk_id.to_string()) {
                 free_group
                     .entry(quest_id)
@@ -303,11 +300,8 @@ pub fn parse_talks(
         } else if let Some(group_type) = GroupType::from_dir(subdir) {
             handle_group(group_type, rel, data, &mut talk_group_candidates)?;
         } else if is_talk_file(data) {
-            let talk_id = match data.f("talkId")? {
-                Value::Number(n) => as_i64(&Value::Number(n.clone()))?,
-                Value::String(s) => util::parse_i64(s)?,
-                other => bail!("bad talkId {other:?} in {rel}"),
-            };
+            let talk_id =
+                as_i64_lenient(data.f("talkId")?).with_context(|| format!("talkId in {rel}"))?;
             talk_candidates
                 .entry(talk_id)
                 .or_default()

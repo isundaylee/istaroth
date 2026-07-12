@@ -45,7 +45,7 @@ pub fn get_talk_group_info(
     let mut talks = Vec::new();
     let mut talk_ids: Vec<i64> = Vec::new();
     for talk_entry in data.arr("talks")? {
-        let talk_id = entry_int(talk_entry.f("id")?)?;
+        let talk_id = crate::vh::as_i64_lenient(talk_entry.f("id")?)?;
         let talk_info = match talk::get_talk_info_by_id(repo, scope, talk_id) {
             Ok(info) => info,
             Err(e) if e.is::<TalkNotFound>() => {
@@ -63,7 +63,7 @@ pub fn get_talk_group_info(
                 .ok_or_else(|| anyhow!("nextTalks must be an array"))?,
         };
         for next_talk_id in next_talk_entries {
-            let next_talk_id = entry_int(next_talk_id)?;
+            let next_talk_id = crate::vh::as_i64_lenient(next_talk_id)?;
             let next_info = match talk::get_talk_info_by_id(repo, scope, next_talk_id) {
                 Ok(info) => info,
                 Err(e) if e.is::<TalkNotFound>() => {
@@ -84,14 +84,6 @@ pub fn get_talk_group_info(
         }
     }
     Ok(TalkGroupInfo { talks, talk_ids })
-}
-
-fn entry_int(v: &Value) -> Result<i64> {
-    match v {
-        Value::Number(_) => crate::vh::as_i64(v),
-        Value::String(s) => util::parse_i64(s),
-        other => bail!("cannot int() {other:?}"),
-    }
 }
 
 /// Title from the group's most talkative named speakers, or None if none.

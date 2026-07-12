@@ -7,6 +7,16 @@ pub fn as_i64(v: &Value) -> Result<i64> {
     v.as_i64().ok_or_else(|| anyhow!("expected int, got {v}"))
 }
 
+/// Python `int()` semantics: an int or a numeric string (wire ids sometimes
+/// ship as strings).
+pub fn as_i64_lenient(v: &Value) -> Result<i64> {
+    match v {
+        Value::Number(_) => as_i64(v),
+        Value::String(s) => crate::util::parse_i64(s),
+        other => anyhow::bail!("cannot int() {other:?}"),
+    }
+}
+
 pub trait ValueExt {
     fn f(&self, key: &str) -> Result<&Value>;
     fn i(&self, key: &str) -> Result<i64>;

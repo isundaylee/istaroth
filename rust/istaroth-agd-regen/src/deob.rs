@@ -300,6 +300,18 @@ fn process_cond_grp(cond_grp: Value) -> Result<Value> {
     deob_map(cond_grp, &COMMON, &[("coopCondList", process_array_items)])
 }
 
+/// Recurse into an optional cond-grp object field in place; an absent, null,
+/// or empty-object value passes through untouched, anything non-object errors.
+fn process_cond_field_in_place(obj: &mut Map<String, Value>, key: &str) -> Result<()> {
+    match obj.get_mut(key) {
+        None | Some(Value::Null) => {}
+        Some(Value::Object(m)) if m.is_empty() => {}
+        Some(v @ Value::Object(_)) => *v = process_cond_grp(std::mem::take(v))?,
+        Some(other) => bail!("{key} must be an object, got {other}"),
+    }
+    Ok(())
+}
+
 fn process_coop_select_items(select_list: Vec<Value>) -> Result<Vec<Value>> {
     select_list
         .into_iter()
@@ -307,15 +319,7 @@ fn process_coop_select_items(select_list: Vec<Value>) -> Result<Vec<Value>> {
             let mut d = deob_map(item, &COMMON, &[])?;
             if let Some(obj) = d.as_object_mut() {
                 for cond_key in ["showCond", "enableCond"] {
-                    match obj.get(cond_key) {
-                        None | Some(Value::Null) => {}
-                        Some(Value::Object(m)) if m.is_empty() => {}
-                        Some(Value::Object(_)) => {
-                            let cond = obj.remove(cond_key).unwrap();
-                            obj.insert(cond_key.to_string(), process_cond_grp(cond)?);
-                        }
-                        Some(other) => bail!("{cond_key} must be an object, got {other}"),
-                    }
+                    process_cond_field_in_place(obj, cond_key)?;
                 }
             }
             Ok(d)
@@ -326,29 +330,13 @@ fn process_coop_select_items(select_list: Vec<Value>) -> Result<Vec<Value>> {
 fn deobfuscate_coop_node(node: Value) -> Result<Value> {
     let mut d = deob_map(node, &COMMON, &[])?;
     if let Some(obj) = d.as_object_mut() {
-        match obj.get("selectList") {
+        match obj.get_mut("selectList") {
             None | Some(Value::Null) => {}
             Some(Value::Array(a)) if a.is_empty() => {}
-            Some(Value::Array(_)) => {
-                let Value::Array(items) = obj.remove("selectList").unwrap() else {
-                    unreachable!()
-                };
-                obj.insert(
-                    "selectList".to_string(),
-                    Value::Array(process_coop_select_items(items)?),
-                );
-            }
+            Some(Value::Array(items)) => *items = process_coop_select_items(std::mem::take(items))?,
             Some(other) => bail!("selectList must be a list, got {other}"),
         }
-        match obj.get("coopCondGrp") {
-            None | Some(Value::Null) => {}
-            Some(Value::Object(m)) if m.is_empty() => {}
-            Some(Value::Object(_)) => {
-                let cond = obj.remove("coopCondGrp").unwrap();
-                obj.insert("coopCondGrp".to_string(), process_cond_grp(cond)?);
-            }
-            Some(other) => bail!("coopCondGrp must be an object, got {other}"),
-        }
+        process_cond_field_in_place(obj, "coopCondGrp")?;
     }
     Ok(d)
 }

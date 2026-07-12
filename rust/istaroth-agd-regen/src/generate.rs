@@ -28,8 +28,8 @@ struct RunState {
     used_readables: FxHashSet<String>,
     accessed_text_map: FxHashSet<i64>,
     errors: usize,
-    /// Per-pass (category, success, errors, skipped, issues) in run order.
-    summary: Vec<(&'static str, usize, usize, usize, usize)>,
+    /// Per-pass summary rows in run order.
+    summary: Vec<stats::PassSummary>,
     /// Pre-formatted "⚠ type: key -> ISSUE: detail" lines in submission order.
     issue_lines: Vec<String>,
     errors_file: std::fs::File,
@@ -132,9 +132,13 @@ fn run_pass<K: Sync>(
             .with_context(|| format!("write {path:?}"))?;
         Ok(())
     })?;
-    state
-        .summary
-        .push((category, success, errors, skipped, issues));
+    state.summary.push(stats::PassSummary {
+        category,
+        success,
+        errors,
+        skipped,
+        issues,
+    });
     eprintln!(
         "{pass_name}: {success} success, {skipped} skipped ({:.2}s)",
         t0.elapsed().as_secs_f64()
@@ -509,10 +513,10 @@ pub fn generate_all(
     // Unused-id stats (console + stats/agd/unused_stats.json).
     {
         let unused_stats = stats::UnusedStats {
-            text_map: (
-                repo.tm.unused_current_ids(&state.accessed_text_map),
-                repo.tm.text_map_len(),
-            ),
+            text_map: stats::ResourceUsage {
+                unused: repo.tm.unused_current_ids(&state.accessed_text_map),
+                total: repo.tm.text_map_len(),
+            },
             talk_ids: {
                 let mut v: Vec<i64> = repo
                     .talk_ids_all
@@ -521,7 +525,10 @@ pub fn generate_all(
                     .copied()
                     .collect();
                 v.sort();
-                (v, repo.talk_ids_all.len())
+                stats::ResourceUsage {
+                    unused: v,
+                    total: repo.talk_ids_all.len(),
+                }
             },
             readables: {
                 let mut v: Vec<String> = repo
@@ -531,7 +538,10 @@ pub fn generate_all(
                     .cloned()
                     .collect();
                 v.sort();
-                (v, repo.readable_contents.len())
+                stats::ResourceUsage {
+                    unused: v,
+                    total: repo.readable_contents.len(),
+                }
             },
         };
         unused_stats.echo();
@@ -549,10 +559,10 @@ pub fn generate_all(
     // Parsing-issue counts (JSON) and detail list (info).
     {
         let mut counts = serde_json::Map::new();
-        for (category, _, _, _, issues) in &state.summary {
+        for row in &state.summary {
             counts.insert(
-                category.to_string(),
-                serde_json::Value::from(*issues as i64),
+                row.category.to_string(),
+                serde_json::Value::from(row.issues as i64),
             );
         }
         let parsing_issues_path = stats_dir.join("parsing_issues.json");

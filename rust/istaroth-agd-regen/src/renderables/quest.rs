@@ -168,20 +168,13 @@ pub fn get_quest_group_name(repo: &Repo, scope: &Scope, chapter_id: i64) -> Resu
     Ok(common_prefix_name(&titles))
 }
 
-/// Whether a quest title marks a dev/test/hidden quest to exclude
-/// (`$HIDDEN`/`(test)` markers, which live in the CHS source text).
-fn is_test_or_hidden_title(repo: &Repo, scope: &Scope, title_hash: i64) -> Result<bool> {
-    Ok(match repo.chs_get_optional(title_hash, scope)? {
-        None => false,
-        Some(chs) => util::should_skip_text(&chs, Language::Chs),
-    })
-}
-
-/// Whether a subQuest is a dev/test/hidden step (a `$HIDDEN`/bridge marker).
-/// Such steps carry meaningless `order` numbers, so a talk's `beginCond`
-/// pointing at one is an internal trigger rather than a real playback location.
-fn is_hidden_step(repo: &Repo, scope: &Scope, desc_hash: i64) -> Result<bool> {
-    Ok(match repo.chs_get_optional(desc_hash, scope)? {
+/// Whether a hash's CHS source text carries a dev/test/hidden marker
+/// (`$HIDDEN`/`(test)`, which live only in the CHS text). Used both for quest
+/// titles (excluding the quest) and subQuest step descriptions (such steps
+/// carry meaningless `order` numbers, so a talk's `beginCond` pointing at one
+/// is an internal trigger rather than a real playback location).
+fn is_test_or_hidden_text(repo: &Repo, scope: &Scope, hash: i64) -> Result<bool> {
+    Ok(match repo.chs_get_optional(hash, scope)? {
         None => false,
         Some(chs) => util::should_skip_text(&chs, Language::Chs),
     })
@@ -190,7 +183,7 @@ fn is_hidden_step(repo: &Repo, scope: &Scope, desc_hash: i64) -> Result<bool> {
 /// Resolve a subQuest's objective text, or None when there is none to show
 /// (no/empty text, or a test/hidden step).
 fn resolve_step_description(repo: &Repo, scope: &Scope, desc_hash: i64) -> Result<Option<String>> {
-    if is_hidden_step(repo, scope, desc_hash)? {
+    if is_test_or_hidden_text(repo, scope, desc_hash)? {
         return Ok(None);
     }
     Ok(repo
@@ -364,7 +357,7 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
             bail!("duplicate subQuest order {order_index} in quest {quest_id}");
         }
         order_to_desc.insert(order_index, desc);
-        if is_hidden_step(repo, scope, subquest.i("descTextMapHash")?)? {
+        if is_test_or_hidden_text(repo, scope, subquest.i("descTextMapHash")?)? {
             hidden_orders.insert(order_index);
         }
         for (talk_id, priority, talk_info) in iter_subquest_talks(repo, scope, subquest)? {
@@ -542,7 +535,7 @@ pub fn get_quest_info(repo: &Repo, scope: &Scope, quest_id: i64) -> Result<Optio
     // a dev/test chapter). Checked after the talks above are resolved (which
     // marks them accessed) so this quest's dialogue is also kept out of the
     // standalone agd_talk pass, not just out of agd_quest.
-    if is_test_or_hidden_title(repo, scope, title_hash)? || hidden_chapter {
+    if is_test_or_hidden_text(repo, scope, title_hash)? || hidden_chapter {
         return Ok(None);
     }
 
