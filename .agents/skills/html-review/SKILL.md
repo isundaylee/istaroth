@@ -20,7 +20,7 @@ Create one focused, self-contained HTML page, open it with the bundled local rev
 
 ## Page standard
 
-- Default to a guided review: present one or two explicit questions with clear choices and short tradeoffs. Use an open annotation-only canvas only when structured choices would be artificial.
+- Default to a guided review: present every question needed for the user's input with clear choices and short tradeoffs. Do not impose an arbitrary question limit, but omit questions whose answers do not affect the outcome. Use an open annotation-only canvas only when structured choices would be artificial.
 - Present one clear title, a one-sentence purpose, the material under review, and only the questions needed for the current iteration.
 - Use a calm neutral palette, system fonts, generous spacing, subtle borders, and one restrained accent color. Support light and dark color schemes.
 - Keep the main column between `680px` and `900px`; add a side-by-side comparison only when it materially helps a choice.
