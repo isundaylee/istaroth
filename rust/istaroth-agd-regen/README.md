@@ -1,7 +1,6 @@
-# istaroth-agd-regen (Rust prototype)
+# istaroth-agd-regen
 
-Prototype rewrite of `scripts/agd_tools.py generate-all` for the **CHS** and
-**ENG** corpora, built to estimate the performance floor of a Rust port.
+Generator for the **CHS** and **ENG** AGD corpora.
 Output is **byte-identical** to the Python pipeline for all 19 `agd_*` content
 directories, `manifest/agd.json`, `metadata/agd/hierarchy.json`, and the
 `stats/agd/*` diagnostics (`metadata.json`, `unused_stats.json`,
@@ -18,7 +17,7 @@ limits switch to the higher `error_limit_non_chinese` values.
 Structured as a library (`src/lib.rs`, entry point `generate::generate_all`)
 plus a thin clap CLI (`src/main.rs`).
 
-Also includes `build-first-seen`, a port of `scripts/agd_build_first_seen.py`:
+Also includes `build-first-seen`:
 a full `--rebuild-all` reproduces every committed `text/first_seen/*.json`
 byte-identically in ~7 s (snapshot scans run in parallel).
 
@@ -75,21 +74,8 @@ build step).
 - **`tests/corpus_sanity.rs`**: content pins against the committed `text/`
   submodule (both CHS and ENG), implementation-independent.
 
-The full end-to-end assertion remains the corpus itself: regen and diff
-against the committed `text/` submodule (see below; today via the
-byte-identical comparison with Python, eventually as a golden-corpus check
-once the Python pipeline is retired).
-
-## Verify against Python
-
-```bash
-uv run --isolated --python 3.14t --only-group regen \
-  scripts/agd_tools.py generate-all -f tmp-local/ref-chs
-diff -rq tmp-local/ref-chs tmp-local/rust-chs   # whole tree incl. stats/agd
-```
-
-(`stats/agd/metadata.json` matches only when both runs share the same istaroth
-HEAD/dirty state.)
+The full end-to-end assertion remains the corpus itself: regenerate and diff
+against the committed `text/` submodule.
 
 ## Results (16-core host, warm page cache, 2026-07)
 

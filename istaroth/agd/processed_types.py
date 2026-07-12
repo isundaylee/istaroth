@@ -1,244 +1,16 @@
-"""Processed/rendered Istaroth domain types.
+"""Hierarchy types consumed by corpus readers.
 
-``attrs`` classes produced by the processing/rendering pipeline (the ``*Info``
-classes, ``RenderedItem``, hierarchy and tracker types). These are our own
-internal representations, not raw AGD wire data.
+Deserializes the ``hierarchy/*.json`` files written by the Rust regen
+(``HierarchyNode``/``Hierarchy`` in ``rust/istaroth-agd-regen/src/hierarchy.rs``)
+— keep the field sets in parity when changing either side (the frontend's
+``frontend/src/utils/hierarchy.ts`` mirrors them too).
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import attrs
-
-from istaroth.agd import id_types
-
-if TYPE_CHECKING:
-    from istaroth.text import types as text_types
-
-
-@attrs.define
-class LocalizedRoleNames:
-    """Localized names for various talk roles."""
-
-    player: str
-    mate_avatar: str
-    paimon: str
-    black_screen: str
-    unknown_npc: str
-    unknown_role: str
-
-
-@attrs.define
-class ReadableMetadata:
-    """Metadata for a readable item."""
-
-    localization_id: id_types.LocalizationId
-    title: str
-
-
-@attrs.define
-class BookVolumeInfo:
-    """A single volume's title and cleaned body within a book series."""
-
-    title: str
-    content: str
-    filename: id_types.ReadableFilename
-
-
-@attrs.define
-class BookSeriesInfo:
-    """A multi-volume book series with its volumes in reading order."""
-
-    suit_id: id_types.BookSuitId
-    series_name: str
-    volumes: list[BookVolumeInfo]
-
-
-@attrs.define
-class TalkText:
-    """Individual talk dialog text."""
-
-    role: str | None
-    message: str
-    next_dialog_ids: list[id_types.DialogId]
-    dialog_id: id_types.DialogId
-    skip: bool
-    """Whether this line is a dev/test placeholder to always drop at render time.
-
-    Set when the message or the role's name is dev/test-marked, decided against
-    the CHS source text (markers such as ``(test)`` exist only in CHS), so it
-    holds for every output language.
-    """
-
-
-@attrs.define
-class TalkInfo:
-    """Talk information with dialog text."""
-
-    text: list[TalkText]
-
-    @property
-    def has_non_skip_text(self) -> bool:
-        """Whether any line survives render-time skip filtering."""
-        return any(not text.skip for text in self.text)
-
-
-@attrs.define
-class TalkGroupInfo:
-    talks: list[tuple[TalkInfo, list[TalkInfo]]]
-    """List of (talk, next_talks)."""
-
-    talk_ids: list[id_types.TalkId]
-    """Ids of every talk included in ``talks`` (next talks included)."""
-
-
-@attrs.define
-class CondEntry:
-    """A single condition within a cond group (e.g. ``COOP_COND_QUEST_FINISH [1901503]``)."""
-
-    type: str
-    param: list[int]
-
-
-@attrs.define
-class CondGrp:
-    """A group of conditions with a combiner (``LOGIC_NONE``, ``LOGIC_AND``, ``LOGIC_OR``)."""
-
-    logic: str
-    conds: list[CondEntry]
-
-
-@attrs.define
-class EndingInfo:
-    """Metadata about a terminal ending reached by a coop branch."""
-
-    save_point_id: id_types.CoopNodeId
-
-
-@attrs.define
-class CoopChoiceOption:
-    """One branch of a hangout player choice: its prompt and the steps it leads to."""
-
-    prompt: str | None
-    steps: list[CoopStep]
-    cond: CondGrp | None
-    """Routing condition (for COND branches; ``None`` for SELECT/default-branch)."""
-    show_cond: CondGrp | None
-    """Visibility gate (``showCond`` on SELECT options)."""
-    enable_cond: CondGrp | None
-    """Enablement gate (``enableCond`` on SELECT options)."""
-
-
-@attrs.define
-class CoopChoice:
-    """A hangout player-choice point fanning into one branch per option."""
-
-    options: list[CoopChoiceOption]
-
-
-@attrs.define
-class CoopStep:
-    """One play-ordered step of a hangout story: a talk, a player choice, or an ending."""
-
-    talk: TalkInfo | None
-    choice: CoopChoice | None
-    ending: EndingInfo | None
-
-
-@attrs.define
-class CoopStoryInfo:
-    """One hangout (Coop) story branch, its talks in play order."""
-
-    coop_story_id: id_types.CoopStoryId
-    steps: list[CoopStep]
-
-
-@attrs.define
-class HangoutInfo:
-    """A hangout quest: its primary character and play-ordered story branches."""
-
-    quest_id: id_types.QuestId
-    quest_title: str
-    primary_character: str | None
-    stories: list[CoopStoryInfo]
-
-
-@attrs.define
-class AnecdoteInfo:
-    """An anecdote (Odd Encounter) vignette: its blurbs and storyboard talks."""
-
-    anecdote_id: id_types.AnecdoteId
-    title: str
-    teaser: str | None
-    """Map-hint blurb shown before the encounter (missing on some entries)."""
-    description: str | None
-    """Post-completion recap of the scene."""
-    talks: list[TalkInfo]
-    talk_ids: list[id_types.TalkId]
-
-
-@attrs.define
-class ActivityTalksInfo:
-    """An activity's (活动/event) loose talks not claimed by any other pass."""
-
-    activity_id: id_types.ActivityId
-    title: str
-    talks: list[TalkInfo]
-    talk_ids: list[id_types.TalkId]
-
-
-@attrs.define
-class BlossomSection:
-    """One ore-type variant of a region's blossom intel: its blurb and talks."""
-
-    description: str
-    talks: list[TalkInfo]
-
-
-@attrs.define
-class BlossomCityInfo:
-    """A region's blossom (Rich Ore Reserve, 矿物富集点) NPC-intel talks."""
-
-    city_id: id_types.CityId
-    title: str
-    sections: list[BlossomSection]
-    talk_ids: list[id_types.TalkId]
-
-
-@attrs.define
-class QuestStep:
-    """A single quest-progression step at a subQuest ``order``.
-
-    A step is either a dialogue step (``talk`` set) or a non-dialogue objective
-    (``talk`` is None, e.g. "defeat the monsters"). ``description`` is the
-    subQuest's in-game objective text (from its ``descTextMapHash``), shown for
-    both kinds when present. ``is_lead_in`` marks a talk placed by its own
-    beginCond (a lead-in that plays during the step but doesn't complete it)
-    rather than by a finish condition.
-    """
-
-    order: int
-    is_lead_in: bool
-    description: str | None
-    talk: TalkInfo | None
-
-
-@attrs.define
-class QuestInfo:
-    """Quest information with associated talk dialogs."""
-
-    quest_id: id_types.QuestId
-    title: str
-    chapter_title: str | None
-    group_name: str | None
-    """Questline (quest group) name, when one is known for the quest's chapter."""
-    description: str | None
-    steps: list[QuestStep]
-    """Talk and objective steps interleaved by subQuest ``order``."""
-    non_subquest_talks: list[TalkInfo]
-    associated_free_talks: list[TalkInfo]
-    """FreeGroup "free talks" attached to this quest by talkId numbering."""
 
 
 @attrs.define
@@ -275,16 +47,14 @@ class HierarchyNode:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> HierarchyNode:
-        raw_children = data["children"]
-        children = (
-            None
-            if raw_children is None
-            else [HierarchyNode.from_dict(child) for child in raw_children]
-        )
         return cls(
             key=data["key"],
             title=data["title"],
-            children=children,
+            children=(
+                None
+                if data["children"] is None
+                else [cls.from_dict(child) for child in data["children"]]
+            ),
             file_id=data["file_id"],
             toc_eligible=data["toc_eligible"],
         )
@@ -292,7 +62,7 @@ class HierarchyNode:
 
 @attrs.define
 class Hierarchy:
-    """The browsable document hierarchy of a single category."""
+    """The browsable document hierarchy of one category."""
 
     nodes: list[HierarchyNode]
 
@@ -302,146 +72,3 @@ class Hierarchy:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Hierarchy:
         return cls(nodes=[HierarchyNode.from_dict(node) for node in data["nodes"]])
-
-
-@attrs.define
-class CharacterStory:
-    """Individual character story with title and content."""
-
-    title: str
-    content: str
-
-
-@attrs.define
-class Constellation:
-    """A single constellation (命之座) name and description.
-
-    ``element`` is set only for the Travelers, whose constellations are
-    per-element; it is ``None`` for regular characters.
-    """
-
-    name: str
-    description: str
-    element: str | None
-
-
-@attrs.define
-class CharacterStoryInfo:
-    """Character story information containing all stories for a character."""
-
-    character_name: str
-    stories: list[CharacterStory]
-    avatar_id: id_types.AvatarId
-    constellations: list[Constellation]
-
-
-@attrs.define
-class SubtitleInfo:
-    """Subtitle information containing all subtitle text."""
-
-    text_lines: list[str]
-
-
-@attrs.define
-class MaterialInfo:
-    """Material information with name and description."""
-
-    material_id: id_types.MaterialId
-    name: str
-    description: str
-
-
-@attrs.define
-class AchievementInfo:
-    """Localized achievement text."""
-
-    achievement_id: id_types.AchievementId
-    name: str
-    description: str
-
-
-@attrs.define
-class AchievementSectionInfo:
-    """Localized achievements grouped by their in-game section."""
-
-    section_id: id_types.AchievementGoalId
-    section_name: str
-    achievements: list[AchievementInfo]
-
-
-@attrs.define
-class CreatureInfo:
-    """A single living-beings archive entry: names and archive description.
-
-    ``special_name``/``title`` are populated for monsters when they differ from
-    ``name`` (wildlife carry only ``name``).
-    """
-
-    codex_id: id_types.AnimalCodexId
-    name: str
-    special_name: str | None
-    title: str | None
-    description: str
-
-
-@attrs.define
-class CreatureGroupInfo:
-    """All creatures in one codex ``subType`` group, in archive order.
-
-    ``subtype`` is the raw enum (filename/id); ``type_label``/``subtype_label``
-    are the localized codex group names.
-    """
-
-    subtype: str
-    type_label: str
-    subtype_label: str
-    creatures: list[CreatureInfo]
-
-
-@attrs.define
-class VoicelineInfo:
-    """Voiceline information for a character."""
-
-    character_name: str
-    voicelines: dict[str, str]  # title -> content mapping
-    avatar_id: id_types.AvatarId
-
-
-@attrs.define
-class ArtifactInfo:
-    """Individual artifact information with name, description, and story."""
-
-    name: str
-    description: str
-    story: str
-
-
-@attrs.define
-class ArtifactSetInfo:
-    """Artifact set information containing all pieces in the set."""
-
-    set_name: str
-    set_id: id_types.ArtifactSetId
-    artifacts: list[ArtifactInfo]
-
-
-@attrs.define
-class WeaponInfo:
-    """A weapon's assembled story document: name, flavor description, and pages.
-
-    ``story_pages`` holds the weapon's story document pages in reading order,
-    joined into one rendered document (a multi-page weapon story is a single item).
-    """
-
-    weapon_id: str
-    name: str
-    description: str
-    story_pages: list[str]
-
-
-@attrs.define
-class RenderedItem:
-    """Rendered content suitable for RAG training."""
-
-    text_metadata: text_types.TextMetadata
-    content: str

@@ -9,7 +9,7 @@
 
 ## Rust Regen Tool
 
-`rust/istaroth-agd-regen` is the Rust port of `scripts/agd_tools.py generate-all`
+`rust/istaroth-agd-regen` generates the AGD corpus and first-seen index
 (see its [README](rust/istaroth-agd-regen/README.md)). Build it with the `fast`
 profile for everything — output is byte-identical to `--release` and runtime is
 equal within noise (~2.8–2.9s), but incremental rebuilds take ~1s instead of
@@ -30,8 +30,8 @@ When you need to regenerate text files from source data (e.g., after updating AG
 ### AGD (AnimeGameData)
 
 ```bash
-AGD_LANGUAGE=CHS scripts/agd_tools.py generate-all -f text/chs
-AGD_LANGUAGE=ENG scripts/agd_tools.py generate-all -f text/eng
+./rust/target/fast/istaroth-agd-regen generate-all -f text/chs
+AGD_LANGUAGE=ENG ./rust/target/fast/istaroth-agd-regen generate-all -f text/eng
 ```
 
 The `-f` flag forces regeneration by deleting existing output directories.
@@ -66,7 +66,7 @@ export AGD_LANGUAGE="CHS"  # or "ENG" for English
 1. **Process AGD data** to extract and clean text files:
 
 ```bash
-scripts/agd_tools.py generate-all /path/to/text/files/output
+./rust/target/fast/istaroth-agd-regen generate-all /path/to/text/files/output
 ```
 
 2. **Build a checkpoint** from the processed text files:

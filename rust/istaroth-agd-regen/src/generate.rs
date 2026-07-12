@@ -1,5 +1,9 @@
 //! Port of `scripts/agd_tools.py generate-all`: the 19 renderable passes,
 //! manifest/hierarchy writes, and stats/agd/* diagnostics.
+//!
+//! The `agd_*` category strings passed to the passes here (and in the
+//! renderables) must be members of the Python `TextCategory` enum in
+//! `istaroth/text/types.py` — the readers reject unknown categories.
 
 use crate::issues::Scope;
 use crate::lang::Language;
@@ -140,7 +144,9 @@ fn run_pass<K: Sync>(
 }
 
 /// Indented JSON in the reference output format (2-space indent, non-ASCII
-/// preserved).
+/// preserved). Format parity with `dumps_indented` in
+/// `istaroth/json_utils.py`, which writes the TPS manifest in the same
+/// format as the AGD manifest written here.
 fn dumps_indented<T: Serialize>(value: &T) -> Result<Vec<u8>> {
     Ok(serde_json::to_vec_pretty(value)?)
 }

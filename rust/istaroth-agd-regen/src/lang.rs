@@ -30,7 +30,9 @@ impl Language {
         }
     }
 
-    /// The long language code (metadata.json's `language` field).
+    /// The long language code (metadata.json's `language` field). Values must
+    /// match the Python `Language` enum in `istaroth/agd/localization.py`,
+    /// which the RAG readers parse this field into.
     pub fn value(self) -> &'static str {
         match self {
             Language::Chs => "CHS",

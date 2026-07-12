@@ -14,6 +14,10 @@ class TextCategory(Enum):
     When adding a new value, also add its localized display name to
     ``_CATEGORY_LABELS`` in istaroth/agd/localization.py; the frontend receives
     it via the library hierarchy API.
+
+    AGD values must stay in sync with the category string literals the Rust
+    regen emits (``rust/istaroth-agd-regen/src/generate.rs`` and its
+    renderables) — that binary writes the corpus this enum reads.
     """
 
     AGD_READABLE = "agd_readable"
@@ -93,6 +97,10 @@ class TextMetadata:
     ``min_version``/``max_version`` bound the game versions in which the file's
     source items first appeared (equal for single-source files); required for
     AGD content, and ``None`` for non-AGD content that has no game version.
+
+    This is the manifest entry schema; the AGD manifest is written by the Rust
+    regen (``TextMetadata`` in ``rust/istaroth-agd-regen/src/rendered_item.rs``)
+    — keep field names and types in parity when changing either side.
     """
 
     category: TextCategory

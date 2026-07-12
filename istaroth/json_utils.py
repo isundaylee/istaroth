@@ -1,14 +1,12 @@
-"""JSON helpers: msgspec-backed decode, stdlib dumps matching old orjson output."""
+"""JSON helpers returning UTF-8 bytes for serialization."""
 
 import json
 from typing import Any, Callable
 
-import msgspec
-
 
 def loads(data: bytes | str) -> Any:
-    """Deserialize JSON via msgspec (~2x faster than stdlib on AGD-sized files)."""
-    return msgspec.json.decode(data)
+    """Deserialize JSON data."""
+    return json.loads(data)
 
 
 def dumps(obj: Any, *, default: Callable[[Any], Any] | None = None) -> bytes:
@@ -19,5 +17,10 @@ def dumps(obj: Any, *, default: Callable[[Any], Any] | None = None) -> bytes:
 
 
 def dumps_indented(obj: Any, *, default: Callable[[Any], Any] | None = None) -> bytes:
-    """Serialize to 2-space-indented UTF-8 JSON bytes."""
+    """Serialize to 2-space-indented UTF-8 JSON bytes.
+
+    Format parity with dumps_indented in
+    rust/istaroth-agd-regen/src/generate.rs: the Rust regen writes the AGD
+    manifest while Python writes the TPS manifest, and both must match.
+    """
     return json.dumps(obj, ensure_ascii=False, indent=2, default=default).encode()
