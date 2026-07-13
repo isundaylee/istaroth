@@ -64,6 +64,12 @@ spec:
       - name: mcp
         image: "{{ $mcp.image.repository }}:{{ $mcp.image.tag }}"
         imagePullPolicy: {{ $mcp.image.pullPolicy }}
+        # The image no longer defaults to the MCP server, so launch it explicitly.
+        command: ["fastmcp", "run", "scripts/mcp_server.py"]
+        args:
+        - "--transport=streamable-http"
+        - "--host=0.0.0.0"
+        - "--port={{ $mcp.service.port }}"
         ports:
         - containerPort: {{ $mcp.service.port }}
           name: http
