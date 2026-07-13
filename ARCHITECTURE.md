@@ -167,33 +167,10 @@ Istaroth is a **Retrieval-Augmented Generation (RAG) system** for Genshin Impact
 
 ## Data Pipeline
 
-### 1. Text Generation
+The corpus is produced in two stages; see [DEVELOPMENT.md](DEVELOPMENT.md) for the exact commands.
 
-**AGD extraction** — Extract game text from AnimeGameData:
-```bash
-export AGD_PATH="/path/to/AnimeGameData"
-./rust/target/fast/istaroth-agd-regen generate-all --language CHS text/chs/
-```
-
-**TPS Shishu** — Extract lore manual from PDF:
-```bash
-python scripts/tps_shishu_tools.py extract manual.pdf tmp/manual.md
-python scripts/tps_shishu_tools.py generate tmp/manual.md text/chs/
-```
-
-**Output**: Cleaned text files + `manifest.json`
-
----
-
-### 2. Vector Build (`rag_tools.py build`)
-
-Chunk text, generate embeddings (BAAI/bge-m3), build ChromaDB index.
-
-```bash
-python scripts/rag_tools.py build text/chs/ checkpoint/chs/
-```
-
-**Output**: ChromaDB checkpoint with vector embeddings
+1. **Text generation** — the Rust regen tool (`rust/istaroth-agd-regen`) extracts and cleans game text from AnimeGameData, and `scripts/tps_shishu_tools.py` extracts the TPS Shishu lore manual from PDF. Output: cleaned text files + `manifest.json`.
+2. **Vector build** (`scripts/rag_tools.py build`) — chunks the text, generates BAAI/bge-m3 embeddings, and builds the ChromaDB checkpoint.
 
 ---
 
@@ -201,17 +178,7 @@ python scripts/rag_tools.py build text/chs/ checkpoint/chs/
 
 ### Docker Compose (Development)
 
-**File**: `docker-compose.yml`
-
-**Services**:
-- `backend` - FastAPI server (port 8000)
-- `postgres` - Conversation storage (port 5432)
-- `chromadb` - Vector database (port 8001)
-
-**Start**:
-```bash
-docker-compose up -d
-```
+A per-worktree dev stack (backend, retrieval, and frontend services, plus Jaeger for tracing) is defined under `docker-compose/web/` and driven by the `scripts/dev-compose.sh` helper. ChromaDB is embedded as an on-disk store rather than a separate service, and PostgreSQL is external (via `ISTAROTH_DATABASE_URI`). See [DEVELOPMENT.md](DEVELOPMENT.md#docker-compose-dev) for setup and usage.
 
 ---
 

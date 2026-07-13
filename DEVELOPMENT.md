@@ -7,6 +7,24 @@
   The toolchain version is pinned in the repo-root `rust-toolchain.toml`; rustup
   installs it automatically on the first `cargo` invocation.
 
+## Dependencies & Pre-commit
+
+Install the pre-commit hooks once after cloning:
+
+```bash
+pre-commit install
+```
+
+Dependencies are managed with uv (`uv sync` installs them into `.venv/`). After
+changing dependencies in `pyproject.toml`, regenerate the Docker export files
+(use a shell redirect, not `-o`; CI diffs stdout and the header comment must
+match):
+
+```bash
+uv export --frozen --only-group ml --no-hashes --no-emit-project > requirements-ml.txt
+uv export --frozen --no-group dev --no-group ml --no-hashes --no-emit-project > requirements-app.txt
+```
+
 ## Rust Regen Tool
 
 `rust/istaroth-agd-regen` generates the AGD corpus and first-seen index
