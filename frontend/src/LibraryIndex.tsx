@@ -188,15 +188,43 @@ function LibraryIndex({ categories, latestVersion, activeCategory, activeFileId,
 
   const trimmed = query.trim().toLowerCase()
   const results = trimmed ? allEntries.filter((entry) => entry.search.includes(trimmed)) : []
+  const shownResults = results.slice(0, MAX_FILTER_RESULTS)
   const hiddenResults = results.length - MAX_FILTER_RESULTS
+
+  // Roving-focus keyboard nav over the filter results: ArrowDown from the search
+  // box steps into the list, Arrow keys move between matches (ArrowUp from the
+  // first returns to the box), and Enter (native button click) opens a match.
+  const inputRef = React.useRef<HTMLInputElement | null>(null)
+  const resultRefs = React.useRef<(HTMLButtonElement | null)[]>([])
+  const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (shownResults.length === 0) return
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      resultRefs.current[0]?.focus()
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      openLeaf(shownResults[0].category, shownResults[0].fileId)
+    }
+  }
+  const onResultKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      resultRefs.current[index + 1]?.focus()
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      ;(index === 0 ? inputRef.current : resultRefs.current[index - 1])?.focus()
+    }
+  }
 
   return (
     <div className={styles.tree}>
       <div className={styles.search}>
         <Search size={13} aria-hidden className={styles.searchIcon} />
         <TextInput
+          ref={inputRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={onSearchKeyDown}
           placeholder={t('library.filterPlaceholder')}
         />
       </div>
@@ -207,14 +235,18 @@ function LibraryIndex({ categories, latestVersion, activeCategory, activeFileId,
         ) : (
           <>
             <ul className={styles.list}>
-              {results.slice(0, MAX_FILTER_RESULTS).map((entry, index) => (
+              {shownResults.map((entry, index) => (
                 <li key={`${entry.category}-${entry.fileId}#${index}`}>
                   <button
+                    ref={(el) => {
+                      resultRefs.current[index] = el
+                    }}
                     className={clsx(
                       styles.row,
                       entry.fileId === activeFileId && entry.category === activeCategory && styles.current
                     )}
                     onClick={() => openLeaf(entry.category, entry.fileId)}
+                    onKeyDown={(e) => onResultKeyDown(e, index)}
                   >
                     <span className={styles.label}>
                       {entry.title || t('library.noFileName')}
