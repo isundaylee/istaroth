@@ -59,8 +59,11 @@ ENV HF_HOME=/data/models/hf
 
 USER app
 
-# Expose port for HTTP transport
+# Expose port for HTTP transport (used by the MCP/backend HTTP services)
 EXPOSE 8000
 
-# Default command runs the MCP server with streamable-http transport
-CMD ["fastmcp", "run", "scripts/mcp_server.py", "--transport=streamable-http", "--host=0.0.0.0", "--port=8000"]
+# This image ships the code for several services (MCP server, website backend,
+# retrieval service, migration/cleanup jobs); it deliberately does NOT default to
+# any of them. Every caller (Helm, docker run, compose) must pass an explicit
+# command. Fail loudly rather than silently assuming one role.
+CMD ["sh", "-c", "echo 'No command specified: this image requires an explicit command (it does not default to any service).' >&2; exit 64"]
