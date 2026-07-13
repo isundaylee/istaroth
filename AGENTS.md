@@ -140,6 +140,12 @@ See the [Web UI section](README.md#web-ui) in the README for environment setup a
 - Don't launch the stack by default. Only bring it up when the task actually
   needs a running app (e.g. browser/end-to-end verification); for code, type
   checks, and unit tests you don't need it.
+- EXCEPTION — website work: whenever a task touches the website (frontend or
+  backend), ALWAYS launch the dev stack and leave it UP at the end so the user
+  can validate the change themselves, and print the Web UI URL (from
+  `scripts/dev-compose.sh urls`) in your final message. Do this even when you
+  didn't need the stack yourself and ran no browser/Playwright test — the user
+  wants a running app to check by hand. Don't tear it down when you finish.
 - You can launch the stack yourself when the task needs a running app. ALWAYS
   launch it with the helper script in background detach mode
   (`scripts/dev-compose.sh up --detach`), never in the foreground (a foreground
