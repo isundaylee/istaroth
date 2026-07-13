@@ -12,6 +12,7 @@ import {
   isLeaf,
   nodeLabel,
 } from './utils/hierarchy'
+import { pinyinSearchText } from './utils/pinyin'
 import styles from './LibraryIndex.module.css'
 import type { HierarchyNode, LibraryCategoryHierarchy } from './types/api'
 
@@ -165,25 +166,28 @@ function LibraryIndex({ categories, latestVersion, activeCategory, activeFileId,
   )
 
   // Every leaf in the library, with its category label leading the context
-  // trail, so the filter searches across all categories at once.
+  // trail, so the filter searches across all categories at once. `search` is the
+  // precomputed match blob: the raw lowercased text plus the pinyin spelling and
+  // initials of any Chinese, so a latin query matches Chinese titles by pinyin.
   const allEntries = React.useMemo(
     () =>
       categories.flatMap((entry) =>
-        flattenLeafEntries(entry.nodes).map((leaf) => ({
-          ...leaf,
-          category: entry.category,
-          context: leaf.context ? `${entry.title} / ${leaf.context}` : entry.title,
-        }))
+        flattenLeafEntries(entry.nodes).map((leaf) => {
+          const context = leaf.context ? `${entry.title} / ${leaf.context}` : entry.title
+          const text = `${leaf.title} ${context}`
+          return {
+            ...leaf,
+            category: entry.category,
+            context,
+            search: `${text.toLowerCase()} ${pinyinSearchText(text)}`,
+          }
+        })
       ),
     [categories]
   )
 
   const trimmed = query.trim().toLowerCase()
-  const results = trimmed
-    ? allEntries.filter((entry) =>
-        [entry.title, entry.context].join(' ').toLowerCase().includes(trimmed)
-      )
-    : []
+  const results = trimmed ? allEntries.filter((entry) => entry.search.includes(trimmed)) : []
   const hiddenResults = results.length - MAX_FILTER_RESULTS
 
   return (
