@@ -323,3 +323,59 @@ pub fn build_first_seen(agd_path: &Path, data_dir: &Path, rebuild_all: bool) -> 
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Reserialize every committed delta and assert byte-identity: the
+    /// determinism guard for #415, i.e. a --rebuild-all reproduces the committed
+    /// files exactly. Skips when the `text/` submodule is not checked out.
+    #[test]
+    fn write_delta_reproduces_committed_files() {
+        let committed = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../text/first_seen");
+        let Ok(entries) = std::fs::read_dir(&committed) else {
+            eprintln!("SKIP: {committed:?} not checked out");
+            return;
+        };
+        let out = std::env::temp_dir().join(format!("istaroth-reprod-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&out);
+        std::fs::create_dir_all(&out).unwrap();
+
+        let mut checked = 0usize;
+        for entry in entries {
+            let path = entry.unwrap().path();
+            if path.extension().is_none_or(|e| e != "json") {
+                continue;
+            }
+            let original = std::fs::read(&path).unwrap();
+            let data: Value = serde_json::from_slice(&original).unwrap();
+            let mut new = DomainSets::default();
+            for (domain_name, keys) in data["new"].as_object().unwrap() {
+                let domain = Domain::from_name(domain_name).unwrap();
+                let set = new.entry(domain).or_default();
+                for key in keys.as_array().unwrap() {
+                    set.insert(SourceKey::from_json(key).unwrap());
+                }
+            }
+            let rebuilt = out.join(path.file_name().unwrap());
+            write_delta(
+                &rebuilt,
+                data["version"].as_str().unwrap(),
+                data["commit"].as_str().unwrap(),
+                &new,
+            )
+            .unwrap();
+            assert_eq!(
+                std::fs::read(&rebuilt).unwrap(),
+                original,
+                "rebuilt {path:?} differs from committed bytes"
+            );
+            checked += 1;
+        }
+        assert!(
+            checked > 0,
+            "no committed delta files found in {committed:?}"
+        );
+    }
+}
