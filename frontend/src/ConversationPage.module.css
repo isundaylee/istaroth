@@ -14,13 +14,6 @@
   cursor: pointer;
 }
 
-.askTriggerTitle {
-  font-size: var(--font-lg);
-  font-weight: 600;
-  color: var(--color-heading);
-  overflow-wrap: anywhere;
-}
-
 .askTriggerHint {
   display: inline-flex;
   align-items: center;

@@ -69,6 +69,13 @@
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
 }
 
+/* Downward-opening variant: used when a clipping ancestor would cut the menu
+   off above the trigger (see the flip measurement in Select.tsx). */
+.menuDown {
+  bottom: auto;
+  top: calc(100% + 0.35rem);
+}
+
 .option {
   display: flex;
   align-items: baseline;

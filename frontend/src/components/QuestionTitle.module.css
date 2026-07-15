@@ -1,0 +1,8 @@
+/* Styles owned by <QuestionTitle>: the question-as-page-title treatment. */
+.title {
+  display: block;
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--color-heading);
+  overflow-wrap: anywhere;
+}
