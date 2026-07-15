@@ -5,14 +5,15 @@ import { ImageDown, Pencil } from 'lucide-react'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import { useErrorToast } from './contexts/ErrorToastContext'
 import { useFooter } from './contexts/FooterContext'
+import { useQueryStream } from './hooks/useQueryStream'
 import { translate } from './i18n'
 import { LANGUAGE_LOCALES, getLanguageFromUrl } from './utils/language'
 import QueryForm from './QueryForm'
 import { PageSection } from './components/PageShell'
 import Button from './components/Button'
 import ShareLinkButton from './components/ShareLinkButton'
-import CitedAnswer from './components/CitedAnswer'
-import { MinimizedPopupRegion } from './contexts/PopupCoordinatorContext'
+import ConversationAnswer from './components/ConversationAnswer'
+import conversationAnswerStyles from './components/ConversationAnswer.module.css'
 import type { ConversationResponse } from './types/api'
 import convStyles from './ConversationPage.module.css'
 
@@ -43,7 +44,14 @@ function ConversationPage() {
   const locale = LANGUAGE_LOCALES[useTranslation().language]
   const { conversation } = useLoaderData() as LoaderData
   const { setExtraContent } = useFooter()
-  const [submittingNew, setSubmittingNew] = useState(false)
+  // The re-ask stream lives here (not in QueryForm), so collapsing the composer
+  // — Escape / clicking away — never unmounts or freezes an in-flight stream.
+  const { activeSteps, streamedAnswer, streaming, loading, submit } = useQueryStream()
+  // A re-ask is in flight: hide the saved answer/footer while a new one
+  // generates. Derived from the hook's ``loading`` so it can never stay stuck
+  // true after an error (the hook resets ``loading`` to false), which would
+  // otherwise leave the content region permanently blank.
+  const submittingNew = loading
   // The new-question composer is collapsed by default; clicking the question
   // title expands it (saves the vertical space when just reading the answer).
   const [editing, setEditing] = useState(false)
@@ -51,7 +59,6 @@ function ConversationPage() {
   const [exportedImage, setExportedImage] = useState<string | null>(null)
 
   useEffect(() => {
-    setSubmittingNew(false)
     setEditing(false)
   }, [conversation])
 
@@ -92,7 +99,7 @@ function ConversationPage() {
     setExporting(true)
 
     try {
-      const element = document.querySelector(`.${CSS.escape(convStyles.content)}`) as HTMLElement
+      const element = document.querySelector(`.${CSS.escape(conversationAnswerStyles.content)}`) as HTMLElement
       if (!element) {
         throw new Error(t('conversation.errors.notFound'))
       }
@@ -124,7 +131,17 @@ function ConversationPage() {
       <PageSection>
         {editing ? (
           <div onKeyDown={(e) => { if (e.key === 'Escape') setEditing(false) }}>
-            <QueryForm key={conversation.uuid} currentQuestion={conversation.question} onSubmitStart={() => setSubmittingNew(true)} />
+            {/* Steps are pre-generation only: hidden once answer text is
+                streaming so the indicator never sits next to the visibly
+                growing answer (nor reappears on a late step_start). */}
+            <QueryForm
+              key={conversation.uuid}
+              currentQuestion={conversation.question}
+              submit={submit}
+              loading={loading}
+              activeSteps={activeSteps}
+              hideProgress={streaming}
+            />
           </div>
         ) : (
           <button type="button" className={convStyles.askTrigger} onClick={() => setEditing(true)} title={t('conversation.askAnother')}>
@@ -137,92 +154,82 @@ function ConversationPage() {
         )}
       </PageSection>
 
-        {!submittingNew &&
-        <MinimizedPopupRegion className={convStyles.content} data-conversation-content>
-          <CitedAnswer content={conversation.answer} properNouns={conversation.proper_nouns}>
-            {({ answer, citationList }) => (
+        {streaming ? (
+          // In-flight re-ask: stream the growing answer in the content region
+          // instead of blanking it. Share/export/footer are suppressed until the
+          // conversation is saved (on `done` we navigate to the real page).
+          <ConversationAnswer answer={streamedAnswer} properNouns={[]} />
+        ) : (!submittingNew &&
+          <ConversationAnswer
+            answer={conversation.answer}
+            properNouns={conversation.proper_nouns}
+            actions={
               <>
-                <PageSection>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                    <h3>{t('conversation.answer')}</h3>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <ShareLinkButton getUrl={() => Promise.resolve(`${window.location.origin}/s/${conversation.short_slug}`)} />
-                      <Button
-                        onClick={exportPageAsPNG}
-                        variant="icon"
-                        size="sm"
-                        disabled={exporting}
-                        title={exporting ? t('conversation.exporting') : t('conversation.export')}
-                        aria-label={exporting ? t('conversation.exporting') : t('conversation.export')}
-                      >
-                        <ImageDown aria-hidden />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {exportedImage && (
-                    <div style={{
-                      marginTop: '1rem',
-                      marginBottom: '1rem',
-                      display: 'flex',
-                      justifyContent: 'center'
-                    }}>
-                      <div style={{
-                        border: '1px solid var(--color-border)',
-                        borderRadius: 'var(--radius-md)',
-                        padding: '1rem',
-                        backgroundColor: 'var(--color-surface)',
-                        boxShadow: 'var(--shadow)',
-                        display: 'inline-block',
-                        textAlign: 'center'
-                      }}>
-                        <img
-                          src={exportedImage}
-                          alt={t('conversation.exportImage.alt')}
-                          style={{
-                            width: '50vw',
-                            maxWidth: '400px',
-                            height: 'auto',
-                            borderRadius: 'var(--radius-md)',
-                            display: 'block',
-                            marginBottom: '0.75rem'
-                          }}
-                        />
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                          <Button
-                            variant="secondary"
-                            onClick={() => {
-                              const link = document.createElement('a')
-                              link.download = `istaroth-conversation-${conversation.short_slug}-${Date.now()}.png`
-                              link.href = exportedImage
-                              link.click()
-                            }}
-                          >
-                            {t('common.download')}
-                          </Button>
-                          <Button
-                            variant="secondary"
-                            onClick={() => setExportedImage(null)}
-                          >
-                            {t('common.close')}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {answer}
-                </PageSection>
-
-                {citationList && (
-                  <div data-citation-container>
-                    <PageSection>{citationList}</PageSection>
-                  </div>
-                )}
+                <ShareLinkButton getUrl={() => Promise.resolve(`${window.location.origin}/s/${conversation.short_slug}`)} />
+                <Button
+                  onClick={exportPageAsPNG}
+                  variant="icon"
+                  size="sm"
+                  disabled={exporting}
+                  title={exporting ? t('conversation.exporting') : t('conversation.export')}
+                  aria-label={exporting ? t('conversation.exporting') : t('conversation.export')}
+                >
+                  <ImageDown aria-hidden />
+                </Button>
               </>
+            }
+            exportImage={exportedImage && (
+              <div style={{
+                marginTop: '1rem',
+                marginBottom: '1rem',
+                display: 'flex',
+                justifyContent: 'center'
+              }}>
+                <div style={{
+                  border: '1px solid var(--color-border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1rem',
+                  backgroundColor: 'var(--color-surface)',
+                  boxShadow: 'var(--shadow)',
+                  display: 'inline-block',
+                  textAlign: 'center'
+                }}>
+                  <img
+                    src={exportedImage}
+                    alt={t('conversation.exportImage.alt')}
+                    style={{
+                      width: '50vw',
+                      maxWidth: '400px',
+                      height: 'auto',
+                      borderRadius: 'var(--radius-md)',
+                      display: 'block',
+                      marginBottom: '0.75rem'
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        const link = document.createElement('a')
+                        link.download = `istaroth-conversation-${conversation.short_slug}-${Date.now()}.png`
+                        link.href = exportedImage
+                        link.click()
+                      }}
+                    >
+                      {t('common.download')}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setExportedImage(null)}
+                    >
+                      {t('common.close')}
+                    </Button>
+                  </div>
+                </div>
+              </div>
             )}
-          </CitedAnswer>
-        </MinimizedPopupRegion>}
+          />
+        )}
     </>
   )
 }

@@ -1,8 +1,3 @@
-.content {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
 /* The collapsed new-question affordance: the question shown as a title with a
    persistent "Ask another question" cue on the right. Clicking expands the
    composer in its place. */

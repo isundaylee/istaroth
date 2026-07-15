@@ -779,7 +779,7 @@ def query(question: str, *, budget: int) -> None:
         text_set=ts,
     )
 
-    answer = rag.answer(question, budget=budget)
+    answer = anyio.run(functools.partial(rag.answer, question, budget=budget))
     print(f"回答: {answer}")
 
 

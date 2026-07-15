@@ -4,7 +4,7 @@ import { useT } from '../contexts/LanguageContext'
 import { useCitations } from '../hooks/useCitations'
 import { useFloatingPanelState, useOutsidePointerDown } from '../hooks/useFloatingPanelState'
 import type { CitationResponse } from '../types/api'
-import { preprocessCitationsForDisplay, formatCitationId, parseCitationId } from '../utils/citations'
+import { preprocessCitationsForDisplay, formatCitationId, parseCitationId, trimTrailingPartialCitation } from '../utils/citations'
 import CitationList from './CitationList'
 import CitationPopup from './CitationPopup'
 import HighlightedMarkdown from './HighlightedMarkdown'
@@ -38,8 +38,11 @@ function CitedAnswer({ content, properNouns, answerSize, children }: CitedAnswer
   const t = useT()
 
   // Preprocess content to convert XML citations to markdown links with document:chunk numbering
-  // Also extract unique cited works in the same pass
-  const preprocessResult = useMemo(() => preprocessCitationsForDisplay(content), [content])
+  // Also extract unique cited works in the same pass. Trim any unterminated
+  // trailing citation tag first: a no-op on a complete answer, it prevents a
+  // raw `<citation ...` fragment from flickering while the answer is streaming
+  // (or when an errored render keeps a partial buffer).
+  const preprocessResult = useMemo(() => preprocessCitationsForDisplay(trimTrailingPartialCitation(content)), [content])
   const processedContent = preprocessResult.processedText
   const uniqueCitedWorks = preprocessResult.uniqueFileIds
 

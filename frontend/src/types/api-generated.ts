@@ -18,8 +18,11 @@ export interface paths {
          * @description Answer a question, streaming pipeline progress as newline-delimited JSON.
          *
          *     Emits ``step_start``/``step_end`` events as pipeline steps begin and finish,
-         *     followed by a terminal ``done`` event carrying the ``QueryResponse`` (or an
-         *     ``error`` event). The client shows every step that has started but not ended.
+         *     and ``answer_chunk`` events carrying fragments of the answer as it is
+         *     generated, followed by a terminal ``done`` event carrying the authoritative
+         *     ``QueryResponse`` (or an ``error`` event). The client shows every step that
+         *     has started but not ended, and replaces accumulated chunks with the ``done``
+         *     answer.
          */
         post: operations["query_stream_api_query_stream_post"];
         delete?: never;
@@ -623,6 +626,23 @@ export interface components {
             retrieval_unique_file_count: number;
         };
         /**
+         * QueryStreamAnswerChunk
+         * @description A fragment of the generated answer streamed as it is produced.
+         *
+         *     Progressive display only; the terminal ``done`` event's answer is
+         *     authoritative and replaces the accumulated chunks on the client.
+         */
+        QueryStreamAnswerChunk: {
+            /**
+             * Type
+             * @default answer_chunk
+             * @constant
+             */
+            type: "answer_chunk";
+            /** Text */
+            text: string;
+        };
+        /**
          * QueryStreamDone
          * @description Terminal event carrying the completed answer.
          */
@@ -750,7 +770,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["QueryStreamStepStart"] | components["schemas"]["QueryStreamStepEnd"] | components["schemas"]["QueryStreamDone"] | components["schemas"]["QueryStreamError"];
+                    "application/json": components["schemas"]["QueryStreamStepStart"] | components["schemas"]["QueryStreamStepEnd"] | components["schemas"]["QueryStreamAnswerChunk"] | components["schemas"]["QueryStreamDone"] | components["schemas"]["QueryStreamError"];
                 };
             };
             /** @description Validation Error */

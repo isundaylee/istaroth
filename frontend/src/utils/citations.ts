@@ -3,6 +3,32 @@ export interface CitationReference {
   chunkIndex: number
 }
 
+/** The literal prefix every citation tag opens with. */
+const _CITATION_TAG_PREFIX = '<citation'
+
+/**
+ * Trim an unterminated trailing citation tag from a mid-stream answer buffer.
+ *
+ * Streamed answer chunks can split a `<citation file_id="..." chunk_index="ck##"/>`
+ * tag across chunk boundaries. Rendering the buffer while the tag is only
+ * partially arrived would flash the raw XML fragment. This drops a trailing
+ * partial `<citation...` (a `<` that could still grow into a citation tag but
+ * has not yet closed with `/>`), leaving complete tags — and any `<` that
+ * cannot be the start of a citation tag — untouched. It is a no-op on a
+ * complete answer (no dangling tag), so callers can apply it unconditionally.
+ */
+export function trimTrailingPartialCitation(buffer: string): string {
+  const lastOpen = buffer.lastIndexOf('<')
+  if (lastOpen === -1) return buffer
+  const tail = buffer.slice(lastOpen)
+  // A complete tag (ends in `/>`) is safe to render.
+  if (tail.includes('/>')) return buffer
+  // Only trim when the tail could still become a citation tag.
+  const couldBeCitation =
+    tail.startsWith(_CITATION_TAG_PREFIX) || _CITATION_TAG_PREFIX.startsWith(tail)
+  return couldBeCitation ? buffer.slice(0, lastOpen) : buffer
+}
+
 /**
  * Parse XML citation format to extract file ID and chunk index.
  * Expected format: <citation file_id="..." chunk_index="ck##"/>

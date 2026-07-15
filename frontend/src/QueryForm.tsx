@@ -1,14 +1,12 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react'
 import { useT, useTranslation } from './contexts/LanguageContext'
 import { useErrorToast } from './contexts/ErrorToastContext'
-import { useAppNavigate } from './hooks/useAppNavigate'
 import Select, { type SelectOption } from './components/Select'
 import Button from './components/Button'
 import Composer from './components/Composer'
 import QueryProgress from './components/QueryProgress'
 import { getClientId } from './utils/clientId'
-import { consumeQueryStream } from './utils/queryStream'
-import type { QueryRequest, ErrorResponse, ModelsResponse, ExampleQuestionResponse, ProgressStepStart } from './types/api'
+import type { QueryRequest, ModelsResponse, ExampleQuestionResponse, ProgressStepStart } from './types/api'
 import styles from './QueryForm.module.css'
 import queryProgressStyles from './components/QueryProgress.module.css'
 
@@ -24,14 +22,19 @@ interface QueryFormProps {
   // the form keeps its own internal state.
   question?: string
   onQuestionChange?: (question: string) => void
-  // Observers for the home hero: it mirrors the form's example question,
-  // loading flag, and in-flight pipeline steps into the figure/status UI.
+  // Observer for the home hero: it mirrors the form's example question into the
+  // figure's speech bubble.
   onExampleChange?: (example: string) => void
-  onLoadingChange?: (loading: boolean) => void
-  onActiveStepsChange?: (steps: ProgressStepStart[]) => void
-  // When true the form doesn't render its own <QueryProgress> (the caller
-  // displays the steps elsewhere, e.g. over the hero figure).
-  hideProgress?: boolean
+  // The stream is owned by the page (via ``useQueryStream``); the form only
+  // builds the request and drives the composer. ``loading`` disables the
+  // controls and ``activeSteps`` feeds the form's own progress indicator.
+  submit: (request: QueryRequest) => Promise<void>
+  loading: boolean
+  activeSteps: ProgressStepStart[]
+  // When true the form doesn't render its own <QueryProgress> — either the
+  // caller displays the steps elsewhere (e.g. over the hero figure), or answer
+  // text is streaming and the page swapped to the conversation view.
+  hideProgress: boolean
 }
 
 const retrievalPresets = {
@@ -48,11 +51,11 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
   question: questionProp,
   onQuestionChange,
   onExampleChange,
-  onLoadingChange,
-  onActiveStepsChange,
-  hideProgress = false,
+  submit,
+  loading,
+  activeSteps,
+  hideProgress,
 }, ref) {
-  const navigate = useAppNavigate()
   const t = useT()
   const { language } = useTranslation()
   const showError = useErrorToast()
@@ -60,9 +63,6 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
   const [availableModels, setAvailableModels] = useState<string[]>([])
   const [selectedModel, setSelectedModel] = useState('')
   const [retrievalPreset, setRetrievalPreset] = useState<RetrievalPreset>('balanced')
-  const [loading, setLoading] = useState(false)
-  // Pipeline steps that have started but not yet ended, in start order.
-  const [activeSteps, setActiveSteps] = useState<ProgressStepStart[]>([])
   const [modelsLoading, setModelsLoading] = useState(true)
   const [exampleQuestion, setExampleQuestion] = useState<string>('')
   const [exampleLoading, setExampleLoading] = useState(true)
@@ -88,14 +88,6 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
   useEffect(() => {
     onExampleChange?.(exampleQuestion)
   }, [exampleQuestion, onExampleChange])
-
-  useEffect(() => {
-    onLoadingChange?.(loading)
-  }, [loading, onLoadingChange])
-
-  useEffect(() => {
-    onActiveStepsChange?.(activeSteps)
-  }, [activeSteps, onActiveStepsChange])
 
   useEffect(() => {
     // Use current question if provided, otherwise fetch example question
@@ -155,12 +147,6 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
     fetchModels()
   }, [])
 
-  // Reset loading state when the question prop changes (e.g. after navigating to a new conversation)
-  useEffect(() => {
-    setLoading(false)
-    setActiveSteps([])
-  }, [currentQuestion])
-
   useImperativeHandle(ref, () => ({ submit: handleSubmit }))
 
   const handleSubmit = async () => {
@@ -168,53 +154,19 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
     const questionToSubmit = question.trim() || exampleQuestion
     if (!questionToSubmit) return
 
-    setLoading(true)
-    setActiveSteps([])
+    // The typed question is intentionally NOT cleared here: a stream/network
+    // error leaves it in the composer for retry. On success the page navigates
+    // away (front page) or remounts this form (conversation re-ask), so the
+    // stale text never lingers.
     onSubmitStart?.()
 
-    try {
-      const req_body: QueryRequest = {
-        language: language.toUpperCase(),
-        question: questionToSubmit,
-        model: selectedModel,
-        budget: retrievalPresets[retrievalPreset],
-        client_id: getClientId(),
-      }
-      const res = await fetch('/api/query/stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(req_body),
-      })
-
-      if (!res.ok || !res.body) {
-        const errorData = await res.json().catch(() => null) as ErrorResponse | null
-        showError(errorData?.error || t('query.errors.unknown'))
-        setLoading(false)
-        return
-      }
-
-      await consumeQueryStream(res.body, {
-        onStepStart: (step) => setActiveSteps((prev) => [...prev, step]),
-        onStepEnd: (id) => setActiveSteps((prev) => prev.filter((step) => step.id !== id)),
-        onDone: (result) => {
-          // Don't reset loading here — the thinking state stays visible until the
-          // component unmounts (front page) or currentQuestion changes (conversation page).
-          setQuestion('')
-          navigate(`/conversation/${result.conversation_uuid}`)
-        },
-        onError: (message) => {
-          showError(message)
-          setLoading(false)
-        },
-        noConnectionError: t('query.errors.noConnection'),
-        unknownError: t('query.errors.unknown')
-      })
-    } catch (err) {
-      showError(t('query.errors.noConnection'))
-      setLoading(false)
-    }
+    await submit({
+      language: language.toUpperCase(),
+      question: questionToSubmit,
+      model: selectedModel,
+      budget: retrievalPresets[retrievalPreset],
+      client_id: getClientId(),
+    })
   }
 
   return (

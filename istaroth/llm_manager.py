@@ -190,6 +190,25 @@ def extract_text_from_response(response: typing.Any) -> str:
         return str(response)
 
 
+def extract_streamed_chunk_text(chunk: messages.AIMessageChunk) -> str:
+    """Extract only visible answer text from a streamed generation chunk.
+
+    Deliberately differs from :func:`extract_text_from_response`: non-text
+    list-content parts (Gemini thinking/thought dicts without a ``"text"`` key)
+    are dropped so reasoning tokens never leak into the streamed answer, and
+    text parts are joined without separators (they are progressive deltas, not
+    the ``"\\n\\n"``-joined complete parts of a final message). Plain-string
+    list items (a legal shape ``langchain_google_genai`` can emit) still stream.
+    """
+    if isinstance(content := chunk.content, str):
+        return content
+    return "".join(
+        item if isinstance(item, str) else item["text"]
+        for item in content
+        if isinstance(item, str) or (isinstance(item, dict) and "text" in item)
+    )
+
+
 def get_model_name(llm: language_models.BaseLanguageModel) -> str:
     """Extract model name from LLM instance."""
     name = getattr(llm, "model_name", None) or getattr(llm, "model", None)

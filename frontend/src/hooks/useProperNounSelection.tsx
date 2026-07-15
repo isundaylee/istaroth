@@ -9,7 +9,7 @@ import { useFloatingPanelState, useOutsidePointerDown } from './useFloatingPanel
 import { calculateFloatingPlacement } from '../utils/floatingPanel'
 import { getClientId } from '../utils/clientId'
 import { buildUrlWithLanguage } from '../utils/language'
-import { consumeQueryStream } from '../utils/queryStream'
+import { consumeQueryStream, getErrorMessage, postQueryStream } from '../utils/queryStream'
 import type {
   ErrorResponse,
   LibraryRetrieveRequest,
@@ -82,13 +82,6 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
   const normalizeSelectionText = (text: string) => text.replace(/\s+/g, ' ').trim()
   const isEntityLikeSelection = (text: string) =>
     text.length > 0 && text.length <= MAX_SELECTION_LENGTH && text.split(/\s+/).length <= MAX_SELECTION_TERMS
-  const getErrorMessage = (data: unknown, fallback: string) => {
-    if (data && typeof data === 'object') {
-      if ('error' in data && typeof data.error === 'string') return data.error
-      if ('detail' in data && typeof data.detail === 'string') return data.detail
-    }
-    return fallback
-  }
 
   const openSelectionAtRect = useCallback((text: string, rect: DOMRect): boolean => {
     if (rect.width === 0 && rect.height === 0) return false
@@ -269,20 +262,16 @@ export function useProperNounSelection(resetKey: unknown): UseProperNounSelectio
         client_id: getClientId(),
         cache_key: query
       }
-      const res = await fetch('/api/query/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(reqBody)
-      })
-      if (!res.ok || !res.body) {
-        const data = await res.json().catch(() => null)
-        updateAskPanel(requestId, (current) => ({ ...current, loading: false, error: getErrorMessage(data, t('query.errors.unknown')) }))
+      const result = await postQueryStream(reqBody, t('query.errors.unknown'))
+      if ('error' in result) {
+        updateAskPanel(requestId, (current) => ({ ...current, loading: false, error: result.error }))
         return
       }
 
-      await consumeQueryStream(res.body, {
+      await consumeQueryStream(result.body, {
         onStepStart: (step) => updateAskPanel(requestId, (current) => ({ ...current, activeSteps: [...current.activeSteps, step] })),
         onStepEnd: (id) => updateAskPanel(requestId, (current) => ({ ...current, activeSteps: current.activeSteps.filter((step) => step.id !== id) })),
+        onAnswerChunk: (text) => updateAskPanel(requestId, (current) => ({ ...current, activeSteps: [], answer: current.answer + text })),
         onDone: (result) => updateAskPanel(requestId, (current) => ({
             ...current,
             loading: false,
