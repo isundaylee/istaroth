@@ -215,8 +215,11 @@ async def query_stream(
     """Answer a question, streaming pipeline progress as newline-delimited JSON.
 
     Emits ``step_start``/``step_end`` events as pipeline steps begin and finish,
-    followed by a terminal ``done`` event carrying the ``QueryResponse`` (or an
-    ``error`` event). The client shows every step that has started but not ended.
+    and ``answer_chunk`` events carrying fragments of the answer as it is
+    generated, followed by a terminal ``done`` event carrying the authoritative
+    ``QueryResponse`` (or an ``error`` event). The client shows every step that
+    has started but not ended, and replaces accumulated chunks with the ``done``
+    answer.
     """
     language_name = request.language.upper()
     cache_key = _compose_cache_key(request)

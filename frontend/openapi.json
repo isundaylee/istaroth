@@ -12,7 +12,7 @@
           "query"
         ],
         "summary": "Query Stream",
-        "description": "Answer a question, streaming pipeline progress as newline-delimited JSON.\n\nEmits ``step_start``/``step_end`` events as pipeline steps begin and finish,\nfollowed by a terminal ``done`` event carrying the ``QueryResponse`` (or an\n``error`` event). The client shows every step that has started but not ended.",
+        "description": "Answer a question, streaming pipeline progress as newline-delimited JSON.\n\nEmits ``step_start``/``step_end`` events as pipeline steps begin and finish,\nand ``answer_chunk`` events carrying fragments of the answer as it is\ngenerated, followed by a terminal ``done`` event carrying the authoritative\n``QueryResponse`` (or an ``error`` event). The client shows every step that\nhas started but not ended, and replaces accumulated chunks with the ``done``\nanswer.",
         "operationId": "query_stream_api_query_stream_post",
         "requestBody": {
           "content": {
@@ -36,6 +36,9 @@
                     },
                     {
                       "$ref": "#/components/schemas/QueryStreamStepEnd"
+                    },
+                    {
+                      "$ref": "#/components/schemas/QueryStreamAnswerChunk"
                     },
                     {
                       "$ref": "#/components/schemas/QueryStreamDone"
@@ -1373,6 +1376,26 @@
         ],
         "title": "QueryResponse",
         "description": "Response model for query endpoint."
+      },
+      "QueryStreamAnswerChunk": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "answer_chunk",
+            "title": "Type",
+            "default": "answer_chunk"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "QueryStreamAnswerChunk",
+        "description": "A fragment of the generated answer streamed as it is produced.\n\nProgressive display only; the terminal ``done`` event's answer is\nauthoritative and replaces the accumulated chunks on the client."
       },
       "QueryStreamDone": {
         "properties": {

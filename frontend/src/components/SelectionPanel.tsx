@@ -77,10 +77,13 @@ function QuerySelectionPanel({ panel }: { panel: Extract<SelectionPanel, { kind:
 
   return (
     <div className={selStyles.askBody}>
-      {panel.loading && panel.activeSteps.length === 0 && (
+      {/* Step progress is pre-generation only: once answer text starts arriving
+          it must never reappear (a late step_start, e.g. CHS proper-noun
+          extraction, can still fire after the last chunk). */}
+      {panel.loading && !panel.answer && panel.activeSteps.length === 0 && (
         <p className={clsx(selStyles.muted, queryProgressStyles.loadingEllipsis)}>{t('query.submitting')}</p>
       )}
-      {panel.loading && panel.activeSteps.length > 0 && (
+      {panel.loading && !panel.answer && panel.activeSteps.length > 0 && (
         <QueryProgress steps={panel.activeSteps} className={selStyles.progress} />
       )}
       {panel.error && <p className={selStyles.error}>{panel.error}</p>}

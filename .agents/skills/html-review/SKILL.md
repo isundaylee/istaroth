@@ -14,9 +14,10 @@ Create one focused, self-contained HTML page, open it with the bundled local rev
 3. Replace the template's sample content and questions. Keep the page self-contained unless local assets materially help.
 4. Read [interaction-protocol.md](references/interaction-protocol.md) before adding or changing controls.
 5. Run `scripts/review.py open <html-file>` to start or resume the local session. Use `--no-open` when a browser cannot run on the agent host. Give the user the printed URL when they need to open it themselves.
-6. Run `scripts/review.py poll <html-file>` and keep the poll attached to the active turn. If it is interrupted, run it again; submitted feedback persists.
-7. Address returned annotations, answers, and layout errors in the HTML, then poll again with a concise update. Continue until the user ends the session or says the review is complete.
-8. Run `scripts/review.py end <html-file>` when the review is complete.
+6. ALWAYS present the review URL to the user in a text message BEFORE running `poll` — the poll blocks the turn, so a URL only printed in tool output (or deferred until after polling) leaves the user without a link to open. State the URL again on each iteration where the page changed.
+7. Run `scripts/review.py poll <html-file>` and keep the poll attached to the active turn. If it is interrupted, run it again; submitted feedback persists.
+8. Address returned annotations, answers, and layout errors in the HTML, then poll again with a concise update. Continue until the user ends the session or says the review is complete.
+9. Run `scripts/review.py end <html-file>` when the review is complete.
 
 ## Page standard
 

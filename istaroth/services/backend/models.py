@@ -66,6 +66,17 @@ class QueryStreamStepEnd(BaseModel):
     id: str
 
 
+class QueryStreamAnswerChunk(BaseModel):
+    """A fragment of the generated answer streamed as it is produced.
+
+    Progressive display only; the terminal ``done`` event's answer is
+    authoritative and replaces the accumulated chunks on the client.
+    """
+
+    type: Literal["answer_chunk"] = "answer_chunk"
+    text: str
+
+
 class QueryStreamDone(BaseModel):
     """Terminal event carrying the completed answer."""
 
@@ -81,7 +92,11 @@ class QueryStreamError(BaseModel):
 
 
 QueryStreamEvent = (
-    QueryStreamStepStart | QueryStreamStepEnd | QueryStreamDone | QueryStreamError
+    QueryStreamStepStart
+    | QueryStreamStepEnd
+    | QueryStreamAnswerChunk
+    | QueryStreamDone
+    | QueryStreamError
 )
 
 

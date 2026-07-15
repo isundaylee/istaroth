@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useT, useTranslation } from './contexts/LanguageContext'
+import { useQueryStream } from './hooks/useQueryStream'
 import QueryForm, { type QueryFormHandle } from './QueryForm'
 import { PageSection } from './components/PageShell'
 import IstarothFigure from './components/IstarothFigure'
 import QueryProgress from './components/QueryProgress'
-import type { ProgressStepStart } from './types/api'
+import ConversationAnswer from './components/ConversationAnswer'
 import styles from './QueryPage.module.css'
 
 // Fixed star positions for the hero's dark-theme starfield (viewBox 1000×640).
@@ -81,10 +82,9 @@ function StarField() {
 function QueryPage() {
   const t = useT()
   const { language } = useTranslation()
+  const { activeSteps, streamedAnswer, streaming, loading, submit } = useQueryStream()
   const [question, setQuestion] = useState('')
   const [exampleQuestion, setExampleQuestion] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [activeSteps, setActiveSteps] = useState<ProgressStepStart[]>([])
   const formRef = useRef<QueryFormHandle>(null)
 
   useEffect(() => {
@@ -93,6 +93,11 @@ function QueryPage() {
 
   return (
     <div className={styles.stage}>
+    {streaming ? (
+      // Once answer text starts arriving, swap the hero/figure for the
+      // conversation-style view in place; the URL stays "/" until done.
+      <ConversationAnswer answer={streamedAnswer} properNouns={[]} />
+    ) : (
     <PageSection className={styles.hero}>
       <StarField />
       <IstarothFigure
@@ -123,7 +128,9 @@ function QueryPage() {
               <span className={styles.thinkingCaption}>
                 {t('query.hero.thinking')}
               </span>
-              {activeSteps.length > 0 && (
+              {/* Steps are pre-generation only; hidden once answer text starts
+                  streaming so a late step_start never repaints them. */}
+              {!streaming && activeSteps.length > 0 && (
                 <QueryProgress steps={activeSteps} className={styles.thinkingSteps} />
               )}
             </div>
@@ -131,6 +138,7 @@ function QueryPage() {
         }
       />
     </PageSection>
+    )}
 
     <PageSection>
       <QueryForm
@@ -138,8 +146,9 @@ function QueryPage() {
         question={question}
         onQuestionChange={setQuestion}
         onExampleChange={setExampleQuestion}
-        onLoadingChange={setLoading}
-        onActiveStepsChange={setActiveSteps}
+        submit={submit}
+        loading={loading}
+        activeSteps={activeSteps}
         hideProgress
       />
     </PageSection>

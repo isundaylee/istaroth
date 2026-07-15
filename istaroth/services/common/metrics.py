@@ -31,6 +31,14 @@ rag_pipeline_stage_generation_duration_seconds = prometheus_client.Histogram(
     ["model", "language"],
 )
 
+rag_pipeline_stage_generation_first_token_duration_seconds = (
+    prometheus_client.Histogram(
+        "istaroth_rag_pipeline_stage_generation_first_token_duration_seconds",
+        "RAG generation time-to-first-token in seconds",
+        ["model", "language"],
+    )
+)
+
 rag_pipeline_stage_retrieval_duration_seconds = prometheus_client.Histogram(
     "istaroth_rag_pipeline_stage_retrieval_duration_seconds",
     "RAG retrieval phase duration in seconds",

@@ -267,20 +267,28 @@ class RAGPipeline:
                 "generate", llm=self._llm, prompt=generation_messages
             ) as gen_span,
         ):
-            response = gen_span.record_response(
-                await anyio.to_thread.run_sync(
-                    lambda: chain.invoke(
-                        generation_inputs,
-                        config=config,
+            final: langchain_messages.AIMessageChunk | None = None
+            async for chunk in chain.astream(generation_inputs, config=config):
+                if final is None:
+                    metrics.rag_pipeline_stage_generation_first_token_duration_seconds.labels(
+                        model=model, language=language
+                    ).observe(
+                        time.perf_counter() - gen_start
                     )
-                )
-            )
+                    final = chunk
+                else:
+                    final = final + chunk
+                if text := llm_manager.extract_streamed_chunk_text(chunk):
+                    state["reporter"].answer_chunk(text)
+            if final is None:
+                raise RuntimeError("Generation produced no output chunks")
+            gen_span.record_response(final)
         metrics.rag_pipeline_stage_generation_duration_seconds.labels(
             model=model, language=language
         ).observe(time.perf_counter() - gen_start)
 
         return {
-            "answer": llm_manager.extract_text_from_response(response),
+            "answer": llm_manager.extract_text_from_response(final),
             "stats": types.GenerationStats(
                 final_generation_input_text_length=final_generation_input_text_length,
                 retrieval_unique_chunk_count=state[

@@ -42,7 +42,17 @@ class StepEnd:
         return {"type": "step_end", "id": self.id}
 
 
-ProgressEvent = StepStart | StepEnd
+@attrs.frozen
+class AnswerChunk:
+    """A fragment of the generated answer streamed as it is produced."""
+
+    text: str
+
+    def to_dict(self) -> dict[str, object]:
+        return {"type": "answer_chunk", "text": self.text}
+
+
+ProgressEvent = StepStart | StepEnd | AnswerChunk
 
 
 class ProgressReporter(abc.ABC):
@@ -64,6 +74,10 @@ class ProgressReporter(abc.ABC):
             yield
         finally:
             self._emit(StepEnd(id=step_id))
+
+    def answer_chunk(self, text: str) -> None:
+        """Emit a fragment of the generated answer as it streams in."""
+        self._emit(AnswerChunk(text=text))
 
 
 class _NullReporter(ProgressReporter):
