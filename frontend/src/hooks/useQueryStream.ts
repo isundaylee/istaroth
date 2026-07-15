@@ -19,6 +19,13 @@ interface UseQueryStreamResult {
   loading: boolean
   /** Submit a query and drive the stream to completion. */
   submit: (request: QueryRequest) => Promise<void>
+  /**
+   * Clear all stream state, including ``loading``. Needed by pages that stay
+   * mounted across the post-``done`` navigation (a conversation-to-conversation
+   * re-ask only changes the route param, so the component instance — and this
+   * hook's state — survives); call it when the new loader data arrives.
+   */
+  reset: () => void
 }
 
 /**
@@ -36,13 +43,14 @@ export function useQueryStream(): UseQueryStreamResult {
   const [streamedAnswer, setStreamedAnswer] = useState('')
 
   const reset = useCallback(() => {
+    setLoading(false)
     setActiveSteps([])
     setStreamedAnswer('')
   }, [])
 
   const submit = useCallback(async (request: QueryRequest) => {
-    setLoading(true)
     reset()
+    setLoading(true)
 
     try {
       const result = await postQueryStream(request, t('query.errors.unknown'))
@@ -66,14 +74,15 @@ export function useQueryStream(): UseQueryStreamResult {
           // reveals proper-noun highlights and share/export affordances. A plain
           // push (not replace) keeps the pre-submit entry — '/' or the previous
           // conversation — in history so Back returns to it. Loading stays true
-          // so the composer remains disabled until the route actually changes.
+          // so the composer remains disabled until the route actually changes;
+          // a page that survives the navigation (ConversationPage on a re-ask)
+          // calls ``reset`` once the new conversation's loader data lands.
           navigate(`/conversation/${result.conversation_uuid}`)
         },
         onError: (message) => {
           // Tear down the streaming view and restore the composer.
           reset()
           showError(message)
-          setLoading(false)
         },
         noConnectionError: t('query.errors.noConnection'),
         unknownError: t('query.errors.unknown'),
@@ -81,9 +90,8 @@ export function useQueryStream(): UseQueryStreamResult {
     } catch {
       reset()
       showError(t('query.errors.noConnection'))
-      setLoading(false)
     }
   }, [t, showError, navigate, reset])
 
-  return { activeSteps, streamedAnswer, streaming: streamedAnswer !== '', loading, submit }
+  return { activeSteps, streamedAnswer, streaming: streamedAnswer !== '', loading, submit, reset }
 }

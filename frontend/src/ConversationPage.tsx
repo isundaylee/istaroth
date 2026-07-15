@@ -46,7 +46,7 @@ function ConversationPage() {
   const { setExtraContent } = useFooter()
   // The re-ask stream lives here (not in QueryForm), so collapsing the composer
   // — Escape / clicking away — never unmounts or freezes an in-flight stream.
-  const { activeSteps, streamedAnswer, streaming, loading, submit } = useQueryStream()
+  const { activeSteps, streamedAnswer, streaming, loading, submit, reset } = useQueryStream()
   // A re-ask is in flight: hide the saved answer/footer while a new one
   // generates. Derived from the hook's ``loading`` so it can never stay stuck
   // true after an error (the hook resets ``loading`` to false), which would
@@ -60,7 +60,12 @@ function ConversationPage() {
 
   useEffect(() => {
     setEditing(false)
-  }, [conversation])
+    // A conversation-to-conversation re-ask only changes the route param, so
+    // this component instance survives the post-``done`` navigation. Clear the
+    // stream state (including ``loading``) once the new conversation's loader
+    // data lands, or the composer stays stuck in the answering state.
+    reset()
+  }, [conversation, reset])
 
   useEffect(() => {
     if (submittingNew) {
