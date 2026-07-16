@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import styles from './Select.module.css'
 
@@ -29,8 +29,30 @@ interface SelectProps {
 // option's `label` (and optional `detail`, muted).
 function Select({ options, value, onChange, disabled, placeholder, ariaLabel, className }: SelectProps) {
   const [open, setOpen] = useState(false)
+  // Whether the menu opens upward (the default: the composer footer usually
+  // sits below its page's content) or downward.
+  const [dropUp, setDropUp] = useState(true)
   const rootRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLUListElement>(null)
   const selected = options.find((o) => o.value === value)
+
+  // Flip the menu downward when it would not fit between the trigger and the
+  // nearest clipping ancestor's top edge (e.g. the page shell's scrollable
+  // body on the conversation page, where the composer sits near the top).
+  // Runs before paint, so the initial upward render is never visible.
+  useLayoutEffect(() => {
+    if (!open) return
+    const trigger = rootRef.current
+    const menu = menuRef.current
+    if (!trigger || !menu) return
+    let clipTop = 0
+    for (let el = trigger.parentElement; el; el = el.parentElement) {
+      if (getComputedStyle(el).overflowY !== 'visible') {
+        clipTop = Math.max(clipTop, el.getBoundingClientRect().top)
+      }
+    }
+    setDropUp(trigger.getBoundingClientRect().top - clipTop >= menu.offsetHeight + 8)
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -64,7 +86,7 @@ function Select({ options, value, onChange, disabled, placeholder, ariaLabel, cl
         <ChevronDown className={styles.chevron} aria-hidden />
       </button>
       {open && (
-        <ul className={styles.menu} role="listbox" aria-label={ariaLabel}>
+        <ul ref={menuRef} className={[styles.menu, dropUp ? '' : styles.menuDown].filter(Boolean).join(' ')} role="listbox" aria-label={ariaLabel}>
           {options.map((opt) => (
             <li key={opt.value}>
               <button

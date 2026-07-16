@@ -17,6 +17,8 @@ interface UseQueryStreamResult {
    */
   streaming: boolean
   loading: boolean
+  /** The question of the in-flight request; empty when idle. */
+  submittedQuestion: string
   /** Submit a query and drive the stream to completion. */
   submit: (request: QueryRequest) => Promise<void>
   /**
@@ -41,16 +43,19 @@ export function useQueryStream(): UseQueryStreamResult {
   const [loading, setLoading] = useState(false)
   const [activeSteps, setActiveSteps] = useState<ProgressStepStart[]>([])
   const [streamedAnswer, setStreamedAnswer] = useState('')
+  const [submittedQuestion, setSubmittedQuestion] = useState('')
 
   const reset = useCallback(() => {
     setLoading(false)
     setActiveSteps([])
     setStreamedAnswer('')
+    setSubmittedQuestion('')
   }, [])
 
   const submit = useCallback(async (request: QueryRequest) => {
     reset()
     setLoading(true)
+    setSubmittedQuestion(request.question)
 
     try {
       const result = await postQueryStream(request, t('query.errors.unknown'))
@@ -93,5 +98,5 @@ export function useQueryStream(): UseQueryStreamResult {
     }
   }, [t, showError, navigate, reset])
 
-  return { activeSteps, streamedAnswer, streaming: streamedAnswer !== '', loading, submit, reset }
+  return { activeSteps, streamedAnswer, streaming: streamedAnswer !== '', loading, submittedQuestion, submit, reset }
 }

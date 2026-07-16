@@ -13,6 +13,7 @@ import { PageSection } from './components/PageShell'
 import Button from './components/Button'
 import ShareLinkButton from './components/ShareLinkButton'
 import ConversationAnswer from './components/ConversationAnswer'
+import QuestionTitle from './components/QuestionTitle'
 import conversationAnswerStyles from './components/ConversationAnswer.module.css'
 import type { ConversationResponse } from './types/api'
 import convStyles from './ConversationPage.module.css'
@@ -46,7 +47,7 @@ function ConversationPage() {
   const { setExtraContent } = useFooter()
   // The re-ask stream lives here (not in QueryForm), so collapsing the composer
   // — Escape / clicking away — never unmounts or freezes an in-flight stream.
-  const { activeSteps, streamedAnswer, streaming, loading, submit, reset } = useQueryStream()
+  const { activeSteps, streamedAnswer, streaming, loading, submittedQuestion, submit, reset } = useQueryStream()
   // A re-ask is in flight: hide the saved answer/footer while a new one
   // generates. Derived from the hook's ``loading`` so it can never stay stuck
   // true after an error (the hook resets ``loading`` to false), which would
@@ -135,22 +136,29 @@ function ConversationPage() {
     <>
       <PageSection>
         {editing ? (
-          <div onKeyDown={(e) => { if (e.key === 'Escape') setEditing(false) }}>
-            {/* Steps are pre-generation only: hidden once answer text is
-                streaming so the indicator never sits next to the visibly
-                growing answer (nor reappears on a late step_start). */}
-            <QueryForm
-              key={conversation.uuid}
-              currentQuestion={conversation.question}
-              submit={submit}
-              loading={loading}
-              activeSteps={activeSteps}
-              hideProgress={streaming}
-            />
+          <div onKeyDown={(e) => { if (e.key === 'Escape' && !streaming) setEditing(false) }}>
+            {/* Once answer text streams, the composer gives way to the new
+                question shown as a static title (no ask-another affordance).
+                The form stays mounted (hidden) so a stream error can restore
+                it with the typed question intact. */}
+            <div hidden={streaming}>
+              {/* Steps are pre-generation only: hidden once answer text is
+                  streaming so the indicator never sits next to the visibly
+                  growing answer (nor reappears on a late step_start). */}
+              <QueryForm
+                key={conversation.uuid}
+                currentQuestion={conversation.question}
+                submit={submit}
+                loading={loading}
+                activeSteps={activeSteps}
+                hideProgress={streaming}
+              />
+            </div>
+            {streaming && <QuestionTitle question={submittedQuestion} />}
           </div>
         ) : (
           <button type="button" className={convStyles.askTrigger} onClick={() => setEditing(true)} title={t('conversation.askAnother')}>
-            <span className={convStyles.askTriggerTitle}>{conversation.question}</span>
+            <QuestionTitle question={conversation.question} />
             <span className={convStyles.askTriggerHint}>
               <Pencil size={14} aria-hidden />
               {t('conversation.askAnother')}

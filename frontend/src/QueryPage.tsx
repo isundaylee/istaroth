@@ -6,6 +6,7 @@ import { PageSection } from './components/PageShell'
 import IstarothFigure from './components/IstarothFigure'
 import QueryProgress from './components/QueryProgress'
 import ConversationAnswer from './components/ConversationAnswer'
+import QuestionTitle from './components/QuestionTitle'
 import styles from './QueryPage.module.css'
 
 // Fixed star positions for the hero's dark-theme starfield (viewBox 1000×640).
@@ -82,7 +83,7 @@ function StarField() {
 function QueryPage() {
   const t = useT()
   const { language } = useTranslation()
-  const { activeSteps, streamedAnswer, streaming, loading, submit } = useQueryStream()
+  const { activeSteps, streamedAnswer, streaming, loading, submittedQuestion, submit } = useQueryStream()
   const [question, setQuestion] = useState('')
   const [exampleQuestion, setExampleQuestion] = useState('')
   const formRef = useRef<QueryFormHandle>(null)
@@ -95,9 +96,18 @@ function QueryPage() {
     <div className={styles.stage}>
     {streaming ? (
       // Once answer text starts arriving, swap the hero/figure for the
-      // conversation-style view in place; the URL stays "/" until done.
-      <ConversationAnswer answer={streamedAnswer} properNouns={[]} />
+      // conversation-style view in place; the URL stays "/" until done. The
+      // composer disappears with the hero — the question shows as a static
+      // title, matching the conversation page the stream navigates to.
+      <>
+        <PageSection>
+          <QuestionTitle question={submittedQuestion} />
+        </PageSection>
+        <ConversationAnswer answer={streamedAnswer} properNouns={[]} />
+      </>
     ) : (
+    <>
+
     <PageSection className={styles.hero}>
       <StarField />
       <IstarothFigure
@@ -138,7 +148,6 @@ function QueryPage() {
         }
       />
     </PageSection>
-    )}
 
     <PageSection>
       <QueryForm
@@ -152,6 +161,8 @@ function QueryPage() {
         hideProgress
       />
     </PageSection>
+    </>
+    )}
     </div>
   )
 }
