@@ -152,6 +152,7 @@ export const chs = {
     deselect: '取消聚焦输入框',
     goQuery: '前往问答',
     goLibrary: '前往图书馆',
+    toggleSidebar: '切换侧栏（可用时）',
     citationFullscreen: '切换引用弹窗全屏',
     citationLoadContext: '在引用弹窗中载入全文',
     help: '显示/隐藏此帮助',
