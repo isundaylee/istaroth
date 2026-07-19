@@ -172,6 +172,7 @@ const QueryForm = forwardRef<QueryFormHandle, QueryFormProps>(function QueryForm
   return (
     <>
       <Composer
+        slashFocusTarget
         value={question}
         onChange={setQuestion}
         onSubmit={handleSubmit}

@@ -11,6 +11,10 @@ interface ComposerProps {
   // Enter submits (Shift+Enter inserts a newline). When false, only Cmd/Ctrl+Enter
   // submits and a bare Enter inserts a newline.
   submitOnEnter?: boolean
+  // Whether the `/` shortcut focuses this composer (see KeyboardShortcuts).
+  // Pass false when another input on the page should win, e.g. the library
+  // page's sidebar search.
+  slashFocusTarget: boolean
   // Footer left slot: model/preset selects, search-mode toggle, etc.
   controls?: ReactNode
   // Footer right slot: the submit button (type="submit").
@@ -33,6 +37,7 @@ function Composer({
   disabled,
   rows = 2,
   submitOnEnter = false,
+  slashFocusTarget,
   controls,
   actions,
 }: ComposerProps) {
@@ -63,6 +68,7 @@ function Composer({
       <div className={styles.composer}>
         <textarea
           ref={textareaRef}
+          data-text-input={slashFocusTarget ? '' : undefined}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {

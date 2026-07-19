@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { useKeyboardLayer } from '../hooks/useKeyboardShortcuts'
 import styles from './Select.module.css'
 
 export interface SelectOption {
@@ -59,16 +60,11 @@ function Select({ options, value, onChange, disabled, placeholder, ariaLabel, cl
     const onPointerDown = (e: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
     }
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
     document.addEventListener('mousedown', onPointerDown)
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('mousedown', onPointerDown)
-      document.removeEventListener('keydown', onKeyDown)
-    }
+    return () => document.removeEventListener('mousedown', onPointerDown)
   }, [open])
+
+  useKeyboardLayer(open, { onEscape: () => { setOpen(false); return true } })
 
   return (
     <div className={[styles.root, className].filter(Boolean).join(' ')} ref={rootRef}>
