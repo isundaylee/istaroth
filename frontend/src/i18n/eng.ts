@@ -152,6 +152,7 @@ export const eng = {
     deselect: 'Blur the focused input',
     goQuery: 'Go to Q&A',
     goLibrary: 'Go to Library',
+    toggleSidebar: 'Toggle sidebar (when available)',
     citationFullscreen: 'Toggle fullscreen for the open citation popup',
     citationLoadContext: 'Load full context in the open citation popup',
     help: 'Toggle this help',

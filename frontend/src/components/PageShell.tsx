@@ -2,6 +2,7 @@ import { ReactNode, createContext, useCallback, useContext, useEffect, useRef, u
 import { useLocation } from 'react-router-dom'
 import clsx from 'clsx'
 import { Menu, PanelLeftOpen } from 'lucide-react'
+import { isEditable } from '../utils/keyboard'
 import Button from './Button'
 import Navigation from './Navigation'
 import styles from './PageShell.module.css'
@@ -87,6 +88,19 @@ function PageShell({ children, flush = false, sidebar, sidebarSizing, sidebarLab
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [drawerOpen, closeDrawer])
+
+  // Desktop closeable sidebars: `s` toggles open/closed (same as the bookmark tab).
+  useEffect(() => {
+    if (sidebarCloseable !== true) return
+    const onKey = (e: KeyboardEvent) => {
+      if (isEditable(e.target) || e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key !== 's') return
+      e.preventDefault()
+      onSidebarToggle()
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [sidebarCloseable, onSidebarToggle])
 
   if (sidebar) {
     const closeable = sidebarCloseable === true
