@@ -1,4 +1,19 @@
+/* Full-bleed within the flush body so section hairlines and left edges line
+   up with the question PageSection above (no nested max-width / auto margins). */
 .content {
-  max-width: 800px;
-  margin: 0 auto;
+  min-width: 0;
+}
+
+/* flow-root contains the floated actions without a clearfix hack. */
+.answerBlock {
+  display: flow-root;
+}
+
+/* Sit in the top-right so the answer's first line shares the row; later lines
+   wrap underneath once the float's box ends. */
+.actions {
+  float: right;
+  display: flex;
+  gap: 0.5rem;
+  margin: 0 0 0.15rem 0.75rem;
 }

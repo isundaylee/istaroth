@@ -67,7 +67,6 @@ export const chs = {
 
   conversation: {
     question: '问题',
-    answer: '回答',
     askAnother: '再问一个问题',
     export: '导出图片',
     exporting: '导出中...',
