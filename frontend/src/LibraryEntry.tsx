@@ -133,6 +133,7 @@ function LibraryEntry() {
         </div>
         <Composer
           submitOnEnter
+          slashFocusTarget={false}
           value={formParams.query}
           onChange={(query) => setFormParams({ ...formParams, query })}
           onSubmit={submit}

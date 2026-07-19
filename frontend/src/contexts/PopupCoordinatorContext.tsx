@@ -2,7 +2,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -14,7 +13,7 @@ import {
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import Button from '../components/Button'
-import { isEditable } from '../utils/keyboard'
+import { useKeyboardLayer } from '../hooks/useKeyboardShortcuts'
 import styles from './PopupCoordinator.module.css'
 
 /** Base z-index for floating popups; each stack level sits one above the previous. */
@@ -68,7 +67,7 @@ const PopupCoordinatorContext = createContext<PopupCoordinatorValue>({
 /**
  * Top-level coordinator for floating popups. Owns the cross-popup policy that
  * individual panels cannot decide locally: a stacking order (z-index and
- * raise-to-front), and a single document-level keydown listener that targets
+ * raise-to-front), and a keyboard layer (see ``useKeyboardLayer``) that targets
  * only the topmost visible popup — Escape closes it, registered single-key
  * shortcuts invoke its handlers, and popups minimized to rail cards are
  * skipped, so a parked card is never dismissed by a key aimed at another
@@ -108,25 +107,19 @@ export function PopupCoordinatorProvider({ children }: { children: ReactNode }) 
     })
   }, [])
 
-  useEffect(() => {
-    if (stack.length === 0) return
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const top = [...stack].reverse().find((entry) => !entry.data.current.minimized)?.data.current
-      if (!top) return
-      if (event.key === 'Escape') {
-        top.onClose?.()
-        return
-      }
-      if (isEditable(event.target) || event.metaKey || event.ctrlKey || event.altKey) return
-      const shortcut = top.shortcuts?.[event.key]
-      if (shortcut) {
-        event.preventDefault()
-        shortcut()
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [stack])
+  // Minimized state lives in each entry's ref, so the topmost visible popup is
+  // resolved at event time, not render time.
+  const topVisible = () =>
+    [...stack].reverse().find((entry) => !entry.data.current.minimized)?.data.current
+  useKeyboardLayer(stack.length > 0, {
+    onEscape: () => {
+      const top = topVisible()
+      if (!top) return false
+      top.onClose?.()
+      return true
+    },
+    shortcuts: () => topVisible()?.shortcuts
+  })
 
   const value = useMemo(
     () => ({ rail, setRail, guides, addGuide, removeGuide, stack, register, unregister, bringToFront }),
