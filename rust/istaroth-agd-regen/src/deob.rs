@@ -187,6 +187,33 @@ static COMMON: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| 
         // ExcelBinOutput/DocumentExcelConfigData.json page-2 localization id (rotates
         // every build; see the CUSTOM_addlLocalID note on the earlier version blocks).
         ("GBAHMGGAMGH", "CUSTOM_addlLocalID"),
+        // CNRELWin7.0.0_R47194594_S46814653_D47194594
+        ("OIFGMOHKPOI", "id"),
+        ("OANENPOPCFO", "descTextMapHash"),
+        ("LKAHEACOLML", "titleTextMapHash"),
+        ("BEADANLODNC", "chapterId"),
+        ("EBNBLBEIFFJ", "subQuests"),
+        ("OJACLOOEAMG", "talks"),
+        ("KCGAKLCHDCC", "subId"),
+        ("EMNMIOBCCLL", "order"),
+        ("EPGEOMCHIJF", "questId"),
+        ("BMFEMALEAIO", "npcId"),
+        ("FCBOEAHDNOL", "beginCond"),
+        ("OAENEGDKPNB", "configId"),
+        ("OOIJCIKMBOJ", "groupId"),
+        ("FAJAGGKJICO", "activityId"),
+        ("ANBEKNMDKCH", "finishCond"),
+        ("ALBFHGKNMLK", "damageRatio"),
+        ("OPDGHDAADJC", "param"),
+        ("LIKEIGNEHNP", "count"),
+        ("DPMLKCPEIJD", "CUSTOM_paramStr"),
+        ("IOKNFDJFGDH", "talkId"),
+        ("PFALHAKIILD", "dialogList"),
+        ("KMLAFCBMFEI", "nextDialogs"),
+        ("LFGCLNLPAPB", "talkRole"),
+        ("OACNIBLFFDI", "talkContentTextMapHash"),
+        ("ACCOJJPKFCN", "talkRoleNameTextMapHash"),
+        ("CGGHOCIFBPC", "CUSTOM_addlLocalID"),
     ])
 });
 
@@ -198,6 +225,12 @@ static ANECDOTE: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|
         ("EHGEFIODFHD", "titleTextMapHash"),
         ("NIKLGDFJAJK", "teaserTextMapHash"),
         ("OBJANDCNDMA", "descTextMapHash"),
+        // CNRELWin7.0.0_R47194594_S46814653_D47194594
+        ("KKNGMIGLAOM", "id"),
+        ("OPLIDDEJLDL", "questIds"),
+        ("PFMAHKBHBAB", "titleTextMapHash"),
+        ("NAEFBAELNJM", "teaserTextMapHash"),
+        ("JKOECCLJMHB", "descTextMapHash"),
     ])
 });
 
