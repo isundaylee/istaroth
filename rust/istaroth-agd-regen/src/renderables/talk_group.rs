@@ -232,8 +232,15 @@ fn render_talk_group(
 
 /// TalkGroups pass discovery: sorted (group type, group id) keys.
 pub fn discover(repo: &Repo) -> Result<Vec<(GroupType, String)>> {
-    let mut keys: Vec<(GroupType, String)> =
-        repo.parse.talk_group_id_to_path.keys().cloned().collect();
+    let mut keys: Vec<(GroupType, String)> = repo
+        .parse
+        .talk_group_id_to_path
+        .keys()
+        // 7.0 populated the previously empty StoryboardGroup files, but their
+        // talks belong to anecdotes via TalkExcel's TALK_STORYBOARD quest links.
+        .filter(|(group_type, _)| *group_type != GroupType::Storyboard)
+        .cloned()
+        .collect();
     keys.sort();
     Ok(keys)
 }

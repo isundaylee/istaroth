@@ -120,6 +120,110 @@ fn parse_json(path: &Path) -> Result<Value> {
     serde_json::from_slice(&bytes).with_context(|| format!("parse {path:?}"))
 }
 
+#[derive(Clone, Copy)]
+enum ExcelDefault {
+    Array,
+    Bool(bool),
+    Int(i64),
+    String(&'static str),
+}
+
+impl ExcelDefault {
+    fn value(self) -> Value {
+        match self {
+            Self::Array => Value::Array(Vec::new()),
+            Self::Bool(value) => Value::Bool(value),
+            Self::Int(value) => Value::from(value),
+            Self::String(value) => Value::String(value.to_string()),
+        }
+    }
+
+    fn accepts(self, value: &Value) -> bool {
+        match self {
+            Self::Array => value.is_array(),
+            Self::Bool(_) => value.is_boolean(),
+            Self::Int(_) => value.as_i64().is_some(),
+            Self::String(_) => value.is_string(),
+        }
+    }
+}
+
+/// Restore protobuf-style defaults omitted from specific AGD Excel tables.
+fn normalize_excel_defaults(table: &str, rows: &mut [Value]) -> Result<()> {
+    const DOCUMENT: &[(&str, ExcelDefault)] = &[
+        ("questContentLocalizedId", ExcelDefault::Array),
+        ("questIDList", ExcelDefault::Array),
+    ];
+    const ANECDOTE: &[(&str, ExcelDefault)] = &[("isHide", ExcelDefault::Bool(false))];
+    const MAIN_QUEST: &[(&str, ExcelDefault)] = &[
+        ("suggestTrackMainQuestList", ExcelDefault::Array),
+        ("type", ExcelDefault::String("AQ")),
+        ("chapterId", ExcelDefault::Int(0)),
+    ];
+    const CHAPTER: &[(&str, ExcelDefault)] = &[
+        ("beginQuestId", ExcelDefault::Int(0)),
+        ("groupId", ExcelDefault::Int(0)),
+    ];
+    const AVATAR: &[(&str, ExcelDefault)] = &[("candSkillDepotIds", ExcelDefault::Array)];
+    const ANIMAL_CODEX: &[(&str, ExcelDefault)] = &[
+        ("isDisuse", ExcelDefault::Bool(false)),
+        ("subType", ExcelDefault::String("CODEX_SUBTYPE_ELEMENTAL")),
+        ("type", ExcelDefault::String("CODEX_ANIMAL")),
+    ];
+    const MATERIAL: &[(&str, ExcelDefault)] =
+        &[("materialType", ExcelDefault::String("MATERIAL_NONE"))];
+    const STORY: &[(&str, ExcelDefault)] = &[("storyId", ExcelDefault::Int(0))];
+    const BOOKS_CODEX: &[(&str, ExcelDefault)] = &[("isDisuse", ExcelDefault::Bool(false))];
+    const ACHIEVEMENT_GOAL: &[(&str, ExcelDefault)] = &[("id", ExcelDefault::Int(0))];
+    const ACHIEVEMENT: &[(&str, ExcelDefault)] = &[
+        ("isDisuse", ExcelDefault::Bool(false)),
+        ("goalId", ExcelDefault::Int(0)),
+    ];
+    const ROLE_COMBAT_TAROT: &[(&str, ExcelDefault)] = &[("npcId", ExcelDefault::Int(0))];
+    const TALK: &[(&str, ExcelDefault)] = &[
+        ("loadType", ExcelDefault::String("TALK_NORMAL_QUEST")),
+        ("questId", ExcelDefault::Int(0)),
+        ("initDialog", ExcelDefault::Int(0)),
+    ];
+
+    let fields = match table {
+        "DocumentExcelConfigData.json" => DOCUMENT,
+        "AnecdoteExcelConfigData.json" => ANECDOTE,
+        "MainQuestExcelConfigData.json" => MAIN_QUEST,
+        "ChapterExcelConfigData.json" => CHAPTER,
+        "AvatarExcelConfigData.json" => AVATAR,
+        "AnimalCodexExcelConfigData.json" => ANIMAL_CODEX,
+        "MaterialExcelConfigData.json" => MATERIAL,
+        "ReliquaryExcelConfigData.json" | "WeaponExcelConfigData.json" => STORY,
+        "BooksCodexExcelConfigData.json" => BOOKS_CODEX,
+        "AchievementGoalExcelConfigData.json" => ACHIEVEMENT_GOAL,
+        "AchievementExcelConfigData.json" => ACHIEVEMENT,
+        "RoleCombatTarotAvatarExcelConfigData.json" => ROLE_COMBAT_TAROT,
+        "TalkExcelConfigData.json" => TALK,
+        _ => return Ok(()),
+    };
+    for &(field, default) in fields {
+        let mut found = false;
+        for row in &mut *rows {
+            let Some(object) = row.as_object_mut() else {
+                bail!("{table} row must be an object");
+            };
+            if let Some(value) = object.get(field) {
+                if !default.accepts(value) {
+                    bail!("{table}.{field} has invalid value {value}");
+                }
+                found = true;
+            } else {
+                object.insert(field.to_string(), default.value());
+            }
+        }
+        if !found {
+            bail!("{table}.{field} is absent from every row; expected at least one explicit value");
+        }
+    }
+    Ok(())
+}
+
 /// Typed parse of the (huge) DialogExcelConfigData: only the id -> content-hash
 /// and id -> role-name-hash maps survive it, so skip building Value trees.
 /// Keys are deobfuscated then indexed strictly (missing field -> error;
@@ -1095,9 +1199,11 @@ impl Repo {
         });
         let mut prefetched = prefetched?;
         let mut list = |name: &str| -> Result<Vec<Value>> {
-            prefetched
+            let mut rows = prefetched
                 .remove(name)
-                .ok_or_else(|| anyhow!("excel {name} not prefetched"))
+                .ok_or_else(|| anyhow!("excel {name} not prefetched"))?;
+            normalize_excel_defaults(name, &mut rows)?;
+            Ok(rows)
         };
         let dialog_maps = dialog_maps?;
         let document = index_unique(
@@ -1117,8 +1223,10 @@ impl Repo {
             |d| d.i("id"),
             "anecdote ID",
         )?;
+        let mut talk = talk_excel?;
+        normalize_excel_defaults("TalkExcelConfigData.json", &mut talk)?;
         let excels = Excels {
-            talk: talk_excel?,
+            talk,
             npc: list("NpcExcelConfigData.json")?,
             localization,
             document,
@@ -1349,6 +1457,40 @@ struct Misc {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn excel_defaults_are_table_specific_and_typed() {
+        let mut rows = vec![
+            json!({"type": "WQ", "chapterId": 7, "suggestTrackMainQuestList": [2]}),
+            json!({}),
+        ];
+        normalize_excel_defaults("MainQuestExcelConfigData.json", &mut rows).unwrap();
+        assert_eq!(
+            rows[1],
+            json!({"type": "AQ", "chapterId": 0, "suggestTrackMainQuestList": []})
+        );
+        let mut unrelated = vec![json!({})];
+        normalize_excel_defaults("NpcExcelConfigData.json", &mut unrelated).unwrap();
+        assert_eq!(unrelated, vec![json!({})]);
+    }
+
+    #[test]
+    fn excel_defaults_require_an_explicit_typed_value() {
+        let mut absent = vec![json!({})];
+        assert!(
+            normalize_excel_defaults("BooksCodexExcelConfigData.json", &mut absent)
+                .unwrap_err()
+                .to_string()
+                .contains("absent from every row")
+        );
+        let mut invalid = vec![json!({"isDisuse": 0})];
+        assert!(
+            normalize_excel_defaults("BooksCodexExcelConfigData.json", &mut invalid)
+                .unwrap_err()
+                .to_string()
+                .contains("invalid value")
+        );
+    }
 
     #[test]
     fn book_series_filters_and_orders() {
