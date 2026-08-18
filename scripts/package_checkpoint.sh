@@ -1,6 +1,6 @@
 #!/bin/bash
 # Build a checkpoint from a text directory and package it for release.
-# The embedding backend is chosen via ISTAROTH_EMBEDDINGS (e.g. "deepinfra").
+# The embedding backend is chosen via ISTAROTH_EMBEDDINGS.
 
 set -euo pipefail
 

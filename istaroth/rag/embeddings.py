@@ -27,6 +27,7 @@ def create_embeddings() -> lc_embeddings.Embeddings:
 
     - "local" (default): HuggingFace BAAI/bge-m3
     - "deepinfra": DeepInfra-hosted BAAI/bge-m3 via OpenAI-compatible API
+    - "openai-compatible": provider configured through environment variables
     """
     match (backend := os.environ.get("ISTAROTH_EMBEDDINGS", "local")):
         case "local":
@@ -46,6 +47,21 @@ def create_embeddings() -> lc_embeddings.Embeddings:
                 base_url="https://api.deepinfra.com/v1/openai",
                 model="BAAI/bge-m3",
                 api_key=pydantic.SecretStr(os.environ["DEEPINFRA_API_KEY"]),
+                check_embedding_ctx_length=False,
+            )
+        case "openai-compatible":
+            from langchain_openai import OpenAIEmbeddings
+
+            logger.info(
+                "Using OpenAI-compatible embeddings model %s at %s",
+                os.environ["ISTAROTH_EMBEDDINGS_MODEL"],
+                os.environ["ISTAROTH_EMBEDDINGS_BASE_URL"],
+            )
+            return OpenAIEmbeddings(
+                base_url=os.environ["ISTAROTH_EMBEDDINGS_BASE_URL"],
+                model=os.environ["ISTAROTH_EMBEDDINGS_MODEL"],
+                api_key=pydantic.SecretStr(os.environ["ISTAROTH_EMBEDDINGS_API_KEY"]),
+                # Preserve text inputs instead of applying OpenAI-specific tokenization.
                 check_embedding_ctx_length=False,
             )
         case _:
