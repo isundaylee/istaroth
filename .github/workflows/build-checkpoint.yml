@@ -34,15 +34,14 @@ jobs:
     - name: Install dependencies
       run: uv sync --no-default-groups
 
-    # Reuse embeddings for unchanged chunks across builds. The provider/model
-    # prefix intentionally invalidates caches when the embedding backend changes.
+    # Reuse embeddings for unchanged chunks across builds.
     - name: Restore embedding cache
       uses: actions/cache@v4
       with:
         path: tmp/embedding-cache
-        key: embedding-cache-cloudflare-bge-m3-v1-${{ github.run_id }}
+        key: embedding-cache-${{ github.run_id }}
         restore-keys: |
-          embedding-cache-cloudflare-bge-m3-v1-
+          embedding-cache-
 
     - name: Build checkpoints
       env:

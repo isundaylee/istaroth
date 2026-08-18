@@ -101,7 +101,8 @@ Cloudflare Workers AI embedding backend on a standard runner (no GPU) and
 publishes a `checkpoint/YYYYMMDD-HHMMSS-<commit>` release with `chs.tar.gz` /
 `eng.tar.gz` assets.
 Requires the `CLOUDFLARE_API_TOKEN` secret and `CLOUDFLARE_ACCOUNT_ID` variable
-in the `build-checkpoint` GitHub environment.
+in the `build-checkpoint` GitHub environment. Requests are capped at 64 texts to
+stay below Workers AI's aggregate token limit.
 
 ## Docker Compose (Dev)
 

@@ -17,7 +17,7 @@ from istaroth import utils
 
 logger = logging.getLogger(__name__)
 
-_EMBED_BATCH_SIZE = 256
+_EMBED_BATCH_SIZE = 64
 """Texts per embedding request when building, to bound each API request."""
 
 
