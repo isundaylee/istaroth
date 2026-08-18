@@ -34,21 +34,22 @@ jobs:
     - name: Install dependencies
       run: uv sync --no-default-groups
 
-    # Reuse embeddings for unchanged chunks across builds. The key is unique per
-    # run so the (possibly augmented) cache is always saved; restore-keys falls
-    # back to the most recent prior cache.
+    # Reuse embeddings for unchanged chunks across builds. The provider/model
+    # prefix intentionally invalidates caches when the embedding backend changes.
     - name: Restore embedding cache
       uses: actions/cache@v4
       with:
         path: tmp/embedding-cache
-        key: embedding-cache-${{ github.run_id }}
+        key: embedding-cache-cloudflare-bge-m3-v1-${{ github.run_id }}
         restore-keys: |
-          embedding-cache-
+          embedding-cache-cloudflare-bge-m3-v1-
 
     - name: Build checkpoints
       env:
-        ISTAROTH_EMBEDDINGS: deepinfra
-        DEEPINFRA_API_KEY: ${{ secrets.DEEPINFRA_API_KEY }}
+        ISTAROTH_EMBEDDINGS: openai-compatible
+        ISTAROTH_EMBEDDINGS_BASE_URL: https://api.cloudflare.com/client/v4/accounts/${{ vars.CLOUDFLARE_ACCOUNT_ID }}/ai/v1
+        ISTAROTH_EMBEDDINGS_MODEL: "@cf/baai/bge-m3"
+        ISTAROTH_EMBEDDINGS_API_KEY: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         LANGUAGES: ${{ github.event.inputs.languages || 'chs eng' }}
       run: |
         mkdir -p tmp/checkpoints tmp/embedding-cache

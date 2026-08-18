@@ -97,10 +97,11 @@ scripts/rag_tools.py build /path/to/text/files/output /path/to/checkpoint/output
 Released checkpoints are built by the **Build and Release Checkpoint** GitHub
 Actions workflow (`.github/workflows/build-checkpoint.yml`), triggered manually
 via *workflow_dispatch*. It builds the committed `text/` corpus with the
-DeepInfra embedding backend on a standard runner (no GPU) and publishes a
-`checkpoint/YYYYMMDD-HHMMSS-<commit>` release with `chs.tar.gz` / `eng.tar.gz`
-assets.
-Requires the `DEEPINFRA_API_KEY` repository secret.
+Cloudflare Workers AI embedding backend on a standard runner (no GPU) and
+publishes a `checkpoint/YYYYMMDD-HHMMSS-<commit>` release with `chs.tar.gz` /
+`eng.tar.gz` assets.
+Requires the `CLOUDFLARE_API_TOKEN` secret and `CLOUDFLARE_ACCOUNT_ID` variable
+in the `build-checkpoint` GitHub environment.
 
 ## Docker Compose (Dev)
 
