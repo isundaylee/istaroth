@@ -1,5 +1,6 @@
 //! Port of istaroth.agd.deobfuscation: obfuscated-key renames over JSON values.
 
+use crate::defaults::{self, FieldDefault};
 use anyhow::{Result, bail};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
@@ -214,6 +215,24 @@ static COMMON: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| 
         ("OACNIBLFFDI", "talkContentTextMapHash"),
         ("ACCOJJPKFCN", "talkRoleNameTextMapHash"),
         ("CGGHOCIFBPC", "CUSTOM_addlLocalID"),
+        // CNRELWin7.1.0_R48379043_S48511369_D48533839
+        ("NBOJMAHCCGM", "descTextMapHash"),
+        ("DOOCLIPFECE", "titleTextMapHash"),
+        ("JIJKODHIEED", "subQuests"),
+        ("DLLABGGCEBM", "talks"),
+        ("NFGFDHPPBIF", "subId"),
+        ("GBFIFKGFKHD", "order"),
+        ("GCNCAGHDDOJ", "npcId"),
+        ("JEDNDGCOMGC", "beginCond"),
+        ("NJLNCONMABL", "configId"),
+        ("JBELGECAIIL", "CUSTOM_paramStr"),
+        ("PCIAMAFDDAA", "dialogList"),
+        ("GLJCECCOEDP", "nextDialogs"),
+        ("KBPOBGFGLKN", "talkRole"),
+        ("LKECPJIFFEE", "talkContentTextMapHash"),
+        ("DPHNNJJCFAN", "talkRoleNameTextMapHash"),
+        ("PDNGBPKLELB", "CUSTOM_addlLocalID"),
+        ("DGAIPHFGBOD", "loadType"),
     ])
 });
 
@@ -231,6 +250,12 @@ static ANECDOTE: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|
         ("PFMAHKBHBAB", "titleTextMapHash"),
         ("NAEFBAELNJM", "teaserTextMapHash"),
         ("JKOECCLJMHB", "descTextMapHash"),
+        // CNRELWin7.1.0_R48379043_S48511369_D48533839
+        ("JJDBNNAJGAA", "id"),
+        ("KOOFDCNNHGP", "questIds"),
+        ("NLBLEOBAOAJ", "titleTextMapHash"),
+        ("JKPOEFMNLAJ", "teaserTextMapHash"),
+        ("MBPANALDEMH", "descTextMapHash"),
     ])
 });
 
@@ -244,21 +269,17 @@ fn deob_map(
     let Value::Object(obj) = data else {
         return Ok(data);
     };
-    if !obj.keys().any(|k| mappings.contains_key(k.as_str())) {
-        return Ok(Value::Object(obj));
-    }
     let mut result = Map::with_capacity(obj.len());
     for (key, mut value) in obj {
-        if let Some(&real_key) = mappings.get(key.as_str()) {
-            if let Some((_, proc)) = array_processors.iter().find(|(k, _)| *k == real_key) {
-                let Value::Array(items) = value else {
-                    bail!("{real_key} must be a list");
-                };
-                value = Value::Array(proc(items)?);
-            }
-            result.insert(real_key.to_string(), value);
-        } else {
-            result.insert(key, value);
+        let real_key = mappings.get(key.as_str()).copied().unwrap_or(&key);
+        if let Some((_, proc)) = array_processors.iter().find(|(k, _)| *k == real_key) {
+            let Value::Array(items) = value else {
+                bail!("{real_key} must be a list");
+            };
+            value = Value::Array(proc(items)?);
+        }
+        if result.insert(real_key.to_string(), value).is_some() {
+            bail!("duplicate deobfuscated field {real_key}");
         }
     }
     Ok(Value::Object(result))
@@ -271,10 +292,78 @@ fn process_array_items(items: Vec<Value>) -> Result<Vec<Value>> {
         .collect()
 }
 
+// These schemas apply after deobfuscation, including older dumps with explicit defaults.
+const QUEST_DEFAULTS: &[(&str, FieldDefault)] = &[
+    ("titleTextMapHash", FieldDefault::Int(0)),
+    ("descTextMapHash", FieldDefault::Int(0)),
+    ("chapterId", FieldDefault::Int(0)),
+    ("subQuests", FieldDefault::Array),
+    ("talks", FieldDefault::Array),
+];
+const SUBQUEST_DEFAULTS: &[(&str, FieldDefault)] = &[
+    ("descTextMapHash", FieldDefault::Int(0)),
+    ("order", FieldDefault::Int(0)),
+    ("finishCond", FieldDefault::Array),
+];
+const TALK_DEFAULTS: &[(&str, FieldDefault)] = &[("beginCond", FieldDefault::Array)];
+const BEGIN_COND_DEFAULTS: &[(&str, FieldDefault)] = &[("_param", FieldDefault::Array)];
+const DIALOG_DEFAULTS: &[(&str, FieldDefault)] = &[
+    ("talkContentTextMapHash", FieldDefault::Int(0)),
+    ("talkRoleNameTextMapHash", FieldDefault::Int(0)),
+];
+const ROLE_DEFAULTS: &[(&str, FieldDefault)] = &[("type", FieldDefault::String("TALK_ROLE_NONE"))];
+
+fn rename_field(data: &mut Value, source: &str, target: &str) -> Result<()> {
+    if let Some(obj) = data.as_object_mut()
+        && let Some(value) = obj.remove(source)
+        && obj.insert(target.to_string(), value).is_some()
+    {
+        bail!("duplicate field {target}");
+    }
+    Ok(())
+}
+
+fn process_finish_items(items: Vec<Value>) -> Result<Vec<Value>> {
+    process_array_items(items)?
+        .into_iter()
+        .map(|mut item| {
+            rename_field(&mut item, "type", "damageRatio")?;
+            Ok(item)
+        })
+        .collect()
+}
+
+fn process_begin_items(items: Vec<Value>) -> Result<Vec<Value>> {
+    items
+        .into_iter()
+        .map(|mut item| {
+            rename_field(&mut item, "type", "_type")?;
+            rename_field(&mut item, "param", "_param")?;
+            defaults::apply(&mut item, BEGIN_COND_DEFAULTS)?;
+            Ok(item)
+        })
+        .collect()
+}
+
+fn process_talk_items(items: Vec<Value>) -> Result<Vec<Value>> {
+    items
+        .into_iter()
+        .map(|item| {
+            let mut item = deob_map(item, &COMMON, &[("beginCond", process_begin_items)])?;
+            defaults::apply(&mut item, TALK_DEFAULTS)?;
+            Ok(item)
+        })
+        .collect()
+}
+
 fn process_subquest_items(items: Vec<Value>) -> Result<Vec<Value>> {
     items
         .into_iter()
-        .map(|i| deob_map(i, &COMMON, &[("finishCond", process_array_items)]))
+        .map(|i| {
+            let mut item = deob_map(i, &COMMON, &[("finishCond", process_finish_items)])?;
+            defaults::apply(&mut item, SUBQUEST_DEFAULTS)?;
+            Ok(item)
+        })
         .collect()
 }
 
@@ -283,18 +372,20 @@ fn process_dialog_list(dialogs: Vec<Value>) -> Result<Vec<Value>> {
         .into_iter()
         .map(|d| {
             let mut d = deob_map(d, &COMMON, &[])?;
+            defaults::apply(&mut d, DIALOG_DEFAULTS)?;
             if let Some(obj) = d.as_object_mut()
                 && let Some(role) = obj.get("talkRole")
             {
-                // An empty/null talkRole is skipped; anything else must be an
-                // object, so a schema change errors instead of slipping
-                // through the rename unprocessed.
+                // A null talkRole is skipped; an object restores the omitted
+                // narration type. Anything else is a schema error.
                 match role {
                     Value::Null => {}
-                    Value::Object(m) if m.is_empty() => {}
                     Value::Object(_) => {
                         let role = obj.remove("talkRole").unwrap();
-                        obj.insert("talkRole".to_string(), deob_map(role, &COMMON, &[])?);
+                        let mut role = deob_map(role, &COMMON, &[])?;
+                        rename_field(&mut role, "id", "_id")?;
+                        defaults::apply(&mut role, ROLE_DEFAULTS)?;
+                        obj.insert("talkRole".to_string(), role);
                     }
                     other => bail!("talkRole must be an object, got {other}"),
                 }
@@ -305,14 +396,16 @@ fn process_dialog_list(dialogs: Vec<Value>) -> Result<Vec<Value>> {
 }
 
 pub fn deobfuscate_quest_data(data: Value) -> Result<Value> {
-    deob_map(
+    let mut data = deob_map(
         data,
         &COMMON,
         &[
             ("subQuests", process_subquest_items),
-            ("talks", process_array_items),
+            ("talks", process_talk_items),
         ],
-    )
+    )?;
+    defaults::apply(&mut data, QUEST_DEFAULTS)?;
+    Ok(data)
 }
 
 /// Combined talk-file deobfuscation: processes both `dialogList` (talk files)
@@ -324,7 +417,7 @@ pub fn deobfuscate_talk_file(data: Value) -> Result<Value> {
         &COMMON,
         &[
             ("dialogList", process_dialog_list),
-            ("talks", process_array_items),
+            ("talks", process_talk_items),
         ],
     )
 }
@@ -431,6 +524,83 @@ pub fn deobfuscate_anecdote_excel_config_data(data: Vec<Value>) -> Result<Vec<Va
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn cleartext_quest_defaults_and_condition_aliases() {
+        let data = deobfuscate_quest_data(json!({
+            "id": 74078,
+            "subQuests": [{
+                "subId": 7407801,
+                "finishCond": [{"type": "QUEST_CONTENT_COMPLETE_TALK", "param": [7407801, 0]}],
+            }],
+            "talks": [
+                {"id": 7407801},
+                {"id": 7407802, "beginCond": [
+                    {"type": "QUEST_COND_STATE_EQUAL", "param": ["7407801", "2"]},
+                    {"type": "QUEST_COND_STATE_EQUAL"},
+                ]},
+            ],
+        }))
+        .unwrap();
+        assert_eq!(data["chapterId"], 0);
+        assert_eq!(data["subQuests"][0]["descTextMapHash"], 0);
+        assert_eq!(
+            data["subQuests"][0]["finishCond"][0]["damageRatio"],
+            "QUEST_CONTENT_COMPLETE_TALK"
+        );
+        assert_eq!(data["talks"][0]["beginCond"], json!([]));
+        assert_eq!(
+            data["talks"][1]["beginCond"][0],
+            json!({"_type": "QUEST_COND_STATE_EQUAL", "_param": ["7407801", "2"]})
+        );
+        assert_eq!(data["talks"][1]["beginCond"][1]["_param"], json!([]));
+    }
+
+    #[test]
+    fn cleartext_dialog_preserves_narration_and_rejects_invalid_fields() {
+        for role in [json!({}), json!({"id": ""})] {
+            let data = deobfuscate_talk_file(json!({
+                "talkId": 1,
+                "dialogList": [{"id": 101, "talkRole": role}],
+            }))
+            .unwrap();
+            assert_eq!(data["dialogList"][0]["talkRole"]["type"], "TALK_ROLE_NONE");
+            assert_eq!(data["dialogList"][0]["talkContentTextMapHash"], 0);
+        }
+        for invalid in [Value::Null, json!("123"), json!([])] {
+            assert!(
+                deobfuscate_talk_file(json!({
+                    "dialogList": [{"id": 101, "talkRole": {}, "talkContentTextMapHash": invalid}],
+                }))
+                .is_err()
+            );
+        }
+        assert!(
+            deobfuscate_quest_data(json!({"JIJKODHIEED": [{"NFGFDHPPBIF": 1, "finishCond": {}}]}))
+                .is_err()
+        );
+        assert!(
+            deobfuscate_quest_data(
+                json!({"DLLABGGCEBM": [{"JEDNDGCOMGC": [{"type": "A", "_type": "B"}]}]})
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn cleartext_arrays_still_process_nested_obfuscated_fields() {
+        let data = deobfuscate_quest_data(json!({
+            "subQuests": [{"subId": 1, "finishCond": [{"JBELGECAIIL": "123", "type": "QUEST_CONTENT_COMPLETE_ANY_TALK"}]}],
+        })).unwrap();
+        assert_eq!(
+            data["subQuests"][0]["finishCond"][0]["CUSTOM_paramStr"],
+            "123"
+        );
+        assert_eq!(
+            data["subQuests"][0]["finishCond"][0]["damageRatio"],
+            "QUEST_CONTENT_COMPLETE_ANY_TALK"
+        );
+    }
 
     #[test]
     fn coop_cond_node() {
