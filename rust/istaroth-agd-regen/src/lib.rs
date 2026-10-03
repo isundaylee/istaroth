@@ -3,6 +3,7 @@
 
 pub mod cleanup;
 pub mod coop;
+mod defaults;
 pub mod deob;
 pub mod firstseen;
 pub mod firstseen_build;

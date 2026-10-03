@@ -2,6 +2,7 @@
 //! every derived mapping generate-all consumes.
 
 use crate::coop::CoopStoryGraph;
+use crate::defaults::{self, FieldDefault};
 use crate::firstseen::FirstSeenIndex;
 use crate::issues::Scope;
 use crate::lang::Language;
@@ -120,70 +121,54 @@ fn parse_json(path: &Path) -> Result<Value> {
     serde_json::from_slice(&bytes).with_context(|| format!("parse {path:?}"))
 }
 
-#[derive(Clone, Copy)]
-enum ExcelDefault {
-    Array,
-    Bool(bool),
-    Int(i64),
-    String(&'static str),
-}
-
-impl ExcelDefault {
-    fn value(self) -> Value {
-        match self {
-            Self::Array => Value::Array(Vec::new()),
-            Self::Bool(value) => Value::Bool(value),
-            Self::Int(value) => Value::from(value),
-            Self::String(value) => Value::String(value.to_string()),
-        }
+/// Restore group defaults once, before classification and downstream consumers.
+fn normalize_talk_defaults(rel: &str, data: &mut Value) -> Result<()> {
+    const GADGET_GROUP: &[(&str, FieldDefault)] = &[
+        ("configId", FieldDefault::Int(0)),
+        ("groupId", FieldDefault::Int(0)),
+    ];
+    if talkparse::is_gadget_group(rel, data) {
+        defaults::apply(data, GADGET_GROUP).with_context(|| rel.to_string())?;
     }
-
-    fn accepts(self, value: &Value) -> bool {
-        match self {
-            Self::Array => value.is_array(),
-            Self::Bool(_) => value.is_boolean(),
-            Self::Int(_) => value.as_i64().is_some(),
-            Self::String(_) => value.is_string(),
-        }
-    }
+    Ok(())
 }
 
 /// Restore protobuf-style defaults omitted from specific AGD Excel tables.
 fn normalize_excel_defaults(table: &str, rows: &mut [Value]) -> Result<()> {
-    const DOCUMENT: &[(&str, ExcelDefault)] = &[
-        ("questContentLocalizedId", ExcelDefault::Array),
-        ("questIDList", ExcelDefault::Array),
+    const DOCUMENT: &[(&str, FieldDefault)] = &[
+        ("questContentLocalizedId", FieldDefault::Array),
+        ("questIDList", FieldDefault::Array),
     ];
-    const ANECDOTE: &[(&str, ExcelDefault)] = &[("isHide", ExcelDefault::Bool(false))];
-    const MAIN_QUEST: &[(&str, ExcelDefault)] = &[
-        ("suggestTrackMainQuestList", ExcelDefault::Array),
-        ("type", ExcelDefault::String("AQ")),
-        ("chapterId", ExcelDefault::Int(0)),
+    const ANECDOTE: &[(&str, FieldDefault)] = &[("isHide", FieldDefault::Bool(false))];
+    const MAIN_QUEST: &[(&str, FieldDefault)] = &[
+        ("suggestTrackMainQuestList", FieldDefault::Array),
+        ("type", FieldDefault::String("AQ")),
+        ("chapterId", FieldDefault::Int(0)),
     ];
-    const CHAPTER: &[(&str, ExcelDefault)] = &[
-        ("beginQuestId", ExcelDefault::Int(0)),
-        ("groupId", ExcelDefault::Int(0)),
+    const CHAPTER: &[(&str, FieldDefault)] = &[
+        ("beginQuestId", FieldDefault::Int(0)),
+        ("groupId", FieldDefault::Int(0)),
     ];
-    const AVATAR: &[(&str, ExcelDefault)] = &[("candSkillDepotIds", ExcelDefault::Array)];
-    const ANIMAL_CODEX: &[(&str, ExcelDefault)] = &[
-        ("isDisuse", ExcelDefault::Bool(false)),
-        ("subType", ExcelDefault::String("CODEX_SUBTYPE_ELEMENTAL")),
-        ("type", ExcelDefault::String("CODEX_ANIMAL")),
+    const AVATAR: &[(&str, FieldDefault)] = &[("candSkillDepotIds", FieldDefault::Array)];
+    const ANIMAL_CODEX: &[(&str, FieldDefault)] = &[
+        ("isDisuse", FieldDefault::Bool(false)),
+        ("subType", FieldDefault::String("CODEX_SUBTYPE_ELEMENTAL")),
+        ("type", FieldDefault::String("CODEX_ANIMAL")),
     ];
-    const MATERIAL: &[(&str, ExcelDefault)] =
-        &[("materialType", ExcelDefault::String("MATERIAL_NONE"))];
-    const STORY: &[(&str, ExcelDefault)] = &[("storyId", ExcelDefault::Int(0))];
-    const BOOKS_CODEX: &[(&str, ExcelDefault)] = &[("isDisuse", ExcelDefault::Bool(false))];
-    const ACHIEVEMENT_GOAL: &[(&str, ExcelDefault)] = &[("id", ExcelDefault::Int(0))];
-    const ACHIEVEMENT: &[(&str, ExcelDefault)] = &[
-        ("isDisuse", ExcelDefault::Bool(false)),
-        ("goalId", ExcelDefault::Int(0)),
+    const MATERIAL: &[(&str, FieldDefault)] =
+        &[("materialType", FieldDefault::String("MATERIAL_NONE"))];
+    const STORY: &[(&str, FieldDefault)] = &[("storyId", FieldDefault::Int(0))];
+    const BOOKS_CODEX: &[(&str, FieldDefault)] = &[("isDisuse", FieldDefault::Bool(false))];
+    const ACHIEVEMENT_GOAL: &[(&str, FieldDefault)] = &[("id", FieldDefault::Int(0))];
+    const ACHIEVEMENT: &[(&str, FieldDefault)] = &[
+        ("isDisuse", FieldDefault::Bool(false)),
+        ("goalId", FieldDefault::Int(0)),
     ];
-    const ROLE_COMBAT_TAROT: &[(&str, ExcelDefault)] = &[("npcId", ExcelDefault::Int(0))];
-    const TALK: &[(&str, ExcelDefault)] = &[
-        ("loadType", ExcelDefault::String("TALK_NORMAL_QUEST")),
-        ("questId", ExcelDefault::Int(0)),
-        ("initDialog", ExcelDefault::Int(0)),
+    const ROLE_COMBAT_TAROT: &[(&str, FieldDefault)] = &[("npcId", FieldDefault::Int(0))];
+    const TALK: &[(&str, FieldDefault)] = &[
+        ("loadType", FieldDefault::String("TALK_NORMAL_QUEST")),
+        ("questId", FieldDefault::Int(0)),
+        ("initDialog", FieldDefault::Int(0)),
     ];
 
     let fields = match table {
@@ -205,17 +190,8 @@ fn normalize_excel_defaults(table: &str, rows: &mut [Value]) -> Result<()> {
     for &(field, default) in fields {
         let mut found = false;
         for row in &mut *rows {
-            let Some(object) = row.as_object_mut() else {
-                bail!("{table} row must be an object");
-            };
-            if let Some(value) = object.get(field) {
-                if !default.accepts(value) {
-                    bail!("{table}.{field} has invalid value {value}");
-                }
-                found = true;
-            } else {
-                object.insert(field.to_string(), default.value());
-            }
+            found |= defaults::apply_field(row, field, default)
+                .map_err(|error| anyhow!("{table}.{field}: {error}"))?;
         }
         if !found {
             bail!("{table}.{field} is absent from every row; expected at least one explicit value");
@@ -1099,6 +1075,7 @@ impl Repo {
                 let mut data = serde_json::from_slice(&std::fs::read(agd_path.join(rel))?)
                     .with_context(|| format!("parse {rel}"))?;
                 data = deob::deobfuscate_talk_file(data)?;
+                normalize_talk_defaults(rel, &mut data)?;
                 // load_talk_group_data's stem-derived id injection.
                 let inject = match subdir {
                     "NpcGroup" => Some("npcId"),
@@ -1457,6 +1434,55 @@ struct Misc {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn gadget_group_defaults_cover_both_layouts_and_reject_bad_ids() {
+        for rel in [
+            "BinOutput/Talk/GadgetGroup/0_0.json",
+            "BinOutput/Talk/13179162762383633301.json",
+        ] {
+            for (ids, expected) in [
+                (json!({}), (0, 0)),
+                (json!({"configId": 42}), (42, 0)),
+                (json!({"groupId": 133611099}), (0, 133611099)),
+                (
+                    json!({"configId": 42, "groupId": 133611099}),
+                    (42, 133611099),
+                ),
+            ] {
+                let mut data = ids;
+                data["talks"] = json!([{"loadType": "TALK_GADGET"}]);
+                normalize_talk_defaults(rel, &mut data).unwrap();
+                assert_eq!(
+                    (data.i("configId").unwrap(), data.i("groupId").unwrap()),
+                    expected
+                );
+            }
+            for field in ["configId", "groupId"] {
+                for invalid in [Value::Null, json!("42"), json!([])] {
+                    let mut data = json!({"talks": [{"loadType": "TALK_GADGET"}]});
+                    data[field] = invalid;
+                    assert!(normalize_talk_defaults(rel, &mut data).is_err());
+                }
+            }
+        }
+        for (rel, mut data) in [
+            (
+                "BinOutput/Talk/NpcGroup/1.json",
+                json!({"talks": [{"loadType": "TALK_GADGET"}]}),
+            ),
+            (
+                "BinOutput/Talk/123.json",
+                json!({"talks": [{"loadType": "TALK_ACTIVITY"}]}),
+            ),
+            ("BinOutput/Talk/123.json", json!({"talks": []})),
+            ("BinOutput/Talk/Gadget/123.json", json!({"talkId": 123})),
+        ] {
+            let original = data.clone();
+            normalize_talk_defaults(rel, &mut data).unwrap();
+            assert_eq!(data, original);
+        }
+    }
 
     #[test]
     fn excel_defaults_are_table_specific_and_typed() {

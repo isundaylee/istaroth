@@ -110,8 +110,8 @@ fn deobfuscate_quest_data() {
     assert_eq!(talks[0]["id"], 7407801);
     assert_eq!(talks[1]["id"], 7407802);
 
-    // QuestTalkItem.beginCond: nested items keep the literal `_type` / `_param`
-    // keys (not renamed by deobfuscation). Drives lead-in talk step placement.
+    // QuestTalkItem.beginCond normalizes 7.1's type/param to the legacy
+    // _type/_param keys. Drives lead-in talk step placement.
     let [begin_cond] = &talks[0]["beginCond"].as_array().unwrap()[..] else {
         panic!("expected exactly one beginCond");
     };
@@ -273,7 +273,7 @@ fn deobfuscate_anecdote_excel_config_data() {
     assert_eq!(entry["titleTextMapHash"], 1253956347);
     assert_eq!(entry["teaserTextMapHash"], 93015952);
     assert_eq!(entry["descTextMapHash"], 3335685669i64);
-    assert_eq!(entry["isHide"], false);
+    assert!(entry.get("isHide").is_none_or(|value| value == false));
 }
 
 // --- Repo-level processing over real data ---

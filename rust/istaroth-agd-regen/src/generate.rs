@@ -47,7 +47,8 @@ fn run_pass<K: Sync>(
     process: impl Fn(&K, &Scope) -> Result<Option<RenderedItem>> + Sync,
 ) -> Result<()> {
     let t0 = Instant::now();
-    if keys.is_empty() {
+    // Activities contains only leftovers; 7.1 attaches all of them to talk groups.
+    if keys.is_empty() && category != "agd_activity" {
         bail!("No renderable keys found for {pass_name}");
     }
     let results: Vec<(Result<Option<RenderedItem>>, Scope)> = keys

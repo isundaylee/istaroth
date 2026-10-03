@@ -161,6 +161,20 @@ fn preference_key<'a>(group_id: &str, path: &'a str) -> (i64, i64, &'a str) {
     (2, 0, path)
 }
 
+/// Canonical gadget directory or 7.1's hashed root groups with gadget-only talks.
+pub(crate) fn is_gadget_group(rel: &str, data: &Value) -> bool {
+    rel.starts_with("BinOutput/Talk/GadgetGroup/")
+        || (rel
+            .strip_prefix("BinOutput/Talk/")
+            .is_some_and(|name| !name.contains('/') && name.ends_with(".json"))
+            && data.get_arr("talks").is_some_and(|talks| {
+                !talks.is_empty()
+                    && talks
+                        .iter()
+                        .all(|talk| talk.get_s("loadType") == Some("TALK_GADGET"))
+            }))
+}
+
 fn is_talk_file(data: &Value) -> bool {
     let Some(_) = data.as_object() else {
         return false;
@@ -306,6 +320,8 @@ pub fn parse_talks(
                 .entry(talk_id)
                 .or_default()
                 .push(rel.clone());
+        } else if is_gadget_group(rel, data) {
+            handle_group(GroupType::Gadget, rel, data, &mut talk_group_candidates)?;
         } else if data.has("activityId") {
             handle_group(GroupType::Activity, rel, data, &mut talk_group_candidates)?;
         } else if data.has("npcId") {
@@ -519,6 +535,32 @@ mod tests {
         assert_eq!(
             result.talk_group_id_to_path[&(GroupType::Npc, "1292".to_string())],
             "BinOutput/Talk/NpcGroup/1292.json"
+        );
+    }
+
+    #[test]
+    fn hashed_root_gadget_groups_keep_composite_ids() {
+        let result = parse(
+            &[
+                (
+                    "BinOutput/Talk/13179162762383633301.json",
+                    json!({"configId": 0, "groupId": 0, "talks": [{"id": 6865001, "loadType": "TALK_GADGET"}]}),
+                ),
+                (
+                    "BinOutput/Talk/8932120948004222446.json",
+                    json!({"configId": 99004, "groupId": 133611099, "talks": [{"id": 6863205, "loadType": "TALK_GADGET"}]}),
+                ),
+            ],
+            &empty_tm(),
+        );
+        assert_eq!(result.talk_group_id_to_path.len(), 2);
+        assert_eq!(
+            result.talk_group_id_to_path[&(GroupType::Gadget, "0_0".to_string())],
+            "BinOutput/Talk/13179162762383633301.json"
+        );
+        assert_eq!(
+            result.talk_group_id_to_path[&(GroupType::Gadget, "99004_133611099".to_string())],
+            "BinOutput/Talk/8932120948004222446.json"
         );
     }
 
