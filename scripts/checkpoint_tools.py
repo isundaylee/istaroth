@@ -30,14 +30,14 @@ def _read_release_tag(target_dir: pathlib.Path) -> str | None:
     """Read the release version from the tag file, if it exists."""
     tag_file = _get_release_tag_file(target_dir)
     if tag_file.exists():
-        return tag_file.read_text().strip()
+        return tag_file.read_text(encoding="utf-8").strip()
     return None
 
 
 def _write_release_tag(target_dir: pathlib.Path, release: str) -> None:
     """Write the release version to the tag file."""
     tag_file = _get_release_tag_file(target_dir)
-    tag_file.write_text(release)
+    tag_file.write_text(release, encoding="utf-8")
     logger.info("Recorded release version '%s' in tag file %s", release, tag_file)
 
 
