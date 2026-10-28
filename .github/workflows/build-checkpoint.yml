@@ -19,7 +19,38 @@ permissions:
   contents: write
 
 jobs:
+  check-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+    steps:
+    - name: Check for an unchanged checkpoint release
+      id: check
+      shell: bash
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        SHOULD_BUILD=true
+        if [[ "$GITHUB_EVENT_NAME" == 'schedule' ]]; then
+          TAG=$(gh api "repos/$GITHUB_REPOSITORY/releases?per_page=100" --paginate --slurp |
+            jq -r '[.[][] | select(.draft == false and (.tag_name | startswith("checkpoint/")))] |
+              max_by(.published_at) | .tag_name // empty')
+          if [[ -n "$TAG" ]]; then
+            REF=$(jq -rn --arg ref "$TAG" '$ref | @uri')
+            RELEASE_COMMIT=$(gh api "repos/$GITHUB_REPOSITORY/commits/$REF" --jq '.sha')
+            if [[ "$RELEASE_COMMIT" == "$GITHUB_SHA" ]]; then
+              SHOULD_BUILD=false
+              echo "Commit $GITHUB_SHA already has checkpoint release $TAG; skipping build."
+            fi
+          fi
+        fi
+        echo "should_build=$SHOULD_BUILD" >> "$GITHUB_OUTPUT"
+
   build-checkpoint:
+    needs: check-release
+    if: needs.check-release.outputs.should_build == 'true'
     runs-on: ubuntu-latest
     environment: build-checkpoint
     steps:
