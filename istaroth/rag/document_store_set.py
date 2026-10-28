@@ -206,7 +206,9 @@ class DocumentStoreSet:
         for language, checkpoint_path in self._checkpoint_paths.items():
             tag_file = checkpoint_path.parent / f"{checkpoint_path.name}.release"
             versions[language] = (
-                tag_file.read_text().strip() if tag_file.exists() else None
+                tag_file.read_text(encoding="utf-8").strip()
+                if tag_file.exists()
+                else None
             )
         return versions
 

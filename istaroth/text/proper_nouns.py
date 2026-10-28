@@ -40,7 +40,9 @@ def filter_terms_from_content(
 def load_negative_terms(text_path: pathlib.Path) -> list[str]:
     """Load the maintained negative list from a language text directory."""
     negative_path = text_path / PROPER_NOUNS_NEGATIVE_RELATIVE_PATH
-    return parse_terms(negative_path.read_text() if negative_path.exists() else None)
+    return parse_terms(
+        negative_path.read_text(encoding="utf-8") if negative_path.exists() else None
+    )
 
 
 def load_terms(text_path: pathlib.Path) -> list[str]:
@@ -48,7 +50,9 @@ def load_terms(text_path: pathlib.Path) -> list[str]:
     proper_nouns_path = text_path / PROPER_NOUNS_RELATIVE_PATH
     return filter_terms(
         parse_terms(
-            proper_nouns_path.read_text() if proper_nouns_path.exists() else None
+            proper_nouns_path.read_text(encoding="utf-8")
+            if proper_nouns_path.exists()
+            else None
         ),
         load_negative_terms(text_path),
     )
