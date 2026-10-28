@@ -89,10 +89,12 @@ def test_corpus_hierarchy_round_trip(language: str) -> None:
 def test_corpus_covers_all_agd_categories(language: str) -> None:
     # Strict from_dict already proves Rust-emitted categories are a subset of
     # the enum; equality here additionally catches stale enum members.
+    # Activities only contains leftover talks; 7.1 attaches all of them to talk groups.
+    optional_categories = {types.TextCategory.AGD_ACTIVITY.value}
     entries = json.loads((_TEXT_DIR / language / "manifest" / "agd.json").read_bytes())
-    assert {entry["category"] for entry in entries} == {
+    assert {entry["category"] for entry in entries} - optional_categories == {
         category.value for category in types.TextCategory if category.is_agd
-    }
+    } - optional_categories
 
 
 def test_api_models_field_parity() -> None:

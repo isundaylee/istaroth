@@ -20,6 +20,10 @@ changing dependencies in `pyproject.toml`, regenerate the Docker export files
 (use a shell redirect, not `-o`; CI diffs stdout and the header comment must
 match):
 
+Use uv **0.11.28**, matching the pin in `.github/workflows/docker-build.yml`.
+When upgrading the exporter, update that pin and regenerate both files together;
+uv versions can format equivalent dependency markers differently.
+
 ```bash
 uv export --frozen --only-group ml --no-hashes --no-emit-project > requirements-ml.txt
 uv export --frozen --no-group dev --no-group ml --no-hashes --no-emit-project > requirements-app.txt
