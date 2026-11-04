@@ -1176,15 +1176,17 @@ impl Repo {
         });
         let mut prefetched = prefetched?;
         let mut list = |name: &str| -> Result<Vec<Value>> {
-            let mut rows = prefetched
+            let rows = prefetched
                 .remove(name)
                 .ok_or_else(|| anyhow!("excel {name} not prefetched"))?;
+            // Defaults name cleartext fields, so they must see deobfuscated rows.
+            let mut rows = deob::deobfuscate_excel_table(name, rows)?;
             normalize_excel_defaults(name, &mut rows)?;
             Ok(rows)
         };
         let dialog_maps = dialog_maps?;
         let document = index_unique(
-            deob::deobfuscate_document_excel_config_data(list("DocumentExcelConfigData.json")?)?,
+            list("DocumentExcelConfigData.json")?,
             |d| d.i("id"),
             "document ID",
         )?;
@@ -1196,7 +1198,7 @@ impl Repo {
         }
         let localization = list("LocalizationExcelConfigData.json")?;
         let anecdote = index_unique(
-            deob::deobfuscate_anecdote_excel_config_data(list("AnecdoteExcelConfigData.json")?)?,
+            list("AnecdoteExcelConfigData.json")?,
             |d| d.i("id"),
             "anecdote ID",
         )?;
