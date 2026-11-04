@@ -12,9 +12,10 @@ use istaroth_agd_regen::issues::Scope;
 use istaroth_agd_regen::lang::Language;
 use istaroth_agd_regen::renderables::{
     achievement, activity, book, character, creature, hangout, quest, readable, subtitle, talk,
-    weapon,
+    talk_group, weapon,
 };
 use istaroth_agd_regen::repo::Repo;
+use istaroth_agd_regen::talkparse::GroupType;
 use istaroth_agd_regen::{deob, vh::ValueExt};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
@@ -158,6 +159,16 @@ fn deobfuscate_talk_group_data() {
             .unwrap();
     assert_eq!(activity_group["activityId"], 2022);
     assert_eq!(activity_group["talks"][0]["id"], 4011141);
+
+    // nextTalks drives the "related talk" sections; from 6.x it went unmapped behind
+    // rotating keys, which silently dropped them, so fail loudly if it recurs.
+    let next_talks_group =
+        deob::deobfuscate_talk_file(load_raw(&agd, "BinOutput/Talk/ActivityGroup/2020.json"))
+            .unwrap();
+    assert_eq!(
+        next_talks_group["talks"][7]["nextTalks"],
+        serde_json::json!([6140903, 46111, 46110, 40215, 40216, 40217])
+    );
 
     let gadget_group = deob::deobfuscate_talk_file(load_raw(
         &agd,
@@ -620,6 +631,32 @@ fn creatures_discover_returns_subtype_groups() {
     assert!(discovered.iter().any(|s| s == "CODEX_SUBTYPE_AUTOMATRON"));
     assert!(discovered.len() < 20);
     assert!(repo.excel.animal_codex.len() > 100);
+}
+
+#[test]
+fn talk_group_renders_only_unmentioned_next_talks() {
+    let repo = require_repo!();
+    let scope = Scope::default();
+    for (group_type, group_id, expected_related) in [
+        // Follow-up is also a top-level talk.
+        (GroupType::Npc, "20117", 0),
+        // A talk lists itself.
+        (GroupType::Gadget, "1001_199002001", 0),
+        // Follow-up appears nowhere else.
+        (GroupType::Npc, "10419", 1),
+        // A hub re-lists seven talks; only 701317 is not top-level, even though
+        // its text matches top-level talk 31131. Dedupe is by id, not text.
+        (GroupType::Npc, "7908", 1),
+    ] {
+        let rendered = talk_group::process(repo, &scope, group_type, group_id)
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            rendered.content.matches("related talk").count(),
+            expected_related,
+            "{group_id}"
+        );
+    }
 }
 
 #[test]

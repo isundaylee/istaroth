@@ -11,7 +11,7 @@ use crate::util;
 use crate::vh::ValueExt;
 use anyhow::{Result, anyhow, bail};
 use regex::Regex;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde_json::Value;
 use std::sync::LazyLock;
 
@@ -42,9 +42,16 @@ fn get_talk_group_info(
         .get(path)
         .ok_or_else(|| anyhow!("talk file not loaded: {path}"))?;
 
+    let talk_entries = data.arr("talks")?;
+    // nextTalks mostly re-lists the group's own talks (menus, hubs, self-references);
+    // only ids not mentioned anywhere else in the group add anything.
+    let mut mentioned_ids = talk_entries
+        .iter()
+        .map(|entry| crate::vh::as_i64_lenient(entry.f("id")?))
+        .collect::<Result<FxHashSet<i64>>>()?;
     let mut talks = Vec::new();
     let mut talk_ids: Vec<i64> = Vec::new();
-    for talk_entry in data.arr("talks")? {
+    for talk_entry in talk_entries {
         let talk_id = crate::vh::as_i64_lenient(talk_entry.f("id")?)?;
         let talk_info = match talk::get_talk_info_by_id(repo, scope, talk_id) {
             Ok(info) => info,
@@ -64,6 +71,9 @@ fn get_talk_group_info(
         };
         for next_talk_id in next_talk_entries {
             let next_talk_id = crate::vh::as_i64_lenient(next_talk_id)?;
+            if !mentioned_ids.insert(next_talk_id) {
+                continue;
+            }
             let next_info = match talk::get_talk_info_by_id(repo, scope, next_talk_id) {
                 Ok(info) => info,
                 Err(e) if e.is::<TalkNotFound>() => {
