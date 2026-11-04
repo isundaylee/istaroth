@@ -6,15 +6,12 @@ COMPOSE_DIR="$REPO_ROOT/docker-compose/web"
 ENV_FILE="$REPO_ROOT/.dev-stack.env"
 
 _resolve_identity() {
-  if [[ -n "${CONDUCTOR_WORKSPACE_NAME:-}" ]]; then
-    WORKSPACE_NAME="$CONDUCTOR_WORKSPACE_NAME"
-    COMPOSE_PROJECT_NAME="conductor-${WORKSPACE_NAME}"
-  elif [[ -n "${PASEO_BRANCH_NAME:-}" ]]; then
+  if [[ -n "${PASEO_BRANCH_NAME:-}" ]]; then
     WORKSPACE_NAME="$PASEO_BRANCH_NAME"
     COMPOSE_PROJECT_NAME="paseo-${WORKSPACE_NAME}"
   else
     WORKSPACE_NAME="$(basename "$(git -C "$REPO_ROOT" rev-parse --show-toplevel)")"
-    COMPOSE_PROJECT_NAME="cursor-${WORKSPACE_NAME}"
+    COMPOSE_PROJECT_NAME="istaroth-${WORKSPACE_NAME}"
   fi
   if [[ -z "$WORKSPACE_NAME" || -z "$COMPOSE_PROJECT_NAME" ]]; then
     echo "dev-compose.sh: could not resolve docker compose project name" >&2
@@ -23,9 +20,7 @@ _resolve_identity() {
 }
 
 _resolve_main_root() {
-  if [[ -n "${CONDUCTOR_ROOT_PATH:-}" ]]; then
-    MAIN_ROOT="$CONDUCTOR_ROOT_PATH"
-  elif [[ -n "${PASEO_SOURCE_CHECKOUT_PATH:-}" ]]; then
+  if [[ -n "${PASEO_SOURCE_CHECKOUT_PATH:-}" ]]; then
     MAIN_ROOT="$PASEO_SOURCE_CHECKOUT_PATH"
   else
     MAIN_ROOT="$(git -C "$REPO_ROOT" worktree list --porcelain | awk '/^worktree/ {print $2; exit}')"
@@ -62,19 +57,19 @@ _rebase_onto_upstream() {
 
 _export_ports() {
   _resolve_identity
-  if [[ -z "${CONDUCTOR_PORT:-}" ]]; then
+  if [[ -z "${DEV_WEB_PORT:-}" ]]; then
     if [[ -n "${PASEO_WORKTREE_PORT:-}" ]]; then
-      export CONDUCTOR_PORT="$PASEO_WORKTREE_PORT"
+      export DEV_WEB_PORT="$PASEO_WORKTREE_PORT"
     else
       OFFSET=$(( $(echo -n "$WORKSPACE_NAME" | cksum | awk '{print $1}') % 50 * 10 ))
-      export CONDUCTOR_PORT=$((5173 + OFFSET))
+      export DEV_WEB_PORT=$((5173 + OFFSET))
     fi
   fi
   export COMPOSE_PROJECT_NAME
-  export CONDUCTOR_BACKEND_METRICS_HOST_PORT=$((CONDUCTOR_PORT + 1))
-  export CONDUCTOR_RETRIEVAL_METRICS_HOST_PORT=$((CONDUCTOR_PORT + 2))
-  export CONDUCTOR_JAEGER_UI_HOST_PORT=$((CONDUCTOR_PORT + 3))
-  export CONDUCTOR_JAEGER_OTLP_HOST_PORT=$((CONDUCTOR_PORT + 4))
+  export DEV_BACKEND_METRICS_HOST_PORT=$((DEV_WEB_PORT + 1))
+  export DEV_RETRIEVAL_METRICS_HOST_PORT=$((DEV_WEB_PORT + 2))
+  export DEV_JAEGER_UI_HOST_PORT=$((DEV_WEB_PORT + 3))
+  export DEV_JAEGER_OTLP_HOST_PORT=$((DEV_WEB_PORT + 4))
 }
 
 # Clone the shared checkpoints into a per-worktree directory so each stack gets
@@ -182,11 +177,11 @@ _write_env_file() {
   cat >"$ENV_FILE" <<EOF
 COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME
 WORKSPACE_NAME=$WORKSPACE_NAME
-CONDUCTOR_PORT=$CONDUCTOR_PORT
-CONDUCTOR_BACKEND_METRICS_HOST_PORT=$CONDUCTOR_BACKEND_METRICS_HOST_PORT
-CONDUCTOR_RETRIEVAL_METRICS_HOST_PORT=$CONDUCTOR_RETRIEVAL_METRICS_HOST_PORT
-CONDUCTOR_JAEGER_UI_HOST_PORT=$CONDUCTOR_JAEGER_UI_HOST_PORT
-CONDUCTOR_JAEGER_OTLP_HOST_PORT=$CONDUCTOR_JAEGER_OTLP_HOST_PORT
+DEV_WEB_PORT=$DEV_WEB_PORT
+DEV_BACKEND_METRICS_HOST_PORT=$DEV_BACKEND_METRICS_HOST_PORT
+DEV_RETRIEVAL_METRICS_HOST_PORT=$DEV_RETRIEVAL_METRICS_HOST_PORT
+DEV_JAEGER_UI_HOST_PORT=$DEV_JAEGER_UI_HOST_PORT
+DEV_JAEGER_OTLP_HOST_PORT=$DEV_JAEGER_OTLP_HOST_PORT
 VITE_PUBLIC_HOST=$(hostname -f 2>/dev/null || hostname)
 EOF
 }
@@ -198,9 +193,9 @@ _load_env() {
   fi
   # shellcheck disable=SC1090
   source "$ENV_FILE"
-  export COMPOSE_PROJECT_NAME CONDUCTOR_PORT \
-    CONDUCTOR_BACKEND_METRICS_HOST_PORT CONDUCTOR_RETRIEVAL_METRICS_HOST_PORT \
-    CONDUCTOR_JAEGER_UI_HOST_PORT CONDUCTOR_JAEGER_OTLP_HOST_PORT VITE_PUBLIC_HOST
+  export COMPOSE_PROJECT_NAME DEV_WEB_PORT \
+    DEV_BACKEND_METRICS_HOST_PORT DEV_RETRIEVAL_METRICS_HOST_PORT \
+    DEV_JAEGER_UI_HOST_PORT DEV_JAEGER_OTLP_HOST_PORT VITE_PUBLIC_HOST
 }
 
 _refresh_paseo_port() {
@@ -212,7 +207,7 @@ _refresh_paseo_port() {
     echo "dev-compose.sh: PASEO_PORT must be numeric, got '$PASEO_PORT'" >&2
     exit 1
   fi
-  export CONDUCTOR_PORT="$PASEO_PORT"
+  export DEV_WEB_PORT="$PASEO_PORT"
   _export_ports
   _write_env_file
 }
@@ -260,10 +255,10 @@ cmd_down() {
 cmd_urls() {
   _load_env
   echo "COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME"
-  echo "Web UI:            http://$VITE_PUBLIC_HOST:$CONDUCTOR_PORT"
-  echo "Backend metrics:   http://$VITE_PUBLIC_HOST:$CONDUCTOR_BACKEND_METRICS_HOST_PORT"
-  echo "Retrieval metrics: http://$VITE_PUBLIC_HOST:$CONDUCTOR_RETRIEVAL_METRICS_HOST_PORT"
-  echo "Jaeger UI:         http://$VITE_PUBLIC_HOST:$CONDUCTOR_JAEGER_UI_HOST_PORT"
+  echo "Web UI:            http://$VITE_PUBLIC_HOST:$DEV_WEB_PORT"
+  echo "Backend metrics:   http://$VITE_PUBLIC_HOST:$DEV_BACKEND_METRICS_HOST_PORT"
+  echo "Retrieval metrics: http://$VITE_PUBLIC_HOST:$DEV_RETRIEVAL_METRICS_HOST_PORT"
+  echo "Jaeger UI:         http://$VITE_PUBLIC_HOST:$DEV_JAEGER_UI_HOST_PORT"
 }
 
 usage() {

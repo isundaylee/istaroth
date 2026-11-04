@@ -1,7 +1,0 @@
-"$schema" = "https://conductor.build/schemas/settings.repo.schema.json"
-
-[scripts]
-archive = "scripts/dev-compose.sh down"
-run = "scripts/dev-compose.sh up"
-run_mode = "concurrent"
-setup = "scripts/dev-compose.sh setup"
