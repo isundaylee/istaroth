@@ -76,7 +76,7 @@ const SNAPSHOTS: [(&str, &str); 48] = [
     ("6.6", "4d9593eb73a52e3fd79c30c4f22f97be4a71ba36"),
     ("6.7", "82e74382e7788e318ad41fca926739a752c0bed6"),
     ("7.0", "be8d439be0796208fa6533d7e9f3eefaa7ecab26"),
-    ("7.1", "792978e5503ecfba73dcb3562ed44a0d35a2abe2"),
+    ("7.1", "c5ef717b77418e5a23234e990e7c0d3a829975ae"),
 ];
 
 const EXCEL_DOMAINS: [(Domain, &str, &str); 7] = [
