@@ -234,6 +234,23 @@ static COMMON: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| 
         ("PDNGBPKLELB", "CUSTOM_addlLocalID"),
         ("DGAIPHFGBOD", "loadType"),
         ("CAMBAICPKPH", "nextTalks"),
+        // CNRELWin7.2.0_R49086080_S49210135_D49230962
+        ("BGHPAKBEPND", "CUSTOM_paramStr"),
+        ("FLBPGKJLNAG", "CUSTOM_addlLocalID"),
+        ("PLOJOMIPJGH", "questIDList"),
+    ])
+});
+
+// Applied before COMMON. In CNRELWin7.2.0_R49086080_S49210135_D49230962 the
+// literal key `questIDList` holds what earlier builds called `contentLocalizedId`,
+// while the real questIDList moved to an obfuscated key (see COMMON).
+static DOCUMENT: LazyLock<HashMap<&'static str, &'static str>> =
+    LazyLock::new(|| HashMap::from([("questIDList", "contentLocalizedId")]));
+
+static CITY: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| {
+    HashMap::from([
+        // CNRELWin7.2.0_R49086080_S49210135_D49230962
+        ("CCOHMABLMMK", "cityNameTextMapHash"),
     ])
 });
 
@@ -257,6 +274,13 @@ static ANECDOTE: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|
         ("NLBLEOBAOAJ", "titleTextMapHash"),
         ("JKPOEFMNLAJ", "teaserTextMapHash"),
         ("MBPANALDEMH", "descTextMapHash"),
+        // CNRELWin7.2.0_R49086080_S49210135_D49230962
+        ("EPKOBMEGGPJ", "id"),
+        ("ALMEKBFJDIM", "questIds"),
+        ("DEKFJBEENEP", "titleTextMapHash"),
+        ("MGMDAJLHNKJ", "teaserTextMapHash"),
+        ("MPDLGALMBIA", "descTextMapHash"),
+        ("GBBHHGKCGAF", "isHide"),
     ])
 });
 
@@ -512,7 +536,9 @@ pub fn resolve_field_name(key: &str) -> &str {
 }
 
 pub fn deobfuscate_document_excel_config_data(data: Vec<Value>) -> Result<Vec<Value>> {
-    process_array_items(data)
+    data.into_iter()
+        .map(|i| deob_map(deob_map(i, &DOCUMENT, &[])?, &COMMON, &[]))
+        .collect()
 }
 
 pub fn deobfuscate_anecdote_excel_config_data(data: Vec<Value>) -> Result<Vec<Value>> {
@@ -521,10 +547,31 @@ pub fn deobfuscate_anecdote_excel_config_data(data: Vec<Value>) -> Result<Vec<Va
         .collect()
 }
 
+/// Dispatch by table name; tables without obfuscated fields we read pass through.
+pub fn deobfuscate_excel_table(table: &str, rows: Vec<Value>) -> Result<Vec<Value>> {
+    match table {
+        "DocumentExcelConfigData.json" => deobfuscate_document_excel_config_data(rows),
+        "AnecdoteExcelConfigData.json" => deobfuscate_anecdote_excel_config_data(rows),
+        "CityConfigData.json" => rows.into_iter().map(|i| deob_map(i, &CITY, &[])).collect(),
+        _ => Ok(rows),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn document_literal_quest_id_list_is_not_the_real_one() {
+        let rows = deobfuscate_excel_table(
+            "DocumentExcelConfigData.json",
+            vec![json!({"questIDList": [302912], "PLOJOMIPJGH": [200363]})],
+        )
+        .unwrap();
+        assert_eq!(rows[0]["questIDList"], json!([200363]));
+        assert_eq!(rows[0]["contentLocalizedId"], json!([302912]));
+    }
 
     #[test]
     fn cleartext_quest_defaults_and_condition_aliases() {

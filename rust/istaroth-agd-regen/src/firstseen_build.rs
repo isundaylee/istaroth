@@ -28,7 +28,7 @@ use std::path::Path;
 /// - no 4.1 snapshot was ever published, so 4.1 additions attribute to 4.2;
 /// - versions before 1.4 predate the history, so the 1.4 file is a baseline
 ///   ("1.4 or earlier"); CN and OS snapshots of a version are interchangeable.
-const SNAPSHOTS: [(&str, &str); 48] = [
+const SNAPSHOTS: [(&str, &str); 49] = [
     ("1.4", "86c28c0a59526cad72d5ec6548a0d6b3a9413826"),
     ("1.5", "5ee08c0771f257ac06f37293973e6bf42302fa76"),
     ("1.6", "9eeb6591fa5de850a0486fa6c2691e1f468d3d91"),
@@ -77,6 +77,7 @@ const SNAPSHOTS: [(&str, &str); 48] = [
     ("6.7", "82e74382e7788e318ad41fca926739a752c0bed6"),
     ("7.0", "be8d439be0796208fa6533d7e9f3eefaa7ecab26"),
     ("7.1", "c5ef717b77418e5a23234e990e7c0d3a829975ae"),
+    ("7.2", "d54f6f0d423ded9d055bb740a3e5f3aa8f2667f1"),
 ];
 
 const EXCEL_DOMAINS: [(Domain, &str, &str); 7] = [

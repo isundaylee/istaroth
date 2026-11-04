@@ -254,6 +254,7 @@ fn deobfuscate_document_excel_config_data() {
     assert_eq!(doc["titleTextMapHash"], 3763660007i64);
     assert_eq!(doc["questIDList"], serde_json::json!([200363]));
     assert_eq!(doc["questContentLocalizedId"], serde_json::json!([200565]));
+    assert_eq!(doc["contentLocalizedId"], serde_json::json!([302912]));
 
     let weapon_doc = data.iter().find(|d| d["id"] == 191431).unwrap(); // 息燧之笛
     assert_eq!(
@@ -285,6 +286,10 @@ fn deobfuscate_anecdote_excel_config_data() {
     assert_eq!(entry["teaserTextMapHash"], 93015952);
     assert_eq!(entry["descTextMapHash"], 3335685669i64);
     assert!(entry.get("isHide").is_none_or(|value| value == false));
+    assert_eq!(
+        data.iter().filter(|e| e.get("isHide").is_some()).count(),
+        34
+    );
 }
 
 // --- Repo-level processing over real data ---
