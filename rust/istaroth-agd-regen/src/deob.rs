@@ -233,6 +233,7 @@ static COMMON: LazyLock<HashMap<&'static str, &'static str>> = LazyLock::new(|| 
         ("DPHNNJJCFAN", "talkRoleNameTextMapHash"),
         ("PDNGBPKLELB", "CUSTOM_addlLocalID"),
         ("DGAIPHFGBOD", "loadType"),
+        ("CAMBAICPKPH", "nextTalks"),
     ])
 });
 
