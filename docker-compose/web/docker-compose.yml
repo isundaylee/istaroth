@@ -53,7 +53,7 @@ services:
       jaeger:
         condition: service_started
     ports:
-      - "${CONDUCTOR_RETRIEVAL_METRICS_HOST_PORT:-8092}:8092"
+      - "${DEV_RETRIEVAL_METRICS_HOST_PORT:-8092}:8092"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/docs')"]
       # Probe every 1s while starting up (fast readiness detection), but relax to
@@ -81,7 +81,7 @@ services:
       jaeger:
         condition: service_started
     ports:
-      - "${CONDUCTOR_BACKEND_METRICS_HOST_PORT:-8090}:8090"
+      - "${DEV_BACKEND_METRICS_HOST_PORT:-8090}:8090"
     environment:
       <<: *backend-env
       ISTAROTH_RETRIEVAL_SERVICE_URL: http://retrieval:8002
@@ -90,7 +90,7 @@ services:
     # Keep in sync with frontend/.nvmrc
     image: node:18-alpine
     working_dir: /app
-    command: ["sh", "-c", "npm run dev -- --host 0.0.0.0 --port ${CONDUCTOR_PORT:-5173}"]
+    command: ["sh", "-c", "npm run dev -- --host 0.0.0.0 --port ${DEV_WEB_PORT:-5173}"]
     depends_on:
       frontend-deps:
         condition: service_completed_successfully
@@ -98,7 +98,7 @@ services:
       # (VITE_API_PROXY_TARGET), so it doesn't need istaroth up to boot. Gating only
       # on frontend-deps lets the UI come up in parallel with the whole backend chain.
     ports:
-      - "${CONDUCTOR_PORT:-5173}:${CONDUCTOR_PORT:-5173}"
+      - "${DEV_WEB_PORT:-5173}:${DEV_WEB_PORT:-5173}"
     volumes:
       - ../../frontend:/app
       - frontend-node-modules:/app/node_modules
@@ -120,8 +120,8 @@ services:
   jaeger:
     image: cr.jaegertracing.io/jaegertracing/jaeger:2.15.0
     ports:
-      - "${CONDUCTOR_JAEGER_UI_HOST_PORT:-16686}:16686"  # Jaeger UI
-      - "${CONDUCTOR_JAEGER_OTLP_HOST_PORT:-4317}:4317"  # OTLP gRPC receiver
+      - "${DEV_JAEGER_UI_HOST_PORT:-16686}:16686"  # Jaeger UI
+      - "${DEV_JAEGER_OTLP_HOST_PORT:-4317}:4317"  # OTLP gRPC receiver
 
 volumes:
   backend-venv:

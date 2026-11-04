@@ -27,9 +27,9 @@ def base_url() -> str:
             "(run scripts/dev-compose.sh setup && scripts/dev-compose.sh up --detach)"
         )
     for line in dev_stack_env.read_text().splitlines():
-        if line.startswith("CONDUCTOR_PORT="):
-            return f"http://localhost:{line.removeprefix('CONDUCTOR_PORT=')}"
-    pytest.fail(f"{dev_stack_env} has no CONDUCTOR_PORT")
+        if line.startswith("DEV_WEB_PORT="):
+            return f"http://localhost:{line.removeprefix('DEV_WEB_PORT=')}"
+    pytest.fail(f"{dev_stack_env} has no DEV_WEB_PORT")
 
 
 @pytest.fixture(scope="session", autouse=True)

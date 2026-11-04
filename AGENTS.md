@@ -154,10 +154,8 @@ See the [Web UI section](README.md#web-ui) in the README for environment setup a
   - `scripts/dev-compose.sh setup` — symlink shared env files (`.env.common`,
     `.env.mcp`, `.env.web`, `tmp`) from the main checkout and write
     `.dev-stack.env` (run once per worktree). Configured to run automatically via
-    `.cursor/worktrees.json`, but on Remote SSH Cursor often skips that step
-    (known Cursor bug: worktree setup can't see the config over `file://`). If
-    those env files / `.dev-stack.env` are missing, run `setup` yourself before
-    `up` / `urls`.
+    `paseo.json`. If those env files / `.dev-stack.env` are missing, run `setup`
+    yourself before `up` / `urls`.
   - `scripts/dev-compose.sh up --detach` — start the stack in the background;
     `down` to tear it down; `urls` to print the Web UI / metrics / Jaeger URLs
     for this worktree.
